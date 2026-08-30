@@ -7004,6 +7004,40 @@ class TRLPPOTrainer(PPOTrainer):
             "local_seed": self.local_seed,
         }
 
+    @staticmethod
+    def _load_a2_v26_5_policy_residual_state(policy, actor_state, *, allow_legacy):
+        """Load only the two explicitly supported v26-5 residual policy key sets."""
+        own_keys = set(policy.state_dict())
+        residual_keys = set(policy.residual_state_keys())
+        if not residual_keys or not residual_keys.issubset(own_keys):
+            raise RuntimeError(
+                "A2 v26-5 residual actor did not expose a valid residual state-key set."
+            )
+        incoming_keys = set(actor_state)
+        if incoming_keys == own_keys:
+            result = policy.load_state_dict(actor_state, strict=True)
+            return result, "composite", True
+
+        legacy_keys = own_keys - residual_keys
+        if allow_legacy and incoming_keys == legacy_keys:
+            result = policy.load_state_dict(actor_state, strict=False)
+            if set(result.missing_keys) != residual_keys or result.unexpected_keys:
+                raise RuntimeError(
+                    "A2 v26-5 legacy-to-residual policy load mismatch: "
+                    f"missing={result.missing_keys}, unexpected={result.unexpected_keys}."
+                )
+            policy.assert_residual_zero_initialized()
+            return result, "legacy", False
+
+        expected_sets = ["composite"]
+        if allow_legacy:
+            expected_sets.append("legacy")
+        raise RuntimeError(
+            "A2 v26-5 residual policy checkpoint key set is unsupported; expected exactly "
+            f"one of {expected_sets}, got missing={sorted(own_keys - incoming_keys)}, "
+            f"unexpected={sorted(incoming_keys - own_keys)}."
+        )
+
     def load_policy_checkpoint(self, checkpoint_path):
         """Strictly load only the actor policy weights from a checkpoint."""
         print(f"Loading policy-only checkpoint from {checkpoint_path}")
@@ -7030,8 +7064,18 @@ class TRLPPOTrainer(PPOTrainer):
             if not isinstance(load_actor_rms, bool):
                 raise ValueError("policy_only_load_actor_rms must be bool.")
 
-        if load_actor_rms:
+        if getattr(model.policy, "is_v26_5_policy_residual", False):
+            if load_actor_rms is not True:
+                raise RuntimeError(
+                    "A2 v26-5 residual policy-only loading requires inherited actor RMS."
+                )
+            load_result, actor_state_kind, actor_load_strict = self._load_a2_v26_5_policy_residual_state(
+                model.policy, actor_state, allow_legacy=True
+            )
+        elif load_actor_rms:
             load_result = model.policy.load_state_dict(actor_state, strict=True)
+            actor_state_kind = "legacy"
+            actor_load_strict = True
         else:
             actor_rms_keys = {
                 key
@@ -7057,15 +7101,28 @@ class TRLPPOTrainer(PPOTrainer):
                     f"missing={load_result.missing_keys}, "
                     f"unexpected={load_result.unexpected_keys}."
                 )
+            actor_state_kind = "legacy"
+            actor_load_strict = False
         warm_head_reset = self._apply_v23_warm_head_reset(model.policy)
         self._a2_v23_runtime_load_facts["actor"] = {
             "loaded": True,
             "state_key": actor_key,
-            "strict": load_actor_rms,
+            "strict": actor_load_strict,
             "actor_rms_loaded": load_actor_rms,
+            "actor_state_kind": actor_state_kind,
             "missing_keys": list(load_result.missing_keys),
             "unexpected_keys": list(load_result.unexpected_keys),
         }
+        if getattr(model.policy, "is_v26_5_policy_residual", False):
+            self._a2_v23_runtime_load_facts["actor"].update(
+                {
+                    "exact_keyset": True,
+                    "keyset_contract": (
+                        "composite_exact" if actor_state_kind == "composite"
+                        else "legacy_exact_without_residual"
+                    ),
+                }
+            )
         if warm_head_reset is not None:
             self._a2_v23_runtime_load_facts["actor"]["warm_head_reset"] = warm_head_reset
         self._a2_v23_runtime_load_facts["load_mode"] = "policy_only"
@@ -7094,24 +7151,48 @@ class TRLPPOTrainer(PPOTrainer):
         model = self.accelerator.unwrap_model(self.model)
         if "actor_model_state_dict" in checkpoint:
             actor_key = "actor_model_state_dict"
-            actor_result = model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+            if getattr(model.policy, "is_v26_5_policy_residual", False):
+                actor_result, actor_state_kind, actor_load_strict = self._load_a2_v26_5_policy_residual_state(
+                    model.policy, checkpoint[actor_key], allow_legacy=False
+                )
+            else:
+                actor_result = model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+                actor_state_kind = "legacy"
+                actor_load_strict = True
             self._a2_v23_runtime_load_facts["actor"] = {
                 "loaded": True,
                 "state_key": actor_key,
-                "strict": True,
+                "strict": actor_load_strict,
                 "missing_keys": list(actor_result.missing_keys),
                 "unexpected_keys": list(actor_result.unexpected_keys),
+                "actor_state_kind": actor_state_kind,
             }
+            if getattr(model.policy, "is_v26_5_policy_residual", False):
+                self._a2_v23_runtime_load_facts["actor"].update(
+                    {"exact_keyset": True, "keyset_contract": "composite_exact"}
+                )
         elif "policy_state_dict" in checkpoint:
             actor_key = "policy_state_dict"
-            actor_result = model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+            if getattr(model.policy, "is_v26_5_policy_residual", False):
+                actor_result, actor_state_kind, actor_load_strict = self._load_a2_v26_5_policy_residual_state(
+                    model.policy, checkpoint[actor_key], allow_legacy=False
+                )
+            else:
+                actor_result = model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+                actor_state_kind = "legacy"
+                actor_load_strict = True
             self._a2_v23_runtime_load_facts["actor"] = {
                 "loaded": True,
                 "state_key": actor_key,
-                "strict": True,
+                "strict": actor_load_strict,
                 "missing_keys": list(actor_result.missing_keys),
                 "unexpected_keys": list(actor_result.unexpected_keys),
+                "actor_state_kind": actor_state_kind,
             }
+            if getattr(model.policy, "is_v26_5_policy_residual", False):
+                self._a2_v23_runtime_load_facts["actor"].update(
+                    {"exact_keyset": True, "keyset_contract": "composite_exact"}
+                )
         if "value_state_dict" in checkpoint and model.value_model is not None:
             if checkpoint["value_state_dict"] is None:
                 raise RuntimeError("Full checkpoint contains a null value_state_dict.")

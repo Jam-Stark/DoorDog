@@ -1,0 +1,23 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v26_5_wave2_C2_gauge
+  - _self_
+
+v26_schema: a2_piper_base_v26_5_wave2_r1_policy_residual_v1
+v26_phase: V26_5_WAVE2_R1_POLICY_RESIDUAL
+v26_cell: V26_5_WAVE2_R1_POLICY_RESIDUAL_S0
+v26_checkpoint_contract: legacy_policy_only_transfer; full_composite_resume_requires_checkpoint_load_mode_full_override
+
+checkpoint_load_mode: policy_only
+policy_only_load_actor_rms: true
+auto_load_latest: false
+
+algo:
+  trl:
+    num_total_batches: 250
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.A2V26_5PolicyResidualRecurrentActor
+      residual_hidden_dim: 128
+      residual_stage_obs_slice: [127, 133]

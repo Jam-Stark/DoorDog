@@ -37,3 +37,4 @@
 - 2026-08-31 09:45 HKT — H15四seed以commit `71d25e8`、1024 env/seed、exact 512/512 side、checkpoint=null在GPU0–3独立tmux启动；计划不中断运行1500 batches并由四个runtime supervisor长睡眠监控。
 - 2026-08-31 12:45 HKT — H15 seed2/3 step375 natural fixed-side screen均复现LEFT/RIGHT K5/E2=`0/0`，且到约batch500 Stage3 reward全0；确认batch250切Stage1 occupancy过早，两个seed在step500后计划性停止，GPU0/1 control继续。
 - 2026-08-31 12:45 HKT — 登记H16 acquisition-first successor：同native actor/reward/mirror合同，仅把acquisition保持到750并给足750个Stage3 updates；256-env×5 gate-r smoke通过null checkpoint、128/128与scheduler runtime门。
+- 2026-08-31 12:49 HKT — H16 seed2/3以commit `0ceb5ef`在GPU2/3从checkpoint=null启动2000-batch uninterrupted run；startup通过exact 512/512、current四段schedule与batch1 runtime门。H15 seed0/1 control同时继续。

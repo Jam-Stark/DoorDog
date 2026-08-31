@@ -34,3 +34,4 @@
 - 2026-08-31 09:24 HKT — H14 RIGHT teacher capture/BC通过数据支持与held-out fit门，但teacher-off shared head仅E4/E5=`2/2`，低于`8/5`准入线；关闭teacher路线并按Owner方案1实现H15 native bilateral全策略随机初始化入口。
 - 2026-08-31 09:24 HKT — H15旧joint-stage候选的256-env×5 plumbing smoke完成81920 timesteps：checkpoint=null、LEFT/RIGHT=`128/128`、actor19+critic17 optimizer states齐全且RMS更新；该artifact含已移除的pose reward6，只复用actor/null/RMS技术事实。
 - 2026-08-31 09:43 HKT — 发现checkpoint不序列化online staged-reset bank，故H15改为单进程1500-batch四段occupancy schedule；current clean scheduled candidate重新完成256-env×5 smoke，确认初始acquisition ratios、pose reward0与六个tensor-index scheduler路径实际可运行。
+- 2026-08-31 09:45 HKT — H15四seed以commit `71d25e8`、1024 env/seed、exact 512/512 side、checkpoint=null在GPU0–3独立tmux启动；计划不中断运行1500 batches并由四个runtime supervisor长睡眠监控。

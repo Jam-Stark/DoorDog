@@ -27131,7 +27131,7 @@ CUDA_VISIBLE_DEVICES=3 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h15a_native_acq_s0
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h15a_native_acq_s0
-status: planned
+status: running
 previous_batch_id: pull_lr_full_h13r2_b200_s3
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-31T09:43:00
@@ -27204,7 +27204,7 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h15a_native_acq_s1
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h15a_native_acq_s1
-status: planned
+status: running
 previous_batch_id: pull_lr_full_h15a_native_acq_s0
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-31T09:43:01
@@ -27277,7 +27277,7 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h15a_native_acq_s2
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h15a_native_acq_s2
-status: planned
+status: running
 previous_batch_id: pull_lr_full_h15a_native_acq_s1
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-31T09:43:01
@@ -27348,7 +27348,7 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h15a_native_acq_s3
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h15a_native_acq_s3
-status: planned
+status: running
 previous_batch_id: pull_lr_full_h15a_native_acq_s2
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-31T09:43:01

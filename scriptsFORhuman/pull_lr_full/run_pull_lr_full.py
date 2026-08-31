@@ -191,7 +191,7 @@ def _eval_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], 
     ]
     if args.gate in {"m", "n"}:
         diagnostic_reward_terms.append("a2_pull_stage3_pose_quality")
-    if args.gate in {"o", "q"}:
+    if args.gate == "o":
         diagnostic_reward_terms.append("a2_pull_stage3_bilateral_pose_quality")
     diagnostic_reward_terms.extend(
         [

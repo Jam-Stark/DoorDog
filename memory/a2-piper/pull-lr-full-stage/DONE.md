@@ -46,3 +46,4 @@
 - 2026-08-31 19:09 HKT — H17 paired Stage1-focus经Ultra裁决固定为`[.35,.40,.25]`，只移动Stage0→Stage1的0.15 occupancy；256-env×5 gate-s smoke完成并通过null/128:128/schedule runtime门。
 - 2026-08-31 19:13 HKT — H17 seed3在GPU0从checkpoint=null启动，startup通过batch1、exact512/512、resolved Stage1-focus schedule与pose reward0门；四GPU再次满载。
 - 2026-08-31 19:58 HKT — H16 seed1在两个eval seeds均双侧E2=0，saved step875后hard-stop；GPU1登记paired H17 seed1，形成对H16失败seeds1/3的两组Stage1-occupancy比较。
+- 2026-08-31 20:01 HKT — H17 seed1在GPU1从checkpoint=null启动，startup通过batch1、exact512/512与paired Stage1-focus schedule门；H17 seeds1/3现并行运行。

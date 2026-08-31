@@ -1,0 +1,25 @@
+# @package _global_
+# H17: paired H16 seed3 retry. Only the 0-750 reset occupancy moves 0.15
+# from Stage0 to the E1->E2 bottleneck at Stage1.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_native_bilateral_long_acq
+  - _self_
+
+experiment_name: pull_lr_full_native_bilateral_stage1_focus
+
+env:
+  config:
+    staged_reset_ratios: [0.35, 0.40, 0.25, 0.0, 0.0, 0.0]
+
+schedule_dict:
+  "env@staged_reset_ratios@0":
+    type: segment
+    val_type: float
+    seg_steps: [0, 750, 1500, 1750]
+    seg_vals: [0.35, 0.25, 0.25, 0.40]
+  "env@staged_reset_ratios@1":
+    type: segment
+    val_type: float
+    seg_steps: [0, 750, 1500, 1750]
+    seg_vals: [0.40, 0.0, 0.0, 0.0]

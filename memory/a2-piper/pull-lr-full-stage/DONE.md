@@ -43,3 +43,4 @@
 - 2026-08-31 17:30 HKT — H16 M750：seed2 natural LEFT/RIGHT K5=`16/16`、E2=`5/7`，conditional admit进入Stage3；seed3两eval seeds均双侧E2=0并于saved step800 hard-stop。GPU3补跑paired H16 seed0。
 - 2026-08-31 17:33 HKT — paired H16 seed0在GPU3从checkpoint=null启动，startup通过batch1、512/512与long-acquisition schedule门；H16 active repeats为seed0/1/2。
 - 2026-08-31 18:49 HKT — H15 seed0完成global1500，final LEFT/RIGHT E2=`6/8`、E3=`1/0`、E4=`0/0`、hinge≈0.002rad；fast curriculum没有形成双侧Stage3，H15关闭并释放GPU0。
+- 2026-08-31 19:09 HKT — H17 paired Stage1-focus经Ultra裁决固定为`[.35,.40,.25]`，只移动Stage0→Stage1的0.15 occupancy；256-env×5 gate-s smoke完成并通过null/128:128/schedule runtime门。

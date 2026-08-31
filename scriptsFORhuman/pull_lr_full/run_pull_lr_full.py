@@ -37,6 +37,7 @@ ABLATIONS = {
     "p": "wbmanip/pull_lr_full_h14_teacher_capture",
     "q": "wbmanip/pull_lr_full_native_bilateral",
     "r": "wbmanip/pull_lr_full_native_bilateral_long_acq",
+    "s": "wbmanip/pull_lr_full_native_bilateral_stage1_focus",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")
@@ -110,7 +111,7 @@ def _runtime_env(gpu: int, port: int) -> dict[str, str]:
 def _train_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], Path]:
     if args.from_scratch and args.resume_full:
         raise ValueError("--from-scratch and --resume-full are mutually exclusive")
-    if args.gate in {"q", "r"}:
+    if args.gate in {"q", "r", "s"}:
         if not args.from_scratch and not args.resume_full:
             raise ValueError(
                 "native bilateral gates require --from-scratch or an explicit native --resume-full checkpoint"

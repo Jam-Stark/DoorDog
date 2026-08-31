@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-31 18:49 HKT
+last_updated: 2026-08-31 19:09 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -80,6 +80,8 @@ source_of_truth:
   - logs_eval/a2_piper_pull_lr_full_stage/h16_m750_confirm_gate_r_s3_step750_evalseed0_summary.json
   - logs_eval/a2_piper_pull_lr_full_stage/h15_final_screen_gate_q_s0_step1500_evalseed1001/left/eval/stage2_5_step_trace.json
   - logs_eval/a2_piper_pull_lr_full_stage/h15_final_screen_gate_q_s0_step1500_evalseed1001/right/eval/stage2_5_step_trace.json
+  - gr00t/rl/config/ablation/wbmanip/pull_lr_full_native_bilateral_stage1_focus.yaml
+  - logs_rl/a2_piper_pull_lr_full_stage/h17_stage1_focus_smoke5_gate_s_seed3/config.yaml
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -89,7 +91,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-31 18:49 HKT)
+## Current evidence (2026-08-31 19:09 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -140,6 +142,7 @@ related_entries:
 - H15 M750 natural screen进一步确认fast curriculum失败：seed0 LEFT/RIGHT K5/E2=`5/0`、E3+=0，seed1在eval seeds1001与0均双侧K5/E2=`0/0`。seed1满足两次eval hard-fail并在saved step875后计划性停止；seed0保留为不对称control到1500。H16扩为seed1/2/3三个scratch repeats。
 - H16 M750首次区分scratch seeds：seed2 LEFT/RIGHT K5=`16/16`、E2=`5/7`，满足双方非零的conditional acquisition admission并继续Stage3；seed3在eval seeds1001与0均双侧K5/E2=`0/0`，于saved step800后hard-stop。GPU3补跑与H15 control同seed的H16 seed0，当前H16 active为seed0/1/2。
 - H15唯一保留的seed0完成global1500：final LEFT K5/E2/E3/E4/E5=`6/6/1/0/0`，RIGHT=`8/8/0/0/0`，双方max hinge约0.002rad、goal0。fast curriculum最终形成部分acquisition，但没有双侧E3或任何E4，H15正式关闭。
+- H17是H16失败seed3的paired Stage1-occupancy retry：仅0–750从`[.50,.25,.25]`改为`[.35,.40,.25]`，保持Stage2与750后全部schedule不变，检验E1→E2曝光不足。256-env×5 smoke通过checkpoint=null、exact128/128、resolved paired schedule与pose reward0 runtime门；正式run尚未启动。
 
 ## Evidence boundary
 

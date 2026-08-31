@@ -49,3 +49,5 @@
 - 2026-08-31 20:01 HKT — H17 seed1在GPU1从checkpoint=null启动，startup通过batch1、exact512/512与paired Stage1-focus schedule门；H17 seeds1/3现并行运行。
 - 2026-08-31 22:20 HKT — H16 seed0 M750双eval-seed E2全0后step800停止；seed2 M1500双eval-seed均RIGHT E3约10–11但双方E4=0/.105-dwell0，step1600停止。H16关闭，定位为raw joint/base饱和下的稳定press equilibrium。
 - 2026-08-31 22:20 HKT — Ultra选择B0 raw absolute-joint/base BC为主轴，B1只在FK/Jacobian mirror门后启用；并行D probe只覆盖post-E3 canonical lateral base，拒绝继续原task-space投影。
+- 2026-08-31 23:21 HKT — H18-D RIGHT16有11个E3与1032 valid-contact active rows，但E4=0/hinge max0.011，关闭base-only方向。
+- 2026-08-31 23:58 HKT — H18-B0按独立review修复bounded-sample与Stage entry/exit lag：latent Gaussian在env显式tanh，capture/executor共用observed-stage gate；r7 recapture1664 rows、heldout MSE0.0230、parent23 exact，final RIGHT4 smoke通过1172 active rows。

@@ -1,0 +1,21 @@
+# @package _global_
+# H18-D: eval-only fixed-RIGHT post-E3 base-lateral causal probe.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_native_bilateral_long_acq
+  - _self_
+
+experiment_name: pull_lr_full_h18d_base_lateral_probe
+
+algo:
+  config:
+    eval:
+      a2_hold_oracle_enabled: false
+
+env:
+  config:
+    a2_door_open_lr_distribution: right
+    a2_pull_h14_teacher_capture_enabled: false
+    a2_pull_stage3_taskspace_action_enabled: false
+    a2_pull_h18d_base_lateral_probe_enabled: true
+    a2_pull_h18d_base_lateral_probe_raw: -2.7

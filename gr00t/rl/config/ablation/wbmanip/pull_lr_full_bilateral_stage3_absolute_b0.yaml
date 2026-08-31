@@ -1,0 +1,29 @@
+# @package _global_
+# H18-B0: frozen H16 parent plus an absolute cumulative arm-target Stage3 head.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_gate_b
+  - _self_
+
+checkpoint: REQUIRED_BILATERAL_STAGE3_ABSOLUTE_WARMSTART.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_lr_full_bilateral_stage3_absolute_b0
+
+algo:
+  config:
+    load_optimizer: false
+    desired_kl: null
+    actor_learning_rate: 1.0e-4
+    critic_learning_rate: 1.0e-4
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_bilateral_stage3_absolute_actor.PullV6BilateralStage3AbsoluteActor
+      freeze_running_mean_std: true
+  trl:
+    num_total_batches: 75
+
+env:
+  config:
+    a2_door_open_lr_distribution: right
+    a2_pull_stage3_absolute_action_enabled: true
+    a2_pull_stage3_absolute_action_side_mode: right_only

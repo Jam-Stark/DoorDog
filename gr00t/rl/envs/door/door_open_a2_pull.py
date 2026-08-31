@@ -703,8 +703,12 @@ class DoorOpenA2Pull(DoorPregrasp):
 
         if self._is_a2_pull_v6():
             self._a2_pull_v6_pre_action_arm_delta_targets[:] = self._delta_actions
+        if self._a2_pull_h18d_base_lateral_probe_enabled:
+            actor_state = self._apply_a2_pull_h18d_base_lateral_probe(actor_state)
         if self._a2_pull_h14_teacher_capture_enabled:
             self._capture_a2_pull_h14_teacher(actor_state)
+        if self._a2_pull_stage3_absolute_action_enabled:
+            actor_state = self._apply_a2_pull_stage3_absolute_action(actor_state)
         if self._a2_pull_stage3_taskspace_action_enabled:
             actor_state = self._apply_a2_pull_stage3_taskspace_action(actor_state)
         if not self._is_a2_pull_v5():
@@ -772,6 +776,111 @@ class DoorOpenA2Pull(DoorPregrasp):
         next_actor_state = dict(actor_state)
         next_actor_state["actions"] = applied_actions
         return super().step(next_actor_state)
+
+    def _apply_a2_pull_h18d_base_lateral_probe(self, actor_state):
+        """Override only RIGHT post-E3 base lateral raw action during evaluation."""
+
+        actions = actor_state["actions"]
+        expected_dim = self._a2_high_level_action_dim + self._a2_leg_action_dim
+        if (
+            not torch.is_tensor(actions)
+            or tuple(actions.shape) != (self.num_envs, expected_dim)
+            or not actions.is_floating_point()
+            or actions.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(actions))
+        ):
+            raise RuntimeError(
+                "H18-D base-lateral probe requires finite trainer actions with the "
+                f"shape ({self.num_envs},{expected_dim}) on {self.device}."
+            )
+        if not getattr(self, "is_evaluating", False) or torch.any(self.door_open_lr != -1.0):
+            raise RuntimeError("H18-D base-lateral probe requires fixed-RIGHT evaluation.")
+        active = (
+            (self.stage_buf == self.STAGE_OPEN)
+            & self._a2_pull_event_reached[:, A2PullEvent.E3_LATCH_RELEASE]
+            & ~self._a2_pull_event_reached[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED]
+        )
+        self._a2_pull_h18d_base_lateral_active[:] = active
+        self._a2_pull_h18d_base_lateral_original_raw.fill_(float("nan"))
+        self._a2_pull_h18d_base_lateral_override_raw.fill_(float("nan"))
+        if not torch.any(active):
+            return actor_state
+
+        applied_actions = actions.clone()
+        self._a2_pull_h18d_base_lateral_original_raw[active] = actions[active, 1]
+        applied_actions[active, 1] = self._a2_pull_h18d_base_lateral_probe_raw
+        self._a2_pull_h18d_base_lateral_override_raw[active] = (
+            self._a2_pull_h18d_base_lateral_probe_raw
+        )
+        self._a2_pull_h18d_base_lateral_action_count[active] += 1
+        next_actor_state = dict(actor_state)
+        next_actor_state["actions"] = applied_actions
+        return next_actor_state
+
+    def _get_a2_pull_observed_stage3_mask(self, contract: str) -> torch.Tensor:
+        actor_obs = self.obs_buf_dict.get("actor_obs")
+        if (
+            not torch.is_tensor(actor_obs)
+            or tuple(actor_obs.shape) != (self.num_envs, 135)
+            or not torch.all(torch.isfinite(actor_obs))
+        ):
+            raise RuntimeError(f"{contract} requires finite 135-D actor_obs.")
+        observed_stage = actor_obs[:, 127:133]
+        tolerance = torch.finfo(observed_stage.dtype).eps * 8.0
+        onehot = (
+            torch.all(
+                (torch.abs(observed_stage) <= tolerance)
+                | (torch.abs(observed_stage - 1.0) <= tolerance),
+                dim=-1,
+            )
+            & (torch.abs(observed_stage.sum(dim=-1) - 1.0) <= tolerance)
+        )
+        if not torch.all(onehot):
+            raise RuntimeError(f"{contract} requires exact Stage one-hot actor_obs.")
+        return observed_stage[:, self.STAGE_OPEN] > 0.5
+
+    def _apply_a2_pull_stage3_absolute_action(self, actor_state):
+        """Convert normalized absolute cumulative arm targets to DeltaAction increments."""
+
+        actions = actor_state["actions"]
+        expected_dim = self._a2_high_level_action_dim + self._a2_leg_action_dim
+        if (
+            not torch.is_tensor(actions)
+            or tuple(actions.shape) != (self.num_envs, expected_dim)
+            or not actions.is_floating_point()
+            or actions.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(actions))
+            or tuple(self._delta_actions.shape) != (self.num_envs, 6)
+            or not torch.all(torch.isfinite(self._delta_actions))
+        ):
+            raise RuntimeError(
+                "Stage3 absolute action requires finite device-local trainer actions "
+                "and cumulative arm targets."
+            )
+        if self._a2_pull_stage3_absolute_action_side_mode != "right_only":
+            raise RuntimeError("B0 Stage3 absolute action requires right_only mode.")
+        active = self._get_a2_pull_observed_stage3_mask("B0 absolute action")
+        if torch.any(active & (self.door_open_lr != -1.0)):
+            raise RuntimeError("B0 Stage3 absolute action requires fixed-RIGHT Stage3 rows.")
+        self._a2_pull_stage3_absolute_action_active[:] = active
+        self._a2_pull_stage3_absolute_target_normalized.zero_()
+        if not torch.any(active):
+            return actor_state
+
+        normalized = torch.tanh(actions[:, 5:11])
+        desired = normalized * float(self.config.delta_action_clip)
+        raw_increment = (
+            desired - self._delta_actions
+        ) / float(self.config.delta_action_scale)
+        if not torch.all(torch.isfinite(raw_increment[active])):
+            raise RuntimeError("B0 absolute arm target conversion produced non-finite increments.")
+        applied_actions = actions.clone()
+        applied_actions[active, 5:11] = raw_increment[active]
+        self._a2_pull_stage3_absolute_target_normalized[active] = normalized[active]
+        self._a2_pull_stage3_absolute_action_count[active] += 1
+        next_actor_state = dict(actor_state)
+        next_actor_state["actions"] = applied_actions
+        return next_actor_state
 
     def _apply_a2_pull_stage3_taskspace_action(self, actor_state):
         actions = actor_state["actions"]
@@ -1812,6 +1921,81 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_v5_characterization_trace_rows: list[dict[str, object]] = []
         self._init_a2_pull_stage3_taskspace_executor()
         self._init_a2_pull_h14_teacher_capture()
+        self._init_a2_pull_h18d_base_lateral_probe()
+        self._init_a2_pull_stage3_absolute_action()
+
+    def _init_a2_pull_stage3_absolute_action(self) -> None:
+        enabled = self.config.get("a2_pull_stage3_absolute_action_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("a2_pull_stage3_absolute_action_enabled must be bool.")
+        self._a2_pull_stage3_absolute_action_enabled = enabled
+        if not enabled:
+            return
+        side_mode = self.config.get("a2_pull_stage3_absolute_action_side_mode")
+        if side_mode != "right_only":
+            raise RuntimeError("B0 absolute action side mode must be right_only.")
+        if (
+            not self._is_a2_pull_v6()
+            or self._a2_pull_stage3_taskspace_action_enabled
+            or self._a2_pull_h14_teacher_capture_enabled
+            or self._a2_pull_h18d_base_lateral_probe_enabled
+        ):
+            raise RuntimeError(
+                "B0 absolute action requires pull-v6 with task-space, teacher capture, "
+                "and H18-D probe disabled."
+            )
+        if float(self.config.delta_action_clip) != 15.0:
+            raise RuntimeError("B0 absolute action requires delta_action_clip=15.0.")
+        if float(self.config.delta_action_scale) != 0.3:
+            raise RuntimeError("B0 absolute action requires delta_action_scale=0.3.")
+        self._a2_pull_stage3_absolute_action_side_mode = side_mode
+        self._a2_pull_stage3_absolute_action_active = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_stage3_absolute_target_normalized = torch.zeros(
+            self.num_envs, 6, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_stage3_absolute_action_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+
+    def _init_a2_pull_h18d_base_lateral_probe(self) -> None:
+        enabled = self.config.get("a2_pull_h18d_base_lateral_probe_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("a2_pull_h18d_base_lateral_probe_enabled must be bool.")
+        self._a2_pull_h18d_base_lateral_probe_enabled = enabled
+        if not enabled:
+            return
+        raw = self.config.get("a2_pull_h18d_base_lateral_probe_raw")
+        if (
+            isinstance(raw, bool)
+            or not isinstance(raw, (int, float))
+            or not math.isfinite(float(raw))
+        ):
+            raise RuntimeError("H18-D base-lateral probe raw command must be finite.")
+        if (
+            not self._is_a2_pull_v6()
+            or self._a2_pull_h14_teacher_capture_enabled
+            or self._a2_pull_stage3_taskspace_action_enabled
+            or self.config.get("a2_pull_stage3_absolute_action_enabled", False)
+        ):
+            raise RuntimeError(
+                "H18-D base-lateral probe requires pull-v6 with teacher capture, "
+                "task-space, and absolute action execution disabled."
+            )
+        self._a2_pull_h18d_base_lateral_probe_raw = float(raw)
+        self._a2_pull_h18d_base_lateral_active = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_h18d_base_lateral_action_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_h18d_base_lateral_original_raw = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_h18d_base_lateral_override_raw = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
 
     def _init_a2_pull_h14_teacher_capture(self) -> None:
         enabled = self.config.get("a2_pull_h14_teacher_capture_enabled", False)
@@ -1848,6 +2032,9 @@ class DoorOpenA2Pull(DoorPregrasp):
             self.num_envs, 9, dtype=torch.float32, device=self.device
         )
         self._a2_pull_h14_dq = torch.zeros(
+            self.num_envs, 6, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_h14_absolute_arm_delta_target_normalized = torch.zeros(
             self.num_envs, 6, dtype=torch.float32, device=self.device
         )
         self._a2_pull_h14_jacobian_condition = torch.full(
@@ -1943,13 +2130,17 @@ class DoorOpenA2Pull(DoorPregrasp):
             or not torch.all(torch.isfinite(actions))
         ):
             raise RuntimeError("H14 teacher capture requires finite trainer actions.")
-        active = (self.stage_buf == self.STAGE_OPEN) & (self.door_open_lr == -1.0)
-        if torch.any((self.stage_buf == self.STAGE_OPEN) & ~active):
+        observed_stage3 = self._get_a2_pull_observed_stage3_mask(
+            "H14 teacher capture"
+        )
+        active = observed_stage3 & (self.door_open_lr == -1.0)
+        if torch.any(observed_stage3 & ~active):
             raise RuntimeError("H14 teacher capture requires fixed-RIGHT evaluation.")
         self._a2_pull_h14_valid.zero_()
         self._a2_pull_h14_canonical_features.zero_()
         self._a2_pull_h14_target.zero_()
         self._a2_pull_h14_dq.zero_()
+        self._a2_pull_h14_absolute_arm_delta_target_normalized.zero_()
         self._a2_pull_h14_jacobian_condition.fill_(float("nan"))
         self._a2_pull_h14_pre_e3.zero_()
         if not torch.any(active):
@@ -1963,6 +2154,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             min=-float(self.config.delta_action_clip),
             max=float(self.config.delta_action_clip),
         )
+        absolute_arm_target_normalized = d_next / float(self.config.delta_action_clip)
         dq = float(self.config.robot.control.action_scale) * (
             d_next - self._delta_actions
         )
@@ -2020,6 +2212,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             torch.all(torch.isfinite(features), dim=-1)
             & torch.all(torch.isfinite(target), dim=-1)
             & torch.all(torch.isfinite(dq), dim=-1)
+            & torch.all(torch.isfinite(absolute_arm_target_normalized), dim=-1)
             & torch.all(torch.isfinite(singular_values), dim=-1)
             & torch.isfinite(condition)
         )
@@ -2028,10 +2221,22 @@ class DoorOpenA2Pull(DoorPregrasp):
             raise RuntimeError(
                 f"H14 teacher capture produced non-finite rows {torch.where(invalid)[0].tolist()}."
             )
+        tolerance = torch.finfo(absolute_arm_target_normalized.dtype).eps * 16.0
+        unsupported = active & torch.any(
+            torch.abs(absolute_arm_target_normalized) > 1.0 + tolerance, dim=-1
+        )
+        if torch.any(unsupported):
+            raise RuntimeError(
+                "H14 absolute arm target exceeded normalized cumulative support; "
+                f"env_ids={torch.where(unsupported)[0].tolist()}."
+            )
         self._a2_pull_h14_valid[:] = active
         self._a2_pull_h14_canonical_features[active] = features[active]
         self._a2_pull_h14_target[active] = target[active]
         self._a2_pull_h14_dq[active] = dq[active]
+        self._a2_pull_h14_absolute_arm_delta_target_normalized[active] = (
+            absolute_arm_target_normalized[active]
+        )
         self._a2_pull_h14_jacobian_condition[active] = condition[active]
         self._a2_pull_h14_pre_e3[active] = ~self._a2_pull_event_reached[
             active, A2PullEvent.E3_LATCH_RELEASE
@@ -5044,6 +5249,15 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_handle_local_slip_valid[env_ids] = False
         self._a2_pull_passage_attempt_hinge_rad[env_ids] = float("nan")
         if self._is_a2_pull_v6():
+            if self._a2_pull_stage3_absolute_action_enabled:
+                self._a2_pull_stage3_absolute_action_active[env_ids] = False
+                self._a2_pull_stage3_absolute_target_normalized[env_ids] = 0.0
+                self._a2_pull_stage3_absolute_action_count[env_ids] = 0
+            if self._a2_pull_h18d_base_lateral_probe_enabled:
+                self._a2_pull_h18d_base_lateral_active[env_ids] = False
+                self._a2_pull_h18d_base_lateral_action_count[env_ids] = 0
+                self._a2_pull_h18d_base_lateral_original_raw[env_ids] = float("nan")
+                self._a2_pull_h18d_base_lateral_override_raw[env_ids] = float("nan")
             self._a2_pull_v61_e6_event_pulse[env_ids] = False
             self._a2_pull_v61_e7_event_pulse[env_ids] = False
             self._a2_pull_v6_subphase[env_ids] = self._A2_PULL_V6_PHASE_A
@@ -6764,6 +6978,13 @@ class DoorOpenA2Pull(DoorPregrasp):
         cfg = super().init_a2_eval_hold_oracle(
             eval_config, diagnostic_enabled=diagnostic_enabled
         )
+        if self._a2_pull_h18d_base_lateral_probe_enabled and cfg["enabled"]:
+            raise RuntimeError("H18-D base-lateral probe requires hold oracle disabled.")
+        if self._a2_pull_h18d_base_lateral_probe_enabled and (
+            not getattr(self, "is_evaluating", False)
+            or torch.any(self.door_open_lr != -1.0)
+        ):
+            raise RuntimeError("H18-D base-lateral probe requires fixed-RIGHT evaluation.")
         if cfg["pull_h10m_live_pose_probe_enabled"]:
             if not self._is_a2_pull_v6():
                 raise RuntimeError("H10-M live-pose probe requires the pull-v6 plan.")
@@ -8430,6 +8651,16 @@ class DoorOpenA2Pull(DoorPregrasp):
                         if valid
                         else None
                     ),
+                    "absolute_arm_delta_target_normalized": (
+                        self._a2_pull_h14_absolute_arm_delta_target_normalized[
+                            env_id
+                        ]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                        if valid
+                        else None
+                    ),
                     "jacobian_condition": (
                         float(condition.item()) if valid else None
                     ),
@@ -8437,6 +8668,36 @@ class DoorOpenA2Pull(DoorPregrasp):
                         bool(self._a2_pull_h14_pre_e3[env_id].item())
                         if valid
                         else None
+                    ),
+                }
+            if self._a2_pull_stage3_absolute_action_enabled:
+                record["pull_lr_stage3_absolute_action"] = {
+                    "active": bool(
+                        self._a2_pull_stage3_absolute_action_active[env_id].item()
+                    ),
+                    "target_normalized": (
+                        self._a2_pull_stage3_absolute_target_normalized[env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "action_count": int(
+                        self._a2_pull_stage3_absolute_action_count[env_id].item()
+                    ),
+                }
+            if self._a2_pull_h18d_base_lateral_probe_enabled:
+                original = self._a2_pull_h18d_base_lateral_original_raw[env_id]
+                override = self._a2_pull_h18d_base_lateral_override_raw[env_id]
+                record["pull_lr_h18d_base_lateral_probe"] = {
+                    "active": bool(self._a2_pull_h18d_base_lateral_active[env_id].item()),
+                    "action_count": int(
+                        self._a2_pull_h18d_base_lateral_action_count[env_id].item()
+                    ),
+                    "original_raw": (
+                        float(original.item()) if torch.isfinite(original) else None
+                    ),
+                    "override_raw": (
+                        float(override.item()) if torch.isfinite(override) else None
                     ),
                 }
             if self._is_a2_pull_v6():

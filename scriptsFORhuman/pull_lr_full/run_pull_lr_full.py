@@ -38,6 +38,8 @@ ABLATIONS = {
     "q": "wbmanip/pull_lr_full_native_bilateral",
     "r": "wbmanip/pull_lr_full_native_bilateral_long_acq",
     "s": "wbmanip/pull_lr_full_native_bilateral_stage1_focus",
+    "t": "wbmanip/pull_lr_full_h18d_base_lateral_probe",
+    "u": "wbmanip/pull_lr_full_bilateral_stage3_absolute_b0",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")
@@ -52,6 +54,7 @@ ACTOR_CONTRACTS = {
     "left_taskspace": "gr00t.rl.trl.modules.pull_v6_left_stage3_taskspace_actor.PullV6LeftStage3TaskspaceActor",
     "bilateral_taskspace": "gr00t.rl.trl.modules.pull_v6_bilateral_stage3_canonical_actor.PullV6BilateralStage3CanonicalActor",
     "native_bilateral": "gr00t.rl.trl.modules.pull_v6_native_bilateral_actor.PullV6NativeBilateralActor",
+    "bilateral_absolute": "gr00t.rl.trl.modules.pull_v6_bilateral_stage3_absolute_actor.PullV6BilateralStage3AbsoluteActor",
 }
 
 

@@ -41,3 +41,4 @@
 - 2026-08-31 14:51 HKT — H15 M750 screen：seed0 LEFT/RIGHT E2=`5/0`，seed1在两个eval seeds均双侧E2=0；seed1于saved step875后hard-stop，seed0继续。GPU1改投H16 seed1，形成三个acquisition-first repeats。
 - 2026-08-31 14:54 HKT — H16 seed1在GPU1从checkpoint=null启动，startup通过batch1、exact 512/512与long-acquisition schedule门；H16 seeds1/2/3现并行运行。
 - 2026-08-31 17:30 HKT — H16 M750：seed2 natural LEFT/RIGHT K5=`16/16`、E2=`5/7`，conditional admit进入Stage3；seed3两eval seeds均双侧E2=0并于saved step800 hard-stop。GPU3补跑paired H16 seed0。
+- 2026-08-31 17:33 HKT — paired H16 seed0在GPU3从checkpoint=null启动，startup通过batch1、512/512与long-acquisition schedule门；H16 active repeats为seed0/1/2。

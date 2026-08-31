@@ -109,6 +109,15 @@ def _runtime_env(gpu: int, port: int) -> dict[str, str]:
 def _train_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], Path]:
     if args.from_scratch and args.resume_full:
         raise ValueError("--from-scratch and --resume-full are mutually exclusive")
+    if args.gate == "q":
+        if not args.from_scratch and not args.resume_full:
+            raise ValueError(
+                "gate q requires --from-scratch or an explicit H15 --resume-full checkpoint"
+            )
+        if args.resume_full and args.checkpoint.expanduser().resolve() == WINNER.resolve():
+            raise ValueError("gate q cannot resume from the bilateral Stage0-2 winner")
+    elif args.from_scratch:
+        raise ValueError("--from-scratch is reserved for gate q native bilateral training")
     checkpoint = None if args.from_scratch else args.checkpoint.expanduser().resolve()
     if checkpoint is not None and not checkpoint.is_file():
         raise FileNotFoundError(checkpoint)

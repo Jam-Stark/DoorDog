@@ -1,6 +1,7 @@
 # @package _global_
-# H15-A: native full-policy acquisition from random initialization in the
-# 50/50 mirrored environment. Later stages full-resume this same policy.
+# H15: native full-policy learning from random initialization in the 50/50
+# mirrored environment. The uninterrupted process preserves online reset banks
+# while moving acquisition -> Stage3 -> Stage4/5 occupancy.
 
 defaults:
   - /ablation/wbmanip/pull_lr_full_gate_a
@@ -20,7 +21,39 @@ algo:
       _target_: gr00t.rl.trl.modules.pull_v6_native_bilateral_actor.PullV6NativeBilateralActor
       freeze_running_mean_std: false
   trl:
-    num_total_batches: 250
+    num_total_batches: 1500
+
+schedule_dict:
+  "env@staged_reset_ratios@0":
+    type: segment
+    val_type: float
+    seg_steps: [0, 250, 750, 1250]
+    seg_vals: [0.50, 0.25, 0.25, 0.40]
+  "env@staged_reset_ratios@1":
+    type: segment
+    val_type: float
+    seg_steps: [0, 250, 750, 1250]
+    seg_vals: [0.25, 0.0, 0.0, 0.0]
+  "env@staged_reset_ratios@2":
+    type: segment
+    val_type: float
+    seg_steps: [0, 250, 750, 1250]
+    seg_vals: [0.25, 0.25, 0.10, 0.05]
+  "env@staged_reset_ratios@3":
+    type: segment
+    val_type: float
+    seg_steps: [0, 250, 750, 1250]
+    seg_vals: [0.0, 0.50, 0.35, 0.15]
+  "env@staged_reset_ratios@4":
+    type: segment
+    val_type: float
+    seg_steps: [0, 250, 750, 1250]
+    seg_vals: [0.0, 0.0, 0.25, 0.25]
+  "env@staged_reset_ratios@5":
+    type: segment
+    val_type: float
+    seg_steps: [0, 250, 750, 1250]
+    seg_vals: [0.0, 0.0, 0.05, 0.15]
 
 env:
   config:

@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-31 14:51 HKT
+last_updated: 2026-08-31 17:30 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -74,6 +74,10 @@ source_of_truth:
   - logs_eval/a2_piper_pull_lr_full_stage/h15_m750_gate_q_s0_step750_evalseed1001/right/eval/stage2_5_step_trace.json
   - logs_eval/a2_piper_pull_lr_full_stage/h15_m750_gate_q_s1_step750_evalseed1001/left/eval/stage2_5_step_trace.json
   - logs_eval/a2_piper_pull_lr_full_stage/h15_m750_confirm_gate_q_s1_step750_evalseed0/right/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h16_m750_gate_r_s2_step750_evalseed1001/left/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h16_m750_gate_r_s2_step750_evalseed1001/right/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h16_m750_gate_r_s3_step750_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h16_m750_confirm_gate_r_s3_step750_evalseed0_summary.json
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -83,7 +87,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-31 14:51 HKT)
+## Current evidence (2026-08-31 17:30 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -132,6 +136,7 @@ related_entries:
 - H15在batch250将Stage1 reset从`.25`降到0，早于native scratch形成E1→E2。seed2/3在step500 checkpoint后计划性停止并保留证据；seed0/1继续原H15到1500作为fast-curriculum control，尚无最终结果。
 - H16是acquisition-first + extended Stage3-dose successor，不声称纯timing因果：seed2/3从scratch重启，0–750保持`[.50,.25,.25,0,0,0]`，750–1500为`[.25,0,.25,.50,0,0]`，1500–1750为`[.25,0,.10,.35,.25,.05]`，1750–2000为`[.40,0,.05,.15,.25,.15]`。pre-final 256-env×5 smoke验证gate-r/null/128:128/pose0与相同边界scheduler path；current bridge ratio在正式启动前按Ultra裁决固定。
 - H15 M750 natural screen进一步确认fast curriculum失败：seed0 LEFT/RIGHT K5/E2=`5/0`、E3+=0，seed1在eval seeds1001与0均双侧K5/E2=`0/0`。seed1满足两次eval hard-fail并在saved step875后计划性停止；seed0保留为不对称control到1500。H16扩为seed1/2/3三个scratch repeats。
+- H16 M750首次区分scratch seeds：seed2 LEFT/RIGHT K5=`16/16`、E2=`5/7`，满足双方非零的conditional acquisition admission并继续Stage3；seed3在eval seeds1001与0均双侧K5/E2=`0/0`，于saved step800后hard-stop。GPU3补跑与H15 control同seed的H16 seed0，当前H16 active为seed0/1/2。
 
 ## Evidence boundary
 

@@ -27702,7 +27702,7 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h17_stage1_focus_s3
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h17_stage1_focus_s3
-status: planned
+status: running
 previous_batch_id: pull_lr_full_h16_long_acq_s3
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-31T18:53:53

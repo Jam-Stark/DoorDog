@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-31 19:58 HKT
+last_updated: 2026-08-31 22:20 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -84,6 +84,9 @@ source_of_truth:
   - logs_rl/a2_piper_pull_lr_full_stage/h17_stage1_focus_smoke5_gate_s_seed3/config.yaml
   - logs_eval/a2_piper_pull_lr_full_stage/h16_m750_gate_r_s1_step750_evalseed1001/left/eval/stage2_5_step_trace.json
   - logs_eval/a2_piper_pull_lr_full_stage/h16_m750_confirm_gate_r_s1_step750_evalseed0/right/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h16_m1500_gate_r_s2_step1500_evalseed1001/left/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h16_m1500_gate_r_s2_step1500_evalseed1001/right/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h16_m1500_confirm_gate_r_s2_step1500_evalseed0/right/eval/stage2_5_step_trace.json
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -93,7 +96,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-31 19:58 HKT)
+## Current evidence (2026-08-31 22:20 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -146,6 +149,8 @@ related_entries:
 - H15唯一保留的seed0完成global1500：final LEFT K5/E2/E3/E4/E5=`6/6/1/0/0`，RIGHT=`8/8/0/0/0`，双方max hinge约0.002rad、goal0。fast curriculum最终形成部分acquisition，但没有双侧E3或任何E4，H15正式关闭。
 - H17是H16失败seed3的paired Stage1-occupancy retry：仅0–750从`[.50,.25,.25]`改为`[.35,.40,.25]`，保持Stage2与750后全部schedule不变，检验E1→E2曝光不足。256-env×5 smoke通过checkpoint=null、exact128/128、resolved paired schedule与pose reward0 runtime门；正式run尚未启动。
 - H16 seed1在M750也由eval seeds1001与0确认双侧K5/E2=`0/0`，于saved step875后hard-stop。H17因此扩为paired seeds1/3两个Stage1-focus repeats；H16继续seed0/2，其中seed2已过M1000 trend门。
+- H16最终关闭：seed0也在两个M750 eval seeds双侧E2=0并于step800停止；唯一admitted seed2在M1500两个eval seeds均LEFT E3=0、RIGHT E3=`11/10`、双侧E4=0且无`.105–.25` dwell，于saved step1600停止。RIGHT的11个E3 episode post-E3有3884/3942 rows保持双指contact、连续dwell常268–431步，pose良好但hinge≈.002rad，证明障碍是稳定press equilibrium而非contact缺口。
+- H16 post-E3 plant targets严重饱和：典型q2/q3/q4约`[-2.50,+2.19,+4.00]`，soft-limit最大越界中位约2.89rad；成功H14 source teacher约`[+2.52,-1.94,+.95]`且越界约.43rad，physical lateral base约`-.485m/s`，H16约`+.060m/s`。下一主轴因此是保留raw absolute-joint posture/base的B0 RIGHT BC→B1 FK/Jacobian mirror admission→B2 bilateral PPO；并行D只做base-lateral causal probe。
 
 ## Evidence boundary
 

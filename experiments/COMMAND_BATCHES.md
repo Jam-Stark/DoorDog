@@ -27425,15 +27425,15 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h16_long_acq_s2
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h16_long_acq_s2
-status: running
+status: done
 previous_batch_id: pull_lr_full_h15a_native_acq_s2
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
-created_at: 2026-08-31T12:45:01
+created_at: 2026-08-31T22:19:38
 analysis_mode: prev+base
 public_ip: 10.13.11.197
 play_device: cuda:2
 play_num_envs: 16
-checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed2/model_step_002000.pt
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed2/model_step_001600.pt
 ```
 <!-- RLCM:METADATA_END -->
 
@@ -27447,7 +27447,7 @@ CUDA_VISIBLE_DEVICES=2 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONU
 ### Play Command (Auto)
 <!-- RLCM:PLAY_COMMAND_START -->
 ```bash
-PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed2/model_step_002000.pt --num_envs 16 --device cuda:2 \
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed2/model_step_001600.pt --num_envs 16 --device cuda:2 \
     agent.device=cuda:2
 ```
 <!-- RLCM:PLAY_COMMAND_END -->
@@ -27480,7 +27480,8 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- Fill training metrics and play observations.
+- Conditional M750 acquisition, but M1500 fixed LEFT/RIGHT16 and eval-seed0 confirm both had E4=`0/0` with no `.105-.25` dwell.
+- RIGHT reached E3=`11/16` with long stable contact yet hinge stayed about `.002 rad`; planned locked-equilibrium stop at saved step1600.
 <!-- RLCM:BATCH_END pull_lr_full_h16_long_acq_s2 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h16_long_acq_s3 -->
@@ -27632,15 +27633,15 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h16_long_acq_s0
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h16_long_acq_s0
-status: running
+status: done
 previous_batch_id: pull_lr_full_h15a_native_acq_s0
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
-created_at: 2026-08-31T17:29:53
+created_at: 2026-08-31T22:19:38
 analysis_mode: prev+base
 public_ip: 10.13.11.197
 play_device: cuda:3
 play_num_envs: 16
-checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed0/model_step_002000.pt
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed0/model_step_000800.pt
 ```
 <!-- RLCM:METADATA_END -->
 
@@ -27654,7 +27655,7 @@ CUDA_VISIBLE_DEVICES=3 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONU
 ### Play Command (Auto)
 <!-- RLCM:PLAY_COMMAND_START -->
 ```bash
-PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed0/model_step_002000.pt --num_envs 16 --device cuda:3 \
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed0/model_step_000800.pt --num_envs 16 --device cuda:3 \
     agent.device=cuda:3
 ```
 <!-- RLCM:PLAY_COMMAND_END -->
@@ -27691,7 +27692,8 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- Fill training metrics and play observations.
+- M750 eval seeds1001 and0 both produced LEFT/RIGHT K5/E2=`0/0`; all episodes were stage overtime.
+- Planned acquisition hard-stop at saved step800; no runtime failure.
 <!-- RLCM:BATCH_END pull_lr_full_h16_long_acq_s0 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h17_stage1_focus_s3 -->

@@ -27131,7 +27131,7 @@ CUDA_VISIBLE_DEVICES=3 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h15a_native_acq_s0
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h15a_native_acq_s0
-status: running
+status: done
 previous_batch_id: pull_lr_full_h13r2_b200_s3
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-31T09:43:00
@@ -27192,7 +27192,8 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- Fill training metrics and play observations.
+- Completed global1500. Final LEFT K5/E2/E3/E4/E5=`6/6/1/0/0`; RIGHT=`8/8/0/0/0`; both max hinge about `.002 rad`, goal0.
+- Fast curriculum formed partial acquisition but did not create bilateral Stage3/E4 behavior.
 <!-- RLCM:BATCH_END pull_lr_full_h15a_native_acq_s0 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h15a_native_acq_s1 -->

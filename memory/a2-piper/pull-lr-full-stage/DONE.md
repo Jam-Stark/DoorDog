@@ -39,3 +39,4 @@
 - 2026-08-31 12:45 HKT — 登记H16 acquisition-first successor：同native actor/reward/mirror合同，仅把acquisition保持到750并给足750个Stage3 updates；256-env×5 gate-r smoke通过null checkpoint、128/128与scheduler runtime门。
 - 2026-08-31 12:49 HKT — H16 seed2/3以commit `0ceb5ef`在GPU2/3从checkpoint=null启动2000-batch uninterrupted run；startup通过exact 512/512、current四段schedule与batch1 runtime门。H15 seed0/1 control同时继续。
 - 2026-08-31 14:51 HKT — H15 M750 screen：seed0 LEFT/RIGHT E2=`5/0`，seed1在两个eval seeds均双侧E2=0；seed1于saved step875后hard-stop，seed0继续。GPU1改投H16 seed1，形成三个acquisition-first repeats。
+- 2026-08-31 14:54 HKT — H16 seed1在GPU1从checkpoint=null启动，startup通过batch1、exact 512/512与long-acquisition schedule门；H16 seeds1/2/3现并行运行。

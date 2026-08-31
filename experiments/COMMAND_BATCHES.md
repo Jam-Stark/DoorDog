@@ -27277,15 +27277,15 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h15a_native_acq_s2
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h15a_native_acq_s2
-status: running
+status: done
 previous_batch_id: pull_lr_full_h15a_native_acq_s1
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
-created_at: 2026-08-31T09:43:01
+created_at: 2026-08-31T12:45:00
 analysis_mode: prev+base
 public_ip: 10.13.11.197
 play_device: cuda:2
 play_num_envs: 16
-checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h15_native_gate_q_seed2/model_step_001500.pt
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h15_native_gate_q_seed2/model_step_000500.pt
 ```
 <!-- RLCM:METADATA_END -->
 
@@ -27299,7 +27299,7 @@ CUDA_VISIBLE_DEVICES=2 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONU
 ### Play Command (Auto)
 <!-- RLCM:PLAY_COMMAND_START -->
 ```bash
-PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h15_native_gate_q_seed2/model_step_001500.pt --num_envs 16 --device cuda:2 \
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h15_native_gate_q_seed2/model_step_000500.pt --num_envs 16 --device cuda:2 \
     agent.device=cuda:2
 ```
 <!-- RLCM:PLAY_COMMAND_END -->
@@ -27336,7 +27336,8 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- Fill training metrics and play observations.
+- Planned stop at step500 after two independent step375 natural screens showed LEFT/RIGHT K5/E2=`0/0`; Stage3 rewards remained zero through the stop.
+- This is a curriculum-timing rejection, not a runtime failure. Step500 remains the rollback/provenance checkpoint.
 <!-- RLCM:BATCH_END pull_lr_full_h15a_native_acq_s2 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h15a_native_acq_s3 -->
@@ -27348,15 +27349,15 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h15a_native_acq_s3
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h15a_native_acq_s3
-status: running
+status: done
 previous_batch_id: pull_lr_full_h15a_native_acq_s2
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
-created_at: 2026-08-31T09:43:01
+created_at: 2026-08-31T12:45:01
 analysis_mode: prev+base
 public_ip: 10.13.11.197
 play_device: cuda:3
 play_num_envs: 16
-checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h15_native_gate_q_seed3/model_step_001500.pt
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h15_native_gate_q_seed3/model_step_000500.pt
 ```
 <!-- RLCM:METADATA_END -->
 
@@ -27370,7 +27371,7 @@ CUDA_VISIBLE_DEVICES=3 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONU
 ### Play Command (Auto)
 <!-- RLCM:PLAY_COMMAND_START -->
 ```bash
-PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h15_native_gate_q_seed3/model_step_001500.pt --num_envs 16 --device cuda:3 \
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h15_native_gate_q_seed3/model_step_000500.pt --num_envs 16 --device cuda:3 \
     agent.device=cuda:3
 ```
 <!-- RLCM:PLAY_COMMAND_END -->
@@ -27409,6 +27410,143 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- Fill training metrics and play observations.
+- Planned stop at step500 after seed3 independently reproduced step375 LEFT/RIGHT K5/E2=`0/0`; Stage3 rewards remained zero.
+- GPU3 is reassigned to the H16 acquisition-first successor; no runtime failure occurred.
 <!-- RLCM:BATCH_END pull_lr_full_h15a_native_acq_s3 -->
+
+<!-- RLCM:BATCH_START pull_lr_full_h16_long_acq_s2 -->
+## Batch pull_lr_full_h16_long_acq_s2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_lr_full_h16_long_acq_s2
+task: door_open_a2_pull_lr_full_stage
+run_name: pull_lr_full_h16_long_acq_s2
+status: planned
+previous_batch_id: pull_lr_full_h15a_native_acq_s2
+base_id: pull_lr_grasp_h450_xseg_resume_seed2
+created_at: 2026-08-31T12:45:01
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed2/model_step_002000.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=2 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 WANDB_MODE=offline MASTER_PORT=41382 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py train --gate r --seed 2 --gpu 2 --num-envs 1024 --batches 2000 --save-frequency 25 --from-scratch --run-prefix pull_lr_full_h16_long_acq --port 41382 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed2/model_step_002000.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.MASTER_PORT | changed | 41282 | 41382 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.MASTER_PORT | changed | 32482 | 41382 |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.MASTER_PORT | 41282 -> 41382 | 32482 -> 41382 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_lr_full_h16_long_acq_s2 -->
+
+<!-- RLCM:BATCH_START pull_lr_full_h16_long_acq_s3 -->
+## Batch pull_lr_full_h16_long_acq_s3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_lr_full_h16_long_acq_s3
+task: door_open_a2_pull_lr_full_stage
+run_name: pull_lr_full_h16_long_acq_s3
+status: planned
+previous_batch_id: pull_lr_full_h15a_native_acq_s3
+base_id: pull_lr_grasp_h450_xseg_resume_seed2
+created_at: 2026-08-31T12:45:01
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed3/model_step_002000.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=3 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 WANDB_MODE=offline MASTER_PORT=41383 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py train --gate r --seed 3 --gpu 3 --num-envs 1024 --batches 2000 --save-frequency 25 --from-scratch --run-prefix pull_lr_full_h16_long_acq --port 41383 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h16_long_acq_gate_r_seed3/model_step_002000.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.MASTER_PORT | changed | 41283 | 41383 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 2 | 3 |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | changed | 2 | 3 |
+| Runner/Device | prefix_env.MASTER_PORT | changed | 32482 | 41383 |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.MASTER_PORT | 41283 -> 41383 | 32482 -> 41383 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_lr_full_h16_long_acq_s3 -->
 <!-- RLCM:BATCHES_END -->

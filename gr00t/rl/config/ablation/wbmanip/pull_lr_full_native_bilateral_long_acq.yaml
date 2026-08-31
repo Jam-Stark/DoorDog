@@ -1,0 +1,45 @@
+# @package _global_
+# H16: keep native bilateral acquisition occupancy through batch750 before
+# opening Stage3 and downstream reset stages in the same uninterrupted process.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_native_bilateral
+  - _self_
+
+experiment_name: pull_lr_full_native_bilateral_long_acq
+
+algo:
+  trl:
+    num_total_batches: 2000
+
+schedule_dict:
+  "env@staged_reset_ratios@0":
+    type: segment
+    val_type: float
+    seg_steps: [0, 750, 1500, 1750]
+    seg_vals: [0.50, 0.25, 0.25, 0.40]
+  "env@staged_reset_ratios@1":
+    type: segment
+    val_type: float
+    seg_steps: [0, 750, 1500, 1750]
+    seg_vals: [0.25, 0.0, 0.0, 0.0]
+  "env@staged_reset_ratios@2":
+    type: segment
+    val_type: float
+    seg_steps: [0, 750, 1500, 1750]
+    seg_vals: [0.25, 0.25, 0.10, 0.05]
+  "env@staged_reset_ratios@3":
+    type: segment
+    val_type: float
+    seg_steps: [0, 750, 1500, 1750]
+    seg_vals: [0.0, 0.50, 0.35, 0.15]
+  "env@staged_reset_ratios@4":
+    type: segment
+    val_type: float
+    seg_steps: [0, 750, 1500, 1750]
+    seg_vals: [0.0, 0.0, 0.25, 0.25]
+  "env@staged_reset_ratios@5":
+    type: segment
+    val_type: float
+    seg_steps: [0, 750, 1500, 1750]
+    seg_vals: [0.0, 0.0, 0.05, 0.15]

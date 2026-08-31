@@ -35,3 +35,5 @@
 - 2026-08-31 09:24 HKT — H15旧joint-stage候选的256-env×5 plumbing smoke完成81920 timesteps：checkpoint=null、LEFT/RIGHT=`128/128`、actor19+critic17 optimizer states齐全且RMS更新；该artifact含已移除的pose reward6，只复用actor/null/RMS技术事实。
 - 2026-08-31 09:43 HKT — 发现checkpoint不序列化online staged-reset bank，故H15改为单进程1500-batch四段occupancy schedule；current clean scheduled candidate重新完成256-env×5 smoke，确认初始acquisition ratios、pose reward0与六个tensor-index scheduler路径实际可运行。
 - 2026-08-31 09:45 HKT — H15四seed以commit `71d25e8`、1024 env/seed、exact 512/512 side、checkpoint=null在GPU0–3独立tmux启动；计划不中断运行1500 batches并由四个runtime supervisor长睡眠监控。
+- 2026-08-31 12:45 HKT — H15 seed2/3 step375 natural fixed-side screen均复现LEFT/RIGHT K5/E2=`0/0`，且到约batch500 Stage3 reward全0；确认batch250切Stage1 occupancy过早，两个seed在step500后计划性停止，GPU0/1 control继续。
+- 2026-08-31 12:45 HKT — 登记H16 acquisition-first successor：同native actor/reward/mirror合同，仅把acquisition保持到750并给足750个Stage3 updates；256-env×5 gate-r smoke通过null checkpoint、128/128与scheduler runtime门。

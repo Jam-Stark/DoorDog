@@ -1,8 +1,8 @@
 ---
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
-status: active
-last_updated: 2026-08-31 23:58 HKT
+status: stopped_by_owner
+last_updated: 2026-09-01 00:38 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -91,6 +91,10 @@ source_of_truth:
   - logs_eval/a2_piper_pull_lr_full_stage/h18b0_teacher_right16_r7/right/eval/stage2_5_step_trace.json
   - logs_rl/a2_piper_pull_lr_full_stage/warmstarts_h18/h18_b0_right_teacher_fit_final.pt
   - logs_eval/a2_piper_pull_lr_full_stage/h18b0_smoke4_r6/right/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h18b0_right16/right/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h18b0_right16_evalseed0/right/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h17_m750_gate_s_s1_step750_evalseed1001/left/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h17_s1_m750_confirm_gate_s_s1_step750_evalseed0/right/eval/stage2_5_step_trace.json
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -100,7 +104,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-31 23:58 HKT)
+## Current evidence (2026-09-01 00:38 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -157,7 +161,10 @@ related_entries:
 - H16 post-E3 plant targets严重饱和：典型q2/q3/q4约`[-2.50,+2.19,+4.00]`，soft-limit最大越界中位约2.89rad；成功H14 source teacher约`[+2.52,-1.94,+.95]`且越界约.43rad，physical lateral base约`-.485m/s`，H16约`+.060m/s`。下一主轴因此是保留raw absolute-joint posture/base的B0 RIGHT BC→B1 FK/Jacobian mirror admission→B2 bilateral PPO；并行D只做base-lateral causal probe。
 - H18-D fixed-RIGHT16 post-E3只覆盖base lateral raw=`-2.7`：E3=`11/16`，active3931 rows、valid-contact1032 rows，但E4=0、valid-contact hinge max仅0.0111rad，低于E4≥4门；base-only因果方向关闭。
 - H18-B0最终合同重新capture成功RIGHT teacher：E3/E4/E5=`14/14/14`、1664 valid rows，其中observed-Stage3对应env Stage3 time1..142共1650 rows、Stage3→4 exit-lag14 rows，入口lag0 rows。absolute cumulative target support=`100%`、范围`[-.743,.805]`；raw-absolute BC train/heldout MSE约`.0158/.0230`，parent23 exact。policy保留latent Gaussian/PPO logprob，environment显式`tanh(latent)`得到bounded absolute target；RIGHT4 smoke有1172 active rows、target范围`[-.712,.814]`且无runtime错误。RIGHT16 admission尚未运行。
+- H18-B0正式RIGHT16未准入：eval-seed1001 E2/E3/E4/E5=`1/0/0/0`，eval-seed0=`0/0/0/0`。同H16 parent在Gate-B control为E2/E3=`16/15`，说明executor可运行但one-shot MLP head在提前接管与OOD state上破坏closed-loop；B1/B2未启动。Ultra后继建议先做Gate-A seam cell，再把同head移植到in-domain bilateral Stage0–2 winner；若仍0 E4，转exact recurrent teacher shadow carrier→sequence DAgger。
+- H17 Stage1-focus paired seeds1/3在M750两个eval seeds均LEFT/RIGHT E2=`0/0`；分别于saved step775/850停止。提高Stage1 occupancy未救出failed scratch seeds，H17关闭。
+- Owner要求完成当前批次后终止。当前无训练/eval/tmux/GPU排他资源，所有实验停止；bilateral Stage5/E7 goal仍未达成。
 
 ## Evidence boundary
 
-以上是 `INSPECTED`/`RUNTIME_PASS` 的实现与运行事实；训练结果仅按已生成 summary 记录，未将 infrastructure failure 推断为 policy 失败。当前 completion 为 `NOT_SUPPORTED/NOT_RUN`：bilateral E7/goal 与 hardware 均未完成或未运行。旧条目中关于 “P not started” 的表述与 pull-v6.1 的 “P population integration was not started” 语义容易混淆；本 entry 只保留当前 H9 与 held-out qualification TODO，不修改历史条目。
+以上是 `INSPECTED`/`RUNTIME_PASS` 的实现与运行事实；训练结果仅按已生成 artifact 记录，未将 infrastructure failure 推断为 policy 失败。当前 completion 为 `NOT_SUPPORTED`：bilateral Stage5/E7 goal未完成，hardware未运行。entry因Owner终止当前任务而停止，不代表科学目标已通过或不可继续。

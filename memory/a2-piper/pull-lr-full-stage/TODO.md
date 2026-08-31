@@ -1,5 +1,5 @@
 # TODO
 
-- H15/H16/H18-D已关闭；H17 paired seeds1/3继续到M750。H18-B0运行teacher-off fixed-RIGHT16 admission，硬门E4≥8/E5≥5；未过门不进入FK/Jacobian mirror或bilateral PPO。
-- 在同一 accepted checkpoint 上分别核对 raw LEFT/RIGHT 的 Stage3 press/unlatch、Stage5 与 E7，确认左右镜像 randomization 下的 bilateral goal；不得把 screen 结果外推为 held-out 或 hardware 证据。
-- 当前只追踪H15 control与H16 acquisition-first native bilateral→双侧E4→Stage4/5链路；H13/H14不再续训，其余改动待新证据或明确决策。
+- 当前任务已按Owner要求停止，Stage5/E7未完成。若后续恢复，先读本entry与`scriptsFORhuman/pull_lr_full/PULL_LR_FULL_HANDOFF_20260901.md`，不要恢复任何旧tmux或把screen外推为goal。
+- 最小下一步：B0 Gate-A seam control；随后用bilateral Stage0–2 winner重建同一raw-absolute head并做RIGHT16×2 admission。若仍0 E4，关闭one-shot BC，转exact recurrent teacher shadow carrier与最多两轮sequence DAgger；RIGHT E4≥8/E5≥5前禁止mirror/PPO。
+- 在同一accepted checkpoint上分别核对raw LEFT/RIGHT Stage5/E7与mixed bilateral贡献；当前没有accepted checkpoint，也没有hardware证据。

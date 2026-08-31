@@ -51,3 +51,5 @@
 - 2026-08-31 22:20 HKT — Ultra选择B0 raw absolute-joint/base BC为主轴，B1只在FK/Jacobian mirror门后启用；并行D probe只覆盖post-E3 canonical lateral base，拒绝继续原task-space投影。
 - 2026-08-31 23:21 HKT — H18-D RIGHT16有11个E3与1032 valid-contact active rows，但E4=0/hinge max0.011，关闭base-only方向。
 - 2026-08-31 23:58 HKT — H18-B0按独立review修复bounded-sample与Stage entry/exit lag：latent Gaussian在env显式tanh，capture/executor共用observed-stage gate；r7 recapture1664 rows、heldout MSE0.0230、parent23 exact，final RIGHT4 smoke通过1172 active rows。
+- 2026-09-01 00:38 HKT — H18-B0正式RIGHT16两个eval seeds均E4/E5=0且E2仅1/0，未过B0门；Gate-B parent control E2/E3=16/15，定位为提前接管+H16 entry OOD/one-shot covariate shift，禁止进入mirror/PPO。
+- 2026-09-01 00:38 HKT — H17 seeds1/3 M750双eval-seed均双侧E2=0，分别在saved step775/850停止；Owner要求当前批次后终止，所有GPU/tmux任务已退出。

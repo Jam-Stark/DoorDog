@@ -27705,15 +27705,15 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h17_stage1_focus_s3
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h17_stage1_focus_s3
-status: running
+status: done
 previous_batch_id: pull_lr_full_h16_long_acq_s3
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
-created_at: 2026-08-31T18:53:53
+created_at: 2026-09-01T00:37:41
 analysis_mode: prev+base
 public_ip: 10.13.11.197
 play_device: cuda:0
 play_num_envs: 16
-checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h17_stage1_focus_gate_s_seed3/model_step_002000.pt
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h17_stage1_focus_gate_s_seed3/model_step_000850.pt
 ```
 <!-- RLCM:METADATA_END -->
 
@@ -27727,7 +27727,7 @@ CUDA_VISIBLE_DEVICES=0 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONU
 ### Play Command (Auto)
 <!-- RLCM:PLAY_COMMAND_START -->
 ```bash
-PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h17_stage1_focus_gate_s_seed3/model_step_002000.pt --num_envs 16 --device cuda:0 \
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h17_stage1_focus_gate_s_seed3/model_step_000850.pt --num_envs 16 --device cuda:0 \
     agent.device=cuda:0
 ```
 <!-- RLCM:PLAY_COMMAND_END -->
@@ -27764,7 +27764,8 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- Fill training metrics and play observations.
+- Stopped at saved step850 after M750 eval seeds1001/1002 both produced LEFT/RIGHT E2=`0/0`; all 64 episodes were stage overtime.
+- Stage1-focus occupancy did not rescue paired H16 seed3; no runtime failure.
 <!-- RLCM:BATCH_END pull_lr_full_h17_stage1_focus_s3 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h17_stage1_focus_s1 -->
@@ -27776,15 +27777,15 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 batch_id: pull_lr_full_h17_stage1_focus_s1
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h17_stage1_focus_s1
-status: running
+status: done
 previous_batch_id: pull_lr_full_h16_long_acq_s1
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
-created_at: 2026-08-31T19:57:31
+created_at: 2026-09-01T00:37:42
 analysis_mode: prev+base
 public_ip: 10.13.11.197
 play_device: cuda:1
 play_num_envs: 16
-checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h17_stage1_focus_gate_s_seed1/model_step_002000.pt
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h17_stage1_focus_gate_s_seed1/model_step_000775.pt
 ```
 <!-- RLCM:METADATA_END -->
 
@@ -27798,7 +27799,7 @@ CUDA_VISIBLE_DEVICES=1 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONU
 ### Play Command (Auto)
 <!-- RLCM:PLAY_COMMAND_START -->
 ```bash
-PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h17_stage1_focus_gate_s_seed1/model_step_002000.pt --num_envs 16 --device cuda:1 \
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lr_full_stage --resume --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h17_stage1_focus_gate_s_seed1/model_step_000775.pt --num_envs 16 --device cuda:1 \
     agent.device=cuda:1
 ```
 <!-- RLCM:PLAY_COMMAND_END -->
@@ -27833,6 +27834,7 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- Fill training metrics and play observations.
+- Owner-requested stop at saved step775 after completing M750 batch.
+- M750 eval seeds1001 and0 both produced LEFT/RIGHT E2=`0/0`; all 64 episodes were stage overtime. H17 is closed.
 <!-- RLCM:BATCH_END pull_lr_full_h17_stage1_focus_s1 -->
 <!-- RLCM:BATCHES_END -->

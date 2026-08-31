@@ -1,0 +1,29 @@
+# @package _global_
+# H15-A: native full-policy acquisition from random initialization in the
+# 50/50 mirrored environment. Later stages full-resume this same policy.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_gate_a
+  - _self_
+
+checkpoint: null
+checkpoint_load_mode: full
+auto_load_latest: false
+experiment_name: pull_lr_full_native_bilateral
+
+algo:
+  config:
+    load_optimizer: false
+    actor_learning_rate: 1.0e-4
+    critic_learning_rate: 1.0e-4
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_native_bilateral_actor.PullV6NativeBilateralActor
+      freeze_running_mean_std: false
+  trl:
+    num_total_batches: 250
+
+env:
+  config:
+    staged_reset_ratios: [0.50, 0.25, 0.25, 0.0, 0.0, 0.0]
+    a2_pull_stage3_e3_snapshot_curriculum_enabled: false
+    a2_pull_stage3_taskspace_action_enabled: false

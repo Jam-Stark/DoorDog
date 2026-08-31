@@ -34,6 +34,8 @@ ABLATIONS = {
     "m": "wbmanip/pull_lr_full_left_stage3_pose_quality",
     "n": "wbmanip/pull_lr_full_left_stage3_taskspace",
     "o": "wbmanip/pull_lr_full_bilateral_stage3_canonical",
+    "p": "wbmanip/pull_lr_full_h14_teacher_capture",
+    "q": "wbmanip/pull_lr_full_native_bilateral",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")
@@ -47,6 +49,7 @@ ACTOR_CONTRACTS = {
     "left_post_e3": "gr00t.rl.trl.modules.pull_v6_left_stage3_post_e3_adapter_actor.PullV6LeftStage3PostE3AdapterActor",
     "left_taskspace": "gr00t.rl.trl.modules.pull_v6_left_stage3_taskspace_actor.PullV6LeftStage3TaskspaceActor",
     "bilateral_taskspace": "gr00t.rl.trl.modules.pull_v6_bilateral_stage3_canonical_actor.PullV6BilateralStage3CanonicalActor",
+    "native_bilateral": "gr00t.rl.trl.modules.pull_v6_native_bilateral_actor.PullV6NativeBilateralActor",
 }
 
 
@@ -65,6 +68,7 @@ def _parse_args() -> argparse.Namespace:
     train.add_argument("--run-prefix", default="pull_lr_full")
     train.add_argument("--port", type=int)
     train.add_argument("--resume-full", action="store_true")
+    train.add_argument("--from-scratch", action="store_true")
     train.add_argument("--run", action="store_true")
 
     evaluate = commands.add_parser("eval")
@@ -103,8 +107,10 @@ def _runtime_env(gpu: int, port: int) -> dict[str, str]:
 
 
 def _train_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], Path]:
-    checkpoint = args.checkpoint.expanduser().resolve()
-    if not checkpoint.is_file():
+    if args.from_scratch and args.resume_full:
+        raise ValueError("--from-scratch and --resume-full are mutually exclusive")
+    checkpoint = None if args.from_scratch else args.checkpoint.expanduser().resolve()
+    if checkpoint is not None and not checkpoint.is_file():
         raise FileNotFoundError(checkpoint)
     if args.num_envs <= 0 or args.num_envs % 2 != 0:
         raise ValueError("bilateral training requires a positive even --num-envs")
@@ -116,7 +122,9 @@ def _train_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str],
     port = args.port if args.port is not None else 35080 + 100 * (args.gate == "b") + args.seed
     if port <= 0 or port > 65535:
         raise ValueError("--port must be in [1, 65535]")
-    checkpoint_load_mode = "full" if args.resume_full else "policy_only"
+    checkpoint_load_mode = (
+        "full" if args.resume_full or args.from_scratch else "policy_only"
+    )
     command = [
         str(PYTHON),
         "-B",
@@ -137,7 +145,7 @@ def _train_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str],
         f"+ablation={ABLATIONS[args.gate]}",
         f"seed={args.seed}",
         f"num_envs={args.num_envs}",
-        f"checkpoint={checkpoint}",
+        f"checkpoint={checkpoint if checkpoint is not None else 'null'}",
         f"checkpoint_load_mode={checkpoint_load_mode}",
         f"algo.config.load_optimizer={'true' if args.resume_full else 'false'}",
         f"algo.trl.num_total_batches={args.batches}",
@@ -174,7 +182,7 @@ def _eval_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], 
     ]
     if args.gate in {"m", "n"}:
         diagnostic_reward_terms.append("a2_pull_stage3_pose_quality")
-    if args.gate == "o":
+    if args.gate in {"o", "q"}:
         diagnostic_reward_terms.append("a2_pull_stage3_bilateral_pose_quality")
     diagnostic_reward_terms.extend(
         [

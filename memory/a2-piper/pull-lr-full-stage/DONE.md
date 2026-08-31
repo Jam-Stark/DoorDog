@@ -30,3 +30,6 @@
 - 2026-08-31 06:08 HKT — H13首轮四seed在batch1–7共同暴露converted j6 raw约13.5–14.8超过经验cap12，finite/limit/delta均valid；记录为infrastructure failure，无checkpoint/policy verdict，r1仅将bilateral raw cap提高到15。
 - 2026-08-31 06:22 HKT — H13 r1四seed仍在batch1–7仅因converted raw约15.5–18触发cap15，而final delta/joint均valid；确认raw cap与plant validity重复且过保守，r2删除bilateral独立raw幅值门，保留finite/delta/joint硬门。
 - 2026-08-31 07:10 HKT — H13 r2四seed完成75-batch：双侧E2均16/16，LEFT first-E3 pose/contact显著改善且两侧hinge均进入0.03–0.07rad，但仍无0.105/E4；依据clean双侧中介趋势full-resume四seed到global200。
+- 2026-08-31 08:13 HKT — H13 global200四seed仍双侧0个hinge≥0.105/E4，且E3回落；关闭zero-init shared controller。H14在native from-scratch与RIGHT-success teacher warm-init之间做独立裁决。
+- 2026-08-31 09:24 HKT — H14 RIGHT teacher capture/BC通过数据支持与held-out fit门，但teacher-off shared head仅E4/E5=`2/2`，低于`8/5`准入线；关闭teacher路线并按Owner方案1实现H15 native bilateral全策略随机初始化入口。
+- 2026-08-31 09:24 HKT — H15 256-env×5-batch smoke完成81920 timesteps：checkpoint=null、LEFT/RIGHT=`128/128`、actor19+critic17 optimizer states齐全且RMS更新；只到average stage≈0.11，故不外推Stage3/goal能力。

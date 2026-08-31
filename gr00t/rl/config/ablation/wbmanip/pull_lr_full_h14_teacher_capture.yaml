@@ -1,0 +1,14 @@
+# @package _global_
+# H14: fixed-RIGHT successful Stage3 teacher capture; never changes applied action.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_gate_b
+  - _self_
+
+experiment_name: pull_lr_full_h14_teacher_capture
+
+env:
+  config:
+    a2_pull_h14_teacher_capture_enabled: true
+    a2_pull_stage3_taskspace_translation_scale_m: 0.072
+    a2_pull_stage3_taskspace_rotation_scale_rad: 0.16

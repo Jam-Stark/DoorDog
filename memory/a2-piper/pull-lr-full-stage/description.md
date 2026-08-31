@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-31 07:10 HKT
+last_updated: 2026-08-31 09:24 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -56,6 +56,14 @@ source_of_truth:
   - logs_eval/a2_piper_pull_lr_full_stage/r50_screen_gate_o_s1_step075_evalseed1001_summary.json
   - logs_eval/a2_piper_pull_lr_full_stage/r50_screen_gate_o_s2_step075_evalseed1001_summary.json
   - logs_eval/a2_piper_pull_lr_full_stage/r50_screen_gate_o_s3_step075_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r55_screen_gate_o_s0_step200_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r55_screen_gate_o_s1_step200_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r55_screen_gate_o_s2_step200_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r55_screen_gate_o_s3_step200_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h14_teacher_right16_r4/right/eval/stage2_5_step_trace.json
+  - logs_rl/a2_piper_pull_lr_full_stage/warmstarts_h14/h14_r4_right_teacher_fit.pt
+  - logs_eval/a2_piper_pull_lr_full_stage/h14_warm_right16/right/eval/stage2_5_step_trace.json
+  - gr00t/rl/config/ablation/wbmanip/pull_lr_full_native_bilateral.yaml
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -65,7 +73,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-31 07:10 HKT)
+## Current evidence (2026-08-31 09:24 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -104,6 +112,10 @@ related_entries:
 - H13首轮四seed正式训练分别在约batch3/1/2/7共同触发task-space converted raw admission：j6约`-13.50`至`-14.82`，而finite、joint-limit、delta均valid。四格均无step25 checkpoint，故只记infrastructure failure。r1保持所有policy/reward/scale不变，仅把bilateral task-space raw经验cap从12提高到15；delta clip15与joint-limit硬门仍在，尚无r1结果。
 - H13 r1四seed又在约batch3/1/2/7以同一形式触发raw cap15，converted raw约`-15.50`至`-17.99`，但每次finite、最终delta与joint-limit仍valid。raw幅值只是旧joint cumulative buffer到新task-space absolute target的一步坐标转换，独立cap与最终plant validity重复。r2删除bilateral raw幅值门，只保留finite、delta clip15和joint-limit；LEFT-only旧实验合同不变，尚无r2结果。
 - H13 r2四seed均完成75 batches。fixed-side16 LEFT E2/E3=`16/(9,8,8,7)`，RIGHT=`16/(3,3,5,6)`，两侧E4仍0。关键中介已与所有LEFT-specialist路线不同：LEFT first-E3 distance降至`0.0529–0.0591m`、opening alignment升至`0.8496–0.8715`、continuous contact中位`104–166` steps；RIGHT distance约`0.012m`、alignment`0.917–0.960`、dwell`147–400`。LEFT/RIGHT max hinge分别`0.0276–0.0543/0.0447–0.0708rad`，两侧均从噪声盆抬升但未到0.105。因clean双侧pose/contact/hinge趋势成立，四seed保留full state续到global200，尚无结果。
+- H13 global200 fixed-side16：LEFT E3=`6/6/6/7`、RIGHT=`7/4/4/7`，两侧E2仍全16，四格双方E4均0。LEFT/RIGHT max hinge分别`0.0422/0.0615/0.0421/0.0020`与`0.0501/0.0516/0.0495/0.0561rad`，仍无episode进入0.105。延长预算没有把shared controller推过力矩门且E3回落，H13按global200门关闭。
+- H14先执行更低成本的RIGHT-success teacher warm-init。fixed-RIGHT teacher source在capture-r4达到E3/E4/E5=`14/14/14`，1664条有效Stage3 rows；按action-induced plant increment重标、固定task-space scale为`0.072m/0.16rad`后，twist-only support=`92.43%`。BC在1156条train/508条held-out rows上得到MSE=`0.04427/0.05877`，且bilateral acquisition parent23 exact。
+- teacher关闭后的warm shared head fixed-RIGHT16只达到K5/E2/E3/E4/E5=`16/16/6/2/2`，低于预注册E4≥8/E5≥5准入线；task-space realized residual median=`0.7156`。H14虽首次证明shared head可产生真实E4/E5，但joint→twist投影丢失了RIGHT teacher所需控制，故判`NOT_ADMITTED`，不启动bilateral PPO。
+- H15据Owner clean方案1转向从随机初始化训练原生bilateral full recurrent policy：135-D actor、RMS与std全部可训练，不继承RIGHT/full或Stage0–2 checkpoint；50/50 side randomization保留，未独立成功的bilateral Stage3 pose reward在clean baseline中保持0。首段以`[0.50,0.25,0.25,0,0,0]`建立acquisition，后续同policy full-resume进入Stage3/4/5 curriculum；当前runtime smoke已通过，正式训练尚未形成证据。
 
 ## Evidence boundary
 

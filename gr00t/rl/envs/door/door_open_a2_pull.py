@@ -703,6 +703,8 @@ class DoorOpenA2Pull(DoorPregrasp):
 
         if self._is_a2_pull_v6():
             self._a2_pull_v6_pre_action_arm_delta_targets[:] = self._delta_actions
+        if self._a2_pull_h14_teacher_capture_enabled:
+            self._capture_a2_pull_h14_teacher(actor_state)
         if self._a2_pull_stage3_taskspace_action_enabled:
             actor_state = self._apply_a2_pull_stage3_taskspace_action(actor_state)
         if not self._is_a2_pull_v5():
@@ -1809,6 +1811,231 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_v5_characterization_phase = ["inactive" for _ in range(self.num_envs)]
         self._a2_pull_v5_characterization_trace_rows: list[dict[str, object]] = []
         self._init_a2_pull_stage3_taskspace_executor()
+        self._init_a2_pull_h14_teacher_capture()
+
+    def _init_a2_pull_h14_teacher_capture(self) -> None:
+        enabled = self.config.get("a2_pull_h14_teacher_capture_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("a2_pull_h14_teacher_capture_enabled must be bool.")
+        self._a2_pull_h14_teacher_capture_enabled = enabled
+        if not enabled:
+            return
+        if not self._is_a2_pull_v6() or self._a2_pull_stage3_taskspace_action_enabled:
+            raise RuntimeError(
+                "H14 teacher capture requires pull-v6 with task-space execution disabled."
+            )
+        robot = self.simulator.scene.articulations["robot"]
+        body_ids, body_names = robot.find_bodies(
+            "arm_body6_to_gripper", preserve_order=True
+        )
+        joint_ids, joint_names = robot.find_joints(
+            [f"arm_j{i}" for i in range(1, 7)], preserve_order=True
+        )
+        if len(body_ids) != 1 or body_names != ["arm_body6_to_gripper"]:
+            raise RuntimeError("H14 teacher capture requires the Piper TCP body.")
+        if joint_names != [f"arm_j{i}" for i in range(1, 7)]:
+            raise RuntimeError("H14 teacher capture arm joint order mismatch.")
+        self._a2_pull_h14_body_id = body_ids[0]
+        self._a2_pull_h14_joint_ids = joint_ids
+        self._a2_pull_h14_jacobian_joint_ids = [joint_id + 6 for joint_id in joint_ids]
+        self._a2_pull_h14_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_h14_canonical_features = torch.zeros(
+            self.num_envs, 58, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_h14_target = torch.zeros(
+            self.num_envs, 9, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_h14_dq = torch.zeros(
+            self.num_envs, 6, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_h14_jacobian_condition = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_h14_pre_e3 = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+
+    @staticmethod
+    def _a2_pull_h14_polar(vector: torch.Tensor, mirror: torch.Tensor) -> torch.Tensor:
+        return vector * torch.stack(
+            (torch.ones_like(mirror), mirror, torch.ones_like(mirror)), dim=-1
+        )
+
+    @staticmethod
+    def _a2_pull_h14_axial(vector: torch.Tensor, mirror: torch.Tensor) -> torch.Tensor:
+        return vector * torch.stack(
+            (mirror, torch.ones_like(mirror), mirror), dim=-1
+        )
+
+    def _get_a2_pull_h14_canonical_features(self) -> tuple[torch.Tensor, torch.Tensor]:
+        actor_obs = self.obs_buf_dict.get("actor_obs")
+        if (
+            not torch.is_tensor(actor_obs)
+            or tuple(actor_obs.shape) != (self.num_envs, 135)
+            or not torch.all(torch.isfinite(actor_obs))
+        ):
+            raise RuntimeError("H14 teacher capture requires finite raw 135-D actor_obs.")
+        side = actor_obs[:, 112:114]
+        if torch.any((side != 0.0) & (side != 1.0)) or torch.any(
+            side.sum(dim=-1) != 1.0
+        ):
+            raise RuntimeError("H14 teacher capture requires exact LR one-hot actor_obs.")
+        mirror = side[:, 1] - side[:, 0]
+        metadata = actor_obs[:, 107:115]
+        relative = actor_obs[:, 118:127]
+        handle_pose = actor_obs[:, 83:92]
+        force_norms = torch.linalg.vector_norm(
+            actor_obs[:, 101:107].reshape(self.num_envs, 2, 3), dim=-1
+        ).sort(dim=-1).values
+        base_command = actor_obs[:, 0:5]
+        canonical_base_command = torch.stack(
+            (
+                base_command[:, 0],
+                mirror * base_command[:, 1],
+                mirror * base_command[:, 2],
+                base_command[:, 3],
+                base_command[:, 4],
+            ),
+            dim=-1,
+        )
+        features = torch.cat(
+            (
+                actor_obs[:, 53:59],
+                actor_obs[:, 73:79],
+                actor_obs[:, 59:61],
+                actor_obs[:, 79:81],
+                torch.cat(
+                    tuple(
+                        self._a2_pull_h14_polar(relative[:, i : i + 3], mirror)
+                        for i in (0, 3, 6)
+                    ),
+                    dim=-1,
+                ),
+                self._a2_pull_h14_polar(actor_obs[:, 115:118], mirror),
+                self._a2_pull_h14_polar(actor_obs[:, 32:35], mirror),
+                self._a2_pull_h14_axial(actor_obs[:, 29:32], mirror),
+                actor_obs[:, 81:83],
+                force_norms,
+                torch.cat(
+                    tuple(
+                        self._a2_pull_h14_polar(handle_pose[:, i : i + 3], mirror)
+                        for i in (0, 3, 6)
+                    ),
+                    dim=-1,
+                ),
+                torch.cat((metadata[:, :5], metadata[:, 7:8]), dim=-1),
+                canonical_base_command,
+            ),
+            dim=-1,
+        )
+        if tuple(features.shape) != (self.num_envs, 58):
+            raise RuntimeError("H14 canonical teacher features must be (N,58).")
+        return features, mirror
+
+    def _capture_a2_pull_h14_teacher(self, actor_state) -> None:
+        actions = actor_state["actions"]
+        expected_dim = self._a2_high_level_action_dim + self._a2_leg_action_dim
+        if (
+            not torch.is_tensor(actions)
+            or tuple(actions.shape) != (self.num_envs, expected_dim)
+            or not torch.all(torch.isfinite(actions))
+        ):
+            raise RuntimeError("H14 teacher capture requires finite trainer actions.")
+        active = (self.stage_buf == self.STAGE_OPEN) & (self.door_open_lr == -1.0)
+        if torch.any((self.stage_buf == self.STAGE_OPEN) & ~active):
+            raise RuntimeError("H14 teacher capture requires fixed-RIGHT evaluation.")
+        self._a2_pull_h14_valid.zero_()
+        self._a2_pull_h14_canonical_features.zero_()
+        self._a2_pull_h14_target.zero_()
+        self._a2_pull_h14_dq.zero_()
+        self._a2_pull_h14_jacobian_condition.fill_(float("nan"))
+        self._a2_pull_h14_pre_e3.zero_()
+        if not torch.any(active):
+            return
+        features, mirror = self._get_a2_pull_h14_canonical_features()
+        robot = self.simulator.scene.articulations["robot"]
+        joint_ids = self._a2_pull_h14_joint_ids
+        d_next = torch.clamp(
+            self._delta_actions
+            + actions[:, 5:11] * float(self.config.delta_action_scale),
+            min=-float(self.config.delta_action_clip),
+            max=float(self.config.delta_action_clip),
+        )
+        dq = float(self.config.robot.control.action_scale) * (
+            d_next - self._delta_actions
+        )
+        piper = self._get_a2_v20_piper_frame_data("H14 teacher capture")
+        root_quat_w = robot.data.root_quat_w
+        root_pos_w = robot.data.root_pos_w
+        body_pos_w = robot.data.body_pos_w[:, self._a2_pull_h14_body_id]
+        body_quat_w = robot.data.body_quat_w[:, self._a2_pull_h14_body_id]
+        source_pos_root, _ = subtract_frame_transforms(
+            root_pos_w,
+            root_quat_w,
+            piper["source_pos_w"],
+            piper["source_quat_w"],
+        )
+        body_pos_root, _ = subtract_frame_transforms(
+            root_pos_w, root_quat_w, body_pos_w, body_quat_w
+        )
+        jacobian = robot.root_physx_view.get_jacobians()[
+            :,
+            self._a2_pull_h14_body_id,
+            :,
+            self._a2_pull_h14_jacobian_joint_ids,
+        ]
+        jacobian_root = a2_hold_rotate_jacobian_to_root(jacobian, root_quat_w)
+        jacobian_root = a2_hold_apply_source_offset_to_jacobian(
+            jacobian_root, source_pos_root - body_pos_root
+        )
+        singular_values = torch.linalg.svdvals(jacobian_root)
+        condition = singular_values[:, 0] / singular_values[:, -1]
+        twist_root = torch.bmm(jacobian_root, dq.unsqueeze(-1)).squeeze(-1)
+        linear_w = quat_apply(root_quat_w, twist_root[:, :3])
+        angular_w = quat_apply(root_quat_w, twist_root[:, 3:])
+        handle_quat_w = piper["target_quat_w"][:, 0, :]
+        linear_handle = quat_apply_inverse(handle_quat_w, linear_w)
+        angular_handle = quat_apply_inverse(handle_quat_w, angular_w)
+        normalized_twist = torch.cat(
+            (
+                linear_handle
+                / float(self.config.a2_pull_stage3_taskspace_translation_scale_m),
+                angular_handle
+                / float(self.config.a2_pull_stage3_taskspace_rotation_scale_rad),
+            ),
+            dim=-1,
+        )
+        canonical_base = torch.stack(
+            (
+                actions[:, 0],
+                mirror * actions[:, 1],
+                mirror * actions[:, 2],
+            ),
+            dim=-1,
+        )
+        target = torch.cat((canonical_base, normalized_twist), dim=-1)
+        finite = (
+            torch.all(torch.isfinite(features), dim=-1)
+            & torch.all(torch.isfinite(target), dim=-1)
+            & torch.all(torch.isfinite(dq), dim=-1)
+            & torch.all(torch.isfinite(singular_values), dim=-1)
+            & torch.isfinite(condition)
+        )
+        invalid = active & ~finite
+        if torch.any(invalid):
+            raise RuntimeError(
+                f"H14 teacher capture produced non-finite rows {torch.where(invalid)[0].tolist()}."
+            )
+        self._a2_pull_h14_valid[:] = active
+        self._a2_pull_h14_canonical_features[active] = features[active]
+        self._a2_pull_h14_target[active] = target[active]
+        self._a2_pull_h14_dq[active] = dq[active]
+        self._a2_pull_h14_jacobian_condition[active] = condition[active]
+        self._a2_pull_h14_pre_e3[active] = ~self._a2_pull_event_reached[
+            active, A2PullEvent.E3_LATCH_RELEASE
+        ]
 
     def _init_a2_pull_stage3_taskspace_executor(self) -> None:
         enabled = self.config.get("a2_pull_stage3_taskspace_action_enabled", False)
@@ -1827,10 +2054,10 @@ class DoorOpenA2Pull(DoorPregrasp):
             raise RuntimeError("Stage3 task-space actions require the pull-v6 plan.")
         exact = {
             "a2_pull_stage3_taskspace_translation_scale_m": (
-                0.004 if side_mode == "bilateral_canonical" else 0.008
+                0.072 if side_mode == "bilateral_canonical" else 0.008
             ),
             "a2_pull_stage3_taskspace_rotation_scale_rad": (
-                0.04 if side_mode == "bilateral_canonical" else 0.08
+                0.16 if side_mode == "bilateral_canonical" else 0.08
             ),
             "a2_pull_stage3_taskspace_dls_lambda": 0.01,
             "a2_pull_stage3_taskspace_joint_step_max_rad": 0.05,
@@ -8178,6 +8405,38 @@ class DoorOpenA2Pull(DoorPregrasp):
                     ),
                     "action_count": int(
                         self._a2_pull_stage3_taskspace_action_count[env_id].item()
+                    ),
+                }
+            if self._a2_pull_h14_teacher_capture_enabled:
+                valid = bool(self._a2_pull_h14_valid[env_id].item())
+                condition = self._a2_pull_h14_jacobian_condition[env_id]
+                record["pull_lr_h14_teacher"] = {
+                    "valid": valid,
+                    "canonical_features": (
+                        self._a2_pull_h14_canonical_features[env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                        if valid
+                        else None
+                    ),
+                    "canonical_target": (
+                        self._a2_pull_h14_target[env_id].detach().cpu().tolist()
+                        if valid
+                        else None
+                    ),
+                    "joint_delta": (
+                        self._a2_pull_h14_dq[env_id].detach().cpu().tolist()
+                        if valid
+                        else None
+                    ),
+                    "jacobian_condition": (
+                        float(condition.item()) if valid else None
+                    ),
+                    "pre_e3": (
+                        bool(self._a2_pull_h14_pre_e3[env_id].item())
+                        if valid
+                        else None
                     ),
                 }
             if self._is_a2_pull_v6():

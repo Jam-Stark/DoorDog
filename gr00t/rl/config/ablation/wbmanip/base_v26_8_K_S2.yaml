@@ -1,0 +1,40 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v26_8_common
+  - _self_
+v26_cell: V26_8_K_S2
+seed: 2
+checkpoint: logs_rl/by_batch/base_v26/v26_7_bilateral_native_unlatch_20260902/train/Q05_S2/model_step_003000.pt
+rewards:
+  reward_penalty_curriculum: true
+  reward_initial_penalty_scale: 1.0
+  reward_min_penalty_scale: 0.2
+  reward_max_penalty_scale: 1.0
+  reward_penalty_degree: -0.0001
+  reward_penalty_level_down_ave_goal_reached_rate: null
+  reward_penalty_level_up_ave_goal_reached_rate: null
+  reward_penalty_reward_names:
+    - walk_to_door
+    - gripper_handle_orientation
+    - pregrasp_gripper_dof_pos_l1
+    - pregrasp_target_distance
+    - grasp_target_distance
+    - grasp
+    - a2_stage2_close_command
+    - a2_stage2_close_progress
+    - a2_stage2_handle_center_y
+    - a2_stage2_handle_approach_xz
+    - a2_stage2_both_contact
+    - a2_stage2_opposite_squeeze
+    - a2_stage2_squeeze_force_window
+    - a2_stage2_contact_stability
+    - a2_stage3_handle_creation
+    - a2_stage3_unlatch_hold
+env:
+  config:
+    a2_v26_side_permutation_seed: 2
+    a2_v26_8_penalty_driver: side_min_natural_stage_reach_rate
+    a2_v26_8_penalty_driver_target_stage: 4
+    a2_v26_8_penalty_driver_level_down_rate: 0.5
+    a2_v26_8_penalty_driver_level_up_rate: 0.7
+    a2_v26_8_penalty_curriculum_trace_enabled: true

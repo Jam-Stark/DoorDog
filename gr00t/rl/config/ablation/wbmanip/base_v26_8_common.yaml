@@ -1,0 +1,31 @@
+# @package _global_
+
+# Frozen v26-8 continuation contract.  The v26-7 parent supplies the bilateral
+# seam, capability bundle, and squeeze threshold; each child selects only the
+# registered source/seed and arm.
+defaults:
+  - /ablation/wbmanip/base_v26_7_common
+  - _self_
+
+v26_schema: a2_piper_base_v26_8_bilateral_opening_scaffold_decay_v1
+v26_plan_id: base_v26_8_bilateral_opening_scaffold_decay_20260903
+v26_phase: V26_8_BILATERAL_OPENING_SCAFFOLD_DECAY
+v26_cell: V26_8_UNASSIGNED
+
+checkpoint_load_mode: policy_only
+policy_only_load_actor_rms: true
+auto_load_latest: false
+num_envs: 4096
+
+algo:
+  trl:
+    num_total_batches: 3000
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_v26_door_open_lr: bilateral
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.1

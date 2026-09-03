@@ -1,5 +1,26 @@
 # TODO
 
+- 2026-09-04 00:01 HKT - Owner 已授权两次本地 commit（v26-6/v26-7、v26-8；不 push）及 plan §13
+  G1 r2 relaunch。下一步按冻结顺序执行 r2 source/contract lock → `P0_ASSETS` → GPU0 G1；若 G1 PASS，
+  不再等待审批，立即启动 Wave 1 六格。旧失败 root/receipt 不得覆写。
+- 2026-09-03 21:59 HKT - **v26-8 已在 G1 fail-fast 后关闭并交回 Owner**。G0 为
+  `STATIC_PASS/TEST_PASS`；首次 K_S1 smoke 因远程 `default_environment.usd` 无法打开而在 scene
+  construction 非零退出，未到 policy load/step。按冻结合同不得重跑；Wave 1/milestone/endpoint/Wave 2
+  均为 `NOT_RUN`。若 Owner 后续决定重试，必须明确授权新的 run/output root；不得覆写本次 failure artifact。
+- v26-7 已关闭：不重跑、不改 endpoint；S0 LEFT discovery（Stage2→3 悬崖）留给 v26-9 候选。
+
+- 2026-08-31 20:05 HKT - v26-3 的 `ACTUATOR_CAPACITY_NOT_CAUSAL_AT_TESTED_RANGE` 已被
+  v26-6 Wave A 推翻，**不再作为禁止改 gripper effort/gain 的依据**；v26-4/v26-5 handoff
+  中"不移植 45N/kp1300"的措辞同样失效（45N/1300/32 是本仓库 v18–v25 的 push 基线，
+  不是 pull-only 移植）。
+- 待批准 Wave B：从 `CONT_STEP2000` 用 `GRIPPER_CAPABILITY_BUNDLE` 双 seed 重训并做
+  全 checkpoint 双侧 exact64 natural eval。
+- 待批准 Wave C（条件）：durable 下压成立但 hinge 仍停在 `<0.1` 时，启用 pull-v2-W 的
+  `a2_stage3_unlatch_near_closed_hinge_threshold: 0.1 -> 0.25`。
+- Stage2→Stage3 `-0.093/step` 收入悬崖与 `push_door_hinge + hold_and_drive` 仅
+  `0.0090/step` 的定价，属独立 axis，需单独设计。
+- LEFT 侧无下压行为，属 v26-4 `BILATERAL_ASYMMETRIC_IN_ACTION_OFFSET`，需独立处理。
+
 - v26-1 acquisition supplement 已关闭，无需重跑。
 - 2026-08-25 10:54 HKT - v26-2 pull-derived 阶段已完成并按 typed stop 关闭：Wave1 C/A/R/W
   均 750 PASS；24/24 natural Route A evaluations 均为每侧 exact64。

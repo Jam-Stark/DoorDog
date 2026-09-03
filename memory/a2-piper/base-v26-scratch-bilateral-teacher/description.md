@@ -1,8 +1,8 @@
 ---
 name: base-v26-scratch-bilateral-teacher
 scope: scratch-born bilateral A2+PiPER Teacher acquisition, far-start navigation, staged reset, and load consolidation
-status: v26_4_r2_complete_canonicalization_not_supported
-last_updated: 2026-08-29 06:48 HKT
+status: v26_7_closed_v26_8_g1_r2_authorized_prelaunch
+last_updated: 2026-09-04 00:01 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v26-scratch-bilateral-teacher/description.md
@@ -22,6 +22,9 @@ owned_paths:
   - scriptsFORhuman/v26_4/a2_piper_base_v26_4_bilateral_grasp_foundation_plan_20260828.md
   - scriptsFORhuman/v26_4/a2_piper_base_v26_4_execution_closure_20260828.md
   - scriptsFORhuman/v26_4/a2_piper_base_v26_4_r2_execution_closure_20260829.md
+  - scriptsFORhuman/v26_6/a2_piper_base_v26_6_waveA_gripper_capacity_plan_20260831.md
+  - scriptsFORhuman/v26_7/a2_piper_base_v26_7_bilateral_native_unlatch_plan_20260902.md
+  - scriptsFORhuman/v26_8/a2_piper_base_v26_8_bilateral_opening_scaffold_decay_plan_20260903.md
 read_when:
   - implementing, training, evaluating, or resuming base_v26
   - selecting the scratch bilateral Teacher or load-robust continuation
@@ -114,6 +117,34 @@ consolidation。
   `NOT_RUN / WALL_REMOVAL_NOT_REACHED`。Teacher holdout未准入，manifest与G7
   binding保持不变，阶段状态为`v26_3_complete_not_admitted`。
 
+- 2026-09-03 20:48 HKT - v26-7 已由 Owner 验收关闭（Q20 endpoint step2000、Q05 endpoint step3000，scoped
+  bilateral unlatch 目标通过；Stage4/5/complete 仅报告）。Owner 裁定进入 v26-8，不结算 v26。v26-8 plan
+  已冻结但未实现：`scriptsFORhuman/v26_8/a2_piper_base_v26_8_bilateral_opening_scaffold_decay_plan_20260903.md`。
+  两问：Q_A bilateral Stage3→4 opening/hold（W 轴 `near_closed 0.1→0.25`，对齐 Stage4 入场线 0.25，消除
+  hinge∈[0.1,0.25) 的收入谷）；Q_K scaffold-decay curriculum（改造 `reward_penalty_curriculum`：侧感知、
+  natural-start、min-side Stage≥4 到达率 driver 0.5/0.7、floor 0.2、16 项 Stage0–3 脚手架名单）。
+  Wave 1 六格 warm-start（`policy_only` + inherited actor RMS）自 Q05_S1/Q05_S2 step3000（SHA 已冻结），
+  C/W/K × {S1,S2} 配对，3000 batches，GPU2–7 训练、GPU0–1 评估；Wave 2 条件分支 B1 scratch 可靠性、
+  B2 KW 组合。已核实：v26-7 训练内 `average_goal_reached` 最大 0.26，原版 goal-rate curriculum 全程惰性；
+  pooled `average_stage_reached` 受 staged reset 与双侧混合抬高（Q05_S0 LEFT 停 Stage2 仍 3.42）。
+- 2026-09-03 21:47 HKT - v26-8 已完成最小实现与 G0：20 个 source/config/script/test 文件写入
+  source lock，两个冻结 source checkpoint SHA-256 均匹配；六格 compose、16 项非零名单与 eval
+  curriculum-off 合同为 `STATIC_PASS`，五类 CPU 单元门共 `6 passed`。正式 review 发现并在 G0 前修正
+  K 继承 goal-rate driver、G1 日志、milestone trace 前缀、reducer 字段和 receipt finalization 问题。
+  当前证据仅为 `STATIC_PASS/TEST_PASS`；G1 与 Wave 1 尚未运行。
+- 2026-09-03 21:59 HKT - v26-8 G1 首次 `K_S1` 64-env/5-batch smoke 在 policy load 前的
+  Isaac scene construction 非零退出：远程 `default_environment.usd` 无法打开，supervisor receipt
+  为 `FAIL/1`。按冻结 plan 与 Owner 的 K fail-fast 硬规则未重跑、未修改 config/阈值，也未启动 Wave 1。
+  Q_A/Q_K、六个 milestone 与 Wave 2 全部为 `NOT_RUN`；阶段终态
+  `V26_8_NOT_ADMITTED_G1_RUNTIME_ASSET_FAILURE`。closure：
+  `scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260903.md`。
+- 2026-09-04 00:01 HKT - Owner 已按 plan §13 授权一次 G1 r2 relaunch，并授权 G1 PASS 后直接
+  进入 Wave 1；实验 config、K code、判据、源 checkpoint 均保持不变。r2 使用独立 `_r2` train/eval/
+  runtime/receipt/tmux root，每次 launch 前在与 receipt command 相同的六项显式 proxy env 下执行
+  `P0_ASSETS`。旧 G0 被直接复用，旧失败 G1 与 receipt 原样保留；逐文件 r2 contract verifier 只允许
+  plan §13、orchestrator 与 child-process receipt wrapper 变化，并同时记录 Isaac 子进程与 wrapper 返回码。
+  当前处于 P0/G1 r2 prelaunch，尚无新的 GPU/runtime 结果。
+
 ## Frozen acquisition decisions
 
 - `checkpoint=null`, `checkpoint_load_mode=full`, `auto_load_latest=false`。
@@ -133,6 +164,13 @@ causality evidence不能替代 v26 scratch acquisition 结果。
 
 ## Durable runtime findings
 
+- 2026-09-03 22:33 HKT - **长寿 tmux server 会把陈旧 proxy 环境传给所有 supervisor 启动的 Isaac 进程。**
+  tmux server（2026-07-31 启动）全局 env 固定 `http(s)_proxy=127.0.0.1:18888`，而当前代理只在 `18889` 监听；
+  `run_supervisor.py` 的 `tmux new-session -d` 不显式传 env，因此 v26-8 G1 的 Isaac 进程对
+  `omniverse-content-production.s3` 的全部拉取失败，`spawn_ground_plane` 抛 `FileNotFoundError`
+  （`default_environment.usd`）。新建 tmux session 内 `curl` 复现退出码 7，当前 shell 与直连均 200。
+  之后任何 tmux 长跑必须在 receipt command 中显式写入 proxy 环境，并在启动 Isaac 前做资产 preflight。
+  另注意：Isaac 进程在场景构造异常后以 0 退出，wrapper 必须用"strict policy-load 成功行"判定。
 - 新 door selector 不仅要实现于 task scenario module，还必须在
   `gr00t/rl/simulator/isaacsim/isaacsim.py::_get_task_obj_cfg_dict_for_door_eval`
   注册入口；否则会落回旧随机 `TaskObjCfgDict`。v26 runtime count check 会在
@@ -233,3 +271,71 @@ causality evidence不能替代 v26 scratch acquisition 结果。
   seed1未达三指标strict improvement。active training orientation audit发现
   frame-transformer target offsets仍side-independent，列为v26-5输入；无hardware证据。
   v2 max-handle与v3 high-water保留各自不同exposure semantics，不作错误的一致性断言。
+- 2026-08-31 20:05 HKT - **v26 全程的 unlatch 阻塞已定位为夹爪执行能力回退，不是
+  reward/observation/geometry 问题。** v26 从 scratch 起家时没有覆盖
+  `robot.dof_effort_limit_list`，直接继承 `A2_Piper/a2_piper.yaml` 的 arm_j7/j8
+  `10/10 N`；而 v18–v25 与 pull 全部覆盖为 `45/45 N` + Kp/Kd `1300/32` +
+  `a2_m39_gripper_material_enabled=true`（指垫 static 1.1 / dynamic 0.9）+
+  squeeze 上界 `30`、over-force `55`。resolved-config 证据为
+  `logs_rl/a2_piper_full_stage_a2_base/base_v25/formal/V25_FULL_S0/config.yaml`
+  与 `logs_rl/by_batch/base_v26_acquisition_supplement_20260823/formal/V26A_LR_S1/config.yaml`。
+  `Kp800 × 最大几何行程0.035 = 28 N` 被 `10 N` cap 截断，`1300 × 0.035 = 45.5 N`
+  不截断，因此 effort cap 与 Kp 必须成对看。
+- 2026-08-31 20:05 HKT - R15 runtime 证据推翻"policy 学不会下压"这个描述：
+  `R15_S1/model_step_000250` 在 RIGHT 有 16/64 把 handle 压到 `0.785398 rad` 硬限位，
+  但握不住、回弹、latch 重咬。按门的 `door_handle_drive_max_force` 分层，
+  `≤1.6 N·m` 为 `15/21`、`>1.6 N·m` 为 `1/43`；训练分布是 `U(1.0,3.0)`，即约 70%
+  的门对该夹爪物理上不可解锁。同 door asset 家族的 v19 G3 step2500 是 16/16 到
+  stage5、`max_handle 0.594–0.785`，含 `drvF 2.77/2.75/2.50/2.43` 四扇门。下压期
+  handle 合力 v19 p50 `28.6 N`（受力指约 21.6 N）vs v26 p50 `16.8 N`（受力指钉在
+  `10.5 N`）。
+- 2026-08-31 20:05 HKT - v26-6 Wave A eval-only 单因素 A/B 给出 runtime 因果证据，
+  typed route `GRIPPER_CAPACITY_CONFIRMED`。同一 R15_S1 step250 checkpoint、同 seed、
+  门参数向量 exact 匹配、control 复跑与冻结 artifact bit-exact（`max_abs_delta 0.0`）。
+  只加 `GRIPPER_CAPABILITY_BUNDLE`（45N + 1300/32 + M39 + 窗口30/55）后 RIGHT
+  `handle≥0.3` 由 `16/64→48/64`，分层 `[1.6,2.2)` `1/27→23/27`、`[2.2,3.0]`
+  `0/16→5/16`；下压期合力 `16.8→33.0 N`，最长持续下压 p50 `0→91` control step；
+  Stage3 准入 `60→63/64`，over-force 步占比 `0`。因此 v26-3 的
+  `ACTUATOR_CAPACITY_NOT_CAUSAL_AT_TESTED_RANGE` **不成立为容量结论**：该 ladder 是
+  eval-only、用 10 N 下训练的 checkpoint、且保持 `over_force_threshold=40`、M39 关闭，
+  等于一边放开力一边罚它用力。后续计划不得再以它为禁令。artifact：
+  `logs_eval/base_v26/v26_6_waveA_gripper_capacity_20260831/reducer.json`。
+- 2026-08-31 20:05 HKT - 恢复能力后剩余阻塞是 Stage3 收入结构，不是能力：44/64
+  episode 把 handle 按在 `>0.6 rad` 达 p50 `64`、max `187` control step，`hinge` 仍
+  `≤0.0111`，64/64 `stage_overtime`，保持期 `door_body_panel_normal_force_total` 为
+  `0`。per-step 收入为 Stage2 滞留 `0.28939` vs Stage3 按住 `0.19655`，即 Stage2→3
+  有 `-0.093/step` 悬崖（`a2_stage2_handle_center_y 0.119` 与
+  `a2_stage2_handle_approach_xz 0.059` 进 Stage3 归零且无替代）；Stage3 内最大项
+  `a2_stage3_unlatch_hold 0.0599/step` 以 `hinge<0.1` 为条件，替代它的
+  `push_door_hinge + hold_and_drive` 仅 `0.0090/step`。Stage2 滞留中位数 `408`
+  control step，说明 v26-3 E1 的"Stage2 夹爪开合极限环"是理性收入行为而非采样伪影。
+  门解锁后是自由的：v26-3 U-probe 在 handle `0.5/0.6 rad` 得 hinge `0.0478/0.1443 rad`。
+- 2026-08-31 20:05 HKT - `restored/left` 三个分层仍 `0/64`：LEFT 本就没有下压行为，
+  单纯加力不诱发，属 v26-4 `BILATERAL_ASYMMETRIC_IN_ACTION_OFFSET` 轴，需独立处理。
+- 2026-09-02 16:23 HKT - v26-7 runtime constraint：`a2_v26_6_side_mirrored_handle_offset_enabled=true`
+  对 all-RIGHT eval（zero LEFT clones）必须是合法 no-op；per-env `doorOpenLR` validation
+  与 LEFT writes 仍 fail-fast。step1000 attempt1 的 removed-global-guard 前状态在 env
+  construction 阶段失败，未执行 policy step；r3 复核确认 RIGHT authored offsets bit-identical，
+  attempt2 12/12 与 determinism exact PASS。证据保留于
+  `scriptsFORhuman/v26_7/runtime_logs/v26_7_bilateral_native_unlatch_20260902/failed_attempts/step1000_attempt1/`。
+- 2026-09-02 16:23 HKT - trusted local `.hydra/runtime_config.yaml` 可能含
+  `!!python/object/apply:pathlib.PosixPath`；reducer 读取该 artifact 必须使用 repository-established
+  `yaml.UnsafeLoader`，因为 `safe_load` 会抛 `ConstructorError`；targeted existing-artifact
+  `side_summary` 已通过。
+- 2026-09-02 20:33 HKT - v26-7 Q20 在 §6.2 早停后，训练 shell 的全程 checkpoint 后置检查因
+  缺少后续 checkpoint 产生 receipt `FAIL/1`，与 reducer 已冻结的科学 endpoint 不冲突；已对未来
+  cell 的后置检查做 endpoint-aware 窄修，历史 Q20 receipts 不回写。
+- 2026-09-02 20:33 HKT - v26-7 step2000 的 observation：LEFT durable 成功与 `arm_j4=1.745` 限位
+  驻留同现；成功 LEFT pooled limit share 为 `38.1163%`，各成功 cell 为 Q05_S1 `51.0748%`、
+  Q20_S1 `24.0005%`、Q20_S2 `38.2513%`。三个 LEFT=0 cell（Q05_S0、Q05_S2、Q20_S0）的
+  `arm_j4` max 分别为 `1.257779/0.468791/1.289852`，限位步均为 `0`；限位步仅 `17.3697%`
+  落在 first-rise→first-max。该 observation/inference 仅支持“探索问题”分支，不宣称机械可达性
+  结论，也不作 typed route 最终裁定。
+- 2026-09-03 00:30 HKT - v26-7 step3000 qualification：Q05_S2 LEFT durable `60/64`、
+  `arm_j4` p95=`1.314685`、限位驻留 `0.0110%`，证明 durable 不以顶限位为必要条件；
+  Q05_S0 LEFT durable `0/64`、p95=`1.142730`、限位驻留 `0%`，支持探索/Stage2→3
+  收入结构分支而非机械撞限。详见 [goal anomaly appendix](../../../scriptsFORhuman/v26_7/a2_piper_base_v26_7_goal_anomaly_appendix_20260903.md)。
+  同一附录记录 unrouted goal anomaly：Q05_S1 LEFT `complete=62/64`；静态审计未发现
+  complete/Stage4→5 mirror defect，terminal hinge 未系统性更小；`95.253%` 限位步在
+  Stage4，且最后限位距首次 `root_x>1.5` 至少 `34` 步、距 terminal 至少 `84` 步，
+  因此为 `NO_THRESHOLD_EVIDENCE`。按 plan §8 不作 goal 能力或路由证据。

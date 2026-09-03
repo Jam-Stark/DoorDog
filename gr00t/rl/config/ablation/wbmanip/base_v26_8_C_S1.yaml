@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v26_8_common
+  - _self_
+v26_cell: V26_8_C_S1
+seed: 1
+checkpoint: logs_rl/by_batch/base_v26/v26_7_bilateral_native_unlatch_20260902/train/Q05_S1/model_step_003000.pt
+env:
+  config:
+    a2_v26_side_permutation_seed: 1

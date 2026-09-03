@@ -7751,6 +7751,10 @@ class DoorPregrasp(
             raise TypeError("a2_v26_bilateral_metrics_enabled must be bool")
         self._a2_v26_bilateral_metrics_enabled = enabled
         if not enabled:
+            if self.config.get("a2_v26_8_penalty_driver") is not None:
+                raise RuntimeError(
+                    "a2_v26_8_penalty_driver requires a2_v26_bilateral_metrics_enabled=true."
+                )
             return
         if mode is None:
             raise RuntimeError("v26 bilateral metrics require a2_v26_door_open_lr")
@@ -7775,7 +7779,229 @@ class DoorPregrasp(
         self._a2_v26_reset_use_count_by_side_stage = torch.zeros(
             2, self.num_stages, dtype=torch.long, device=self.device
         )
+        self._init_a2_v26_8_penalty_curriculum()
         self._log_a2_v26_training_metrics()
+
+    def _init_a2_v26_8_penalty_curriculum(self) -> None:
+        driver = self.config.get("a2_v26_8_penalty_driver")
+        self._a2_v26_8_penalty_driver_enabled = driver is not None
+        if driver is None:
+            return
+        if driver != "side_min_natural_stage_reach_rate":
+            raise ValueError(
+                "a2_v26_8_penalty_driver must be "
+                "'side_min_natural_stage_reach_rate'."
+            )
+        if self.config.get("a2_v26_door_open_lr") != "bilateral":
+            raise RuntimeError("a2_v26_8_penalty_driver requires bilateral door sides.")
+        if not bool(self.use_reward_penalty_curriculum):
+            raise RuntimeError(
+                "a2_v26_8_penalty_driver requires rewards.reward_penalty_curriculum=true."
+            )
+
+        legacy_driver_keys = (
+            "reward_penalty_level_down_ave_stage",
+            "reward_penalty_level_up_ave_stage",
+            "reward_penalty_level_down_ave_goal_reached_rate",
+            "reward_penalty_level_up_ave_goal_reached_rate",
+        )
+        configured_legacy_keys = [
+            key
+            for key in legacy_driver_keys
+            if self.config.rewards.get(key) is not None
+        ]
+        if configured_legacy_keys:
+            raise RuntimeError(
+                "a2_v26_8_penalty_driver conflicts with legacy reward-penalty "
+                f"drivers: {configured_legacy_keys}."
+            )
+
+        target_stage = self.config.get("a2_v26_8_penalty_driver_target_stage")
+        if (
+            isinstance(target_stage, bool)
+            or not isinstance(target_stage, int)
+            or not 0 <= target_stage < self.num_stages
+        ):
+            raise ValueError(
+                "a2_v26_8_penalty_driver_target_stage must be an existing integer stage."
+            )
+
+        def finite_rate(key: str) -> float:
+            value = self.config.get(key)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise TypeError(f"env.config.{key} must be a finite numeric rate.")
+            value = float(value)
+            if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+                raise ValueError(f"env.config.{key} must be in [0, 1].")
+            return value
+
+        level_down = finite_rate("a2_v26_8_penalty_driver_level_down_rate")
+        level_up = finite_rate("a2_v26_8_penalty_driver_level_up_rate")
+        if level_down >= level_up:
+            raise ValueError(
+                "a2_v26_8 penalty driver requires level_down_rate < level_up_rate."
+            )
+
+        trace_enabled = self.config.get(
+            "a2_v26_8_penalty_curriculum_trace_enabled"
+        )
+        if not isinstance(trace_enabled, bool):
+            raise TypeError(
+                "env.config.a2_v26_8_penalty_curriculum_trace_enabled must be bool."
+            )
+
+        reward_names_value = self.config.rewards.reward_penalty_reward_names
+        if isinstance(reward_names_value, (str, bytes)):
+            raise TypeError("reward_penalty_reward_names must be a sequence of names.")
+        reward_names = list(reward_names_value)
+        if (
+            not reward_names
+            or any(not isinstance(name, str) or not name for name in reward_names)
+            or len(set(reward_names)) != len(reward_names)
+        ):
+            raise ValueError(
+                "reward_penalty_reward_names must contain unique non-empty strings."
+            )
+        missing_reward_names = [
+            name for name in reward_names if name not in self.reward_scales
+        ]
+        if missing_reward_names:
+            raise RuntimeError(
+                "a2_v26_8 reward_penalty_reward_names must all remain non-zero after "
+                f"reward-scale preparation; missing={missing_reward_names}."
+            )
+
+        self._a2_v26_8_penalty_driver_target_stage = target_stage
+        self._a2_v26_8_penalty_driver_level_down_rate = level_down
+        self._a2_v26_8_penalty_driver_level_up_rate = level_up
+        self._a2_v26_8_last_episode_start_stage = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_8_last_episode_max_stage = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_8_last_episode_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v26_8_penalty_curriculum_update_index = 0
+        self._a2_v26_8_penalty_curriculum_skipped_updates = 0
+        self._a2_v26_8_penalty_curriculum_trace_path = None
+        if trace_enabled:
+            experiment_dir = self.config.get("experiment_dir")
+            if not isinstance(experiment_dir, str) or not experiment_dir:
+                raise RuntimeError(
+                    "a2_v26_8 penalty trace requires env.config.experiment_dir."
+                )
+            trace_path = (
+                Path(experiment_dir).resolve()
+                / "a2_v26_8_penalty_curriculum_trace.jsonl"
+            )
+            trace_path.touch(exist_ok=False)
+            self._a2_v26_8_penalty_curriculum_trace_path = trace_path
+
+    def _record_a2_v26_8_last_episodes(self, env_ids: torch.Tensor) -> None:
+        if not getattr(self, "_a2_v26_8_penalty_driver_enabled", False):
+            return
+        self._a2_v26_8_last_episode_valid.zero_()
+        started = self._a2_v26_episode_started[env_ids]
+        completed_env_ids = env_ids[started]
+        if completed_env_ids.numel() == 0:
+            return
+        self._a2_v26_8_last_episode_start_stage[completed_env_ids] = (
+            self._a2_v26_episode_start_stage[completed_env_ids]
+        )
+        self._a2_v26_8_last_episode_max_stage[completed_env_ids] = (
+            self.current_max_stage_buf[completed_env_ids]
+        )
+        self._a2_v26_8_last_episode_valid[completed_env_ids] = True
+
+    @override
+    def _update_reward_penalty_curriculum(self):
+        if self.config.get("a2_v26_8_penalty_driver") is None:
+            return super()._update_reward_penalty_curriculum()
+        if not getattr(self, "_a2_v26_8_penalty_driver_enabled", False):
+            raise RuntimeError("a2_v26_8 penalty driver was not initialized.")
+
+        rates: list[float | None] = []
+        sample_counts: list[int] = []
+        natural = self._a2_v26_8_last_episode_valid & (
+            self._a2_v26_8_last_episode_start_stage == 0
+        )
+        for side_sign in (1.0, -1.0):
+            sample_mask = natural & (self.door_open_lr == side_sign)
+            sample_count = int(sample_mask.sum().item())
+            sample_counts.append(sample_count)
+            if sample_count == 0:
+                rates.append(None)
+                continue
+            reached = (
+                self._a2_v26_8_last_episode_max_stage[sample_mask]
+                >= self._a2_v26_8_penalty_driver_target_stage
+            )
+            rates.append(float(reached.float().mean().item()))
+
+        scale_before = float(self.reward_penalty_scale.item())
+        skipped = any(rate is None for rate in rates)
+        if skipped:
+            self._a2_v26_8_penalty_curriculum_skipped_updates += 1
+        else:
+            driver = min(rates)
+            degree = self.config.rewards.reward_penalty_degree
+            if isinstance(degree, bool) or not isinstance(degree, (int, float)):
+                raise TypeError("rewards.reward_penalty_degree must be a finite number.")
+            degree = float(degree)
+            if not math.isfinite(degree):
+                raise ValueError("rewards.reward_penalty_degree must be finite.")
+            if driver > self._a2_v26_8_penalty_driver_level_up_rate:
+                self.reward_penalty_scale *= 1.0 + degree
+            elif driver < self._a2_v26_8_penalty_driver_level_down_rate:
+                self.reward_penalty_scale *= 1.0 - degree
+            self.reward_penalty_scale = torch.clip(
+                self.reward_penalty_scale,
+                self.config.rewards.reward_min_penalty_scale,
+                self.config.rewards.reward_max_penalty_scale,
+            )
+
+        scale_after = float(self.reward_penalty_scale.item())
+        log_dtype = self.reward_penalty_scale.dtype
+        log_device = self.reward_penalty_scale.device
+        logged_rates = [float("nan") if rate is None else rate for rate in rates]
+        self.log_dict["reward_penalty_scale"] = self.reward_penalty_scale.detach().clone()
+        self.log_dict["a2_v26_8_penalty_driver_left"] = torch.tensor(
+            logged_rates[0], dtype=log_dtype, device=log_device
+        )
+        self.log_dict["a2_v26_8_penalty_driver_right"] = torch.tensor(
+            logged_rates[1], dtype=log_dtype, device=log_device
+        )
+        self.log_dict["a2_v26_8_penalty_driver_min"] = torch.tensor(
+            float("nan") if skipped else min(rates),
+            dtype=log_dtype,
+            device=log_device,
+        )
+
+        trace_path = self._a2_v26_8_penalty_curriculum_trace_path
+        if trace_path is not None:
+            common_step = getattr(self, "common_step_counter", None)
+            if isinstance(common_step, bool) or not isinstance(common_step, int):
+                raise RuntimeError(
+                    "a2_v26_8 penalty trace requires integer common_step_counter."
+                )
+            row = {
+                "update_index": self._a2_v26_8_penalty_curriculum_update_index,
+                "common_step": common_step,
+                "scale_before": scale_before,
+                "scale_after": scale_after,
+                "driver_left": rates[0],
+                "driver_right": rates[1],
+                "natural_sample_left": sample_counts[0],
+                "natural_sample_right": sample_counts[1],
+                "skipped": skipped,
+            }
+            with trace_path.open("a", encoding="utf-8") as handle:
+                handle.write(
+                    json.dumps(row, allow_nan=False, separators=(",", ":")) + "\n"
+                )
+        self._a2_v26_8_penalty_curriculum_update_index += 1
 
     def _init_a2_v26_2_handle_depression_telemetry(self) -> None:
         enabled = self.config.get("a2_v26_2_telemetry_enabled", False)
@@ -7940,6 +8166,7 @@ class DoorPregrasp(
     def _record_a2_v26_completed_episodes(self, env_ids: torch.Tensor) -> None:
         if not self._a2_v26_bilateral_metrics_enabled or env_ids.numel() == 0:
             return
+        self._record_a2_v26_8_last_episodes(env_ids)
         started = self._a2_v26_episode_started[env_ids]
         for side_index, side_sign in enumerate((1.0, -1.0)):
             selected = started & (self.door_open_lr[env_ids] == side_sign)

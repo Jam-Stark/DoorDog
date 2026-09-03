@@ -1,0 +1,45 @@
+# @package _global_
+
+# v26-6 Wave B, B0 cell: restore the v18–v25 gripper capability contract on the
+# frozen v26-4 C0 baseline.  Everything else, including
+# `a2_stage3_unlatch_near_closed_hinge_threshold: 0.1`, is inherited unchanged so
+# that B0 -> B1 isolates the pull-v2-W wall removal.
+defaults:
+  - /ablation/wbmanip/base_v26_4_C0_CANONICAL_OFF
+  - _self_
+
+v26_schema: a2_piper_base_v26_6_waveB_gripper_capability_v1
+v26_phase: V26_6_WAVEB_GRIPPER_CAPABILITY
+v26_cell: V26_6_WAVEB_B0_S0
+v26_6_plan_id: base_v26_6_waveB_gripper_capability_20260831
+
+algo:
+  trl:
+    num_total_batches: 750
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_m39_gripper_material_enabled: true
+    a2_stage2_squeeze_force_max: 30.0
+    a2_stage2_over_force_threshold: 55.0
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.1
+
+robot:
+  dof_effort_limit_list: [
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 45.0, 45.0
+  ]
+  control:
+    stiffness:
+      arm_j7: 1300.0
+      arm_j8: 1300.0
+    damping:
+      arm_j7: 32.0
+      arm_j8: 32.0

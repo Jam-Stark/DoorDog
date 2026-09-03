@@ -1,0 +1,38 @@
+# @package _global_
+
+# Frozen v26-7 from-scratch bilateral-unlatch base.  The Wave-B B0 parent is
+# used only for its already-registered capability bundle and physical seam.
+defaults:
+  - /ablation/wbmanip/base_v26_6_waveB_B0
+  - _self_
+
+v26_schema: a2_piper_base_v26_7_bilateral_native_unlatch_v1
+v26_plan_id: base_v26_7_bilateral_native_unlatch_20260902
+v26_phase: V26_7_BILATERAL_NATIVE_UNLATCH
+v26_cell: V26_7_UNASSIGNED
+
+checkpoint: null
+checkpoint_load_mode: full
+auto_load_latest: false
+seed: 0
+num_envs: 4096
+
+algo:
+  trl:
+    num_total_batches: 6000
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_v26_door_open_lr: bilateral
+    a2_v26_6_side_mirrored_handle_offset_enabled: true
+    a2_stage2_squeeze_force_min: 0.5
+
+simulator:
+  config:
+    sim:
+      physx:
+        num_velocity_iterations: 2

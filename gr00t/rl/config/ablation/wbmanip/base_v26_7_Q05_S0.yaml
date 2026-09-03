@@ -1,0 +1,9 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v26_7_common
+  - _self_
+v26_cell: V26_7_Q05_S0
+seed: 0
+env:
+  config:
+    a2_stage2_squeeze_force_min: 0.5

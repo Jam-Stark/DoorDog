@@ -1,0 +1,662 @@
+ ▐▛███▜▌   Claude Code v2.1.221
+▝▜█████▛▘  Opus 5 · API Usage Billing
+  ▘▘ ▝▝    ~/workspace/DoorDog-A2_Piper
+
+
+❯ /model                                                                        
+  ⎿  Set model to Opus 5 (1M context) and saved as your default for new sessions
+
+❯ 现在需要你接续上一个claude session的任务，session                             
+  ID：51548d3a-d05c-4087-83c0-ca7cb6a790c1  ，原始对话文件：[51548d3a-d05c-4087 
+  -83c0-ca7cb6a790c1.jsonl](/home/baoquanc/.claude/projects/-home-baoquanc-work 
+  space-DoorDog-A2-Piper/51548d3a-d05c-4087-83c0-ca7cb6a790c1.jsonl)            
+  加上其更新的文档/memory， 了解任务。现在他最后制定v26-7                       
+    plan交付的worker返回了一个待决策，请做出回答： step1000 未形成完整          
+  milestone，已按“不重跑”停止评估并保留失败证据；六格训练仍继续运行。           
+                                                                                
+  - G1：`PASS`。LEFT `179.998044°–179.999651°`，RIGHT                           
+  bit-identical，integrity=0。                                                  
+  - G2：`PASS`。24/24 exact64，四格 endpoint LEFT durable 均为 0。              
+  - 训练：六份 receipt 均 `RUNNING`，当前 iteration `1125–1184`，六份 step1000  
+  checkpoint 已落盘。                                                           
+  - step1000 两条 eval lane 均 `FAIL/1`：RIGHT-only 初始化被错误的“必须存在     
+  LEFT clone”guard 拒绝；未生成 reducer。                                       
+                                                                                
+  部分有效读数：                                                                
+                                                                                
+  | Cell / side | Durable | Stage3 | arm_j4 p95 | Integrity |                   
+  |---|---:|---:|---:|---:|                                                     
+  | Q05_S0 LEFT | 0/64 | 3/64 | 1.0481 | 0 |                                    
+  | Q05_S1 LEFT | 64/64 | 64/64 | 1.3357 | 0 |                                  
+  | 其余 | 未运行 | 未运行 | 未运行 | 未运行 |                                  
+                                                                                
+  已做两项窄修复：                                                              
+                                                                                
+  - [door_open_a2_base.py](/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/e 
+  nvs/door/door_open_a2_base.py)：RIGHT-only 现在原样返回 authored offset；r3   
+  focused review `PASS`，G1/G2 证据保留。                                       
+  - [v26_7_reduce.py](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman 
+  /v26_7/v26_7_reduce.py)：按仓库既有方式读取带 `PosixPath` tag 的 runtime      
+  config。                                                                      
+                                                                                
+  Changed paths 还包括 [v26-7 scripts](/home/baoquanc/workspace/DoorDog-A2_Pipe 
+  r/scriptsFORhuman/v26_7)、六格 selectors 与 common                            
+  selector，以及此前列明的三个 core/config 文件和两个测试文件。未 commit、未    
+  push。                                                                        
+                                                                                
+  证据等级：static PASS、G1 runtime PASS、G2 experiment PASS、step1000 partial  
+  experiment/INCOMPLETE。                                                       
+  未运行：step1000 完整 reducer、step2000–6000 milestones、最终关闭。           
+  活跃资源：无代码 writer；六个训练进程占用 GPU2–7，GPU0–1 空闲；Main           
+  继续持有全部 GPU/output-root lease。                                          
+  Durable memory candidate：有——RIGHT-only eval 必须允许零 LEFT clone，以及     
+  Hydra runtime config loader 约束；尚未写入 memory。                           
+                                                                                
+  请裁定：是否授权用新的 attempt root 重做 step1000                             
+  exact64；若严格执行“不重跑”，请同时决定是否停止仍在运行的六格训练。           
+
+  Thought for 12s (ctrl+o to expand)
+
+● 我先把 v26-7 的 plan、闸门定义和当前 receipt
+  状态读出来再裁定，不凭描述下结论。
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Bash(git log --oneline -5 && echo "--- status ---" && git status --short)
+  ⎿  b228bb0 docs: hand off r15 experiment
+     c8203ac fix: align r15 formal diagnostics
+     3fd6482 feat: preregister v26-5 residual r15
+     … +25 lines (ctrl+o to expand)
+
+  Thought for 1m 13s, searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '140,251p' scriptsFORhuman/v26_7/a2_piper_base_v26_7_bilateral_nat
+      ive_unlatch_plan_20260902.md)
+  ⎿  64-env、≤5 batch 短跑，`a2_v26_6_side_mirrored_handle_offset_enabled=t
+     rue`，
+     dump `target_quat_source_handle`。判据（确定性几何量，不依赖策略）：
+     … +108 lines (ctrl+o to expand)
+
+  Thought for 1m 0s (ctrl+o to expand)
+
+● Bash(git diff -- gr00t/rl/envs/door/door_open_a2_base.py | head -120)
+  ⎿  diff --git a/gr00t/rl/envs/door/door_open_a2_base.py b/gr00t/rl/envs/d
+     oor/door_open_a2_base.py
+     index 9cf678a..afa9f7e 100644
+     … +117 lines (ctrl+o to expand)
+
+  Thought for 40s, listed 1 directory (ctrl+o to expand)
+
+● Bash(git diff -- gr00t/rl/envs/door/door_open_a2_base.py | sed -n '120,240p')
+  ⎿  +                        "env-major target offset storage."
+     +                    )
+     +                self._target_frame_offset_quat = mirrored_quat
+     … +74 lines (ctrl+o to expand)
+
+  Thought for 3m 32s, searched for 2 patterns, read 1 file, listed 2 directories (ctrl+o to expand)
+
+● Bash(sed -n '1,80p' scriptsFORhuman/v26_7/v26_7_active_cells.py)
+  ⎿  #!/usr/bin/env python3
+     """Read frozen v26-7 early-success endpoints before a later milestone.
+     """
+     … +48 lines (ctrl+o to expand)
+
+  Thought for 56s (ctrl+o to expand)
+
+● 裁定
+
+  授权重做 step1000，用新的 attempt root；不停训练。
+
+  依据
+
+  1. "不重跑"约束的对象不是这次的失败。 plan §7
+  原文是"任一格非零退出即停止该格并保留失败证据"，"格"指六个训练
+  cell。这次非零退出发生在评估 lane 的 env 构造阶段（v26-6 side-mirrored handle 
+  offset is enabled but no LEFT-hinged clone was found，eval_agent_trl.py:745
+  instantiate 期抛出），在策略跑任何一步之前。没有产生过 RIGHT
+  读数，也就不存在"结果不合意就重跑"的选择性问题——那才是该条款要防的东西。
+  2. checkpoint 已冻结，重评是确定性回放，不是重做实验。 六份 step1000
+  checkpoint 已落盘，训练继续不改写它们。exact64 + enable_staged_reset=false +
+  first-episode-only 是确定性的。
+  3. "严格不重跑"的实际后果是终止整个实验。 v26_7_active_cells.py:29-31
+  对每个先行 milestone 硬要求 step{N}/reducer.json 存在且 status == 
+  EXPERIMENT_COMPLETE，缺一即 raise。step1000 没有 reducer，milestone-launch 
+  2000 会直接失败，后续五个 milestone 全部无法进入。也就是说"不重跑
+  step1000"等价于"因为一个 eval harness 缺陷放弃六格 35
+  小时训练"。这个代价与预注册想保护的东西不成比例。
+  4. step1000 的 RIGHT 读数是路由必需项。 Q05_S1 LEFT 已经是 64/64 durable；若其
+  RIGHT ≥32/64 且 Q05 有 ≥2/3 seed 同时满足，按 §6.2 该 config 三格必须在 
+  step1000 停机并以此为 endpoint。缺 RIGHT
+  就无法执行这条预注册的提前终止规则——继续训练反而成了违反预注册。
+
+  执行条件（全部为硬性）
+
+  - 失败证据整体保留、只读：把 logs_eval/base_v26/v26_7_bilateral_native_unlatch
+  _20260902/milestones/step1000/ 原样移到 milestones/ 之外（例如同级
+  failed_attempts/step1000_attempt1/），不删、不改内容。移出 milestones/ 是因为
+  v26_7_orchestrate.sh:139 要求 fresh milestone root，而 active_cells.py 按
+  step{N} 精确名扫描，同级异名目录不会被误读——这样重做不需要改任何脚本。
+  - 12 次全跑，不复用旧结果：六格 × LEFT/RIGHT 全部在新根重跑。已有的两个 LEFT
+  输出不得拷贝进新根。
+  - determinism 硬门：新 LEFT 必须复现 Q05_S0 = 0/64、Q05_S1 = 64/64，且
+  per-episode 记录一致。不复现即说明那处 fix 改变了 LEFT 语义，判
+  V26_7_INVALID，停止并交回 Owner——不得二选一取用。Q05_S1 在 step1000 就 LEFT
+  64/64、Stage3 64/64、而同 config 的 S0 为 0/64，这个 0-vs-64
+  的分裂本身需要这道门来定性。
+  - §6.5 完整性逐格核对：每侧 exact 64 episode、integrity_violations = 
+  0、resolved config 满足 capability
+  bundle、a2_v26_6_side_mirrored_handle_offset_enabled=true、各自
+  squeeze_force_min、seed 与 cell 名一致。任一不满足即 V26_7_INVALID。
+  - 只用 GPU0–1，不触碰六格训练进程。
+  - 只授权这一次 attempt：新 attempt 若再非零退出，停止并交回
+  Owner，不得继续自行修补重试。同样，若发现还需要第二处 code
+  改动，先交回再动手。
+  - reducer 产出后立即执行 §6.2：若 Q05 或 Q20 达成 ≥2/3 seed 
+  BILATERAL_UNLATCH_SUPPORTED，该 config 三格当场停机并冻结
+  endpoint，不得"再等等看"。
+
+  不停训练的依据
+
+  训练格无非零退出，六份 receipt 均 RUNNING（iteration 1125–1184），缺陷完全在
+  eval harness。那处 fix 只移除了一个全局 guard，逐 env 的镜像仍由 doorOpenLR
+  决定，对 bilateral 分布的每个 env
+  输出不变，所以它既不影响已加载模块的在跑进程，也不会在某格从 checkpoint
+  续跑时改变语义。需要 worker 补一项核对：确认自 fix
+  落盘后没有任何训练格发生过重启；若有，在 receipt 中记录该格跨越了
+  pre/post-edit 代码边界。
+
+  关于 guard 本身：移除是对的。enabled=true 遇到零 LEFT clone 是合法的 no-op（G1
+  已证 RIGHT bit-identical），原 guard 把"没有 LEFT
+  clone"误判成"配置错误"。per-env 的 doorOpenLR ∈ {−1,+1} fail-fast
+  保留即可，不要再加别的宽容分支。
+
+  其他
+
+  - 两条 durable memory candidate（RIGHT-only eval 必须允许零 LEFT clone；Hydra
+  runtime config 的 PosixPath tag 读取约束）批准写入，归到现有
+  memory/a2-piper/base-v26-scratch-bilateral-teacher/，不新建 subsystem，等
+  step1000 收口后一次写完。
+  - Git 仍不授权 commit / push。
+
+✻ Sautéed for 8m 31s
+
+❯ checkpoint 2000 训练完毕，等待进一步决策：step2000 已完成；Q20 按 §6.2 冻结为 
+  step2000 endpoint 并停止，Q05 继续训练。等待 Owner 验收后进入 step3000。      
+                                                                                
+  | Cell | LEFT D/S3/S4/S5/G | RIGHT D/S3/S4/S5/G | arm_j4 p95 L/R |            
+  |---|---:|---:|---:|                                                          
+  | Q05_S0 | 0/0/0/0/0 | 32/35/0/0/0 | 1.136 / 1.279 |                          
+  | Q05_S1 | 64/64/64/9/0 | 64/64/64/9/0 | 1.745 / 1.123 |                      
+  | Q05_S2 | 0/0/0/0/0 | 0/0/0/0/0 | 0.226 / −0.066 |                           
+  | Q20_S0 | 0/0/0/0/0 | 64/64/2/0/0 | 1.162 / 1.373 |                          
+  | Q20_S1 | 61/64/64/3/0 | 63/64/63/0/0 | 1.745 / 1.617 |                      
+  | Q20_S2 | 63/64/63/7/0 | 64/64/61/0/0 | 1.745 / 1.652 |                      
+                                                                                
+  `D` 为 durable depression。12/12 均 exact64，integrity 全为 0，goal 全为 0。  
+                                                                                
+  判据执行：                                                                    
+                                                                                
+  - Q20_S1、Q20_S2：`BILATERAL_UNLATCH_SUPPORTED`                               
+  - Q20_S0：`LEFT_STILL_STRUCTURALLY_ZERO`                                      
+  - Q20 config 达到 `2/3` seed，三格已立即停止。                                
+  - Q05 仅 S1 支持，因此 `MILESTONE_CONTINUE`。                                 
+  - step2000 的六格 LEFT arm_j4 p95 并非全部 ≥1.50，§6.3 未触发。               
+  - Reducer：`EXPERIMENT_COMPLETE`、`failures=[]`、`stop_all_training=false`。  
+                                                                                
+  三-seed均值：                                                                 
+                                                                                
+  | Config | Durable L/R | Stage3 L/R | Force L/R | K5 L/R | Over-force L/R |   
+  |---|---:|---:|---:|---:|---:|                                                
+  | Q05 | 21.33 / 32.00 | 21.33 / 33.00 | 34.82 / 39.19 N | 33.33% / 51.56% |   
+  0.182% / 0.282% |                                                             
+  | Q20 | 41.33 / 63.67 | 42.67 / 64.00 | 37.69 / 45.14 N | 66.67% / 99.48% |   
+  0.020% / 0.243% |                                                             
+                                                                                
+  资源状态：                                                                    
+                                                                                
+  - Q05_S0/S1/S2：原进程继续 `RUNNING`，iteration `2519–2577`，latest           
+  step2500，使用 GPU2–4。                                                       
+  - Q20_S0/S1/S2：GPU5–7 已释放，不重跑。                                       
+  - Q20 receipt 已如实 finalize 为 `FAIL/1`：§6.2 停止后，worker 的全程         
+  checkpoint 后置检查因缺少 step2750–6000 而退出 1；科学 endpoint 仍由 step2000 
+  reducer 固定。这一 receipt 语义不作事后改写。                                 
+  - GPU0–1、5–7 当前空闲。                                                      
+                                                                                
+  Changed paths：无新的代码或 memory 修改；新增 [step2000                       
+  artifacts](/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v26/v26_7 
+  _bilateral_native_unlatch_20260902/milestones/step2000)，并更新对应 eval/Q20  
+  receipts。                                                                    
+  证据等级：runtime PASS + step2000 experiment PASS。                           
+  未运行：step3000–6000、最终关闭。                                             
+  活跃 writer：Q05 三个训练进程；Main 保持 GPU/output-root lease。              
+  Durable memory candidate：早停与全程 checkpoint 后置检查导致 receipt `FAIL/1` 
+  的语义冲突，尚未写入；Q20 科学结论等待 Owner 验收。                           
+  Git：未 commit、未 push。                                                     
+
+  Thought for 34s (ctrl+o to expand)
+
+● 我先核对盘上的 reducer 与 arm_j4 的 soft limit 再裁定，尤其是三个 1.745
+  是否同一个饱和值。
+
+● Bash(python3 -c "
+      import json,pathlib…)
+  ⎿  == True logs_eval/base_v26/v26_7_bilateral_native_unlatch_20260902/mil
+     estones/step1000/reducer.json
+     {
+     … +158 lines (ctrl+o to expand)
+
+  Thought for 1m 15s, searched for 2 patterns (ctrl+o to expand)
+
+● Bash(python3 -c "
+      import json,pathlib…)
+  ⎿  Q05_S0_STEP2000 left {}
+     Q05_S0_STEP2000 right {}
+     Q05_S1_STEP2000 left {}
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 44s (ctrl+o to expand)
+
+● Bash(grep -n "arm_j4" scriptsFORhuman/v26_7/v26_7_reduce.py | head -20; echo
+      "=== reducer values ==="; python3 -c "
+      import json,pathlib…)
+  ⎿  37:    require(bool(values), "cannot calculate p95 from an empty arm_j
+     4 distribution")
+     120:    arm_j4: list[float] = []
+     … +31 lines (ctrl+o to expand)
+
+  Thought for 3m 30s (ctrl+o to expand)
+
+● Bash(sed -n '125,175p' gr00t/rl/config/robot/A2_Piper/a2_piper.yaml; echo "===
+      soft_dof_pos_curriculum ==="; grep -rn "soft_dof_pos_curriculum"
+      gr00t/rl/config/ablat…)
+  ⎿        FL_calf_joint: -1.0
+           RL_hip_joint: 0.0
+           RL_thigh_joint: 0.5
+     … +49 lines (ctrl+o to expand)
+
+  Thought for 12s (ctrl+o to expand)
+
+● Bash(f=$(find / -name "a2_piper.urdf" -path "*A2_Piper*" 2>/dev/null | head
+      -1); echo "$f"; grep -A3 -B3 "joint4\|arm_j4" "$f" 2>/dev/null | grep -i
+      "limit\|joint na…)  ⎿  /home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-202
+     60717_2103/gr00t/rl/data/robots/A2_Piper/a2_piper.urdf
+           <limit lower="-2.967" upper="0" effort="100" velocity="5" />
+       <joint name="arm_j4" type="revolute">
+
+  Thought for 1m 17s, searched for 1 pattern (ctrl+o to expand)
+
+● 核对完毕。盘上的 reducer 与预注册判据一致，但有一处 worker
+  没有标出的东西，它决定这次验收的措辞。
+
+  一、路由验收：通过
+
+  step2000/reducer.json 与 §6.1/§6.2/§6.3 逐条对得上：
+
+  - Q20_S1（L61/R63）、Q20_S2（L63/R64）达 LEFT≥8 且 RIGHT≥32 →
+  BILATERAL_UNLATCH_SUPPORTED，2/3 成立，Q20 三格按 §6.2 立即停机、以 step2000
+  冻结 endpoint。正确，不重启、不延长。
+  - Q05 仅 S1 支持 → MILESTONE_CONTINUE。正确。
+  - §6.3 的实现是 all(... >= 1.5 for cell in 
+  CELLS)（v26_7_reduce.py:243），六格未全部 ≥1.50，未触发。忠实于预注册。
+
+  二、必须写进结论的 confound：LEFT 的 arm_j4 顶在硬限位上
+
+  三个 LEFT p95：1.744768 / 1.744589 / 1.744939。URDF 里 arm_j4 的 limit 是
+  lower="-1.745" upper="1.745"（a2_piper.urdf）。三个独立 seed
+  在小数点后三位一致，这不是巧合，是行程末端的截断，余量约 2×10⁻⁴ rad。
+
+  对齐一下就看得很清楚：
+
+  ┌────────┬─────────────┬────────────────┬──────────────┬─────────────────┐
+  │  Cell  │    LEFT     │  LEFT arm_j4   │    RIGHT     │  RIGHT arm_j4   │
+  │        │   durable   │      p95       │   durable    │       p95       │
+  ├────────┼─────────────┼────────────────┼──────────────┼─────────────────┤
+  │ Q05_S1 │          64 │ 1.7448（限位） │           64 │           1.123 │
+  ├────────┼─────────────┼────────────────┼──────────────┼─────────────────┤
+  │ Q20_S1 │          61 │ 1.7446（限位） │           63 │           1.617 │
+  ├────────┼─────────────┼────────────────┼──────────────┼─────────────────┤
+  │ Q20_S2 │          63 │ 1.7449（限位） │           64 │           1.652 │
+  ├────────┼─────────────┼────────────────┼──────────────┼─────────────────┤
+  │ Q05_S0 │           0 │          1.136 │           32 │           1.279 │
+  ├────────┼─────────────┼────────────────┼──────────────┼─────────────────┤
+  │ Q20_S0 │           0 │          1.162 │           64 │           1.373 │
+  ├────────┼─────────────┼────────────────┼──────────────┼─────────────────┤
+  │ Q05_S2 │           0 │          0.226 │            0 │          −0.066 │
+  └────────┴─────────────┴────────────────┴──────────────┴─────────────────┘
+
+  两件事：
+
+  1. 凡是 LEFT 学会 durable depression 的格，LEFT 的 arm_j4 
+  无一例外顶在硬限位；凡是没学会的，都离限位很远。 而 RIGHT
+  侧从不需要顶限位——Q20_S0 在 1.373 就拿到 RIGHT 64/64。这个"顶限位"是 LEFT
+  专有的。合理的读法是：几何修复确实让 LEFT 的抓握目标姿态变得可达，但可达点落在
+  arm_j4 行程的末端，余量≈0。
+  2. §6.3 的因果假设在 step2000 被反向证伪。 该条预设"LEFT arm_j4 贴住限位 ⇒
+  修复在训练中无效"；实测是贴住限位的格恰恰是唯一学会的格。三个成功格的 LEFT
+  单独看全部超过 1.50 
+  阈值，只是合取式没触发。这只作报告项，不改路由、不改阈值——§6.2
+  禁止事后下调阈值，同样禁止事后上调。
+
+  所以 Q20 的结论按 typed 形式落，不要写成无条件的"双侧原生 unlatch 成立"：
+
+  V26_7_Q20_BILATERAL_UNLATCH_SUPPORTED_AT_ARM_J4_TRAVEL_LIMIT
+
+  即：在 squeeze_min=2.0 下，几何修复使 LEFT 从结构性 0 变为 61–63/64 durable
+  depression（2/3 seed），但 LEFT 侧的实现方式是 arm_j4 运行在 ±1.745
+  硬限位上、余量≈0。goal 全为 0，Stage5 admission 仅 0–7/64，按 §8 不构成
+  Stage4/5/goal 证据。
+
+  三、授权：一次只读诊断（不占 Q05 卡、不动判据）
+
+  三个问题都能从已落盘的 stage2_5_step_trace.json / per-env records
+  算出来，不跑仿真、不建新 attempt root、不改任何判据，因此授权立即执行：
+
+  1. LEFT 成功 episode 中 |1.745 − arm_j4| < 1e-3
+  的步占比，以及这些步是否集中在下压期（door_handle_joint_pos 上升的那一段）。
+  2. arm_j4 的 p99 / max / 限位驻留连续长度分布，两侧分别给。
+  3. 最关键的反事实：LEFT 为 0 的三格（Q05_S0、Q05_S2、Q20_S0），LEFT 的 arm_j4
+  max 是否曾接近 1.745。
+    - 若接近过：LEFT 的零是"撞到行程末端后被挡回来"，属机械可达性问题，下一步要
+  动的是站位/基座偏航或 arm_j4 的行程分配，而不是训练量。
+    - 若从未接近：LEFT 的零是探索问题，那条通路存在但没被找到，与 §8 里"Stage2→3
+  收入悬崖"的判断合流。
+
+  这两个分支指向完全不同的 v26-8，值得在进 step3000 之前先拿到。
+
+  四、step3000：授权继续
+
+  Q05 三格按原机制推进，milestone-launch 3000 用 GPU0–1。附加一项报告要求（§6.4
+  第二读数，不新增路由）：此后每个 milestone 的 reducer 输出里带上两侧 arm_j4
+  的限位驻留步占比。只增加报告量，不触碰任何终止或 endpoint 规则。
+
+  五、Q20 receipt 的 FAIL/1
+
+  如实 finalize 是对的，不追认改写。两件事：
+
+  1. 在 Q20 receipt 旁按现有目录约定落一份 note，写明退出 1 的原因是 §6.2
+  早停后缺 step2750–6000 checkpoint，科学 endpoint 由 step2000/reducer.json
+  固定，两者不冲突。
+  2. 授权一处窄修：让 finalize 的全程 checkpoint 后置检查在该 cell 已被 reducer
+  冻结 endpoint 时，以 endpoint step 作为终点判定。理由是 Q05 很可能在
+  step3000–6000 再次早停，同一个假 FAIL 会重演。范围严格限定在 finalize
+  的后置检查——不得触碰 train / eval / reducer 路径，不得回溯改写 Q20 已落盘的 
+  FAIL/1，改完给一条静态或单元证明即可。
+
+  六、其他
+
+  - Memory：批准一次写入四条，全部归到现有
+  memory/a2-piper/base-v26-scratch-bilateral-teacher/，不新建
+  subsystem——step1000 遗留的两条（RIGHT-only eval 允许零 LEFT clone；Hydra
+  PosixPath tag 读取约束）、早停与全程 checkpoint 后置检查的 receipt
+  语义冲突、以及 arm_j4 硬限位与 LEFT durable 的同现。第四条标注为
+  observation，不是结论，等第三节的反事实诊断出来再定性。
+  - Git：仍不授权 commit / push。
+  - 资源：GPU5–7 释放后保持空闲，不要挪作他用，Q05 早停后可能需要。
+
+✻ Churned for 10m 16s
+
+❯ v26-7 终态候选已冻结为                                                        
+  `v26_7_terminal_candidate_r1`，绑定了代码、selectors、G1/G2、三个             
+  milestone、训练/eval receipts、失败证据和 durable memory。                    
+                                                                                
+  当前状态未变化：                                                              
+                                                                                
+  - Q20 endpoint：step2000                                                      
+  - Q05 endpoint：step3000                                                      
+  - step4000 active cells：空                                                   
+  - Q05 receipts：PASS/0                                                        
+  - Q20 receipts：历史 FAIL/1 保留并附 endpoint note                            
+  - 无活跃 v26-7 进程、tmux 或 writer                                           
+  - GPU0–7 与输出根 lease 暂由 Main 保留                                        
+  - 未 commit/push，未更新 Teacher/Student/G7                                   
+                                                                                
+  现在只等待 Owner 对 step3000 和最终 typed route 的验收；收到后即可释放        
+  lease、关闭 team state 与任务。                                               
+
+  Thought for 26s (ctrl+o to expand)
+
+● 我不能凭这条状态摘要验收——step3000 的读数、上一轮要求的 arm_j4
+  反事实诊断结果都不在这条汇报里。先看盘上的东西。
+
+● Bash(R=logs_eval/base_v26/v26_7_bilateral_native_unlatch_20260902
+      python3 -c "…)
+  ⎿  {
+      "active_cells": [
+       "Q05_S0",
+     … +66 lines (ctrl+o to expand)
+
+● Bash(R=logs_eval/base_v26/v26_7_bilateral_native_unlatch_20260902; ls $R; echo
+      "=== milestones ==="; ls $R/milestones; echo "=== diag? ==="; find $R
+      -maxdepth 2 -ina…)
+  ⎿  failed_attempts
+     G1_wiring
+     G2_waveB_baseline
+     … +6 lines (ctrl+o to expand)
+
+  Thought for 1m 51s, listed 1 directory (ctrl+o to expand)
+
+● Bash(git status --short | head -40; echo "=== reduce keys ==="; grep -n
+      "arm_j4\|max\|p99" scriptsFORhuman/v26_7/v26_7_reduce.py | head -20)
+  ⎿   M gr00t/rl/config/env/door_open_a2_base.yaml
+      M gr00t/rl/envs/door/a2_v26_4_canonicalization.py
+      M gr00t/rl/envs/door/door_open_a2_base.py
+     … +40 lines (ctrl+o to expand)
+
+  Thought for 58s (ctrl+o to expand)
+
+● Bash(sed -n '145,175p' scriptsFORhuman/v26_7/v26_7_reduce.py; echo "=== goal
+      criterion in env ==="; grep -n "goal"
+      gr00t/rl/envs/door/door_open_a2_base.py | grep -i…)
+  ⎿              if float(row["door_handle_joint_pos"]) >= DURABLE_RAD:
+                     force = row.get("handle_contact_force_norm")
+                     require(isinstance(force, list) and len(force) == 2, f
+     … +29 lines (ctrl+o to expand)
+
+  Thought for 1m 4s (ctrl+o to expand)
+
+● Bash(python3 -c "
+      import json,pathlib…)
+  ⎿  Q05_S0 left {'stage_overtime': 64}
+     Q05_S0 right {'stage_overtime': 64}
+     Q05_S1 left {'stage_overtime': 2, 'complete': 62}
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 7m 49s (ctrl+o to expand)
+
+● 核对完毕。**路由验收通过，但终态候选不能现在冻结。**盘上有一个决定性的读数没有
+  出现在这条汇报里。
+
+  一、汇报里缺的那一项：Q05_S1 LEFT goal = 62/64
+
+  step3000/reducer.json 的 terminal_reasons：
+
+  ┌───────────────┬──────────────────────────┬────────┬──────┬─────────────┐
+  │  Cell / side  │     terminal_reasons     │ stage5 │ goal │   arm_j4    │
+  │               │                          │        │      │  限位驻留   │
+  ├───────────────┼──────────────────────────┼────────┼──────┼─────────────┤
+  │ Q05_S1 left   │ complete: 62,            │     62 │   62 │       31.5% │
+  │               │ stage_overtime: 2        │        │      │             │
+  ├───────────────┼──────────────────────────┼────────┼──────┼─────────────┤
+  │ Q05_S1 right  │ complete: 4,             │     18 │    4 │       0.24% │
+  │               │ stage_overtime: 60       │        │      │             │
+  ├───────────────┼──────────────────────────┼────────┼──────┼─────────────┤
+  │ Q05_S2 left   │ stage_overtime: 64       │      0 │    0 │       0.01% │
+  ├───────────────┼──────────────────────────┼────────┼──────┼─────────────┤
+  │ Q05_S2 right  │ stage_overtime: 64       │     21 │    0 │       0.45% │
+  ├───────────────┼──────────────────────────┼────────┼──────┼─────────────┤
+  │ Q05_S0 left / │ stage_overtime: 64 / 64  │  0 / 0 │ 0 /  │ 0.0% / 0.0% │
+  │  right        │                          │        │    0 │             │
+  └───────────────┴──────────────────────────┴────────┴──────┴─────────────┘
+
+  v26 全程 goal 恒为 0。现在冒出 62/64，而且是在 LEFT 侧——那个从 v26
+  开始就结构性为零的一侧——同一个 checkpoint 的 RIGHT 侧只有
+  4/64。这个方向是反的：RIGHT 在同一格拿到 durable 64/64、stage4 64/64，却只有 4
+  例 complete。
+
+  把 stage5→complete 的转化率排开更刺眼：LEFT-S1 是 62/62 = 100%，RIGHT-S1 是
+  4/18 = 22%，RIGHT-S2 是 0/21 = 0%。一侧几乎每个进入 stage5 的 episode
+  都判完成，另一侧几乎都判不完成。
+
+  goal_episodes 的定义是 terminal_reasons == 
+  "complete"（v26_7_reduce.py:157）。complete 这个终止条件依赖的量在 LEFT-hinged
+  clone 上有没有镜像，从来没有人验过。v26-6 修的是 handle target offset，v26-4
+  已经确认过这套代码里存在 side-independent
+  的量该镜像而没镜像（BILATERAL_ASYMMETRIC_IN_ACTION_OFFSET）。同一类缺陷在别处
+  也有先例：判据线没跟着参照系走，导致一侧提前放行。
+
+  再叠一层：唯一 goal>0 的 LEFT 格，恰好是唯一有实质限位驻留的格（31.5%，其余
+  LEFT 格 ≤0.01%）。策略三分之一的步数把 arm_j4 压在 ±1.745 行程末端，然后 62/64
+  判完成——这个组合更像退化解，不像干净解。
+
+  把这个读数绑进 v26_7_terminal_candidate_r1
+  冻结掉，等于把一个未定性、且与全部历史相反的数字固化成终态。不收。
+
+  二、路由本身：验收通过
+
+  - Q05_S1（L62/R64）、Q05_S2（L60/R57）均满足 LEFT≥8 且 RIGHT≥32 →
+  BILATERAL_UNLATCH_SUPPORTED；S0 为 LEFT_STILL_STRUCTURALLY_ZERO。2/3 成立，Q05
+  按 §6.2 冻结 step3000 endpoint。正确。
+  - 12/12 exact64、integrity_violations 全
+  0、failures=[]、status=EXPERIMENT_COMPLETE、step4000 active cells 空。一致。
+  - 上一轮要求的 arm_j4_limit_residence_step_share 已按报告项补入
+  reducer，未触碰任何路由规则。合规。
+
+  三、step2000 那个 confound，step3000 自己解掉了一半
+
+  Q05_S2 LEFT 拿到 durable 60/64，限位驻留只有 0.011%，p95 1.315。**不顶限位也能
+  LEFT unlatch。**所以我在 step2000 提出的"LEFT durable 必然伴随 arm_j4
+  顶死行程末端"不成立，可以撤回。
+
+  同时上一轮那个反事实也有答案了：LEFT 仍为零的 Q05_S0，限位驻留 0.0、p95
+  1.14，从未接近过限位。LEFT 
+  的零不是撞墙被挡回来，是那条通路根本没被找到——落在探索/收入结构那一支，与 §8
+  对 Stage2→3 收入悬崖的判断合流。这条可以定性写入。
+
+  但 confound 没有消失，它转移了：从 durable 转到了 goal。
+
+  四、冻结前必须做的只读核查（不重跑、不训练、不改判据）
+
+  三项都从已落盘产物算，不起仿真：
+
+  1. 静态：定位 complete 终止条件的实现，逐项列出它依赖的量（hinge
+  角及其符号、门位姿目标线、base/root 相对判据），核对每一项在 doorOpenLR == +1
+  的 clone 上是否镜像。INSPECTED 级，成本极低。
+  2. 数据：从 Q05_S1 LEFT 的 62 个 complete episode 取终止时刻，核对 |hinge|
+  是否真的达到与 RIGHT complete 同等的开门量。若 LEFT 在明显更小的 |hinge|
+  上就判完成 → 判据未镜像，该读数作废。
+  3. 交叉：Q05_S1 LEFT 的 31.5% 限位驻留落在 episode 的哪个阶段，是否与 complete
+  判定时刻重合。
+
+  五、边界与状态处置
+
+  - v26-7 的 typed route 只能落在 durable depression 这一个预注册指标上。plan §8
+  明写本阶段不构成 Stage4/5/goal 证据，因此 goal = 62
+  无论真假都不进路由；核查结论以附录形式记录为"未纳入路由的异常读数 + 其定性"。
+  - 若第 1、2 项判定判据未镜像，那是一个贯穿 v26 全线的 defect，优先级高于关闭
+  v26-7 本身，届时单独交回。
+  - **核查完成前不释放 lease、不关闭 team state、不解冻候选。**lease
+  保留成本为零，重建成本很高。
+  - 其余状态验收通过：Q05 receipts PASS/0、Q20 历史 FAIL/1 保留并附 endpoint
+  note、无活跃进程/tmux/writer、未 commit/push、未更新 Teacher/Student/G7。
+  - Git 仍不授权。
+
+  顺带一句：这条汇报把 goal 整项省略了。之后的状态摘要里，凡是与该阶段历史基线反
+  向的量，即使不进路由也必须列出来。
+
+✻ Churned for 13m 16s
+
+❯ 由你做最后v26-7阶段的总结吧，定性当前是否满足                                 
+  v26-7阶段前的讨论目标？LEFT/RIGHT 情况下的max stage+的情况？以及能否进入下一  
+  步：依旧是参照单RIGHT的情况，继续优化后续的推门行为了。 worker最后返回：v26-7 
+  已正式关闭。Owner 验收的 durable route 保持：Q20 endpoint=step2000，Q05       
+  endpoint=step3000；goal 异常不进入路由。                                      
+                                                                                
+  ### Goal 异常定性                                                             
+                                                                                
+  结论是：`Q05_S1 LEFT complete=62/64` 不是发现到的镜像判据缺陷，也没有 arm_j4  
+  顶限位触发 complete 的阈值证据。                                              
+                                                                                
+  - `complete` 实际只要求 Stage5 中 `root_x_rel > 1.5`，LEFT/RIGHT 的 y         
+  镜像不改变 x 完成线。                                                         
+  - LEFT complete terminal hinge：min/p50/p95/max=`1.451/2.228/2.513/2.591`     
+  - RIGHT complete terminal hinge：`1.542/1.701/2.036/2.036`                    
+  - LEFT 没有在系统性更小的开门量上提前完成。                                   
+  - Q05_S1 LEFT 的 95.253% 限位步发生在 Stage4。                                
+  - 最后限位距首次 `root_x>1.5` 至少 34 步，距 terminal complete 至少 84 步。   
+  - terminal 及此前 25 步仍限位：`0/62`。                                       
+                                                                                
+  因此定性为：                                                                  
+                                                                                
+  - `PASS_NO_MIRROR_DEFECT_FOUND`                                               
+  - `PASS_NO_THRESHOLD_EVIDENCE`                                                
+  - goal=62 保留为未纳入路由的 policy/trajectory-side 异常，不升级为 goal       
+  能力证据。                                                                    
+                                                                                
+  同时：                                                                        
+                                                                                
+  - Q05_S2 LEFT durable=60/64、arm_j4 p95=1.315、限位仅0.011%，撤销“LEFT        
+  durable 必须顶限位”的 confound。                                              
+  - Q05_S0 LEFT durable=0、p95=1.143、限位0%，支持探索/Stage2→3                 
+  收入结构分支，而非机械撞限。                                                  
+                                                                                
+  完整附录：[goal anomaly appendix](/home/baoquanc/workspace/DoorDog-A2_Piper/s 
+  criptsFORhuman/v26_7/a2_piper_base_v26_7_goal_anomaly_appendix_20260903.md)   
+                                                                                
+  ### 最终状态                                                                  
+                                                                                
+  - `v26_7_terminal_candidate_r1`：保留为 Owner 拒绝的历史 ledger               
+  记录，不作为终态。                                                            
+  - `v26_7_terminal_candidate_r2`：已冻结，technical closure PASS。             
+  - Q05 receipts：PASS/0。                                                      
+  - Q20 历史 FAIL/1：原样保留并附 endpoint note。                               
+  - step4000/5000/6000：因两个 config 均按 §6.2 冻结 endpoint，合规未运行。     
+  - 无活跃进程、tmux、writer 或排他 lease。                                     
+  - team state 已归档并关闭：`INACTIVE`。                                       
+  - 未 commit/push；未更新 Teacher/Student handoff 或 G7。                      
+                                                                                
+  ### Changed paths                                                             
+                                                                                
+  主要交付：                                                                    
+                                                                                
+  - [v26-7                                                                      
+  scripts](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_7)     
+  - [step3000                                                                   
+  reducer](/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v26/v26_7_b 
+  ilateral_native_unlatch_20260902/milestones/step3000/reducer.json)            
+  - [memory description](/home/baoquanc/workspace/DoorDog-A2_Piper/memory/a2-pi 
+  per/base-v26-scratch-bilateral-teacher/description.md)                        
+  - [memory DONE](/home/baoquanc/workspace/DoorDog-A2_Piper/memory/a2-piper/bas 
+  e-v26-scratch-bilateral-teacher/DONE.md)                                      
+  - [team-state archive](/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/ 
+  team/coordination-20260903-003421.json)                                       
+                                                                                
+  证据等级：static、INSPECTED、runtime、experiment。durable memory              
+  已写入，无待处理 candidate。                                                  
+                                                                                
+  本次定量核查采用 metric-diagnostics 工作流，固定 terminal、hinge、限位和时序  
+  定义，并严格区分已验证事实、相关性与不进入路由的推断。                        
+                                                                                
+  任务累计用时约 19 小时 25 分钟；记录 token usage 为 3,406,726。               
+
+  Thought for 2m 19s (ctrl+o to expand)
+
+● Bash(R=logs_eval/base_v26/v26_7_bilateral_native_unlatch_20260902/milestones
+      python3 -c "…)
+  ⎿  Error: Exit code 1
+     Traceback (most recent call last):
+       File "<string>", line 8, in <module>
+     KeyError: 'arm_j4_limit_residence_step_share'
+
+  Thought for 10m 0s, listed 1 directory (ctrl+o to expand)
+
+● Bash(R=logs_eval/base_v26/v26_7_bilateral_native_unlatch_20260902/milestones
+      python3 -c "…)
+  ⎿  Error: Exit code 1
+     Traceback (most recent call last):
+       File "<string>", line 8, in <module>
+     TypeError: unsupported format string passed to NoneType.__format__
+
+● API Error: The operation timed out.
+  ⎿  Request timed out
+
+✻ Crunched for 9h 43m 28s

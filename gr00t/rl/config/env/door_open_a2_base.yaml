@@ -10,6 +10,13 @@ env:
     max_episode_length_s: 20
     a2_v26_5_shared_residual_observation_enabled: false
 
+    # The authored handle/pregrasp FrameCfg offset is written for a RIGHT-hinged
+    # door and is not mirror-invariant, so a LEFT clone that reuses it gets a
+    # grasp target 180 degrees off.  Enabling this gives LEFT clones the mirrored
+    # offset.  Default stays false so existing checkpoints keep their observation
+    # semantics; bilateral training overlays turn it on.
+    a2_v26_6_side_mirrored_handle_offset_enabled: false
+
     # v24 native hinge friction is additive and deliberately disabled in the
     # shared/default path.  Coefficients stay unset until a v24 probe overlay
     # supplies a measured profile; the disabled path performs no writes.

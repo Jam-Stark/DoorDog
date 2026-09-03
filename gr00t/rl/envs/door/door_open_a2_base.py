@@ -51,12 +51,15 @@ from gr00t.rl.envs.door.a2_v26_3_creation import (
     a2_v26_3_update_handle_creation,
 )
 from gr00t.rl.envs.door.a2_v26_4_canonicalization import (
+    A2_V26_4_MIRROR_POSE9_SIGNS,
+    A2_V26_4_MIRROR_POSE18_SIGNS,
     a2_v26_4_accumulate_physical_delta,
     a2_v26_4_canonicalize_dof_values,
     a2_v26_4_canonicalize_hand_force,
     a2_v26_4_canonicalize_vector,
     a2_v26_4_map_action_coordinates,
     a2_v26_4_physical_delta_origin,
+    a2_v26_6_mirror_quat_wxyz,
 )
 from gr00t.rl.envs.door.a2_v20_r2_evidence import (
     a2_v20_r2_append_record_set_staging,
@@ -4886,19 +4889,84 @@ class OrderedTargetFrameTransformer(FrameTransformer):
         *,
         a2_v26_5_geometry_target_enabled: bool = False,
         a2_v26_5_gauge_cache_enabled: bool = False,
+        a2_v26_6_side_mirrored_handle_offset_enabled: bool = False,
     ):
         if not isinstance(a2_v26_5_geometry_target_enabled, bool):
             raise TypeError("a2_v26_5_geometry_target_enabled must be bool.")
         if not isinstance(a2_v26_5_gauge_cache_enabled, bool):
             raise TypeError("a2_v26_5_gauge_cache_enabled must be bool.")
+        if not isinstance(a2_v26_6_side_mirrored_handle_offset_enabled, bool):
+            raise TypeError(
+                "a2_v26_6_side_mirrored_handle_offset_enabled must be bool."
+            )
         if a2_v26_5_geometry_target_enabled and a2_v26_5_gauge_cache_enabled:
             raise RuntimeError(
                 "v26-5 geometry target and gauge cache modes are mutually exclusive."
             )
+        if a2_v26_6_side_mirrored_handle_offset_enabled and (
+            a2_v26_5_geometry_target_enabled or a2_v26_5_gauge_cache_enabled
+        ):
+            raise RuntimeError(
+                "v26-6 side-mirrored handle offset rewrites the same target offset "
+                "quaternions as the v26-5 geometry target / gauge cache modes; they "
+                "are mutually exclusive."
+            )
         self._a2_v26_5_geometry_target_enabled = a2_v26_5_geometry_target_enabled
         self._a2_v26_5_gauge_cache_enabled = a2_v26_5_gauge_cache_enabled
+        self._a2_v26_6_side_mirrored_handle_offset_enabled = (
+            a2_v26_6_side_mirrored_handle_offset_enabled
+        )
         self._a2_v26_5_gauge_offset_delta_quat = None
         super().__init__(cfg)
+
+    def _a2_v26_6_side_mirrored_offset_quaternions(self) -> torch.Tensor:
+        """Use the mirrored handle/pregrasp offset on LEFT-hinged clones.
+
+        The authored ``FrameCfg`` offset is written for a RIGHT-hinged door and is
+        not mirror-invariant, so reusing it on a LEFT clone puts the grasp target
+        180 degrees away from the correct pose.  Read ``doorOpenLR`` straight from
+        USD (the same source ``_init_a2_door_metadata`` uses) so this does not
+        depend on env buffer initialisation order.
+        """
+        if tuple(self._target_frame_names) != ("handle", "pregrasp"):
+            raise RuntimeError(
+                "v26-6 side-mirrored handle offset requires ordered handle/pregrasp "
+                f"target frames; got {self._target_frame_names!r}."
+            )
+        stage = omni.usd.get_context().get_stage()
+        quat = self._target_frame_offset_quat.clone()
+        num_frames = len(self._target_frame_names)
+        if quat.shape[0] != self._num_envs * num_frames:
+            raise RuntimeError(
+                "v26-6 side-mirrored handle offset requires target offset quaternions "
+                f"with shape ({self._num_envs * num_frames}, 4); got {tuple(quat.shape)}."
+            )
+        for env_id in range(self._num_envs):
+            door_prim = stage.GetPrimAtPath(f"/World/envs/env_{env_id}/door")
+            if not door_prim.IsValid():
+                raise RuntimeError(
+                    f"v26-6 side-mirrored handle offset requires door prim in env_{env_id}."
+                )
+            metadata = door_prim.GetPrim().GetMetadata("customData")
+            if metadata is None or "doorOpenLR" not in metadata:
+                raise RuntimeError(
+                    "v26-6 side-mirrored handle offset requires doorOpenLR customData "
+                    f"in env_{env_id}."
+                )
+            open_lr = float(metadata["doorOpenLR"])
+            if open_lr not in (1.0, -1.0):
+                raise RuntimeError(
+                    f"A2 door metadata requires doorOpenLR in {{-1, +1}}; got {open_lr!r} "
+                    f"in env_{env_id}."
+                )
+            if open_lr != 1.0:  # RIGHT keeps the authored offset
+                continue
+            for frame_index in range(num_frames):
+                row = env_id * num_frames + frame_index
+                quat[row] = quat.new_tensor(
+                    a2_v26_6_mirror_quat_wxyz(quat[row].tolist())
+                )
+        return quat
 
     def _a2_v26_5_geometry_target_offset_quaternions(self) -> torch.Tensor:
         """Build the per-clone handle target orientation from authored handle geometry."""
@@ -5240,8 +5308,24 @@ class OrderedTargetFrameTransformer(FrameTransformer):
                             f"device={gauge_offset_delta_quat.device}."
                         )
                     self._a2_v26_5_gauge_offset_delta_quat = gauge_offset_delta_quat
+            if self._a2_v26_6_side_mirrored_handle_offset_enabled:
+                mirrored_quat = self._a2_v26_6_side_mirrored_offset_quaternions()
+                if (
+                    mirrored_quat.shape != self._target_frame_offset_quat.shape
+                    or mirrored_quat.dtype != self._target_frame_offset_quat.dtype
+                    or mirrored_quat.device != self._target_frame_offset_quat.device
+                ):
+                    raise RuntimeError(
+                        "v26-6 side-mirrored handle offset does not match FrameTransformer "
+                        "env-major target offset storage."
+                    )
+                self._target_frame_offset_quat = mirrored_quat
         elif self._a2_v26_5_gauge_cache_enabled:
             raise RuntimeError("v26-5 gauge cache requires target-frame offsets.")
+        elif self._a2_v26_6_side_mirrored_handle_offset_enabled:
+            raise RuntimeError(
+                "v26-6 side-mirrored handle offset requires target-frame offsets."
+            )
 
         self._data.target_frame_names = self._target_frame_names
         self._data.source_pos_w = torch.zeros(self._num_envs, 3, device=self._device)
@@ -8041,6 +8125,14 @@ class DoorPregrasp(
         enabled = self.config.get("a2_v26_5_geometry_target_enabled", False)
         if not isinstance(enabled, bool):
             raise RuntimeError("env.config.a2_v26_5_geometry_target_enabled must be bool.")
+        return enabled
+
+    def _a2_v26_6_side_mirrored_handle_offset_enabled(self) -> bool:
+        enabled = self.config.get("a2_v26_6_side_mirrored_handle_offset_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "env.config.a2_v26_6_side_mirrored_handle_offset_enabled must be bool."
+            )
         return enabled
 
     def _a2_v26_5_stage3_delta_rebase_enabled(self) -> bool:
@@ -17176,9 +17268,7 @@ class DoorPregrasp(
         result = torch.cat([self.relative_door_pos_buf, relative_door_rot_6d], dim=-1)
         if not self._a2_v26_4_side_canonicalization_enabled():
             return result
-        return self._a2_v26_4_canonicalize_vector(
-            result, [1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]
-        )
+        return self._a2_v26_4_canonicalize_vector(result, A2_V26_4_MIRROR_POSE9_SIGNS)
 
     @override
     def _get_obs_dof_pos(self):
@@ -27351,13 +27441,7 @@ class DoorPregrasp(
         result = torch.cat([handle_pos, handle_rot_6d, pregrasp_pos, pregrasp_rot_6d], dim=-1)
         if not self._a2_v26_4_side_canonicalization_enabled():
             return result
-        return self._a2_v26_4_canonicalize_vector(
-            result,
-            [
-                1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0,
-                1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0,
-            ],
-        )
+        return self._a2_v26_4_canonicalize_vector(result, A2_V26_4_MIRROR_POSE18_SIGNS)
 
     def _get_obs_gripper_handle_transform_gauge(self):
         if not self._a2_v26_5_actor_gauge_enabled():
@@ -27399,12 +27483,7 @@ class DoorPregrasp(
             wxyz_to_xyzw(target_quat_source[:, 1, :]), w_last=True
         )
         raw = torch.cat([handle_pos, handle_rot_6d, pregrasp_pos, pregrasp_rot_6d], dim=-1)
-        signs = raw.new_tensor(
-            [
-                1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
-                1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
-            ]
-        )
+        signs = raw.new_tensor(A2_V26_4_MIRROR_POSE18_SIGNS)
         return torch.where(self._a2_v26_4_right_mask()[:, None], raw * signs, raw)
 
     def _get_obs_hand_force(self):
@@ -28909,6 +28988,9 @@ class DoorPregrasp(
                     piper_gripper_handle_frame_transformer_config,
                     a2_v26_5_geometry_target_enabled=self._a2_v26_5_geometry_target_enabled(),
                     a2_v26_5_gauge_cache_enabled=a2_v26_5_actor_gauge_enabled,
+                    a2_v26_6_side_mirrored_handle_offset_enabled=(
+                        self._a2_v26_6_side_mirrored_handle_offset_enabled()
+                    ),
                 )
             )
             target_contact_sub_prim = simulator.task_config.get(

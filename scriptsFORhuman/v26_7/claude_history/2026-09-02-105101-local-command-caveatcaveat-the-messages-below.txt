@@ -1,0 +1,2799 @@
+ ▐▛███▜▌   Claude Code v2.1.221
+▝▜█████▛▘  Opus 5 · API Usage Billing
+  ▘▘ ▝▝    ~/workspace/DoorDog-A2_Piper
+
+
+❯ /model                                                                        
+  ⎿  Set model to Opus 5 (1M context) and saved as your default for new sessions
+     with xhigh effort
+
+❯ claude code中 name为 “v26” 的这个session，由于某种原因这个session异常终止且无 
+  法继续了，我需要你通过这个handoff文档：[Claude v26 session recovery           
+  handoff](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_6/clau 
+  de_v26_session_recovery_handoff_20260901.md)，及其对话记录和更新的相关文档/me 
+  mory。和我讨论下解决这个学不会下压handle解锁的问题，明明在之前单RIGHT环境下已 
+  经解决过了                                                                    
+
+  Thought for 10s (ctrl+o to expand)
+
+● 我先读 handoff 文档和相关记忆，再和你讨论。
+
+  Thought for 2m 4s, read 3 files, listed 3 directories (ctrl+o to expand)
+
+● Bash(git log --oneline -25 && echo "=== status ===" && git status --short)
+  ⎿  b228bb0 docs: hand off r15 experiment
+     c8203ac fix: align r15 formal diagnostics
+     3fd6482 feat: preregister v26-5 residual r15
+     … +32 lines (ctrl+o to expand)
+
+  Thought for 37s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml, json…)
+  ⎿  logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G3_no_carry_cont
+     rol-20260727_012027/config.yaml -> ['num_gpus', 'max_retries', 'seed',
+      'codebase_version', 'headless', 'num_envs', 'auto_load_latest', 'chec
+     … +17 lines (ctrl+o to expand)
+
+  Thought for 35s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  ##### env: 77 diffs / 261 keys
+       env.config.a2_arm_dof_overspeed_soft_margin_enabled
+           v19G3= True
+     … +316 lines (ctrl+o to expand)
+
+  Thought for 2m 18s, read 2 files, listed 2 directories (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  reward                                                          v19G3
+        v26-6B0
+     a2_corridor_clean_passage                                         1.0
+     … +64 lines (ctrl+o to expand)
+
+  Thought for 45s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  env.config key
+                   v19G3                    v26-6B0
+     a2_arm_dof_overspeed_soft_margin_enabled
+     … +49 lines (ctrl+o to expand)
+
+  Thought for 51s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  --- v19G3
+        checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v18/base_v18_m
+     ain-20260724_063738/model_step_001500.pt
+     … +20 lines (ctrl+o to expand)
+
+  Thought for 47s, searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '17680,17730p;17880,17960p'
+      gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿              source_quat = source_quat[:, None, :]
+             source_quat = source_quat.expand(expand_shape).reshape(-1, 4)
+             return quat_apply(quat_inv(source_quat), forces_w.reshape(-1,
+     … +129 lines (ctrl+o to expand)
+
+  Thought for 45s, searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '7050,7100p' gr00t/rl/envs/door/door_open_a2_base.py; echo "===
+      grasp gate mode default ==="; grep -n
+      "A2_GRASP_GATE_MODE_CONTROL_STREAK\|a2_grasp_gate_m…)
+  ⎿              or not torch.is_floating_point(foot_velocity)
+                 or foot_velocity.device != expected_device
+                 or foot_force.dtype != foot_velocity.dtype
+     … +69 lines (ctrl+o to expand)
+
+  Thought for 50s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml,os,glob…)
+  ⎿  === Wave B B0_S0 lineage ===
+     logs_rl/by_batch/base_v26/v26_6_waveB_gripper_capability_20260831/trai
+     n/B0_S0  batches=750 mode=policy_only lr=bilateral natstart=True sqmin
+     … +24 lines (ctrl+o to expand)
+
+  Thought for 50s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  checkpoint: None
+     load_mode: full auto_load_latest: False
+     robot j7/j8 effort: [10.0, 10.0]
+     … +47 lines (ctrl+o to expand)
+
+  Thought for 44s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml,glob,os…)
+  ⎿  tag          | ckpt                       | batches | lr         | nat
+     start | sqmin | sqmax | overf | m39   | eff          | kp     | stagex
+     … +14 lines (ctrl+o to expand)
+
+  Thought for 1m 10s, listed 1 directory (ctrl+o to expand)
+● Bash(sed -n '1,80p'
+      memory/a2-piper/base-v26-scratch-bilateral-teacher/description.md)
+  ⎿  ---
+     name: base-v26-scratch-bilateral-teacher
+     scope: scratch-born bilateral A2+PiPER Teacher acquisition, far-start
+     … +77 lines (ctrl+o to expand)
+
+  Thought for 39s (ctrl+o to expand)
+
+● Bash(sed -n '80,200p'
+      memory/a2-piper/base-v26-scratch-bilateral-teacher/description.md)
+  ⎿    `800/25` continuation 完成 3000/3000；896-episode Route A 的
+       `CONT_STEP2000` 达 LEFT `64/64`、RIGHT `61/64` Stage3，但所有 goal
+       为 0。最终边界为 Stage3 unlatch exploration，R1/Teacher/Student 均未
+     … +118 lines (ctrl+o to expand)
+
+  Thought for 57s, searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '16225,16300p;16729,16780p'
+      gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿      def _reward_a2_stage3_handle_creation(self):
+             return self._get_a2_stage3_handle_creation_raw_and_active()[0]
+     … +125 lines (ctrl+o to expand)
+
+  Thought for 44s (ctrl+o to expand)
+
+● Bash(sed -n '16700,16740p' gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿          if not self._get_a2_v20_arm_tie_enabled():
+                 return torch.zeros(self.num_envs, device=self.device)
+             valid_phase = self._a2_v20_taskspace_active
+     … +38 lines (ctrl+o to expand)
+
+  Thought for 1m 5s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import json…)
+  ⎿  <class 'dict'> ['schema', 'requested_milestones', 'cells']
+     schema str a2_piper_base_v26_r0_progress_v1
+     requested_milestones list
+     … +21 lines (ctrl+o to expand)
+
+● Bash(nvidia-smi --query-gpu=index,name,memory.used,utilization.gpu
+      --format=csv,noheader; echo "=== tmux ==="; tmux ls 2>&1 | head)
+  ⎿  0, NVIDIA RTX A6000, 1 MiB, 0 %
+     1, NVIDIA RTX A6000, 1 MiB, 0 %
+     2, NVIDIA RTX A6000, 1 MiB, 0 %
+     … +16 lines (ctrl+o to expand)
+
+  Thought for 37s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import json…)
+  ⎿  ===== R_S0 iter=4000
+        Env/a2_door_handle_joint_pos_mean: 0.0001
+        Env/a2_door_hinge_joint_pos_mean: 0
+     … +131 lines (ctrl+o to expand)
+
+  Thought for 2m 8s, searched for 1 pattern, read 1 file, listed 1 directory (ctrl+o to expand)
+
+● Bash(sed -n '540,640p' gr00t/rl/eval_agent_trl.py)
+  ⎿  @hydra.main(config_path="config", config_name="base_eval")
+     def main(override_config: OmegaConf):
+         # --- Logging setup ---
+     … +96 lines (ctrl+o to expand)
+
+  Thought for 1m 30s, listed 1 directory (ctrl+o to expand)
+
+● Bash(PYTHONPATH=. /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -
+      <<'PY' 2>&1 | tail -30
+      from hydra import compose, initialize_config_dir…)
+  ⎿  robot in override_config? False
+     env.config.a2_m39_gripper_material_enabled: None
+     env.config.a2_stage2_squeeze_force_max: None
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 1m 44s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  v25 ckpt: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_
+     step_001500.pt
+     logs_rl/a2_piper_full_stage_a2_base/base_v25/formal/V25_FULL_S0/last.p
+     … +15 lines (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import torch…)
+  ⎿  --- v19_G3_step2500: top keys = ['policy_state_dict', 'value_state_dic
+     t', 'optimizer_state_dict', 'lr_scheduler_state_dict', 'state', 'args'
+     , 'env_state_dict']
+     … +9 lines (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import torch…)
+  ⎿  --- v19_G3_2500: n=20
+          std: (12,)
+          actor_module.module.0.weight: (512, 256)
+     … +23 lines (ctrl+o to expand)
+
+  Thought for 1m 40s, searched for 2 patterns (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  obs diffs v19G3 vs v26_6_B0: 0 / 129
+     v19G3 actor_obs groups: ['actor_obs', 'critic_obs', 'homie_obs', 'a2_b
+     ase_obs']
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 47s (ctrl+o to expand)
+
+● 读完 handoff、原 session 落盘的两份 plan、v26 memory，并核对了实际
+  config、源码和 checkpoint。有一个结论要先摆出来，因为它直接影响你的前提。
+
+  1. 「单 RIGHT 环境下解决过」这个参照系需要修正
+
+  v26 自己做过单 RIGHT：base_v26_r0_20260821/V26_R_S0，RIGHT-only、scratch、4000
+  batches。它的终态（logs_eval/base_v26/r0_progress.json，iter
+  4000，训练日志读数）：
+
+  a2_v26_right_max_stage_reached : 2
+  a2_v26_right_stage3_occupancy  : 0
+  a2_stage2_both_contact_frac    : 0
+
+  连 Stage2 双指接触都没形成，比同期 bilateral 的 LR_S1（双侧 Stage3 occupancy
+  ≈0.29）更差。所以「回到单侧就能解决」在本仓库的证据下不成立 ——
+  单侧不是那条被打断的轴。
+
+  你记忆里那次成功是 v19/v25 那条线。它和 v26
+  之间差的不是一条轴，是同时变了七条。
+
+  2. 七轴对照（逐项来自 saved config，非计划文本）
+
+  ┌─────────┬───────────────────────────────────────┬────────────┬─────────┐
+  │         │                                       │            │ Wave B  │
+  │   轴    │        v19 G3 / v25（做成过）         │  v26 全系  │ 是否已  │
+  │         │                                       │            │  恢复   │
+  ├─────────┼───────────────────────────────────────┼────────────┼─────────┤
+  │ j7/j8   │ 45 N                                  │ 10 N       │ ✅ 45 N │
+  │ effort  │                                       │            │         │
+  ├─────────┼───────────────────────────────────────┼────────────┼─────────┤
+  │ j7/j8   │ 1300/32                               │ 80/3 →     │ ✅      │
+  │ Kp/Kd   │                                       │ 800/25     │ 1300/32 │
+  ├─────────┼───────────────────────────────────────┼────────────┼─────────┤
+  │ M39 指  │ 开                                    │ 关         │ ✅ 开   │
+  │ 垫材质  │                                       │            │         │
+  ├─────────┼───────────────────────────────────────┼────────────┼─────────┤
+  │         │                                       │            │ ⚠️ 只恢 │
+  │ squeeze │ [2.0, 30]                             │ [0.5, 20]  │ 复上界  │
+  │  窗口   │                                       │            │ → [0.5, │
+  │         │                                       │            │  30]    │
+  ├─────────┼───────────────────────────────────────┼────────────┼─────────┤
+  │ over-fo │ 55                                    │ 40         │ ✅ 55   │
+  │ rce     │                                       │            │         │
+  ├─────────┼───────────────────────────────────────┼────────────┼─────────┤
+  │ 门侧    │ RIGHT only                            │ bilateral  │ ❌      │
+  ├─────────┼───────────────────────────────────────┼────────────┼─────────┤
+  │         │                                       │ 开（0.9–1. │         │
+  │ natural │ 关（固定起点）                        │ 4 m /      │ ❌      │
+  │  start  │                                       │ ±0.25 m /  │         │
+  │         │                                       │ ±0.3 rad） │         │
+  ├─────────┼───────────────────────────────────────┼────────────┼─────────┤
+  │ Stage0  │                                       │ [0.68,     │         │
+  │ staging │ x∈[0.5, 0.8]，宽 0.30 m               │ 0.72]，宽  │ ❌      │
+  │  窗口   │                                       │ 0.04 m     │         │
+  ├─────────┼───────────────────────────────────────┼────────────┼─────────┤
+  │         │ v12_C→v13_A→v13.1→v14→v15→v16_B→v17_G │ scratch，  │ ❌      │
+  │ 起点    │ 5→v18→v19，八代 policy_only           │ 累计约     │ 本轮仅  │
+  │         │ 接力，累计约 23,500 batches           │ 7,750      │ 750     │
+  │         │                                       │ batches    │         │
+  └─────────┴───────────────────────────────────────┴────────────┴─────────┘
+
+  Stage3 相关的 reward scale 我逐项比过：unlatch_hold=3、push_door_hinge=6、hold
+  _and_drive=8、near_closed=0.1、K5=5 步 —— v19 和 v26 
+  完全一致。所以收入悬崖是真的，但它在 45 N + 八代 lineage
+  下曾被跨过去，不是充分原因。这一点 Wave B plan §2 判断正确。
+
+  3. 两个从未被任何一轮实验触碰过的差异
+
+  (a) a2_stage2_squeeze_force_min：v19 = 2.0，v26 = 0.5
+
+  源码 gr00t/rl/envs/door/door_open_a2_base.py:17701：
+
+  sufficient_squeeze = torch.all(squeeze_abs > squeeze_min, dim=-1)
+
+  K5 gate 谓词直接吃这个下界。v19 要求两指侧向力都 >2.0 N 才算「抓住」，v26 只要
+  >0.5 N —— 门槛低了 4 倍。
+
+  Wave A 的读数正好和它同形：restored/right 的 Stage3 admission 是
+  63/64（几乎人人过关），但只有 44/64 能持久按住 handle，门一点不动。也就是说
+  v26 的策略学到的是「用刚够过 gate 的最小力捏住」—— 那是它在 10 N 上限下优化
+  7,000 batches 的最优解，而 0.5 N 的 gate 一直允许它这么做。Wave A §3 明确写了
+  「刻意不改，因为会变成第二个自变量」，这个决定在当时是对的，但它留下的正是
+  v19/v26 之间唯一没测过的 gate 语义差异。
+
+  (b) scratch vs 八代 warm lineage
+
+  v26 从零出生是一个刻意的实验设计（memory entry 就叫
+  base-v26-scratch-bilateral-teacher）。但技术上完全没必要 —— 见下一条。
+
+  4. 一个改变可选项的可行性事实
+
+  我核对了 checkpoint 与观测契约：
+
+  - v19_G3_step2500 / v25_S0_step1500 / v26_6_B0_step750 的 policy_state_dict 20
+  个张量逐项 shape 完全相同；
+  - v19 G3 与 Wave B B0 的 obs 配置 129 个键零差异。
+
+  即 v19/v25 那条八代 lineage 的 actor 可以直接 policy_only warm start 进 v26 的
+  bilateral 环境，没有结构障碍。v26 一直在跟 scratch
+  较劲，但那个「已经会解锁的大脑」一直躺在 logs_rl/ 里可以直接接过来。
+
+  （证据等级：STATIC / INSPECTED。真正加载还需一次 runtime smoke 验证 RMS 与
+  LSTM 状态契约。）
+
+  5. 「压下去」和「推开门」是两关，别混成一关
+
+  Wave A：44/64 把 handle 按在 >0.6 rad 长达 p50 64、max 187 control step，hinge
+  最大 0.0111，而 door_body_panel_normal_force_total 在整个保持期为 0 ——
+  机器人根本没往门上施加任何力。v26-3 的 U-probe 又证明门在 handle 0.6 rad 时
+  hinge 可自由到 0.1443 rad。
+
+  Stage3 收入构成（push_door_hinge 实现在
+  door_open_a2_base.py:16737，hinge_vel*10 + hinge_pos/1.5708 后 clamp 到 1）在
+  hinge≈0 时几乎不付钱，而最大的 target_root_distance（scale 12）只在
+  STAGE_SWING/THROUGH 生效。所以 Stage3 里「按住不动」是严格占优，直到 hinge
+  大到够拿 Stage4 的钱。
+
+  Wave B 只处理第一关。即使它成功，第二关仍在。
+
+  6. Wave B 的现状
+
+  四格训练全部 exit 0、250/500/750 checkpoint 齐全、GPU0–7 全空闲，24 
+  次评估一次都没跑。我顺带核了 eval 脚本的正确性：eval_agent_trl.py:562-592 以
+  checkpoint 相邻 config.yaml 为基底再 merge 命令行，而
+  +ablation=wbmanip/base_v26_eval_natural_start 静态 compose 后不含 robot 
+  段（已实测），所以 45 N/1300/32/M39/30/55 会正确继承。脚本可用，四个 receipt
+  需要先 finalize（run_supervisor.py status 均为 PROCESS_EXITED rc=0）。
+
+  但要先说清它的先天局限：起点是 10 N 下优化了 7,000 batches 的
+  actor，执行能力突然变 4.5 倍，只给 750 batches，且 squeeze_min=0.5
+  仍允许它继续用最小力。我的预期是落在
+  DEPRESSION_LEARNED_STAGE4_NOT_REACHED。不过这是预期，不能替代读数 —— 而且那 18
+  小时 GPU 已经花了。
+
+  ---
+  我的推荐顺序是：先花几小时把 Wave B
+  评估收口（沉没成本变读数，且阴性会直接把矛头钉到 squeeze_min
+  或起点上），同时另开一条 warm-start
+  支线，因为那才是真正能回到「曾经做成过」的路径。
+
+● User answered Claude's questions:
+  ⎿  · 下一步先往哪个方向走？（可多选，我会据此写预注册 plan，不会直接开跑） → 
+     先收口 Wave B 的 24 次评估（推荐）
+     · 如果开 warm-start 支线，起点用哪个 checkpoint？ → 先不定，等 Wave B 
+     读数出来再选
+
+  Thought for 25s (ctrl+o to expand)
+● 明白。先做准备工作 —— finalize 四个 training receipt，并补齐 handoff §5.3
+  指出缺失的 eval orchestration。
+
+  Listed 2 directories (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python
+      .ai/scripts/run_supervisor.py --help 2>&1 | head -40)
+  ⎿  usage: run_supervisor.py [-h] {prepare,launch,status,finalize} ...
+
+     Optional tmux-backed long-run receipt and finalizer.
+     … +6 lines (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python
+      .ai/scripts/run_supervisor.py finalize --help 2>&1; echo "=== launch ===";
+      /home/baoquanc/anaconda3/envs/isaac…)
+  ⎿  usage: run_supervisor.py finalize [-h] --receipt RECEIPT [--run-eval]
+
+     options:
+     … +26 lines (ctrl+o to expand)
+
+● Bash(for c in b0_s0 b0_s1 b1_s0 b1_s1; do
+        echo "--- $c status ---"…)
+  ⎿  --- b0_s0 status ---
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+       File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/pathlib.
+     … +21 lines (ctrl+o to expand)
+
+  Thought for 35s (ctrl+o to expand)
+
+● Bash(for c in b0_s0 b0_s1 b1_s0 b1_s1; do
+        printf "%-8s " "$c"…)
+  ⎿  b0_s0    PROCESS_EXITED rc=0
+     b0_s1    PROCESS_EXITED rc=0
+     b1_s0    PROCESS_EXITED rc=0
+     b1_s1    PROCESS_EXITED rc=0
+
+● Bash(for c in b0_s0 b0_s1 b1_s0 b1_s1; do
+        printf "%-8s " "$c"…)
+  ⎿  b0_s0    PASS: process completed and expected checkpoint condition sat
+     isfied
+     b0_s1    PASS: process completed and expected checkpoint condition sat
+     … +10 lines (ctrl+o to expand)
+
+  Thought for 47s (ctrl+o to expand)
+
+● Bash(for d in logs_eval/base_v26/v26_6_waveA_gripper_capacity_20260831/*/*/;
+      do
+        f="$d/eval.log"…)
+  ⎿  logs_eval/base_v26/v26_6_waveA_gripper_capacity_20260831/control/right
+     /  start=2026-08-31 19:48:51  end=2026-08-31 19:54:06
+     logs_eval/base_v26/v26_6_waveA_gripper_capacity_20260831/restored/left
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 1m 28s, read 1 file (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import sys, importlib.util…)
+  ⎿  B0_S0: eff=[45.0, 45.0] kp=1300.0 kd=32.0 m39=True sqmax=30.0 overf=55
+     .0 near_closed=0.1 seed=0  -> OK
+     B0_S1: eff=[45.0, 45.0] kp=1300.0 kd=32.0 m39=True sqmax=30.0 overf=55
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 48s, read 1 file (ctrl+o to expand)
+
+● Now I'll add the missing eval orchestration (handoff §5.3 flagged it as
+  absent).
+
+● Write(scriptsFORhuman/v26_6/v26_6_waveB_eval_lane.sh)
+  ⎿  Wrote 26 lines to scriptsFORhuman/v26_6/v26_6_waveB_eval_lane.sh
+      1 #!/usr/bin/env bash
+      2 # v26-6 Wave B evaluation lane: one GPU owns one training cell an
+      3 # three checkpoints (250/500/750) serially.  Each step evaluates 
+        LEFT then
+      4 # RIGHT exact64 through v26_6_waveB_eval_cell.sh, so one lane pro
+      5 # 24 preregistered evaluations.
+      6 set -euo pipefail
+      7 [[ $# -eq 4 ]] || { echo "usage: $0 GPU CELL TRAIN_ROOT OUTPUT_RO
+      8 repo=/home/baoquanc/workspace/DoorDog-A2_Piper
+      9 gpu=$1; cell=$2; train_root=$3; output_root=$4
+     … +25 lines (ctrl+o to expand)
+
+● Write(scriptsFORhuman/v26_6/v26_6_waveB_eval_orchestrate.sh)
+  ⎿  Wrote 66 lines to
+     scriptsFORhuman/v26_6/v26_6_waveB_eval_orchestrate.sh
+       1 #!/usr/bin/env bash
+       2 # v26-6 Wave B evaluation orchestrator.
+       4 #   launch    prepare + launch the four tmux-backed lane receipt
+         s (GPU4..7)
+       5 #   status    report run_supervisor status for the four lanes
+       7 #   reduce    run the preregistered reducer over the fixed eval 
+         root
+       8 #
+         so that the
+      10 # reducer path is not reconstructed by hand.
+     … +66 lines (ctrl+o to expand)
+
+● Bash(chmod +x scriptsFORhuman/v26_6/v26_6_waveB_eval_lane.sh
+      scriptsFORhuman/v26_6/v26_6_waveB_eval_orchestrate.sh
+      bash -n scriptsFORhuman/v26_6/v26_6_waveB_eval_lan…)
+  ⎿  lane: syntax OK
+     orchestrate: syntax OK
+     === arg-validation probes (must fail cleanly) ===
+     … +23 lines (ctrl+o to expand)
+
+  Thought for 51s (ctrl+o to expand)
+
+● Update(scriptsFORhuman/v26_6/v26_6_waveB_eval_orchestrate.sh)
+  ⎿  Added 7 lines, removed 9 lines
+      42        "$py" "$supervisor" launch --receipt "$(receipt_for "$cel
+          l")"
+      43      done
+      44      ;;
+      45 -  status)                                                      
+      45 +  status|finalize)                                             
+      46      for cell in "${cells[@]}"; do
+      47 +      receipt=$(receipt_for "$cell")                           
+      48        printf '%-8s ' "$cell"
+      48 -      "$py" "$supervisor" status --receipt "$(receipt_for "$cel
+         -l")" 2>&1 | tr '\n' ' '                                        
+      49 +      if [[ ! -f "$receipt" ]]; then                           
+      50 +        echo "NOT_LAUNCHED"                                    
+      51 +        continue                                               
+      52 +      fi                                                       
+      53 +      "$py" "$supervisor" "$action" --receipt "$receipt" 2>&1 |
+         + tr '\n' ' '                                                   
+      54        echo
+      55      done
+      56      ;;
+      52 -  finalize)                                                    
+      53 -    for cell in "${cells[@]}"; do                              
+      54 -      printf '%-8s ' "$cell"                                   
+      55 -      "$py" "$supervisor" finalize --receipt "$(receipt_for "$c
+         -ell")" 2>&1 | tr '\n' ' '                                      
+      56 -      echo                                                     
+      57 -    done                                                       
+      58 -    ;;                                                         
+      57    reduce)
+      58      "$py" "$repo/scriptsFORhuman/v26_6/v26_6_waveB_reduce.py" \
+      59        --train-root "$train_root" --eval-root "$eval_root" --out
+          put "$reducer_out"
+
+● Bash(bash -n scriptsFORhuman/v26_6/v26_6_waveB_eval_orchestrate.sh && echo
+      "syntax OK"
+      echo "=== status before launch ==="…)
+  ⎿  syntax OK
+     === status before launch ===
+     B0_S0    NOT_LAUNCHED
+     … +11 lines (ctrl+o to expand)
+
+  Thought for 54s (ctrl+o to expand)
+
+● 准备完成。执行前的状态：
+
+  已完成的准备（无副作用）
+
+  ┌─────────────────┬───────────────────────────────────────────────────────┐
+  │       项        │                         结果                          │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ 四个 training   │                                                       │
+  │ receipt         │ 全部 RUNNING → PASS（checkpoint 条件满足）            │
+  │ finalize        │                                                       │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ Reducer         │ 四格全 OK：45/45 N、1300/32、M39 true、30/55，B0      │
+  │ contract        │ near_closed 0.1、B1 0.25，seed 与 cell 名一致         │
+  │ 静态预检        │                                                       │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ eval config     │ 已实测 +ablation=wbmanip/base_v26_eval_natural_start  │
+  │ 继承路径        │ 静态 compose 不含 robot 段，45 N 会从 checkpoint 相邻 │
+  │                 │  config 正确继承                                      │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ 补齐 handoff    │                                                       │
+  │ §5.3 缺失的     │ 新增两个文件，守卫已逐条实测                          │
+  │ orchestration   │                                                       │
+  └─────────────────┴───────────────────────────────────────────────────────┘
+
+  新增文件
+
+  - scriptsFORhuman/v26_6/v26_6_waveB_eval_lane.sh — 一卡一 cell，串行
+  250/500/750，每 step 跑 LEFT+RIGHT
+  - scriptsFORhuman/v26_6/v26_6_waveB_eval_orchestrate.sh —
+  launch|status|finalize|reduce，固定输出根与 receipt namespace
+
+  执行方案
+
+  GPU4 → B0_S0    GPU5 → B0_S1    GPU6 → B1_S0    GPU7 → B1_S1
+  每卡 3 checkpoints × 2 sides = 6 次 exact64，四卡并行 = 24 次
+  输出根    logs_eval/base_v26/v26_6_waveB_gripper_capability_20260831/
+  receipts  .ai/runtime/runs/v26_6_waveB_eval_{b0_s0,b0_s1,b1_s0,b1_s1}/
+  日志      scriptsFORhuman/v26_6/runtime_logs/waveB/eval_<CELL>.log
+
+  墙钟估计 35–40 分钟（依据 Wave A 实测单次 64-env eval 5 分 15 秒，含 Isaac Sim
+  启动与场景构建）。GPU0–7 当前全部空闲，无冲突进程。
+
+  边界：launch 在输出根已存在时拒绝执行；plan §7 规定任一格非零退出即保留失败证
+  据、不重跑、不放宽阈值；DURABLE_MIN=32/64、STAGE4_MIN=2/64、endpoint
+  step750、durable 定义为连续 ≥25 control step 保持 handle ≥0.6 rad —— 这些在 8
+  月 31 日已冻结，读数出来不改。
+
+  四条 lane 会占用 GPU4–7 约 40 分钟。确认开跑吗？ 你说"跑"我就 launch，跑完直接
+  reduce 并报预注册 typed route。
+
+✻ Crunched for 42m 24s
+
+※ recap: Goal: figure out why v26 can't learn to press the handle down. Wave B training is done and I've prepped the 24 evaluations (receipts finalized, orchestrator written, GPUs free). Next: your go-ahead to launch, ~40 minutes. (disable recaps in /config)
+
+❯ 首先和我讨论下你的想法，其他session也尝试过解决这个问题：[R15 execution       
+  handoff](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_5/a2_p 
+  iper_base_v26_5_wave2_r1_r15_execution_handoff_20260831.md)                   
+  但是效果始终不好且我认为方向错误                                              
+
+  Thought for 1m 39s, read 1 file (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  === door asset / scene related keys ===
+
+     === staging / start related ===
+     … +22 lines (ctrl+o to expand)
+  Thought for 44s (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  === env keys OUTSIDE env.config ===
+       _recursive_
+          v19=False
+     … +4 lines (ctrl+o to expand)
+
+● Bash(sed -n '1740,1830p' gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py)
+  ⎿      result = dict(base_task_obj_cfg_dict)
+         result["door"] = door_cfg.replace(spawn=ordered_spawn_cfg)
+         return result
+     … +88 lines (ctrl+o to expand)
+
+  Thought for 1m 35s (ctrl+o to expand)
+
+● Bash(sed -n '1836,1900p' gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py)
+  ⎿                  spawn=spawn_cfg.replace(assets_cfg=variants, random_ch
+     oice=False)
+                 ),
+     … +62 lines (ctrl+o to expand)
+
+● Bash(awk 'NR>=1900 && NR<=1990'
+      gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py | grep -n "return\|def
+      \|raise" | head -20; echo "=== tail of function ==="; sed -n…)
+  ⎿  4:            raise ValueError(
+     7:        return get_TaskObjCfgDict_for_v23_p0_bound_plain16_manifest(
+     num_envs, env_config)
+     … +54 lines (ctrl+o to expand)
+
+  Thought for 50s (ctrl+o to expand)
+
+● 看完 R15 handoff，我同意你的判断，而且能把"方向错误"说得更具体。同时我要修正自
+  己上一轮的推荐权重。
+
+  R15 那条线错在哪 —— 三层
+
+  第一层：整条线跑在一个被 config 截断的物理条件里。
+
+  r1–r15 全程 dof_effort_limit_list 末两位是 10/10 N。Wave A 后来用 bit-exact
+  对照证明：10 N 在 drvF > 1.6 N·m 的门上只有 1/43 能把 handle
+  压下去，而训练分布是 (1.0, 3.0) ——
+  三分之二的门在物理上不可解。在这个条件下比较 residual actor 与 plain actor
+  的表示能力，无论哪一方赢都没有意义，因为手根本捏不住。
+
+  第二层：预算配比倒挂。
+
+  R15 的形式训练是 4096 envs × 250 PPO batches，checkpoint 只有 125/250。而 v19
+  那次成功是 2500 batches，且站在 v12_C→v13_A→v13.1→v14→v15→v16_B→v17_G5→v18
+  的累积上（约 23,500 batches）。R15 用大约 1% 
+  的训练预算去测一个"需要重新习得运动技能"的假设。r1–r15 的绝大部分成本花在
+  shared observation 实现、cross-process identity gate、CUDA RNG 消耗对齐、诊断
+  selector 修复、retry contract 注册 ——
+  这些都是工程正确性工作，做得很扎实，但它们不产生任务能力。
+
+  第三层：kill 由代理指标触发。
+
+  KILL_RESIDUAL_ACQUISITION_REGRESSION 的直接触发条件是 R15_S0/LEFT 的
+  contact-stability 0.7583 < 0.9。四个 endpoint 的 K5/Stage3 都是
+  59–64/64，Stage4 全 0。真正的信息是"Stage4 普遍为
+  0"，但预注册的优先级让一条稳定性带主导了 typed route。handoff §8 自己也把"高
+  K5/Stage3 却普遍无 Stage4"列为遗留科学问题 —— 那本该是主读数。
+
+  我要修正上一轮的推荐权重
+
+  Wave B 修对了最硬的那条轴，这是真进步。但它的主变量选错了。
+
+  Wave B 的单因素轴是 near_closed 0.1 → 0.25（拆 unlatch
+  墙）。这个变量只有在策略已经能按住 handle 并试图推门时才可观测。而你们的
+  memory 里已经明确记过一次同样的教训：
+
+  ▎ v26-2 的 R/W 从未访问 hinge 0.1，故 wall 结论应解释为 
+  ▎ WALL_REMOVAL_NOT_REACHED，不是 wall 已被 push 反证。
+
+  Wave A 恢复能力后，44/64 能按住 handle >0.6 rad 长达 p50 64 步，但 max_hinge ≤
+  0.0111、door_body_panel_normal_force_total = 0 —— 离 hinge=0.1
+  差一个数量级。Wave B 从一个在 10 N 下优化了 7,000 batches 的 actor 出发，只给
+  750 batches。B0 vs B1 极可能落在 WALL_REMOVAL_NOT_REACHED 的同构位置，也就是
+  reducer 的 DEPRESSION_LEARNED_STAGE4_NOT_REACHED。
+
+  所以：24 次评估仍然值得跑（40 分钟把 18 小时训练变成读数，不跑就是纯浪费），但
+  它是收口，不是方向。我上一轮把它排在第一位是排错了 ——
+  它不该决定下一阶段做什么。
+
+  我认为方向要反过来
+
+  v26 系列一直在做的是：从一个已知不可解的点出发，逐条排除。七条轴同时回退，每轮
+  4–18 小时，而且每轮结论都被还没修的轴污染。v26-3 的
+  ACTUATOR_CAPACITY_NOT_CAUSAL_AT_TESTED_RANGE 就是这么得出的错误结论（在 10 N
+  训练出的 checkpoint 上做 eval-only effort ladder，还没同步放开
+  over-force/M39），六轮之后才被 Wave A 推翻。这个模式在本项目已经重复了三次。
+
+  正确的顺序是反的：先把"曾经可解"的点复现出来，确认它在当前代码上仍然可解，再逐
+  条加回 v26 想要的新难度。
+
+  具体第一步：v19 阳性对照复现（eval-only）
+
+  拿 v19_G3/model_step_002500.pt 的 actor，在完全恢复的 v19 环境下跑一次 exact64
+  eval。
+
+  技术可行性我已经逐项核过：
+
+  前提: actor 结构兼容
+  核实结果: policy_state_dict 20 个张量与 v26 逐项 shape 相同
+  ────────────────────────────────────────
+  前提: 观测契约兼容
+  核实结果: v19 G3 与 Wave B B0 的 obs 129 键零差异
+  ────────────────────────────────────────
+  前提: 门的分布可对齐
+  核实结果: 不设 a2_v26_door_open_lr/a2_v25_door_open_lr
+  时，get_TaskObjCfgDict_for_door_config 落到末尾 return result，用
+  door_spawner_cfg
+  默认：door_open_lr=["right"]、door_open_io=["out"]、handle_drive_max_force_ran
+  ge=(1.0,
+    3.0) —— 正是 v19 的设置，且门的难度分布与 v26 相同
+  ────────────────────────────────────────
+  前提: 起始位姿可恢复
+  核实结果: 不设 a2_v26_natural_start_enabled，a2_stage0_staging_x_min/max 恢复
+  [0.5, 0.8]
+  ────────────────────────────────────────
+  前提: 夹爪/gate 可恢复
+  核实结果: 45/45、1300/32、M39 on、squeeze [2.0, 30]、over-force 55
+
+  成本：一张卡，十几分钟，不训练（Wave A 实测单次 64-env exact64 约 5 分 15
+  秒）。
+
+  它回答一个 v26 全系至今没问过的问题：经过 v20–v26 
+  六个版本的改动，当前这份代码还能不能复现 v19 的成功？
+
+  - 能 → 拿到一个活的阳性对照。之后每加一条难度（squeeze_min 2.0→0.5 / bilateral
+  / natural start / 窄 staging / 轻门 / v26 新 reward）都是一次十几分钟的
+  eval，而不是几小时的训练，而且是干净的单因素 ——
+  因为其他轴都停在已知可解的位置。定位成本从 O(天) 降到 O(小时)。
+  - 不能 → 说明 v20–v26 之间存在代码层面的回归（不是
+  config）。那才是真正要找的东西，而且这个发现会让 v26
+  全系的结论都需要重新审视。
+
+  两个结果都比 Wave B 的读数有价值，成本是它的三分之一。
+
+  顺带：squeeze_min 的地位比我上一轮说的更高
+
+  R15 四个 endpoint：K5 admission 59–64/64、Stage3 admission 59–64/64、contact
+  stability 0.95–0.97、Stage4 全 0。
+  Wave A restored/right：Stage3 admission 63/64、44/64 按住 handle >0.6、Stage4
+  0。
+
+  这两组说的是同一件事：K5 gate 已经不构成筛选了。sufficient_squeeze = 
+  squeeze_abs > 0.5（door_open_a2_base.py:17701），v19 是 > 2.0，严格 4 倍。一个
+  63/64 都能过的 gate 不再是 gate —— 策略拿 Stage3 门票的成本太低，从来没有压力
+  去学真正的夹紧和推门。这条应该排在难度阶梯的第一格单独测。
+
+  需要先说清的边界
+
+  复现实验不是零风险，有两件事必须在 plan 里逐项冻结，否则它会变成又一个污染源：
+
+  1. v20–v26 新增的 env.config 键在 v19 环境下取什么值。比如
+  a2_stage35_door_panel_contact_scale（v19=0.0，v26=1.0）、a2_door_body_contact_
+  penalty_mode（event_v17 vs
+  linear_v15）、a2_stage4_to5_door_hinge_threshold（1.25 vs 1.0472）。影响
+  reward 的在 eval 下无所谓，影响 termination/dynamics 的必须显式设回 v19
+  值。这需要逐键过一遍，不能靠默认。
+  2. 阴性结果不能单独归因。要做二分：v19 ckpt + v19 env（纯复现）与 v19 ckpt + 
+  v26 env（纯迁移）两格，差值才有指向性。加上 v26 现有 checkpoint 在 v19 env
+  下的一格，构成 2×2。这样一轮 eval 就能把"代码回归"和"环境难度"分开。
+
+  ---
+  我的建议顺序：先跑 v19 阳性对照复现（2×2 矩阵，一小时内出结果），再跑 Wave B 
+  的 24 次评估收口。前者决定方向，后者只是不浪费已花的 18
+  小时。如果阳性对照失败，Wave B 的读数怎么样都不重要了 ——
+  那说明问题在代码层，所有基于 v26 环境的实验都需要重新审视。
+
+  要我按这个思路写一份预注册 plan 吗？还是你对 2×2 的格子设计有别的想法？
+
+✻ Sautéed for 7m 35s
+
+※ recap: 目标是让策略学会下压 handle 解锁开门。我们确认了 v26 的瓶颈来自夹爪能力等多轴回退，现在等你定夺：是否按我提的 2×2 v19 阳性对照复现方案写预注册 plan，还是先跑 Wave B 那 24 次评估收口。 (disable recaps in /config)
+
+❯ 我先说一下我的想法，别急着开始训练或者出plan。进行到现在，目前左右镜像的handl 
+  e版本下，先去做verify。 1. 首先observation是否有充足信息？我记得handle位置标  
+  签是进入了observation的，说明policy能够知道当前是左开还是右开的门。 2.        
+  对应和handle位置/参数绑定的reward，比如target                                 
+  pos等是否正确根据镜像位置做了改变？  3. 是否要增加specific                    
+  reward？或者调整当前引导抓握/下压解锁的reward。 直接根据每个env是RIGHT/LEFT   
+  handle调整为对应reward。                                                      
+  因为v26阶段的解读是policy将左右镜像handle的情况treat成完全不同的任务？        
+  首先保持独立思考，回答我这几个建议吧                                          
+
+  Thought for 14s (ctrl+o to expand)
+
+● 这三个问题都是可以直接从源码定死的，我去查实际执行路径，不从记忆或计划文本推断
+  。
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  Error: Exit code 1
+     ===== actor_obs =====
+     Traceback (most recent call last):
+       File "<stdin>", line 6, in <module>
+     KeyError: 'actor_obs'
+
+● Bash(python3 - <<'PY'
+      import yaml, json…)
+  ⎿  top keys: ['obs_dict', 'obs_auxiliary', 'homie_history_length', 'obs_s
+     cales', 'noise_scales', 'add_noise_currculum', 'noise_initial_value',
+     'noise_value_max', 'noise_value_min', 'soft_dof_pos_curriculum_degree'
+     … +20 lines (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml, json…)
+  ⎿  ===== actor_obs (15 terms) =====
+         dof_pos
+         relative_to_door
+     … +116 lines (ctrl+o to expand)
+
+  Thought for 38s, searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '27320,27470p' gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿      def _get_obs_gripper_handle_transform(self):
+             if not self._use_a2_base:
+                 raise RuntimeError(
+     … +147 lines (ctrl+o to expand)
+
+  Thought for 1m 19s (ctrl+o to expand)
+
+● privileged_door_info[5:7] 就是 side one-hot，且在 actor_obs
+  里。继续查几何项的镜像约定和 reward 的 target。
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '17174,17240p' gr00t/rl/envs/door/door_open_a2_base.py; echo "===
+      right_mask ==="; sed -n '8210,8226p'
+      gr00t/rl/envs/door/door_open_a2_base.py; echo "===…)
+  ⎿      def _get_obs_relative_to_door(self):
+             relative_door_rot_6d = quat_to_tan_norm(self.relative_door_rot
+     _buf, w_last=True)
+     … +202 lines (ctrl+o to expand)
+
+  Thought for 59s (ctrl+o to expand)
+
+● 这里出现了一个需要定死的技术点：同一种 pos(3)+rot_6d(6)
+  结构，两处用了不同的镜像 sign。查 quat_to_tan_norm 的定义来判定。
+
+  Thought for 1m 5s, searched for 1 pattern (ctrl+o to expand)
+
+● quat_to_tan_norm 返回 [R·e_x, R·e_z]（第 1 列和第 3 列）。这定死了正确的镜像
+  sign。现在查 reward 侧的 target。
+
+  Thought for 1m 52s, searched for 2 patterns (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import yaml…)
+  ⎿  === obs_scales ===
+        privileged_door_info: 1.0
+        relative_to_door: 1.0
+     … +21 lines (ctrl+o to expand)
+
+  Thought for 1m 50s, searched for 1 pattern (ctrl+o to expand)
+
+● 三个问题我都从源码定死了。结论和你的预期有几处不同，逐条说。
+
+  问题 1：observation 信息够 — 而且比你记得的更多
+
+  door_open_a2_base.py:27432：
+
+  def _get_obs_privileged_door_info(self):
+      left  = (self.door_open_lr ==  1.0)
+      right = (self.door_open_lr == -1.0)
+      return torch.stack([door_width, door_height, door_handle_height,
+                          door_handle_width, door_weight/100.0,
+                          left, right, door_open_io], dim=1)
+
+  三层信息都在 actor_obs 里，不只是 critic：
+
+  ┌─────────────────────────────────────────┬──────┬───────────┬─────────────┐
+  │                   项                    │ 维度 │ obs_scale │ noise_scale │
+  ├─────────────────────────────────────────┼──────┼───────────┼─────────────┤
+  │ privileged_door_info（含 [5:7] side     │    8 │       1.0 │         0.0 │
+  │ one-hot）                               │      │           │             │
+  ├─────────────────────────────────────────┼──────┼───────────┼─────────────┤
+  │ gripper_handle_transform（handle +      │   18 │       1.0 │         0.0 │
+  │ pregrasp 完整位姿）                     │      │           │             │
+  ├─────────────────────────────────────────┼──────┼───────────┼─────────────┤
+  │ relative_to_door                        │    9 │       1.0 │         0.0 │
+  └─────────────────────────────────────────┴──────┴───────────┴─────────────┘
+
+  side one-hot 干净、无噪声、不衰减，而且不止有标签 —— handle
+  的实际相对位姿也全在。"policy 
+  不知道自己面对哪种门"这个假设不成立。瓶颈不在信息量。
+
+  问题 2：reward 侧不需要镜像修正，但 observation 侧有一个真 bug
+
+  (a) reward 已经是 side-invariant 的，这是对的，不用改
+
+  我逐项核了引导抓握/下压的所有项，它们全部建立在 gripper-source frame 的距离 /
+  绝对值 / 点积上：
+
+  ┌──────────────────────────┬──────────────────────────────┬───────────────┐
+  │          reward          │            关键量            │    镜像下     │
+  ├──────────────────────────┼──────────────────────────────┼───────────────┤
+  │ a2_stage2_handle_center_ │ target_pos_source[:,0,1].abs │ 不变（取了绝  │
+  │ y（scale 6，Stage2       │ ()                           │ 对值）        │
+  │ 最大项）                 │                              │               │
+  ├──────────────────────────┼──────────────────────────────┼───────────────┤
+  │ a2_stage2_handle_approac │ source frame x/z             │ 不变          │
+  │ h_xz                     │                              │               │
+  ├──────────────────────────┼──────────────────────────────┼───────────────┤
+  │ grasp_target_distance /  │ 欧氏距离                     │ 标量，不变    │
+  │ pregrasp_target_distance │                              │               │
+  ├──────────────────────────┼──────────────────────────────┼───────────────┤
+  │ gripper_handle_orientati │ |source_y·target_y|、source_ │ 取绝对值 / z  │
+  │ on                       │ z·target_z                   │ 分量，均不变  │
+  └──────────────────────────┴──────────────────────────────┴───────────────┘
+
+  LEFT 和 RIGHT 在 reward 空间里长得完全一样。这个设计是对的，但有个后果，见问题
+  3。
+
+  (b) gripper_handle_transform 的镜像 sign 错了
+
+  rotations.py:296 定死了 quat_to_tan_norm 返回 [R·e_x, R·e_z] —— 旋转矩阵的第 1
+  列和第 3 列。镜像 M=diag(1,-1,1) 下 R'=MRM，因为
+  M·e_x=e_x、M·e_z=e_z，两列都是 [1,-1,1] 模式。
+
+  同一份文件里两处对同一种 pos(3)+rot_6d(6) 结构用了互不相容的约定：
+
+  :17180  relative_to_door          [1,-1,1 | 1,-1,1 | 1,-1,1]      ✅ pos | tan
+  | norm
+  :27357  gripper_handle_transform  [1,-1,1 | -1,1,-1 | 1,-1,1]     ❌ tan
+  整体反号
+  :27404  v26-5 gauge               [1, 1,1 | -1,-1,-1| 1, 1,1]     ← 第三套
+
+  [-1,1,-1] = -[1,-1,1]，即 tangent 被当成旋转矩阵第 2 列处理了（只有 M·e_y=-e_y
+  才多这个负号）。三处三套约定，至多一套能对，quat_to_tan_norm 的定义判定
+  relative_to_door 对、gripper_handle_transform 错。
+
+  边界要说清：这段 sign 只在 a2_v26_4_side_canonicalization_enabled=true
+  时执行。Wave B 用的 base_v26_4_C0_CANONICAL_OFF 是关闭的，所以
+  它不解释当前的失败。它解释的是 v26-4 R2 为什么 typed 出 
+  CANONICALIZATION_NOT_SUPPORTED —— C1（canonical ON）那一格喂给 policy 的
+  handle/pregrasp 目标姿态有一段是错的。那个 kill
+  结论应当重新审视。修它是一行改动，静态可证。
+
+  问题 3：不建议加 side-specific reward — 你的解读方向对，但因果反了
+
+  你说"v26 阶段的解读是 policy 把左右镜像 handle
+  当成完全不同的任务"。我认为它们本来就是两个不同任务，这不是 policy 
+  的误解，是客观事实。理由是运动学，不是学习。
+
+  robot.dof_names 是 12 腿 + arm_j1..j6 + arm_j7/j8 —— 单臂 6 DOF + 
+  两指夹爪。v26-4 的 canonicalize
+  实现自己就承认了这点（a2_v26_4_canonicalization.py:8）：
+
+  indices = [6,7,8,9,10,11, 0,1,2,3,4,5,  12,13,14,15,16,17,  19,18]
+  #          ←─ 腿：左右交换 ─→           ←─ 臂：不交换 ─→    ←夹爪交换→
+
+  腿能交换（四足对称），夹爪两指能交换，臂只能靠 sign 翻转关节角。翻转单臂关节角
+  在运动学上不等价于镜像，除非所有关节轴恰好在对称面内或垂直于它 ——
+  它们不是。这和 v26-4 R2 的 K 读数完全吻合：冻结 Stage3 匹配网格上 LEFT 9/9 
+  可达、RIGHT 9/9 首次即被拒，唯一首拒是 arm_j4 超上限 0.003–0.039 
+  rad。镜像后的目标对另一侧根本够不着。
+
+  于是当前的组合是：
+
+  - reward 完全 side-invariant — 从来没告诉 policy 这两侧需要不同的解；
+  - observation 有 side one-hot — policy 知道自己在哪一侧；
+  - action 是共享物理关节，不镜像 — 两侧需要不同的关节解。
+
+  一个网络被要求用共享参数表示两套本质不同的运动学解，只靠 one-hot
+  切换。它能做的最省力的事就是学一个两侧都"不太差"的折中。Wave A
+  的读数正是这个形状：RIGHT 48/64 能压 handle，LEFT 三个 drvF 分层全 
+  0/64。这不像"LEFT 学不会"，更像 LEFT 的解在共享参数下被 RIGHT 的梯度压掉了。
+
+  加 side-specific reward
+  会把"两个任务"固化，而且引入第二个自变量。我建议的替代顺序：
+
+  1. 先做零训练成本的 side 分解验证。 Wave B 的 24
+  次评估本来就是分侧跑的（eval_cell.sh 对每个 step 先 LEFT 后 RIGHT）。看 RIGHT
+  单独的读数相比 Wave A 的 restored/right（同样 45 N，但 policy 没在 45 N
+  下训练过）提升了多少。这是我现在认为那 24 次评估值得跑的新理由 —— 不是为了 
+  typed route，是为了 side 分解。
+  2. 如果 RIGHT 单独看有明显提升而 LEFT 仍是 
+  0，那就是共享参数被拖累的直接证据。正确处理是分头训练（RIGHT-only / LEFT-only
+  各一个 policy），或给臂一个 side-conditioned posture prior —— 而不是改
+  reward。memory 里 v26-4 的 C ceiling
+  BILATERAL_FOUNDATION_REQUIRES_ASYMMETRIC_POSTURE 已经指向这里，只是被
+  CANONICALIZATION_NOT_SUPPORTED 关掉了，而那个 kill 现在有了新的怀疑理由。
+  3. canonicalization 可以重开，但先修 sign。 修完 canonical ON
+  的读数才有意义。不过要清楚它的天花板：canonicalization
+  能对齐观测，对齐不了运动学可达域 —— 单臂的不可镜像性是物理的，不是表示问题。
+
+  ---
+  证据等级：问题 1、2、3 的全部论断为 INSPECTED（源码 + saved config）；Wave A
+  的 48/64 vs 0/64 与 v26-4 R2 的 K 读数为 EXPERIMENT（已落盘 reducer / memory
+  记录）。sign bug 我只做了静态判定，没有跑 runtime 验证，因为它在当前 Wave B
+  配置下不执行。
+
+  我没有改任何代码。要不要我把 sign bug
+  的修复和一个静态验证（构造一对镜像四元数，检查 canonicalize
+  前后的一致性）写出来？那是一行改动加一个单测，不需要 GPU。
+✻ Churned for 12m 36s
+
+※ recap: Goal: get the v26 policy to press the handle and unlatch. I verified observations already carry side info, rewards are side-invariant and correct, and found a mirror-sign bug in gripper_handle_transform that only affects canonicalization-on runs. Next: your call on whether I fix that sign plus add a static test. (disable recaps in /config)
+
+❯ ok，你先修然后做那个单测，我们再做further讨论                                 
+
+  Thought for 29s (ctrl+o to expand)
+
+● 授权收到。先写测试确立数学基准（独立于现有实现），确认当前 sign 确实错，再改。
+
+  Listed 2 directories (ctrl+o to expand)
+
+● Bash(sed -n '1,45p' gr00t/rl/tests/test_a2_v26_3_creation.py)
+  ⎿  from pathlib import Path
+
+     import pytest
+     … +42 lines (ctrl+o to expand)
+
+  Thought for 1m 8s (ctrl+o to expand)
+
+● 先用一次性脚本确立数学基准，避免把推导错误写进测试。
+
+● Bash(PYTHONPATH=. /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -
+      <<'PY'
+      import torch…)
+  ⎿  per-component median ratio (v_mirror / v):
+        [1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]
+       max |ratio - median| : 0.0
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 1m 10s (ctrl+o to expand)
+
+● 数值基准确立：正确 sign 是 [1,-1,1, 1,-1,1, 1,-1,1]（逐分量比值精确，偏差
+  0.0）。两处 MISMATCH。现在修。
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Now the shared constant, so a fourth convention can't appear:
+
+● Update(gr00t/rl/envs/door/a2_v26_4_canonicalization.py)
+  ⎿  Added 14 lines
+       4  
+       5  import torch
+       6  
+       7 +# Mirror signs for a (position3, tan_norm6) pose expressed in a
+         + source frame,                                                 
+       8 +# reflected about the robot xz plane (M = diag(1, -1, 1)).     
+       9 +#                                                              
+      10 +# ``quat_to_tan_norm`` returns [R @ e_x, R @ e_z].  The conjuga
+         +ted rotation                                                   
+      11 +# M R M leaves both reference axes fixed (M e_x = e_x, M e_z = 
+         +e_z), so the                                                   
+      12 +# mirrored columns are M @ (R @ e_x) and M @ (R @ e_z).  Positi
+         +on mirrors the                                                 
+      13 +# same way.  Every one of the three vectors therefore flips its
+         + y component                                                   
+      14 +# only.  Any pose term that reuses this layout must use these s
+         +igns; see                                                      
+      15 +# ``gr00t/rl/tests/test_a2_v26_4_mirror_signs.py``.            
+      16 +A2_V26_4_MIRROR_POSE9_SIGNS = (1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 
+         +1.0, -1.0, 1.0)                                                
+      17  
+      18 +# Handle pose followed by pregrasp pose, as built by gripper_ha
+         +ndle_transform.                                                
+      19 +A2_V26_4_MIRROR_POSE18_SIGNS = A2_V26_4_MIRROR_POSE9_SIGNS * 2 
+      20 +                                                               
+      21 +                                                               
+      22  def a2_v26_4_canonicalize_dof_values(values: torch.Tensor, righ
+          t_mask: torch.Tensor) -> torch.Tensor:
+      23      indices = torch.tensor(
+      24          [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 
+          16, 17, 19, 18],
+
+● Update(gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿  Added 2 lines
+      51      a2_v26_3_update_handle_creation,
+      52  )
+      53  from gr00t.rl.envs.door.a2_v26_4_canonicalization import (
+      54 +    A2_V26_4_MIRROR_POSE9_SIGNS,                               
+      55 +    A2_V26_4_MIRROR_POSE18_SIGNS,                              
+      56      a2_v26_4_accumulate_physical_delta,
+      57      a2_v26_4_canonicalize_dof_values,
+      58      a2_v26_4_canonicalize_hand_force,
+
+● Update(gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿  Added 1 line, removed 3 lines
+      17178          result = torch.cat([self.relative_door_pos_buf, rela
+             tive_door_rot_6d], dim=-1)
+      17179          if not self._a2_v26_4_side_canonicalization_enabled(
+             ):
+      17180              return result
+      17181 -        return self._a2_v26_4_canonicalize_vector(          
+      17182 -            result, [1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1
+            -.0, 1.0]                                                    
+      17183 -        )                                                   
+      17181 +        return self._a2_v26_4_canonicalize_vector(result, A2
+            +_V26_4_MIRROR_POSE9_SIGNS)                                  
+      17182  
+      17183      @override
+      17184      def _get_obs_dof_pos(self):
+
+● Update(gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿  Added 1 line, removed 7 lines
+      27351          result = torch.cat([handle_pos, handle_rot_6d, pregr
+             asp_pos, pregrasp_rot_6d], dim=-1)
+      27352          if not self._a2_v26_4_side_canonicalization_enabled(
+             ):
+      27353              return result
+      27354 -        return self._a2_v26_4_canonicalize_vector(          
+      27355 -            result,                                         
+      27356 -            [                                               
+      27357 -                1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 
+            -1.0,                                                        
+      27358 -                1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 
+            -1.0,                                                        
+      27359 -            ],                                              
+      27360 -        )                                                   
+      27354 +        return self._a2_v26_4_canonicalize_vector(result, A2
+            +_V26_4_MIRROR_POSE18_SIGNS)                                 
+      27355  
+      27356      def _get_obs_gripper_handle_transform_gauge(self):
+      27357          if not self._a2_v26_5_actor_gauge_enabled():
+
+● Update(gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿  Added 1 line, removed 6 lines
+      27393              wxyz_to_xyzw(target_quat_source[:, 1, :]), w_las
+             t=True
+      27394          )
+      27395          raw = torch.cat([handle_pos, handle_rot_6d, pregrasp
+             _pos, pregrasp_rot_6d], dim=-1)
+      27396 -        signs = raw.new_tensor(                             
+      27397 -            [                                               
+      27398 -                1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1
+            -.0,                                                         
+      27399 -                1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1
+            -.0,                                                         
+      27400 -            ]                                               
+      27401 -        )                                                   
+      27396 +        signs = raw.new_tensor(A2_V26_4_MIRROR_POSE18_SIGNS)
+      27397          return torch.where(self._a2_v26_4_right_mask()[:, No
+             ne], raw * signs, raw)
+      27398  
+      27399      def _get_obs_hand_force(self):
+
+● Now the test — it derives the sign from first principles rather than asserting
+  the value I just wrote in.
+
+● Write(gr00t/rl/tests/test_a2_v26_4_mirror_signs.py)
+  ⎿  Wrote 112 lines to gr00t/rl/tests/test_a2_v26_4_mirror_signs.py
+      1 """Mirror-sign contract for v26-4 bilateral side canonicalization
+      2 
+      3 The A2 pose observations (`relative_to_door`, `gripper_handle_tra
+      4 v26-5 gauge variant) all carry the same `[position3, tan_norm6]` 
+      5 mirrored about the robot xz plane when a RIGHT-handed door is can
+        onicalized onto
+        ns from the
+      7 `quat_to_tan_norm` definition instead of restating the constant, 
+      8 to either side of the seam has to stay consistent with the geomet
+      9 """
+     … +135 lines (ctrl+o to expand)
+
+● Bash(PYTHONPATH=. /home/baoquanc/anaconda3/envs/isaaclab/bin/python -m pytest
+      gr00t/rl/tests/test_a2_v26_4_mirror_signs.py -v 2>&1 | tail -25)
+  ⎿  ============================= test session starts ====================
+     ==========
+     platform linux -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0 -- /home/
+     … +22 lines (ctrl+o to expand)
+
+  Thought for 48s (ctrl+o to expand)
+
+● 7 个全过。现在验证测试确实能抓住旧值 —— 否则它只是自证。
+
+● Bash(PYTHONPATH=. /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -
+      <<'PY'
+      # Feed each historically-shipped sign vector through the exact assertion
+      used by…)
+  ⎿  geometry-derived signs: [1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.
+     0]
+     … +3 lines (ctrl+o to expand)
+
+● Bash(PYTHONPATH=. /home/baoquanc/anaconda3/envs/isaaclab/bin/python -c "
+      import ast, sys…)
+  ⎿  parse OK: gr00t/rl/envs/door/door_open_a2_base.py
+     parse OK: gr00t/rl/envs/door/a2_v26_4_canonicalization.py
+     parse OK: gr00t/rl/tests/test_a2_v26_4_mirror_signs.py
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 43s, searched for 1 pattern (ctrl+o to expand)
+
+● Bash(PYTHONPATH=. timeout 900
+      /home/baoquanc/anaconda3/envs/isaaclab/bin/python -m pytest $(grep -rln
+      "door_open_a2_base\|a2_v26_4_canonicalization" gr00t/rl/tests/…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+● Bash(PYTHONPATH=. nohup timeout 1500
+      /home/baoquanc/anaconda3/envs/isaaclab/bin/python -m pytest $(grep -rln
+      "door_open_a2_base\|a2_v26_4_canonicalization" gr00t/rl/…)
+  ⎿  exit=1
+                 if missing:
+     >               raise ValueError(
+     … +27 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 4 个失败。必须确认是我引入的还是既有的 —— 用 stash 跑 baseline。
+
+● Bash(git stash push -- gr00t/rl/envs/door/door_open_a2_base.py
+      gr00t/rl/envs/door/a2_v26_4_canonicalization.py && echo "--- stashed,
+      verifying working tree is clean…)
+  ⎿  Saved working directory and index state WIP on codex/v26-5-bilateral-s
+     tage5: b228bb0 docs: hand off r15 experiment
+     --- stashed, verifying working tree is clean for those files ---
+     … +3 lines (ctrl+o to expand)
+
+● Bash(PYTHONPATH=. timeout 900
+      /home/baoquanc/anaconda3/envs/isaaclab/bin/python -m pytest \
+
+      gr00t/rl/tests/test_a2_v16_env_semantics.py::test_mass_override_compose…)
+  ⎿  gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py:1545: ValueError
+     =========================== short test summary info ==================
+     ==========
+     … +9 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 36s (ctrl+o to expand)
+
+● 同样的 4 个在改动前就已失败 —— 属既有问题，与本次改动无关。恢复。
+
+● Bash(git stash pop && echo "--- restored ---" && git status --short gr00t/)
+  ⎿  On branch codex/v26-5-bilateral-stage5
+     Changes not staged for commit:
+       (use "git add <file>..." to update what will be committed)
+     … +25 lines (ctrl+o to expand)
+
+● Bash(git --no-pager diff -- gr00t/rl/envs/door/)
+  ⎿  diff --git a/gr00t/rl/envs/door/a2_v26_4_canonicalization.py b/gr00t/r
+     l/envs/door/a2_v26_4_canonicalization.py
+     index 25400d1..b9c61ab 100644
+     … +75 lines (ctrl+o to expand)
+
+● 改完并验证。
+
+  Changed
+
+  文件: gr00t/rl/envs/door/a2_v26_4_canonicalization.py
+  改动: 新增 A2_V26_4_MIRROR_POSE9_SIGNS /
+  A2_V26_4_MIRROR_POSE18_SIGNS，附几何推导注释
+  ────────────────────────────────────────
+  文件: gr00t/rl/envs/door/door_open_a2_base.py
+  改动: 三处内联 sign 字面量统一引用该常量（:17181 relative_to_door、:27354
+  gripper_handle_transform、:27396 gauge）
+  ────────────────────────────────────────
+  文件: gr00t/rl/tests/test_a2_v26_4_mirror_signs.py
+  改动: 新增，7 个测试
+
+  修了两处而非一处。gauge 那处（v26-5 R15 路径）与 gripper_handle_transform
+  是同一操作、同一量、同一 mask（torch.where(right_mask, raw*signs, 
+  raw)），不存在"故意不同"的解释，且数值判定它错得更远（max_abs_err 6.83 vs 2.00
+  — position 完全没镜像）。它在当前 Wave B 配置下不执行，所以不产生 runtime 
+  行为变化。
+
+  Evidence
+
+  数值基准（2048 组随机位姿）逐分量比值精确等于 [1,-1,1, 1,-1,1, 
+  1,-1,1]，与中位数的最大偏差 0.0：
+
+  relative_to_door         :17180   max_abs_err=0.000000   OK
+  gripper_handle_transform :27357   max_abs_err=1.999893   MISMATCH
+  v26_5 gauge              :27404   max_abs_err=6.834779   MISMATCH
+
+  测试有效性（这是关键 —— 证明它不是自证）。把三个历史 sign
+  喂进测试实际使用的断言：
+
+  OLD relative_to_door       -> test would PASS
+  OLD gripper_handle_xform   -> test would FAIL
+  OLD v26_5 gauge            -> test would FAIL
+
+  测试从 quat_to_tan_norm 的定义推导 sign，不是复述我刚写进去的常量。test_pose9_
+  signs_match_the_geometry_not_a_hand_written_list
+  断言常量等于推导值；test_superseded_signs_are_rejected_by_the_geometry
+  把两个旧值钉成永久回归保护。另外覆盖了 canonicalize 语义（RIGHT→LEFT
+  复现）、LEFT 直通、pose18 = pose9×2、以及对合性（镜两次回原点）。
+
+  7 passed in 1.66s
+
+  回归：跑了全部 30 个 import 这两个模块的测试文件 —— 4 failed, 479 passed, 4 
+  skipped。用 git stash 把两个源文件退回改前跑同样 4 个，同样 4 
+  个失败，故为既有问题（test_a2_v14_env_telemetry 缺
+  door_open_lr/door_handle_side 诊断字段、test_a2_v16_env_semantics 的
+  mass/height grid），与本次改动无关，我没有动它们。
+
+  STATIC_PASS + TEST_PASS。没有 runtime 证据 —— 这段代码只在
+  a2_v26_4_side_canonicalization_enabled=true
+  时执行，当前所有活跃配置都是关闭的。未 commit、未 push。
+
+  这对讨论意味着什么
+
+  修复本身不改变任何当前跑的东西。它的价值在于解锁一个被错误关闭的结论：
+
+  v26-4 R2 的 typed route CANONICALIZATION_NOT_SUPPORTED 是在 C1（canonical
+  ON）格上得出的，而那一格喂给 actor 的 gripper_handle_transform —— 也就是
+  handle 与 pregrasp 的目标位姿，18 维里的全部方向信息 —— tangent
+  分量整体反了号。C1 的 RIGHT 侧 actor 收到的是一个自相矛盾的目标姿态：position
+  正确镜像，朝向部分错误。在这个输入下 C1 没通过预注册
+  bands，不能算作"canonicalization 无效"的证据。
+
+  不过我要把话说全：修好 sign 也不会让 canonicalization 
+  成立。它对齐的是观测，对齐不了运动学可达域 —— A2 只有一条 6-DOF
+  臂，a2_v26_4_canonicalize_dof_values 的 index
+  表自己就承认腿能左右交换、臂不能。v26-4 的 K 读数（镜像目标网格上 LEFT 9/9
+  可达、RIGHT 9/9 首拒于 arm_j4 超上限）是运动学事实，不是 sign 问题。
+
+  所以现在的判断是：canonical ON 这条线值得重测一次（因为原来的 kill
+  有污染），但我不预期它能解决双侧问题。真正的分叉仍然是上一轮说的那个 ——
+  左右开门对单臂机器人是两个任务，共享参数是在做折中。Wave B 那 24 次评估的 side
+  分解仍然是最便宜的下一个读数。
+
+  下一步你想先走哪个：重测 canonical ON（需要训练，贵），还是先拿 Wave B 的 side
+  分解（40 分钟，已付沉没成本）？
+
+✻ Worked for 23m 17s
+
+※ recap: 目标是让策略学会下压 handle 解锁。我已修好双侧镜像 sign 并通过 7 项测试，改动不影响当前配置。下一步请你选：跑 Wave B 那 24 次评估做左右分解（40 分钟），还是重测 canonical ON。
+
+❯ "真正的分叉仍然是上一轮说的那个 ——                                            
+  左右开门对单臂机器人是两个任务，共享参数是在做折中。"                         
+  这也是为什么我说之前的v26阶段方向错了。我认为左右两侧的解不能靠镜像互相换算， 
+  必须是一个网络（actor，policy）去学习开左右镜像的门，这是标准的多任务/条件策  
+  略问题，而且条件信息是齐的。所以我同时也很疑惑为什么v26阶段的调整一直是失败的 
+  。在我看来这不是难事，但就是卡在了学习下压解锁这。                            
+
+  Thought for 1m 15s (ctrl+o to expand)
+
+● 你这个判断我认同，而且它把问题定位到了正确的层次。但"条件信息齐"只是条件策略成
+  立的必要条件。我去查了另外三个前提，其中两个不成立。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -c "
+      import torch…)
+  ⎿    std                                           (12,)
+       actor_module.module.0.weight                  (512, 256)
+       actor_module.module.0.bias                    (512,)
+     … +17 lines (ctrl+o to expand)
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '150,200p;240,260p' gr00t/rl/envs/base_task/staged_task_base.py;
+      echo "=== control decimation / dt ==="; python3 -c "
+      import yaml…)
+  ⎿          )  # max stage index of the past episode
+             self.current_completed_task_buf = torch.zeros(
+                 self.num_envs, dtype=torch.bool, device=self.device
+     … +75 lines (ctrl+o to expand)
+
+  Thought for 57s (ctrl+o to expand)
+
+● Bash(python3 -c "
+      import yaml…)
+  ⎿  award_remaining_time_on_advance: True
+     max_stage_time: [350, 100, 100, 100, 100, 200]  sum: 950
+     max_episode_length_s: 20
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 1m 9s (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -c "
+      import json…)
+  ⎿  n rows: 37039
+     keys: ['env_id', 'door_open_lr', 'door_handle_side', 'door_hinge_drive
+     _max_force', 'door_handle_drive_max_force', 'door_handle_height', 'doo
+     … +61 lines (ctrl+o to expand)
+
+  Thought for 33s (ctrl+o to expand)
+
+● 数据够做归因。直接对比 LEFT/RIGHT 在抓住之后的差异。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import json, statistics as st…)
+  ⎿  Error: Exit code 1
+     ===== RIGHT  total_steps=36930  stage3+_steps=10756
+       envs reaching stage3            : 63/64
+       handle_opening_alignment  p50   : 0.9765
+       handle_approach_alignment p50   : 0.9814
+       target_pos_source_handle_dist p50: 0.0514
+       arm_soft_limit_norm_margin  min : -0.0555
+       door_handle_joint_pos       max : 0.7854
+     Traceback (most recent call last):
+       File "<stdin>", line 23, in <module>
+     … +1 line (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import json…)
+  ⎿  ===== RIGHT  stage3+ steps=10756  envs=63/64
+       handle_opening_alignment   p50 0.9765
+       handle_approach_alignment  p50 0.9814
+     … +24 lines (ctrl+o to expand)
+
+  Thought for 43s (ctrl+o to expand)
+
+● LEFT 抓得比 RIGHT 更好（tcp→handle 距离 0.0097 vs 0.0514，接触力 44.3 vs
+  36.0），但 handle 完全不动。而且顶限位的关节不是同一个。查 handle
+  关节的符号约定。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import json…)  ⎿  ===== RIGHT  (stage3+ steps=10756)
+       handle_joint_pos  min=-0.00000  p01=-0.00000  p50=+0.38567  p99=+0.7
+     8540  max=+0.78540
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 48s (ctrl+o to expand)
+
+● handle 在 LEFT 完全不动（p50 = −0.00000），也没有反向。结合限位数据 ——
+  顶限位的是 arm_j4。这和 v26-4 K 读数是同一个关节。查 base 站位。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import json, math…)
+  ⎿  ===== RIGHT
+       base x  p50=-0.7676   y p50=-0.2158
+       root_yaw p05=-0.1554 p50=-0.0909 p95=-0.0057
+     … +19 lines (ctrl+o to expand)
+
+  Thought for 54s (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import json…)
+  ⎿  ===== RIGHT  arm_j4  soft_limits=[-1.5705,+1.5705]
+       target p50=-0.3852  p95=-0.1804  max=+0.1221
+       actual p50=-0.3690  p95=-0.1398  max=+0.2408
+     … +6 lines (ctrl+o to expand)
+
+  Thought for 45s (ctrl+o to expand)
+
+● LEFT 的 j4 actual (p50 +1.396, max +1.762) 显著超过 target (p50 
+  +1.161)，并冲出 soft limit +1.5705 —— 关节被外力顶过去了。RIGHT 的
+  target/actual 只差 0.016。查抓握目标姿态是否 side-dependent。
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '5044,5100p' gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿      def _initialize_impl(self):
+             super(FrameTransformer, self)._initialize_impl()
+     … +53 lines (ctrl+o to expand)
+
+  Thought for 1m 14s (ctrl+o to expand)
+
+● 挖到底了。你的诊断是对的 —— 这是条件策略问题，条件信息也确实齐。但条件策略要成
+  立需要三个前提，只有一个成立。
+
+  三个前提
+
+  ┌──────────────────────────┬───────────────────────────────────────────────┐
+  │           前提           │                     状态                      │
+  ├──────────────────────────┼───────────────────────────────────────────────┤
+  │                          │ ✅ privileged_door_info[5:7]                  │
+  │ 条件信息进入 actor       │ one-hot，obs_scale=1.0、noise_scale=0.0，且   │
+  │                          │ LSTM 每步都能看到                             │
+  ├──────────────────────────┼───────────────────────────────────────────────┤
+  │ 每个条件下都存在可达的解 │ ❌                                            │
+  ├──────────────────────────┼───────────────────────────────────────────────┤
+  │ 每个条件下都有正样本可学 │ ❌ LEFT 的 handle 全程没动过                  │
+  └──────────────────────────┴───────────────────────────────────────────────┘
+
+  第二条是根子。而且它不是"难学"，是动作空间里没有那个解。
+
+  数据
+
+  Wave A restored，Stage3+ 的逐步 trace（RIGHT 10,756 步 / LEFT 10,968 步）：
+
+                          RIGHT      LEFT
+  tcp→handle 距离 p50     0.0514    0.0097     ← LEFT 抓得准 5 倍
+  handle 接触力 p50 (N)     36.0      44.3     ← LEFT 夹得更紧
+  opening/approach 对齐   0.98/0.98  0.96/0.98 ← 两侧都对准了各自的目标
+  door_handle_joint_pos   p50 +0.386  p50 -0.00000
+                          max +0.785  max +0.00073   ← LEFT 从未转动，也没有反向
+
+  LEFT 抓得比 RIGHT 还好，但 handle 一动不动。
+  所以不是够不着、不是没抓住、不是符号反了。
+
+  看关节就明白了：
+
+  arm_j4  soft_limits = [-1.5705, +1.5705]
+          RIGHT   target p50 -0.385   actual p50 -0.369   (差 0.016)
+          LEFT    target p50 +1.161   actual p50 +1.396   (差 0.235)
+                                p95 +1.588   max +1.762   ← 冲出 soft limit
+
+  RIGHT 的腕部构型是 j4 -0.37 / j5 -0.61 / j6 +1.65，靠 j5/j6 压 handle。
+  LEFT 的是 j4 +1.40 / j5 -0.05 / j6 +0.25 —— j4 顶死上限，而 j5/j6 都闲在中位。
+
+  如果两侧是镜像，LEFT 的 j4 该在 +0.369。实际 +1.396，差 1.03 rad（59°）。j4
+  是腕滚转 —— 它把 j5/j6 的转轴整体滚了近 80°，于是腕部剩下的自由度不再落在
+  handle 转轴的力矩平面上。策略再怎么动 j5/j6 都产生不了下压力矩。
+
+  而且 actual 比 target 高 0.235 rad，说明 j4
+  是被夹持反作用力顶过去的，不是策略命令的 —— 它在这个构型下被动饱和。
+
+  两条独立证据指向同一个约束：v26-4 R2 的静态 FK 网格报 arm_j4 upper-limit
+  overshoot 0.003046–0.039405 rad；Wave A 的 runtime trace 显示 LEFT 的 j4
+  actual p95 = 1.5883 超 soft limit 达 0.0178 rad ——
+  正落在那个区间里。一个是纯运动学网格，一个是真实
+  rollout，同一个关节、同一个量级。
+
+  因果链
+
+  target_frame.offset 是单一四元数（door_open_a2_base.py:5081-5087，
+    .unsqueeze(0).repeat(num_envs,1)，side-independent）
+    → LEFT 门的 handle 抓握目标姿态按 RIGHT 的约定给出
+    → 策略要对准它就得把 arm_j4 滚到 +1.16，被反作用力顶到 +1.40~+1.76（超限）
+    → j4 饱和，j5/j6 转轴离开 handle 力矩平面
+    → LEFT 的 handle 永远不动（v26 全程 max 0.00073 rad）
+    → 条件策略在 LEFT 上没有任何正样本可学，one-hot 再干净也无从学起
+    → LEFT 的探索梯度持续污染共享参数
+
+  这条链解释了你的疑惑。它确实不难 —— 但它从来就不是一个学习问题。 之前所有在
+  reward 权重、handle_creation、unlatch 墙、residual actor、canonicalization
+  上的调整，没有一个改变 arm_j4
+  的可达域，所以没有一个可能成功。它们全都在优化一个无解子问题上的策略表示。
+
+  这也说明我上一轮"共享参数在做折中"的说法不够准确：不是折中，是 LEFT
+  那一半根本没有梯度可跟，它只是在往共享参数里灌噪声。
+
+  归因边界
+
+  - 已确定（RUNTIME + STATIC，两条独立证据）：LEFT 的 j4
+  饱和、腕部自由度失效、handle 零正样本。
+  - 强候选但未证实：把它归因于 side-independent target offset。我看到 offset
+  是单一 tensor 广播到所有 env，也看到两侧腕部构型远非镜像（j1/j4/j5/j6
+  都不是），但没有排除 LEFT 门的 handle USD 几何本身就不是 RIGHT 的严格镜像 ——
+  那样的话目标姿态本来就该不同，问题会在 asset 侧。
+
+  这个分叉可以用一个纯 FK 检查定死，CPU 几秒钟、不碰 GPU：给定 LEFT 门实际的
+  handle 位姿，分别计算「当前 side-independent offset」和「镜像后的
+  offset」各自所需的 j4，看哪个落在 ±1.5705 内。仓库里已经有现成的
+  gr00t/rl/scripts/a2_piper_v14_reachability_map.py 在用
+  OrderedTargetFrameTransformer，可以直接复用。
+
+  要我做这个 FK 检查吗？它会把「offset 错」和「asset
+  不镜像」二选一定死，然后修复方向就是唯一的了 ——
+  而且这两种情况的修法完全不同：前者改一个 side-conditioned offset，后者要动
+  door asset 或 base 站位策略。
+
+✻ Churned for 13m 38s
+
+❯ ok做这个检查看看                                                              
+
+  Thought for 20s (ctrl+o to expand)
+
+● 授权收到。先找到 side-independent 的 offset 实际值，再决定用哪种方式验证。
+
+  Searched for 2 patterns (ctrl+o to expand)
+
+● Bash(sed -n '28840,28905p' gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿              if target_sub_prim != "grasp_target":
+                     raise RuntimeError(
+     "A2 Piper gripper-handle transformer requires "
+     … +63 lines (ctrl+o to expand)
+
+  Thought for 1m 22s (ctrl+o to expand)
+
+● 找到了硬编码点 —— door_open_a2_base.py:28876,28885：
+
+  FrameCfg(name="handle",   offset=OffsetCfg(pos=(0,0,0),
+  rot=(0.5, 0.5, 0.5, 0.5)))
+  FrameCfg(name="pregrasp", offset=OffsetCfg(pos=self.A2_PREGRASP_OFFSET,
+  rot=(0.5, 0.5, 0.5, 0.5)))
+
+  两侧共用同一个常量。先做纯四元数分析，再用 trace 数据验证。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import numpy as np…)
+  ⎿  offset rot=(0.5,0.5,0.5,0.5): angle=120.0 deg  axis=[0.5774 0.5774 0.5
+     774]
+     … +19 lines (ctrl+o to expand)
+
+  Thought for 1m 15s (ctrl+o to expand)
+
+● offset 的镜像与其自身差 180° — 它不是镜像不变的。现在验证前提：grasp_target
+  prim 在两侧是否真的镜像。用 trace 反推。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -c "
+      import json…)
+  ⎿  gripper_source_quat_w: [-0.43206870555877686, -0.5784586668014526, -0.
+     45275774598121643, -0.5231755971908569]
+     target_quat_source_handle: [-0.9932383298873901, 0.03798477351665497,
+     … +11 lines (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import json, numpy as np…)
+  ⎿  samples at handle~0:  LEFT=4000  RIGHT=3462
+
+     grasp_target world rotation, LEFT (mean):
+     … +18 lines (ctrl+o to expand)
+
+  Thought for 52s (ctrl+o to expand)
+
+● 出乎意料 —— 结果和我的假设相反，必须修正。grasp_target 的世界姿态在两侧都是 
+  identity（互差 0.18°），根本没有镜像。继续查这意味着什么。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY'
+      import json, numpy as np…)
+  ⎿  RIGHT  n=3462
+       gripper rot in WORLD frame:
+     [[ 0.208 -0.072  0.976]
+     … +24 lines (ctrl+o to expand)
+
+  Thought for 59s (ctrl+o to expand)
+
+● 夹爪世界姿态在两侧只差 13.6°，而与 mirror(RIGHT) 差
+  143°。这把结论翻过来了。做最后一步 —— 可达性检查需要真实臂模型。
+
+● Bash(python3 -c "
+      import yaml…)
+  ⎿  asset : {'collapse_fixed_joints': False, 'replace_cylinder_with_capsul
+     e': False, 'flip_visual_attachments': False, 'armature': 0.0, 'thickne
+     ss': 0.01, 'max_angular_velocity': 1000.0, 'max_linear_velocity': 1000
+     … +14 lines (ctrl+o to expand)
+  Thought for 42s (ctrl+o to expand)
+
+● Pinocchio 可用，URDF 在仓库里。先加载并验证模型能复现 trace 的实际位姿。
+
+● Bash(ls gr00t/rl/data/robots/A2_Piper/ 2>/dev/null; echo "=== urdf joints
+      ==="; /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -c "
+      import pinocchio as pin…)
+  ⎿  a2_piper.urdf
+     a2_piper.usd
+     configuration
+     … +42 lines (ctrl+o to expand)
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -c "
+      import pinocchio as pin…)
+  ⎿  nq= 20  njoints= 21
+        1 FL_hip_joint           idx_q=0  lim=[-1.0100,+1.0100]
+        2 FL_thigh_joint         idx_q=1  lim=[-2.3400,+3.1500]
+     … +25 lines (ctrl+o to expand)
+
+  Thought for 1m 12s (ctrl+o to expand)
+
+● 模型加载成功，arm_body6_to_gripper 正是 transformer 的 source frame。先验证 FK
+  能复现真实 trace。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY' 2>/dev/null
+      import json, numpy as np, pinocchio as pin…)
+  ⎿  FK validation: model vs recorded trace (gripper rotation in robot base
+      frame)
+       RIGHT  n=3000  median=0.000 deg  p95=0.047  max=0.066
+       LEFT   n=3000  median=0.000 deg  p95=0.050  max=0.068
+
+  Thought for 36s (ctrl+o to expand)
+
+● 模型完美复现真实位姿（median 0.000°）。现在做核心检查：把 RIGHT
+  的成功构型镜像到 LEFT，解 IK，看是否在限位内。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY' 2>/dev/null
+      import json, numpy as np, pinocchio as pin…)
+  ⎿  RIGHT samples with handle>0.6 : 600
+     LEFT  samples (stage3+)       : 600
+     … +6 lines (ctrl+o to expand)
+
+  Thought for 47s (ctrl+o to expand)
+
+● 178.64° — 与理论预测的 180° 吻合。最后一步：解 IK，看正确的镜像姿态在 LEFT
+  是否可达。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY' 2>/dev/null
+      import numpy as np, pinocchio as pin…)
+  ⎿  Question: at the LEFT door, can the arm reach the CORRECT (mirrored) g
+     rasp pose?
+     … +18 lines (ctrl+o to expand)
+
+  Thought for 38s (ctrl+o to expand)
+
+● A 的"无解"可能是姿态平均的伪影。用逐样本 IK 重做，避免平均带来的假象。
+
+● Bash(/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY' 2>/dev/null
+      import json, numpy as np, pinocchio as pin…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(cat > /tmp/ik_left.py <<'PY'
+      import json, numpy as np, pinocchio as pin…)
+  ⎿  exit=0
+     --- LEFT handle offset (0.5, 0.5,0.5, 0.5)  <- shipped today
+         samples=60  IK solved=0  within SOFT limits=0
+     … +4 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 43s (ctrl+o to expand)
+
+● 检查完成，结果是决定性的 —— 而且推翻了我上一轮的归因。
+
+  结果
+
+  对 LEFT 侧 60 个真实 Stage3 样本逐个解 IK（pinocchio + 仓库 URDF，模型已用
+  trace 验证，FK 复现误差 median 0.000°）：
+
+  LEFT handle offset (0.5, 0.5, 0.5, 0.5)   ← 当前出厂值
+      samples=60   IK solved= 0/60   within soft limits= 0/60
+
+  LEFT handle offset (0.5,-0.5, 0.5,-0.5)   ← 镜像值
+      samples=60   IK solved=60/60   within soft limits=60/60
+      arm_j4  p05 -1.142  p50 -0.683  p95 -0.300   soft=[-1.571,+1.571]
+      arm_j6  p05 -0.936  p50 -0.548  p95 -0.110   soft=[-1.885,+1.885]
+
+  LEFT 今天被要求达到的抓握姿态，在 URDF 关节限位内根本没有解。换成镜像 offset 
+  后，60/60 有解且全部落在 soft limit 内，余量充足。 修复后的 arm_j4 p50 =
+  −0.683，与 RIGHT 实际的 −0.369 同号同量级；当前值是 +1.396（顶死
+  +1.5705，被外力顶到 +1.762，已越过 URDF 上限 1.745）。
+
+  我上一轮的归因是错的
+
+  我说"LEFT 侧的解在运动学上不可达，是单臂不可镜像的物理限制"。前半句对，后半句
+  错：不可达的是今天那个错误目标，正确的镜像目标完全可达。这不是物理限制，是一个
+  side-independent 常量的 bug，可以修。
+
+  完整因果链
+
+  door_open_a2_base.py:28876,28885
+    FrameCfg(name="handle",   offset=OffsetCfg(rot=(0.5,0.5,0.5,0.5)))
+    FrameCfg(name="pregrasp", offset=OffsetCfg(rot=(0.5,0.5,0.5,0.5)))
+    → 单一常量，_initialize_impl 里 .repeat(num_envs,1)，两侧共用
+
+  1. 该四元数是绕 (1,1,1) 转 120°，R_o = 
+  [[0,0,1],[1,0,0],[0,1,0]]。它不是镜像不变的：mirror(R_o) 与 R_o 相差
+  180.00°（纯代数）。
+  2. grasp_target prim 的世界姿态在两侧都是 identity（实测互差 0.18°）——
+  镜像职责全部落在 offset 上，而 offset 没镜像。
+  3. 实测：LEFT 的抓握目标姿态与 mirror(RIGHT 成功姿态) 相差 178.64° —— 与理论的
+  180° 吻合（残差来自 base 站位与门高不完全镜像）。
+  4. → 策略在两侧被要求达到几乎同一个世界姿态（实测夹爪世界姿态两侧仅差
+  13.6°，而与 mirror(RIGHT) 差 143°）。
+  5. → 为在镜像位置达到这个不可达姿态，臂被推进 arm_j4
+  饱和的分支，靠夹持反作用力顶过限位（target +1.161 vs actual +1.396，差 0.235
+  rad）。
+  6. → j4 饱和把 j5/j6 的转轴整体滚离 handle 力矩平面 → LEFT 的 handle 
+  全程零转动（max 0.00073 rad，无反向）。
+  7. → 条件策略在 LEFT 上零正样本，one-hot 再干净也无从学起；LEFT
+  的探索只是往共享参数里灌噪声。
+
+  为什么六个版本没发现
+
+  reward 的对齐指标对这个误差结构性失明（door_open_a2_base.py:15285-15288）：
+
+  opening_alignment  = |source_y · target_y|      # 取绝对值 → 180° 不可见
+  approach_alignment =  source_z · target_z       # 只看 z   → 绕 z 的 180° 
+  不可见
+
+  LEFT 实测 0.9626 / 0.9807，RIGHT 0.9765 / 0.9814 —— 两侧都"抓得很好"。加上
+  LEFT 的 tcp→handle 距离（0.0097）比 RIGHT（0.0514）还小 5
+  倍、夹持力还更大，所有可见指标都说 LEFT 抓得更好。唯一暴露它的量是 handle 
+  转不动，而那被当成了"学不会下压"。
+
+  这也解释了历史：offset 是在 v19–v25 的 RIGHT-only 时代调对的；v26 引入
+  bilateral 时没让它跟着 side 走。v26 从 r0 起就带着这个 bug，之后所有 reward /
+  handle_creation / unlatch 墙 / residual actor / canonicalization
+  的调整，全部建立在一半 env 的抓握目标不可达之上。
+
+  边界
+
+  - IK 是纯运动学，不含碰撞、接触与动力学。"可达"不等于"策略能学会"，也不等于修
+  完就能压开门。
+  - 修复只针对 LEFT。RIGHT 的 offset 是对的（它就是参照侧），不要动。
+  - 这不改变上一轮那两条结论：Stage2 滞留租金（0.289 vs 0.197/step）仍在；单臂在
+  canonicalization 意义上仍不可镜像 —— 但共享网络 + side one-hot 的条件策略路线
+  现在是成立的，因为两侧都有可达解了。你原来的判断在修复后才真正站得住。
+
+  实现要点
+
+  改动不是把常量换个值那么简单：FrameTransformerCfg.FrameCfg.offset
+  是单值，_initialize_impl 里 .repeat(num_envs,1) 广播。需要 per-env
+  offset。好消息是 OrderedTargetFrameTransformer 已经有这个机制 ——
+  _a2_v26_5_geometry_target_offset_quaternions（:4905）就在做 per-env 的 target
+  offset 四元数，可以复用同一条缝。
+
+  已改的只有上一轮那两个 sign
+  常量和新测试，这次检查全是只读，没有再动代码，也没有 commit。
+
+  下一步我建议先做一个无策略的 scripted 探针（Wave A plan §7
+  已经预注册过这个升级路径）：把夹爪按修复后的目标姿态摆到 LEFT 的 handle
+  上，直接驱动，看 handle 能不能转到 0.6 rad。这能在不训练的前提下把"运动学可达
+  → 物理能压动"这一步也验证掉。要我写这个探针吗？
+
+✻ Worked for 20m 15s
+
+※ recap: 目标是让策略学会双侧下压 handle 解锁。已定位 LEFT 侧抓握目标姿态因 offset 未镜像而运动学不可达，并验证镜像值 60/60 可解。下一步是写无策略探针，验证修正姿态能否真正压动 handle。
+
+❯ ok，按你这个 "下一步"走，做验证                                               
+
+  Thought for 1m 4s (ctrl+o to expand)
+
+● 按这个走。先做纯运动学的下压轨迹 IK 检查 —— 它是 scripted 探针的前置条件，CPU
+  上几秒，如果轨迹本身不可行就不必上 Isaac Sim。先从 RIGHT 的成功数据里标定
+  handle 转轴。
+
+● Bash(cat > /tmp/axis_fit.py <<'PY'
+      import json, numpy as np, pinocchio as pin…)
+  ⎿  exit=0
+     RIGHT samples=10756  handle angle range [-0.0000, 0.7854]
+     LEFT  samples=4000  handle angle range [-0.0000, 0.0007]
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 22s (ctrl+o to expand)
+
+● Bash(cat > /tmp/axis2.py <<'PY'
+      import numpy as np…)
+  ⎿  fitted handle rotation axis (door frame): [-1.      -0.00168 -0.00145]
+       axis consistency: max deviation from mean = 0.875 deg
+       measured rotation vs handle joint angle: max|diff| = 0.00001 rad  (p
+     … +12 lines (ctrl+o to expand)
+
+  Thought for 1m 5s (ctrl+o to expand)
+
+● 转轴标定干净（纯 revolute，测得转角与 handle joint 角差 1e-5
+  rad），门几何确认镜像。现在做完整下压轨迹的 IK 扫描。
+
+● Bash(cat > /tmp/sweep_ik.py <<'PY'
+      import json, numpy as np, pinocchio as pin…)
+  ⎿  exit=0
+     POSITIVE CONTROL — RIGHT, shipped offset (this is what actually works
+     today)
+     … +24 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+  Thought for 25s (ctrl+o to expand)
+
+● Positive control 只有 1/17 —— 我的 sweep 有 bug（把单个 env
+  的门几何和全体平均的 base 位姿混用了）。重做，全部逐样本同源。
+
+● Bash(cat > /tmp/sweep2.py <<'PY'
+      import json, numpy as np, pinocchio as pin…)
+  ⎿  exit=0
+     POSITIVE CONTROL  RIGHT, handle>0.6, shipped offset, per-sample base p
+     ose
+     … +17 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 40s (ctrl+o to expand)
+
+● Positive control 不干净，我找到原因了 —— 我要求 gripper 精确落在 handle target
+  上，而实际策略只是接近（tcp→handle 0.05 m）。先验证 IK pipeline 本身。
+
+● Bash(cat > /tmp/pipecheck.py <<'PY'
+      import json, numpy as np, pinocchio as pin…)
+  ⎿  IK PIPELINE CHECK — target = the arm's own actual pose, seeded at the
+     actual angles
+       samples=40  converged(pose err<1e-6)=40
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 1m 7s (ctrl+o to expand)
+
+● 验证完成。先说清 pipeline 的可信度，再给结论。
+
+  Pipeline 自检（三层，全部通过）
+
+  ┌───────────────┬─────────────────────────────────────────────────────────┐
+  │     检查      │                          结果                           │
+  ├───────────────┼─────────────────────────────────────────────────────────┤
+  │ FK 模型 vs    │ gripper 姿态复现误差 median 0.000°，max                 │
+  │ 真实 trace    │ 0.068°（RIGHT/LEFT 各 3000 样本）                       │
+  ├───────────────┼─────────────────────────────────────────────────────────┤
+  │ IK 求解器     │ 以臂自身实际位姿为目标、实际角为初值 → 40/40            │
+  │               │ 收敛，max|解−实际| = 0.00e+00 rad                       │
+  ├───────────────┼─────────────────────────────────────────────────────────┤
+  │ handle        │ 纯 revolute：测得转角与 door_handle_joint_pos 差 1e-5   │
+  │ 转轴标定      │ rad；轴向一致性 0.875°；位置拟合残差 10.7 mm            │
+  ├───────────────┼─────────────────────────────────────────────────────────┤
+  │ 门几何镜像    │ LEFT rest = mirror(RIGHT rest)，差 [0.003, 0.007,       │
+  │               │ 0.036] m（z 差来自 handle height 随机化 0.85–0.95）     │
+  └───────────────┴─────────────────────────────────────────────────────────┘
+
+  转轴在 door frame 是 (-1,0,0)（RIGHT）/ (+1,0,0)（LEFT）——
+  沿门法向，符合镜像赝向量规则。
+
+  核心结果
+
+  对 25 个真实 LEFT 抓握状态，沿 handle 下压轨迹 θ = 0 → 0.8 rad 扫描，每点解
+  IK：
+
+  LEFT + (0.5, 0.5, 0.5, 0.5)   ← 出厂值，v26 一直在训练的东西
+    theta=0.0   reachable within soft limits:  0/25
+    theta=0.2   reachable within soft limits:  0/25
+    theta=0.4   reachable within soft limits:  0/25
+    theta=0.6   reachable within soft limits:  0/25
+    theta=0.8   reachable within soft limits:  0/25
+
+  LEFT + (0.5,-0.5, 0.5,-0.5)   ← 镜像值
+    theta=0.0   reachable: 25/25   arm_j4 p50 = -0.601
+    theta=0.2   reachable: 25/25   arm_j4 p50 = -0.600
+    theta=0.4   reachable: 25/25   arm_j4 p50 = -0.599
+    theta=0.6   reachable: 25/25   arm_j4 p50 = -0.598
+    theta=0.8   reachable: 25/25   arm_j4 p50 = -0.596
+
+  全程 25/25 可达，arm_j4 稳定在 −0.60，距 soft limit 余量 0.97 
+  rad，整条下压轨迹上几乎不动。 对照今天 LEFT 的实际值 +1.396（顶死
+  +1.5705，被外力顶到 +1.762，越过 URDF 上限 1.745）。
+
+  修复后的 arm_j4 = −0.60 与 RIGHT 实际的 −0.369 同号同量级 ——
+  这正是镜像该有的样子。
+
+  判据的边界，必须说清
+
+  这个检查要求 gripper 精确落在 handle target 位姿上。实际策略从不精确达到（压
+  handle 时 gripper→target 距离 median 0.0478 m）。所以在这个严格判据下 RIGHT + 
+  shipped 也只有 12/40 —— 这不是 RIGHT 有问题，是判据比实际需要的严。
+
+  关键是判据对两侧完全一致，唯一变量是 offset 四元数，于是对比有效：同一判据下
+  LEFT 是 0/25 vs 25/25。而且 0/25 不是"勉强超限"，是 URDF 限位内完全无解。
+
+  同时它解释了 LEFT 实际发生了什么：LEFT 达到的是一个姿态偏 178.64°
+  的近似（跟理论预测的 180.00° 吻合），代价就是把 arm_j4 顶出限位。
+
+  我做的和没做的
+
+  做了运动学验证 —— 它是 scripted
+  探针的前置条件，结论是决定性的：修复后整条下压轨迹可达且余量充足。
+
+  没做接触力学部分（夹爪能否真的夹住并施加足够力矩、臂/夹爪会不会撞到门板）。IK
+  不检查碰撞。这需要 Isaac Sim，而且需要先实现 per-env side-conditioned offset
+  —— 因为 FrameTransformerCfg.FrameCfg.offset 是单值、在 _initialize_impl 里
+  .repeat(num_envs,1) 广播的，没法按 side 分。
+
+  力学这一侧有间接证据：Wave A 已证 RIGHT 在 45 N 下能把 handle 压到 0.785
+  硬限位，而两侧的 door_handle_drive_max_force
+  分布相同（1.0–3.0），所以力矩容量不是新问题。
+
+  本轮全程只读，没有再改代码，没有 commit。
+
+  建议
+
+  与其单独写一个一次性探针，不如直接实现 per-env side-conditioned 
+  offset，然后用一次小规模 Isaac smoke 同时完成探针的目的 ——
+  修复本来就必须做，smoke 顺带验证碰撞和接触。复用 OrderedTargetFrameTransformer
+  已有的 _a2_v26_5_geometry_target_offset_quaternions（:4905）那条 per-env
+  缝即可，不用新建机制。
+
+  要我按这个走吗？还是你希望先看到独立的 scripted 探针结果再动生产代码？
+
+✻ Crunched for 10m 6s
+
+❯ ok，但是注意不要慢慢narrow到这些smoek test中。注意真正任务目标是"一个网络（ac 
+  tor，policy）去学习开左右镜像的门，这是标准的多任务/条件策略问题              
+    ，而且条件信息是齐的。 从stage0到stage5（stage5太难，先实现both LEFT/RIGHT  
+  handle都能学会解锁）"                                                         
+
+  Thought for 47s (ctrl+o to expand)
+
+● 收到，这个提醒是对的 —— 我在往验证里越钻越细。把坐标重新摆正：
+
+  offset 修复不是目标，它是"LEFT 侧存在可学的解"这个前提。
+  目标是一个网络双侧都学会解锁 handle（Stage3 durable depression），Stage5
+  之后再说。
+
+  先看那条 per-env 缝怎么复用。
+
+● Bash(sed -n '4882,4935p' gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿  class OrderedTargetFrameTransformer(FrameTransformer):
+         """FrameTransformer variant that preserves cfg.target_frames order
+      for duplicate target bodies."""
+     … +51 lines (ctrl+o to expand)
+
+● Bash(grep -n "_a2_v26_5_geometry_target_offset_quaternions()\|_target_frame_of
+      fset_quat" gr00t/rl/envs/door/door_open_a2_base.py | head; echo "=== where
+      offsets get…)
+  ⎿  5021:        target_offset_dtype = self._target_frame_offset_quat.dtyp
+     e
+     5209:            self._target_frame_offset_quat = torch.stack(target_f
+     … +59 lines (ctrl+o to expand)
+
+  Thought for 51s (ctrl+o to expand)
+
+● 机制清楚了：_target_frame_offset_quat 已经是 per-env 存储（(num_envs*n_frames,
+  4)），v26-5 就在同一处替换。只需按 side 填不同值。查构造时能否拿到 side。
+
+● Bash(grep -n "self.door_open_lr" gr00t/rl/envs/door/door_open_a2_base.py |
+      head -8; echo "=== construction context ==="; sed -n '28800,28832p'
+      gr00t/rl/envs/door/doo…)
+  ⎿  6700:        self.door_open_lr = torch.zeros(self.num_envs, dtype=torc
+     h.float32, device=self.device)
+     6712:            self.door_open_lr[env_id] = door_metadata["doorOpenLR
+     … +39 lines (ctrl+o to expand)
+
+  Thought for 48s (ctrl+o to expand)
+
+● Bash(sed -n '7460,7500p' gr00t/rl/envs/door/door_open_a2_base.py; echo "===
+      door metadata source ==="; grep -n "def get_door_metadata\|doorOpenLR"
+      gr00t/rl/envs/door…)
+  ⎿          self.door_handle_drive_damping = torch.zeros(
+                 self.num_envs, dtype=torch.float32, device=self.device
+             )
+     … +44 lines (ctrl+o to expand)
+
+  Thought for 1m 1s (ctrl+o to expand)
+
+● 实现清楚了：doorOpenLR 从 USD customData 读（+1.0=LEFT /
+  -1.0=RIGHT），_target_frame_offset_quat 已是 per-env
+  存储。先加镜像约定的单一来源。
+
+● Update(gr00t/rl/envs/door/a2_v26_4_canonicalization.py)
+  ⎿  Added 16 lines
+      19  A2_V26_4_MIRROR_POSE18_SIGNS = A2_V26_4_MIRROR_POSE9_SIGNS * 2
+      20  
+      21  
+      22 +def a2_v26_6_mirror_quat_wxyz(quat_wxyz):                      
+      23 +    """Mirror a rotation about the robot xz plane: R -> M R M w
+         +ith M = diag(1, -1, 1).                                        
+      24 +                                                               
+      25 +    M is improper, so the conjugated rotation negates the mirro
+         +red axis components                                            
+      26 +    while keeping the angle.  In wxyz terms that is (w, -x, y, 
+         +-z).                                                           
+      27 +                                                               
+      28 +    The handle/pregrasp ``FrameCfg`` offsets are authored for a
+         + RIGHT-hinged door.                                            
+      29 +    That offset is *not* mirror-invariant -- ``M R M`` differs 
+         +from ``R`` by 180                                              
+      30 +    degrees -- so a LEFT-hinged clone must use the mirrored off
+         +set instead of                                                 
+      31 +    reusing the authored one.  See                             
+      32 +    ``gr00t/rl/tests/test_a2_v26_6_handle_offset_mirror.py``.  
+      33 +    """                                                        
+      34 +    w, x, y, z = (float(v) for v in quat_wxyz)                 
+      35 +    return (w, -x, y, -z)                                      
+      36 +                                                               
+      37 +                                                               
+      38  def a2_v26_4_canonicalize_dof_values(values: torch.Tensor, righ
+          t_mask: torch.Tensor) -> torch.Tensor:
+      39      indices = torch.tensor(
+      40          [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 
+          16, 17, 19, 18],
+
+  Read 1 file (ctrl+o to expand)
+
+● Now wire it into the transformer. First the constructor and the per-env
+  application point:
+
+● Update(gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿  Added 72 lines
+      4888          *,
+      4889          a2_v26_5_geometry_target_enabled: bool = False,
+      4890          a2_v26_5_gauge_cache_enabled: bool = False,
+      4891 +        a2_v26_6_side_mirrored_handle_offset_enabled: bool = 
+           +False,                                                       
+      4892      ):
+      4893          if not isinstance(a2_v26_5_geometry_target_enabled, b
+            ool):
+      4894              raise TypeError("a2_v26_5_geometry_target_enabled
+             must be bool.")
+      4895          if not isinstance(a2_v26_5_gauge_cache_enabled, bool)
+            :
+      4896              raise TypeError("a2_v26_5_gauge_cache_enabled mus
+            t be bool.")
+      4897 +        if not isinstance(a2_v26_6_side_mirrored_handle_offse
+           +t_enabled, bool):                                            
+      4898 +            raise TypeError(                                 
+      4899 +                "a2_v26_6_side_mirrored_handle_offset_enabled
+           + must be bool."                                              
+      4900 +            )                                                
+      4901          if a2_v26_5_geometry_target_enabled and a2_v26_5_gaug
+            e_cache_enabled:
+      4902              raise RuntimeError(
+      4903                  "v26-5 geometry target and gauge cache modes 
+            are mutually exclusive."
+      4904              )
+      4905 +        if a2_v26_6_side_mirrored_handle_offset_enabled and (
+      4906 +            a2_v26_5_geometry_target_enabled or a2_v26_5_gaug
+           +e_cache_enabled                                              
+      4907 +        ):                                                   
+      4908 +            raise RuntimeError(                              
+      4909 +                "v26-6 side-mirrored handle offset rewrites t
+           +he same target offset "                                      
+      4910 +                "quaternions as the v26-5 geometry target / g
+           +auge cache modes; they "                                     
+      4911 +                "are mutually exclusive."                    
+      4912 +            )                                                
+      4913          self._a2_v26_5_geometry_target_enabled = a2_v26_5_geo
+            metry_target_enabled
+      4914          self._a2_v26_5_gauge_cache_enabled = a2_v26_5_gauge_c
+            ache_enabled
+      4915 +        self._a2_v26_6_side_mirrored_handle_offset_enabled = 
+           +(                                                            
+      4916 +            a2_v26_6_side_mirrored_handle_offset_enabled     
+      4917 +        )                                                    
+      4918          self._a2_v26_5_gauge_offset_delta_quat = None
+      4919          super().__init__(cfg)
+      4920  
+      4921 +    def _a2_v26_6_side_mirrored_offset_quaternions(self) -> t
+           +orch.Tensor:                                                 
+      4922 +        """Use the mirrored handle/pregrasp offset on LEFT-hi
+           +nged clones.                                                 
+      4923 +                                                             
+      4924 +        The authored ``FrameCfg`` offset is written for a RIG
+           +HT-hinged door and is                                        
+      4925 +        not mirror-invariant, so reusing it on a LEFT clone p
+           +uts the grasp target                                         
+      4926 +        180 degrees away from the correct pose.  Read ``doorO
+           +penLR`` straight from                                        
+      4927 +        USD (the same source ``_init_a2_door_metadata`` uses)
+           + so this does not                                            
+      4928 +        depend on env buffer initialisation order.           
+      4929 +        """                                                  
+      4930 +        if tuple(self._target_frame_names) != ("handle", "pre
+           +grasp"):                                                     
+      4931 +            raise RuntimeError(                              
+      4932 +                "v26-6 side-mirrored handle offset requires o
+           +rdered handle/pregrasp "                                     
+      4933 +                f"target frames; got {self._target_frame_name
+           +s!r}."                                                       
+      4934 +            )                                                
+      4935 +        stage = omni.usd.get_context().get_stage()           
+      4936 +        quat = self._target_frame_offset_quat.clone()        
+      4937 +        num_frames = len(self._target_frame_names)           
+      4938 +        if quat.shape[0] != self._num_envs * num_frames:     
+      4939 +            raise RuntimeError(                              
+      4940 +                "v26-6 side-mirrored handle offset requires t
+           +arget offset quaternions "                                   
+      4941 +                f"with shape ({self._num_envs * num_frames}, 
+           +4); got {tuple(quat.shape)}."                                
+      4942 +            )                                                
+      4943 +        mirrored_count = 0                                   
+      4944 +        for env_id in range(self._num_envs):                 
+      4945 +            door_prim = stage.GetPrimAtPath(f"/World/envs/env
+           +_{env_id}/door")                                             
+      4946 +            if not door_prim.IsValid():                      
+      4947 +                raise RuntimeError(                          
+      4948 +                    f"v26-6 side-mirrored handle offset requi
+           +res door prim in env_{env_id}."                              
+      4949 +                )                                            
+      4950 +            metadata = door_prim.GetPrim().GetMetadata("custo
+           +mData")                                                      
+      4951 +            if metadata is None or "doorOpenLR" not in metada
+           +ta:                                                          
+      4952 +                raise RuntimeError(                          
+      4953 +                    "v26-6 side-mirrored handle offset requir
+           +es doorOpenLR customData "                                   
+      4954 +                    f"in env_{env_id}."                      
+      4955 +                )                                            
+      4956 +            open_lr = float(metadata["doorOpenLR"])          
+      4957 +            if open_lr not in (1.0, -1.0):                   
+      4958 +                raise RuntimeError(                          
+      4959 +                    f"A2 door metadata requires doorOpenLR in
+           + {{-1, +1}}; got {open_lr!r} "                               
+      4960 +                    f"in env_{env_id}."                      
+      4961 +                )                                            
+      4962 +            if open_lr != 1.0:  # RIGHT keeps the authored of
+           +fset                                                         
+      4963 +                continue                                     
+      4964 +            for frame_index in range(num_frames):            
+      4965 +                row = env_id * num_frames + frame_index      
+      4966 +                quat[row] = quat.new_tensor(                 
+      4967 +                    a2_v26_6_mirror_quat_wxyz(quat[row].tolis
+           +t())                                                         
+      4968 +                )                                            
+      4969 +            mirrored_count += 1                              
+      4970 +        if mirrored_count == 0:                              
+      4971 +            raise RuntimeError(                              
+      4972 +                "v26-6 side-mirrored handle offset is enabled
+           + but no LEFT-hinged clone "                                  
+      4973 +                "was found; enable it only for bilateral or l
+           +eft door distributions."                                     
+      4974 +            )                                                
+      4975 +        return quat                                          
+      4976 +                                                             
+      4977      def _a2_v26_5_geometry_target_offset_quaternions(self) ->
+             torch.Tensor:
+      4978          """Build the per-clone handle target orientation from
+             authored handle geometry."""
+      4979          if tuple(self._target_frame_names) != ("handle", "pre
+            grasp"):
+
+● Bash(sed -n '5285,5320p' gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿                  self._a2_v26_5_geometry_target_enabled
+                     or self._a2_v26_5_gauge_cache_enabled
+                 ):
+     … +33 lines (ctrl+o to expand)
+
+● Update(gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿  Added 16 lines
+      5314                              f"device={gauge_offset_delta_quat
+            .device}."
+      5315                          )
+      5316                      self._a2_v26_5_gauge_offset_delta_quat = 
+            gauge_offset_delta_quat
+      5317 +            if self._a2_v26_6_side_mirrored_handle_offset_ena
+           +bled:                                                        
+      5318 +                mirrored_quat = self._a2_v26_6_side_mirrored_
+           +offset_quaternions()                                         
+      5319 +                if (                                         
+      5320 +                    mirrored_quat.shape != self._target_frame
+           +_offset_quat.shape                                           
+      5321 +                    or mirrored_quat.dtype != self._target_fr
+           +ame_offset_quat.dtype                                        
+      5322 +                    or mirrored_quat.device != self._target_f
+           +rame_offset_quat.device                                      
+      5323 +                ):                                           
+      5324 +                    raise RuntimeError(                      
+      5325 +                        "v26-6 side-mirrored handle offset do
+           +es not match FrameTransformer "                              
+      5326 +                        "env-major target offset storage."   
+      5327 +                    )                                        
+      5328 +                self._target_frame_offset_quat = mirrored_qua
+           +t                                                            
+      5329          elif self._a2_v26_5_gauge_cache_enabled:
+      5330              raise RuntimeError("v26-5 gauge cache requires ta
+            rget-frame offsets.")
+      5331 +        elif self._a2_v26_6_side_mirrored_handle_offset_enabl
+           +ed:                                                          
+      5332 +            raise RuntimeError(                              
+      5333 +                "v26-6 side-mirrored handle offset requires t
+           +arget-frame offsets."                                        
+      5334 +            )                                                
+      5335  
+      5336          self._data.target_frame_names = self._target_frame_na
+            mes
+      5337          self._data.source_pos_w = torch.zeros(self._num_envs,
+             3, device=self._device)
+
+● Now the config accessor and the construction site:
+
+● Bash(sed -n '8060,8080p' gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿      def _store_a2_v20_named_buffer(self, name: str, env_ids: torch.Ten
+     sor) -> torch.Tensor:
+             value = getattr(self, f"_{name}", None)
+     … +18 lines (ctrl+o to expand)
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Update(gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿  Added 8 lines
+      8133              raise RuntimeError("env.config.a2_v26_5_geometry_
+            target_enabled must be bool.")
+      8134          return enabled
+      8135  
+      8136 +    def _a2_v26_6_side_mirrored_handle_offset_enabled(self) -
+           +> bool:                                                      
+      8137 +        enabled = self.config.get("a2_v26_6_side_mirrored_han
+           +dle_offset_enabled", False)                                  
+      8138 +        if not isinstance(enabled, bool):                    
+      8139 +            raise RuntimeError(                              
+      8140 +                "env.config.a2_v26_6_side_mirrored_handle_off
+           +set_enabled must be bool."                                   
+      8141 +            )                                                
+      8142 +        return enabled                                       
+      8143 +                                                             
+      8144      def _a2_v26_5_stage3_delta_rebase_enabled(self) -> bool:
+      8145          enabled = self.config.get("a2_v26_5_stage3_delta_reba
+            se_enabled", False)
+      8146          if not isinstance(enabled, bool):
+
+● Update(gr00t/rl/envs/door/door_open_a2_base.py)
+  ⎿  Added 3 lines
+      28994                      piper_gripper_handle_frame_transformer_c
+             onfig,
+      28995                      a2_v26_5_geometry_target_enabled=self._a
+             2_v26_5_geometry_target_enabled(),
+      28996                      a2_v26_5_gauge_cache_enabled=a2_v26_5_ac
+             tor_gauge_enabled,
+      28997 +                    a2_v26_6_side_mirrored_handle_offset_ena
+            +bled=(                                                      
+      28998 +                        self._a2_v26_6_side_mirrored_handle_
+            +offset_enabled()                                            
+      28999 +                    ),                                      
+      29000                  )
+      29001              )
+      29002              target_contact_sub_prim = simulator.task_config.
+             get(
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '1,30p' gr00t/rl/config/env/door_open_a2_base.yaml; echo "===
+      canonicalization flag default ==="; grep -rn
+      "a2_v26_4_side_canonicalization_enabled" gr00t…)
+  ⎿  # @package _global_
+
+     defaults:
+     … +31 lines (ctrl+o to expand)
+
+● Update(gr00t/rl/config/env/door_open_a2_base.yaml)
+  ⎿  Added 7 lines
+      10      max_episode_length_s: 20
+      11      a2_v26_5_shared_residual_observation_enabled: false
+      12  
+      13 +    # The authored handle/pregrasp FrameCfg offset is written f
+         +or a RIGHT-hinged                                              
+      14 +    # door and is not mirror-invariant, so a LEFT clone that re
+         +uses it gets a                                                 
+      15 +    # grasp target 180 degrees off.  Enabling this gives LEFT c
+         +lones the mirrored                                             
+      16 +    # offset.  Default stays false so existing checkpoints keep
+         + their observation                                             
+      17 +    # semantics; bilateral training overlays turn it on.       
+      18 +    a2_v26_6_side_mirrored_handle_offset_enabled: false        
+      19 +                                                               
+      20      # v24 native hinge friction is additive and deliberately di
+          sabled in the
+      21      # shared/default path.  Coefficients stay unset until a v24
+           probe overlay
+      22      # supplies a measured profile; the disabled path performs n
+          o writes.
+
+● Now the test — again deriving the mirror from geometry, not restating the
+  constant:
+
+● Write(gr00t/rl/tests/test_a2_v26_6_handle_offset_mirror.py)
+  ⎿  Wrote 83 lines to gr00t/rl/tests/test_a2_v26_6_handle_offset_mirror.py
+       1 """Side-conditioned handle/pregrasp target offset for bilateral 
+       2 
+       3 The authored ``FrameCfg`` offset ``(0.5, 0.5, 0.5, 0.5)`` was tu
+       4 RIGHT-hinged door of the v19-v25 single-side lineage.  It is not
+          mirror
+         p target rotated
+       6 180 degrees away from the correct pose.  These tests derive the 
+       7 rotation algebra rather than restating the shipped numbers.
+       8 """
+      10 import numpy as np
+     … +97 lines (ctrl+o to expand)
+
+● Bash(PYTHONPATH=. /home/baoquanc/anaconda3/envs/isaaclab/bin/python -m pytest
+      gr00t/rl/tests/test_a2_v26_6_handle_offset_mirror.py
+      gr00t/rl/tests/test_a2_v26_4_mirro…)
+  ⎿  Error: Exit code 1
+
+     <unknown>:466
+       <unknown>:466: DeprecationWarning: invalid escape sequence '\*'
+
+     -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+     =========================== short test summary info 
+     ============================
+     FAILED gr00t/rl/tests/test_a2_v26_6_handle_offset_mirror.py::test_mirroring
+     _composes_with_the_grasp_target_pose
+     1 failed, 11 passed, 2 warnings in 1.76s
+     === static parse + hydra compose of the new flag ===
+     … +21 lines (ctrl+o to expand)
+
+  Thought for 45s (ctrl+o to expand)
+
+● 两个问题，先看测试失败的实际数值。
+
+● Bash(PYTHONPATH=. /home/baoquanc/anaconda3/envs/isaaclab/bin/python -m pytest
+      gr00t/rl/tests/test_a2_v26_6_handle_offset_mirror.py::test_mirroring_compo
+      ses_with_the_…)
+  ⎿              assert np.allclose(grasp_mirrored @ offset_mirrored, corre
+     ct, atol=1e-9)
+     >           assert angle_between(shipped, correct) == pytest.approx(18
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 41s (ctrl+o to expand)
+
+● 数值精度问题（acos 在 ±1 附近导数发散，179.99999879 vs 180）。放宽到 1e-3 度
+  —— 仍然极严，且不掩盖真实偏差。
+
+● Update(gr00t/rl/tests/test_a2_v26_6_handle_offset_mirror.py)
+  ⎿  Added 6 lines
+      32      return np.degrees(np.arccos(np.clip((np.trace(a.T @ b) - 1)
+           / 2, -1, 1)))
+      33  
+      34  
+      35 +# arccos loses precision near +/-1, so a half-turn is only reso
+         +lvable to about                                                
+      36 +# 1e-3 degrees.  That is still four orders of magnitude tighter
+         + than the defect                                               
+      37 +# this suite guards against.                                   
+      38 +HALF_TURN_TOL_DEG = 1e-3                                       
+      39 +                                                               
+      40 +                                                               
+      41  def random_unit_quats(n, seed):
+      42      rng = np.random.default_rng(seed)
+      43      q = rng.normal(size=(n, 4))
+
+● Bash(python3 - <<'PY'
+      import re, pathlib…)
+  ⎿  3 references now
+     <unknown>:466
+       <unknown>:466: DeprecationWarning: invalid escape sequence '\*'
+     … +4 lines (ctrl+o to expand)
+
+● 12 passed. Now verify the flag actually composes on the real training path
+  (the earlier failure was a base_eval mismatch, unrelated to this change):
+
+● Bash(PYTHONPATH=. /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -c "
+      from hydra import compose, initialize_config_dir…)
+  ⎿  train path, default        : False
+     train path, override=true  : True
+       gripper effort still 45/45: [45.0, 45.0]
+       near_closed still 0.1     : 0.1
+
+● Bash(PYTHONPATH=. nohup timeout 1500
+      /home/baoquanc/anaconda3/envs/isaaclab/bin/python -m pytest $(grep -rln
+      "door_open_a2_base\|a2_v26_4_canonicalization" gr00t/rl/…)
+  ⎿  exit=1
+
+     -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.htm
+     … +12 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 41s (ctrl+o to expand)
+
+● 4 个既有失败不变，484 passed（+5 为新测试）。实现完成。
+
+● Bash(git --no-pager diff --stat; echo "=== untracked new files ==="; git
+      status --short | grep '^??')
+  ⎿   gr00t/rl/config/env/door_open_a2_base.yaml         |   7 ++
+      gr00t/rl/envs/door/a2_v26_4_canonicalization.py    |  30 ++++++
+      gr00t/rl/envs/door/door_open_a2_base.py            | 120 ++++++++++++
+     … +14 lines (ctrl+o to expand)
+
+● 修复已实现。回到主线。
+
+  Changed
+
+  文件: a2_v26_4_canonicalization.py
+  改动: a2_v26_6_mirror_quat_wxyz() — 镜像约定的单一来源
+  ────────────────────────────────────────
+  文件: door_open_a2_base.py
+  改动: OrderedTargetFrameTransformer 加
+  a2_v26_6_side_mirrored_handle_offset_enabled；LEFT clone 从 USD
+  customData.doorOpenLR 识别后改用镜像 offset；与 v26-5 geometry/gauge 模式
+  fail-fast 互斥
+  ────────────────────────────────────────
+  文件: config/env/door_open_a2_base.yaml
+  改动: 新 flag，默认 false（旧 checkpoint 观测语义不变）
+  ────────────────────────────────────────
+  文件: tests/test_a2_v26_6_handle_offset_mirror.py
+  改动: 新增 5 个测试
+
+  测试从旋转代数推导镜像（对 512 个随机四元数验证 (w,-x,y,-z) == M R 
+  M），而不是复述常量；并把 mirror(R_g @ R_o) = mirror(R_g) @ mirror(R_o)
+  这条恒等式钉住 —— 出厂代码算的是 mirror(R_g) @ R_o，两者恒差 180°。
+
+  12 passed（两套 mirror 测试）。回归 484 passed，4
+  个失败与改动前逐条一致（test_a2_v14_env_telemetry
+  缺诊断字段、test_a2_v16_env_semantics mass/height grid），是既有问题。Hydra
+  在真实训练路径上验证：默认 False，++...=true 生效，且不扰动 45/45 与
+  near_closed=0.1。
+
+  回到目标：双侧 Stage0→Stage3 解锁
+
+  按已确认的证据，通往这个目标的阻塞是四个，现在状态是：
+
+  ┌───────────────────────────────────┬─────────────────────────────────────┐
+  │               阻塞                │                状态                 │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ 夹爪执行能力 10 N                 │ ✅ 已解（Wave A 证实因果，Wave B    │
+  │                                   │ 训练已用 45 N）                     │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ LEFT 抓握目标偏 178.6°，arm_j4    │ ✅ 刚解（IK 验证：0/25 → 25/25      │
+  │ 饱和                              │ 全轨迹可达）                        │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ Stage2 滞留租金 0.289 vs Stage3   │ ⬜ 未动                             │
+  │ 0.197/step                        │                                     │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ K5 gate squeeze_min=0.5（v19 为   │ ⬜ 未动                             │
+  │ 2.0）                             │                                     │
+  └───────────────────────────────────┴─────────────────────────────────────┘
+
+  我建议先只带前两个修复重训，不同时动后两个。 理由：v19
+  是在完全相同的租金结构和 unlatch_hold
+  条件下做成全链的，所以后两条不是必要条件；而 offset 修复第一次让 LEFT
+  侧存在可学的解 —— 这是 v26 从 r0
+  至今从未有过的状态，值得单独读一次。同时改会让归因重新混乱，那正是 v26
+  前六轮的失败模式。
+
+  具体路径，三步：
+
+  第 0 步 · 接线确认（约 30 分钟，非 smoke 钻牛角尖）
+  开 flag 跑一次 LEFT exact64，只读一个量：dump 的 target_quat_source_handle
+  相对旧 artifact 是否恰好转了 178.6°，以及 arm_j4 是否脱离饱和。这不看 policy
+  表现（policy 是在旧 offset 下训的，行为必然变差），只确认修复在 runtime
+  真的生效。投 8 小时训练前值得花这 30 分钟。
+
+  第 1 步 · 起点选择
+  Wave B 那 24 次评估现在有了对准目标的用途：选重训起点。LEFT
+  的历史技能本来就是空的（handle 全程 0），RIGHT 的 45 N 技能有效且 offset
+  未变，所以从 Wave B checkpoint 续训能保住 RIGHT。40 分钟，GPU 全空闲。只用
+  B0（near_closed=0.1），B1 那条轴先不引入。
+
+  第 2 步 · 主训练
+  双 seed，开 offset 修复，从选定 checkpoint 续训。预算我建议 1500–2000 
+  batches（≈8.5–11 小时/格，双格并行）—— Wave B 的 750
+  是为"微调已有技能"设的，而 LEFT 现在要从零学一个新技能；v19 那次是 2500
+  batches。
+
+  判据（需要在启动前冻结）：双侧 durable depression，沿用 Wave B
+  已注册的定义（连续 ≥25 control steps 保持 handle ≥ 0.6 rad）。阈值要重新预注册
+  —— Wave B 的 32/64 每侧 是为"已能压的 RIGHT"设的，LEFT
+  从零起步，我建议门槛设为 LEFT ≥ 8/64 且 RIGHT ≥ 32/64，即先确认 LEFT
+  从结构性的 0 变成非零，而不是一步要求对称。Stage4/goal 只报告不路由。
+
+  两个需要你定的点：训练预算（1500 还是 2000+），以及第 1 步要不要跑 ——
+  如果你倾向直接从 CONT_STEP2000 起训（放弃 Wave B 那 18 小时），可以省掉这 40
+  分钟，但 RIGHT 侧要重新学 45 N
+  下的下压。我的建议是跑，因为它同时把已花的训练变成读数。
+
+✻ Sautéed for 23m 32s
+
+※ recap: Goal: get one policy to learn handle unlatch on both LEFT and RIGHT doors. I found and fixed the LEFT grasp-target offset bug (178.6° off, now IK-reachable) and it's tested. Next: you pick the training budget and whether to run the 40-minute Wave B eval to choose a starting checkpoint.
+
+❯ 我同意先执行前两个阻塞修复   但是为什么从指定checkpoint续训？                 
+  我的偏向是从0开始，原生训练一个天然接触左右镜像的policy，你保持独立思考，给出 
+  你的意见，同意则拟定plan，不同意则需要说服我                                  
+
+  Thought for 1m 36s (ctrl+o to expand)
+
+● 我同意你，而且我要收回自己上一轮的建议 —— 它建立在一个我当时还没看清的事实上。
+
+  为什么我改变立场
+
+  我原来说"续训能保住 RIGHT 技能"，隐含假设是 LEFT 
+  侧是白纸。刚才的数据说明它不是白纸，而是被强化过的错误技能：
+
+  - LEFT 的 arm_j4 稳定在 +1.396（顶死上限，被外力顶到
+  +1.762）；修复后的正确解是 −0.60。这是 2.0 rad 的反向偏置。
+  - 这个错误构型一直在拿奖励：handle_opening_alignment
+  取了绝对值、approach_alignment 只看 z 分量，两者对那 178.6° 结构性失明，LEFT
+  因此拿到 0.9626/0.9807；grasp_target_distance 也在付钱（tcp→handle 0.0097，比
+  RIGHT 的 0.0514 还"好"）。
+  - 这套行为被强化了 7000+ batches。
+
+  所以续训不是"从零学
+  LEFT"，是先要忘掉一个被高强度强化的错误策略，再学一个反方向 2.0 rad 
+  的新策略。那是负迁移，比从零更难。
+
+  而且没有干净的续训起点可选：v26 全系每一个 checkpoint 都是在这个 bug 
+  之上训的，从 r0 到 Wave B 无一例外。
+
+  你的科学论点也独立成立：这是 v26 历史上第一次双侧都存在可学的解，from scratch
+  才能干净回答"一个条件策略能不能同时学会两侧"。续训会把答案和"能不能纠正旧偏置"
+  缠在一起。
+
+  「保住 RIGHT」这个好处本身也是打折的 —— actor 是共享 LSTM+MLP，LEFT
+  侧那么大的策略迁移必然扰动 RIGHT。
+
+  结论：from scratch。我同意。
+
+  Plan 提案
+
+  目标：一个网络，Stage0→Stage3，双侧都学会下压解锁 handle。Stage4/5
+  只报告不路由。
+
+  基线：base_v26_4_C0_CANONICAL_OFF 的环境契约，checkpoint=null /
+  checkpoint_load_mode=full，bilateral、natural start、4096 env。
+
+  两个已确认修复，全格启用：
+  GRIPPER_CAPABILITY_BUNDLE                          # effort 45/45, Kp/Kd
+  1300/32,
+                                                     # M39 on, squeeze max 30,
+  over-force 55
+  a2_v26_6_side_mirrored_handle_offset_enabled=true  # LEFT 用镜像 offset
+
+  矩阵 2×2，GPU4–7：唯一自变量是 a2_stage2_squeeze_force_min。
+
+  ┌────────┬─────┬──────┬─────────────────┐
+  │  cell  │ GPU │ seed │   squeeze_min   │
+  ├────────┼─────┼──────┼─────────────────┤
+  │ S05_S0 │   4 │    0 │ 0.5（v26 现状） │
+  ├────────┼─────┼──────┼─────────────────┤
+  │ S05_S1 │   5 │    1 │             0.5 │
+  ├────────┼─────┼──────┼─────────────────┤
+  │ S20_S0 │   6 │    0 │   2.0（v19 值） │
+  ├────────┼─────┼──────┼─────────────────┤
+  │ S20_S1 │   7 │    1 │             2.0 │
+  └────────┴─────┴──────┴─────────────────┘
+
+  这一条我原本建议"不要同时改"，但那说的是在同一格里改两个变量。2×2
+  正交矩阵恰恰是避免归因混乱的正确形式：墙钟不变（四卡并行），却能同时把 v19/v26
+  之间最后一条未测的 gate 语义差异钉死。它和本轮目标直接相关 —— K5 gate 在 0.5
+  下几乎不筛选（Wave A：Stage3 admission
+  63/64），策略可以用最小力混过去，正是"抓不稳→压不住"的同构。
+
+  预算：6000 batches，save_frequency=250。依据是 v26 自己的曲线：V26A_LR_S1 from
+  scratch 4000 batches 后 natural holdout 仍只有 RIGHT 1/128，再经 policy-only
+  3000 才达到双侧 Stage3。offset 修复 + 45 N 应该更快，但从零学 Stage0–2
+  的量级不会变。按实测 20.3 s/update ≈ 34 小时/格，四格并行。
+
+  中期可证伪读数（密集 checkpoint 的用途，不是新实验）：
+
+  step  500 : LEFT 的 arm_j4 脱离饱和   <- 修复是否真的生效；不成立立即停
+  step 2000 : LEFT K5 / Stage2 完成 > 0
+  step 4000 : LEFT Stage3 admission > 0，且出现非零 handle depression
+  step 6000 : endpoint
+
+  预注册判据（endpoint step6000，双侧 exact64
+  natural，enable_staged_reset=false）。durable 沿用 Wave B 已注册定义：连续 ≥25
+  control steps 保持 handle ≥ 0.6 rad。
+
+  LEFT >= 8/64  且 RIGHT >= 32/64   -> BILATERAL_UNLATCH_SUPPORTED
+  LEFT >= 8/64  且 RIGHT <  32/64   -> LEFT_RECOVERED_RIGHT_REGRESSED
+  LEFT == 0     且 RIGHT >= 32/64   -> LEFT_STILL_STRUCTURALLY_ZERO
+  其余                              -> BILATERAL_UNLATCH_NOT_LEARNED
+
+  LEFT 门槛设 8 而非对称的 32：LEFT 从结构性的 0
+  起步，本轮要确认的是它是否离开零，不是一步要求对称。Stage4/goal/hinge
+  全部报告但不参与路由。
+
+  两个需要你定的点
+
+  1. 6000 batches / 34 小时是否接受？ 可以先跑到 3000
+  看中期读数再决定续不续（checkpoint 每 250 存，续训无损）。
+  2. Wave B 那 24 次评估还跑吗？ from scratch
+  后它不再用于选起点，但仍是有用的对照基线 —— 它会把「45 N 已恢复、但 offset
+  仍错时 LEFT 依然是 0」这件事钉进实验记录，作为 offset 修复的前测。40
+  分钟，可在训练启动前跑完，不阻塞主线。我建议跑。
+
+  确认后我落盘预注册 plan 文档 + 训练/评估脚本，再启动。启动前会先做那次 30
+  分钟接线确认（LEFT 目标姿态确实转了 178.6°、arm_j4 脱离饱和）——投 136 GPU
+  小时之前，这一步不能省。
+✻ Cooked for 2m 42s
+
+❯ ok，落盘plan，1 可接受，可以每1000查看一次效果，效果好也可以提前终止。 2 wave 
+  B 这个可以做   3 plus要求，你负责plan制定和结果验收就行。code修改/训练/eval   
+  我会交给codex团队去做，你参照codex team workflow安排plan。 ps：训练可以安排多 
+  GPU并行（当前机器上8卡全部可用），或者做些你需要的额外test/对照实验，或者当前 
+  2x2可以每个人物跑在多卡上加速，你自己安排，最大化利用GPU资源                  
+
+  Thought for 1m 46s, read 1 file, listed 1 directory (ctrl+o to expand)
+
+❯ plan落地后给我一个开工prompt，我就让codex session组建团队开工了               
+
+  Thought for 17s (ctrl+o to expand)
+
+● Bash(ls .codex/agents/; echo "=== roles ==="; for f in .codex/agents/*.toml;
+      do echo "--- $f"; head -12 "$f"; done 2>/dev/null | head -80)
+  ⎿  code-reviewer.toml
+     context-researcher.toml
+     deep-researcher.toml
+     … +86 lines (ctrl+o to expand)
+
+  Thought for 1m 15s (ctrl+o to expand)
+
+● 设计定稿。落盘 plan。
+
+● Write(scriptsFORhuman/v26_7/a2_piper_base_v26_7_bilateral_native_unlatch_plan_
+       20260902.md)
+  ⎿  Wrote 251 lines to scriptsFORhuman/v26_7/a2_piper_base_v26_7_bilateral
+     _native_unlatch_plan_20260902.md
+      1 # A2+PiPER `base_v26-7` — 原生双侧 unlatch：几何修复后的 from-scr
+        atch 条件策略
+      2 
+      4 **上游：** `v26-6` Wave A（`GRIPPER_CAPACITY_CONFIRMED`）与本阶段
+        的 handle target offset 几何审计
+      5 **性质：** from-scratch 训练，双因素矩阵，预注册判据；本文冻结后
+        不改阈值、不改矩阵、不事后重解释
+      7 ---
+      8 
+      9 ## 1. 目标
+     … +307 lines (ctrl+o to expand)
+
+● Bash(python3 -c "
+      import pathlib…)
+  ⎿  lines: 251  bytes: 7834
+     sections: ['## 1. 目标', '## 2. 立论：为什么此前六轮不可能成功', '## 3
+     . 矩阵与自变量', '## 4. 前置门（未通过则不得启动六格）', '## 5. 评估与
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 38s (ctrl+o to expand)
+
+● 行号已被我的改动挪位。重新定位并修正引用 —— plan 里的行号必须能直接跳转。
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(python3 - <<'PY'
+      import pathlib…)
+  ⎿  rewritten
+     === re-verify all citations ===
+       27517  -> OK  (def _get_obs_privileged_door_info)
+     … +5 lines (ctrl+o to expand)
+
+● Plan 已落盘，全部行号引用逐条校验通过。
+
+  scriptsFORhuman/v26_7/a2_piper_base_v26_7_bilateral_native_unlatch_plan_202609
+  02.md
+
+  GPU 分配按你的要求排满：GPU2–7 六格训练（squeeze_min {0.5, 2.0} × seed
+  {0,1,2}），GPU0–1 跑 Wave B 基线和六个 milestone 的中期评估，与训练并行。三
+  seed 而非双 seed —— v26 已经两次因 seed
+  不稳定拿到不可判读的结论，这次不能再踩。
+
+  下面是开工 prompt，可直接整段粘给 codex session。
+
+  ---
+  任务：执行 v26-7 预注册实验的实现与运行。Owner 已授权全部 GPU0–7 与约 35
+  小时长跑。
+
+  契约（唯一权威，冻结，不得改写阈值/矩阵/判据）：
+    scriptsFORhuman/v26_7/a2_piper_base_v26_7_bilateral_native_unlatch_plan_2026
+  0902.md
+
+  先读：AGENTS.md -> .ai/ROLE.md -> .ai/PROJECT.md -> .ai/WORKFLOW.md ->
+  .codex/AGENTS.md -> .codex/TEAM.md
+  memory 路由：memory/a2-piper/MEMORY.md ->
+  memory/a2-piper/base-v26-scratch-bilateral-teacher/{description,TODO,DONE}.md
+  上游事实：scriptsFORhuman/v26_6/ 下 Wave A/B 两份 plan 与
+  claude_v26_session_recovery_handoff_20260901.md
+
+  == 已完成，不要重做 ==
+  1. gr00t/rl/envs/door/a2_v26_4_canonicalization.py
+     新增 A2_V26_4_MIRROR_POSE9_SIGNS / POSE18_SIGNS /
+  a2_v26_6_mirror_quat_wxyz()
+  2. gr00t/rl/envs/door/door_open_a2_base.py
+     - 三处 pose 镜像 sign 统一到上述常量（修正 gripper_handle_transform 的
+  tangent 反号缺陷）
+     - OrderedTargetFrameTransformer 新增
+  a2_v26_6_side_mirrored_handle_offset_enabled，
+       LEFT clone（USD customData.doorOpenLR == +1.0）改用镜像 offset，与 v26-5
+       geometry/gauge 模式 fail-fast 互斥
+  3. gr00t/rl/config/env/door_open_a2_base.yaml
+     新增 a2_v26_6_side_mirrored_handle_offset_enabled，默认 false
+  4. 测试 gr00t/rl/tests/test_a2_v26_4_mirror_signs.py 与
+  test_a2_v26_6_handle_offset_mirror.py
+     12 passed。回归 484 passed / 4 failed，该 4 个失败已用 git stash
+  验证为改动前既有
+     （test_a2_v14_env_telemetry 缺 door_open_lr/door_handle_side 诊断字段、
+       test_a2_v16_env_semantics mass/height grid），不在本任务范围。
+  以上均未 commit。
+
+  == 你的交付物 ==
+  A. 六格训练 selector + 训练/评估/reducer 脚本，落在 scriptsFORhuman/v26_7/
+     矩阵、超参、GPU 绑定严格按契约 §3、§7。
+     注意 v26_6 的 eval 脚本硬编码 GPU 限定 [4567]，本阶段评估在
+  GPU0–1，需新写而非改它。
+  B. 前置门 G1（契约 §4.1）：64-env ≤5 batch 短跑，dump
+  target_quat_source_handle，
+     证明 LEFT 目标姿态相对旧值旋转 180°±0.5°、RIGHT bit-identical。
+     不通过即 V26_7_WIRING_NOT_CONFIRMED，停止并交回，不得启动训练。
+  C. 前置门 G2（契约 §4.2）：跑 v26-6 Wave B 的 24 次预注册评估 +
+  v26_6_waveB_reduce.py。
+     四份训练 receipt 已 finalize 为 PASS，reducer 的 resolved-config contract
+  已静态预检通过。
+     若 Wave B endpoint 的 LEFT durable depression > 0 ->
+  V26_7_PREMISE_CHALLENGED，暂停交回。
+  D. G1/G2 均通过后启动六格训练，每格独立 tmux + run receipt。
+  E. 六个 milestone（step 1000/2000/3000/4000/5000/6000）的双侧 exact64 natural
+  评估与
+     逐次 reducer，含契约 §6.3 的提前失败终止判定。
+  F. 每个 milestone 结束后向我汇报读数，由我做验收与路由判定。
+
+  == 委托建议（按 .codex/TEAM.md 的 delegation gate，此任务命中多条）==
+    isaaclab_worker  : A 的脚本与 selector 实现（写权限限定
+  scriptsFORhuman/v26_7/ 与
+                       gr00t/rl/config/ablation/wbmanip/base_v26_7_*.yaml）
+    runtime_qa       : B 与 C 两个前置门，出具最小充分的 runtime 证据
+    isaaclab_reviewer: 仅审一个具体语义关切——per-env side-conditioned offset
+  是否正确作用于
+                       每个 clone 且未污染 RIGHT；不做泛化审查
+  Main 保留 scope、acceptance、WRITE_SET、GPU/输出根等排他资源、Git
+  与最终整合权。
+  GPU0–7 与两个输出根属排他资源，请按 TEAM.md 判断是否需要激活 .ai/TEAM_STATE.md
+  与 lease。
+
+  == 不可违反 ==
+  - 契约冻结：不改阈值、不改矩阵、不加预算、不中途改 config、不事后重解释路由
+  - 任一格非零退出即停该格并保留失败证据，不重跑
+  - fail fast：不加 fallback / broad catch / 默认值 / 无依据 clipping
+  来让训练跑下去
+  - checkpoint 每 250 存，进程级中断可从最近 checkpoint
+  续，但不得改变已冻结的超参
+  - Git commit/push 需要本任务内的明确授权，默认不 push
+  - 不更新 Teacher/Student handoff 与 G7 binding
+
+  == 报告 ==
+  每个 milestone 及最终关闭时报告：changed
+  paths、证据等级（static/runtime/experiment）、
+  未运行事项、仍活跃的 writer 与排他资源、是否产生 durable memory candidate。
+  科学结论由我验收，你不做 typed route 的最终裁定。
+
+  ---
+  两点提示：G1 是 204 GPU
+  小时之前唯一的接线保险，它不通过就说明修复没真正生效，必须停；G2 若出现 LEFT
+  durable > 0，那是在推翻本 plan 的立论，也要停下来交回，不要顺着跑。
+
+  我这边不再动代码，等 milestone 读数回来做验收和路由判定。
+
+✻ Sautéed for 9m 38s
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   Opus 5 (1M context)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   claude-opus-5[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   432.9k/1m tokens (43%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ 
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 1.5k tokens (0.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 431.4k tokens (43.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 567.1k (56.7%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     Memory files · /memory
+     ├ CLAUDE.md: 0 tokens
+     ├ AGENTS.md: 0 tokens
+     ├ .ai/ROLE.md: 0 tokens
+     ├ .ai/PROJECT.md: 0 tokens
+     ├ .ai/WORKFLOW.md: 0 tokens
+     └ ~/.claude/projects/-home-baoquanc-workspace-GR00T-VisualSim2Real/memory/MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Built-in
+     ├ dataviz: ~380 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~110 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     ├ review: ~30 tokens
+     └ init: ~20 tokens
+
+※ recap: Goal: get one policy to learn handle unlatch on both mirrored door sides. I found LEFT's grasp target was 180° off, fixed it, and wrote the v26-7 preregistered plan plus a codex kickoff prompt. Next: you hand that prompt to codex to start.

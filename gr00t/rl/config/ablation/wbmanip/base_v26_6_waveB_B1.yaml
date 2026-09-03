@@ -1,0 +1,14 @@
+# @package _global_
+
+# v26-6 Wave B, B1 cell: B0 plus the pull-v2-W registered wall removal.  The only
+# key that differs from B0 is `a2_stage3_unlatch_near_closed_hinge_threshold`.
+defaults:
+  - /ablation/wbmanip/base_v26_6_waveB_B0
+  - _self_
+
+v26_schema: a2_piper_base_v26_6_waveB_wall_removal_v1
+v26_cell: V26_6_WAVEB_B1_S0
+
+env:
+  config:
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.25

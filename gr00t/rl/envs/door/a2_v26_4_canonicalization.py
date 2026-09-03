@@ -4,6 +4,36 @@ from __future__ import annotations
 
 import torch
 
+# Mirror signs for a (position3, tan_norm6) pose expressed in a source frame,
+# reflected about the robot xz plane (M = diag(1, -1, 1)).
+#
+# ``quat_to_tan_norm`` returns [R @ e_x, R @ e_z].  The conjugated rotation
+# M R M leaves both reference axes fixed (M e_x = e_x, M e_z = e_z), so the
+# mirrored columns are M @ (R @ e_x) and M @ (R @ e_z).  Position mirrors the
+# same way.  Every one of the three vectors therefore flips its y component
+# only.  Any pose term that reuses this layout must use these signs; see
+# ``gr00t/rl/tests/test_a2_v26_4_mirror_signs.py``.
+A2_V26_4_MIRROR_POSE9_SIGNS = (1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0)
+
+# Handle pose followed by pregrasp pose, as built by gripper_handle_transform.
+A2_V26_4_MIRROR_POSE18_SIGNS = A2_V26_4_MIRROR_POSE9_SIGNS * 2
+
+
+def a2_v26_6_mirror_quat_wxyz(quat_wxyz):
+    """Mirror a rotation about the robot xz plane: R -> M R M with M = diag(1, -1, 1).
+
+    M is improper, so the conjugated rotation negates the mirrored axis components
+    while keeping the angle.  In wxyz terms that is (w, -x, y, -z).
+
+    The handle/pregrasp ``FrameCfg`` offsets are authored for a RIGHT-hinged door.
+    That offset is *not* mirror-invariant -- ``M R M`` differs from ``R`` by 180
+    degrees -- so a LEFT-hinged clone must use the mirrored offset instead of
+    reusing the authored one.  See
+    ``gr00t/rl/tests/test_a2_v26_6_handle_offset_mirror.py``.
+    """
+    w, x, y, z = (float(v) for v in quat_wxyz)
+    return (w, -x, y, -z)
+
 
 def a2_v26_4_canonicalize_dof_values(values: torch.Tensor, right_mask: torch.Tensor) -> torch.Tensor:
     indices = torch.tensor(

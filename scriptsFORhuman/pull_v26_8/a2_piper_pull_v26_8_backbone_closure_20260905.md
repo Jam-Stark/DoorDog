@@ -1,5 +1,17 @@
 # Pull v26-8 backbone closure — 2026-09-05
 
+当前状态：Owner已采纳planner方案1，已在新root `pull_v26_8_backbone_20260905_natural1_r2` 通过G1，Wave1已准入，按授权直接启动。以下原closure保留为`_r2`历史证据，不再表示当前授权停止。
+
+## 协议差异（方案1，待新G1实证）
+
+主线natural eval为`enable_staged_reset=false`；pull为`true + staged_reset_ratios=[1,0,0,0,0,0]`，两项v6 bank开关false。等价必须由resolved runtime config和每env首个出生trace row的`stage_buf=episode_index=a2_v26_episode_start_stage=0`共同证明，缺一为`PULL_V26_8_INVALID`。不改pull初始化路径。
+
+观测：pull plain与所引用主线v26-7 source均为133/138，主线plan135/140没有对应的额外2维term。旧pull override actor追加的`z_a2_pull_v6_release_mode`为2维，所以旧actor为135/140；该项不能冒充主线与pull plain的差异。
+
+Wave2裁决：删除W轴。仅在unlatch支持且出现`PULL_OPENING_EMERGED`时按原预算continuation报告E7；若unlatch支持但无opening，Wave2=`NOT_RUN`，交回Stage3→4收入几何trace。
+
+## 原r2 closure（历史）
+
 **结论：P0/G0通过；G1为`NOT_ADMITTED`，按计划硬停止。Wave 1、Wave 2、opening与E7全部`NOT_RUN`。双侧能力目标仍为`UNRESOLVED`，没有新policy成功或失败结论。**
 
 本轮完成了函数级镜像移植、plain backbone配置和评估/receipt脚本。真实G1评估暴露了此前未列入计划的pull初始化约束：`door_open_a2_pull.py:2424`的`_register_a2_pull_staged_reset_buffers`拒绝`enable_staged_reset=false`。这是当前full-pull初始化合同与计划natural eval合同的冲突；发生在第一份old/bilateral评估的环境构造阶段，早于eval actor加载和策略读数。不能把它解读成镜像公式失败。

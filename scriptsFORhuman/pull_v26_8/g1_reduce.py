@@ -13,6 +13,7 @@ from gr00t.rl.envs.door.a2_pull_telemetry import (
     A2_PULL_HARD_GATE_EVENT_PREDECESSORS,
     validate_a2_pull_episode,
 )
+from natural_protocol import NaturalProtocolViolation, split_natural_trace_rows, validate_natural_runtime
 
 
 SCHEMA = "a2_piper_pull_v26_8_g1_wiring_v1"
@@ -32,9 +33,12 @@ def load(path: Path, *, distribution: str, enabled: bool) -> dict[int, dict]:
     runtime = yaml.load((path.parent / ".hydra/runtime_config.yaml").read_text(encoding="utf-8"), Loader=yaml.UnsafeLoader)
     env = runtime["env"]["config"]
     require(env["a2_pull_threshold_mode"] == "hard_gate", f"{path}: pull event predecessor contract")
-    require(env["a2_door_open_lr_distribution"] == distribution, f"{path}: distribution")
-    require(env["a2_v26_6_side_mirrored_handle_offset_enabled"] is enabled, f"{path}: mirror switch")
-    require(env["enable_staged_reset"] is False and runtime["num_envs"] == EPISODES, f"{path}: natural exact64")
+    validate_natural_runtime(runtime, side=distribution, mirror_enabled=enabled)
+    split_natural_trace_rows(
+        json.loads((path.parent / "stage2_5_step_trace.json").read_text(encoding="utf-8")),
+        str(path.parent / "stage2_5_step_trace.json"),
+        side=distribution,
+    )
     metrics = json.loads(path.read_text(encoding="utf-8"))
     terminal = metrics.get("episode_terminal_diagnostics")
     require(isinstance(terminal, list) and len(terminal) == EPISODES, f"{path}: exact64 terminal diagnostics required")
@@ -89,10 +93,17 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     require(not args.output.exists(), f"refusing to overwrite G1 output: {args.output}")
-    old = load(args.old, distribution="bilateral", enabled=False)
-    fixed = load(args.fixed, distribution="bilateral", enabled=True)
-    right_old = load(args.right_old, distribution="right", enabled=False)
-    right_fixed = load(args.right_fixed, distribution="right", enabled=True)
+    try:
+        old = load(args.old, distribution="bilateral", enabled=False)
+        fixed = load(args.fixed, distribution="bilateral", enabled=True)
+        right_old = load(args.right_old, distribution="right", enabled=False)
+        right_fixed = load(args.right_fixed, distribution="right", enabled=True)
+    except NaturalProtocolViolation as exc:
+        payload = {"schema": SCHEMA, "status": "EXPERIMENT_INVALID", "route": "PULL_V26_8_INVALID", "failures": [f"NATURAL_PROTOCOL:{exc}"]}
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+        print(json.dumps({"status": "PULL_V26_8_INVALID", "output": str(args.output), "failures": payload["failures"]}, ensure_ascii=False))
+        return 2
     bilateral_angles, bilateral_right_identical = matched(old, fixed, expected_side=None, label="bilateral")
     right_angles, right_noop = matched(right_old, right_fixed, expected_side="right", label="all-right")
     failures: list[str] = []

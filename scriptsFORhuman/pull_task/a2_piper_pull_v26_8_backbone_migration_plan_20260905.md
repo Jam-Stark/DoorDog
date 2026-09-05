@@ -1,10 +1,10 @@
 # `pull_v26_8_backbone`：pull 分支迁入主线 v26-7/v26-8 bilateral backbone 的预注册计划
 
 日期：2026-09-05 HKT
-状态：`PLAN_FROZEN_NOT_IMPLEMENTED`
+状态：`G1_PASS_WAVE1_ADMITTED`；2026-09-05 Owner采纳planner方案1，G1通过后自主启动Wave1。
 执行机：pull 训练机（4×RTX3090 24 GB），worktree `DoorDog-A2_Piper_pull_v0`，branch `codex/a2-piper-pull-v0-20260803`
 参考机：推门主线 `DoorDog-A2_Piper`，branch `codex/v26-5-bilateral-stage5`，commit `aa8a05f` 及其后的 v26-8 r3a 未提交改动
-run_id：`pull_v26_8_backbone_20260905`
+run_id：`pull_v26_8_backbone_20260905_natural1_r2`（新G1/Wave1 root；沿用原`_r2` G0的1024-env PASS证据）
 canonical 副本：本文件位于 pull 分支 `scriptsFORhuman/pull_task/`；推门主线 `scriptsFORhuman/pull_v26_8_alignment/` 下有一份同内容副本供对照，冲突时以 pull 分支副本为准。
 
 本文件是本阶段的 authority。Codex 开工 prompt 与本文件冲突时以本文件为准；本文件与 pull 分支当前 source /
@@ -58,11 +58,11 @@ pull 的 finger profile 为 `V20_G4_45N_KP1300_KD32`，`dof_effort_limit_list[-2
 下压所需的握力（v26-3 F ladder 因此得出错误结论），v26-7 使用 `30/55`。本阶段对齐为 `30/55`，`squeeze_force_min=0.5`
 （主线 Q05 值，v26-7/v26-8 全部成功格所用）。
 
-### 2.4 Observation 与 actor 结构：pull 多了 2 维，且机制进入了 actor
+### 2.4 Observation 与 actor 结构：pull plain 为 133/138，旧 override actor 追加 2 维
 
-主线 actor_obs 为 135-D、critic 140-D（`gr00t/rl/config/obs/wbmanip/door_open_a2_base.yaml`）。pull 的 LR 训练配置
+按当前 source，pull 的 plain actor/critic 维度为 **133/138**；主线 `cb15678` 的同名obs列表也逐项求和为133/138，原文主线135/140计数错误。pull 的 LR 训练配置
 （`door_open_a2_pull_lr_grasp_terminal_lstm.yaml`）在 actor 与 critic 末尾各追加 `z_a2_pull_v6_release_mode`（2 维），
-即 137/142-D；pull base obs yaml 还登记了 `a2_pull_h10_gate_info`(8)、`z_a2_pull_v6_hinge_velocity`(1)、
+即实际135/140-D；pull base obs yaml 还登记了 `a2_pull_h10_gate_info`(8)、`z_a2_pull_v6_hinge_velocity`(1)、
 `z_a2_pull_e3_latched`(1)、`z_a2_pull_v61_post_release_control`(1) 的 dims/scales。pull 的 actor 类链为
 `PullV6NativeBilateralActor ← PullV6PostReleaseObsOverrideActor ← PullV6ReleaseModeActor`，带
 `release_mode_gripper_mean_override` 与 `post_release_obs_override` 模块——v6"送门过身"的 release 机制已进入 actor 结构。
@@ -70,7 +70,7 @@ pull 的 finger profile 为 `V20_G4_45N_KP1300_KD32`，`dof_effort_limit_list[-2
 `privileged_door_info`（含 `door_open_io` 第 8 槽）两侧完全一致，pull 的 IO 信息从 episode 开始就在主线 schema 内，
 不需要额外观测。
 
-对齐决定：**新 backbone 使用主线 135/140-D 观测与 plain LSTM actor（`door_open_a2_base_lstm` 的 actor `_target_`），
+对齐决定：**新 backbone 使用 pull 的 plain 维度 **133/138** 及与主线一致的观测列表与 plain LSTM actor（`door_open_a2_base_lstm` 的 actor `_target_`），
 不带任何 override 模块，不追加 release-mode 观测。** pull 的 release/send-past-body 机制只能存在于 reward、stage 判据
 与 telemetry；若 Stage≥4 将来确需 release-mode 信号进入 actor，须另开 plan 并同步主线 schema，不在本阶段决定。
 
@@ -94,7 +94,7 @@ pull 机为 4×RTX3090 24 GB。历史 4096-env 运行在 v6 staged-reset buffer 
 ### 2.7 本阶段不动的轴
 
 pull Stage3+ 的 reward 数值与 17 项 send-past-body 项、E 事件定义、`a2_pull_direction` 合同、finger/hook/friction
-profile、`add_walls=false`、door weight range、主线 K curriculum（`K_REGRESSED`，不移植）、主线 W 轴（留给 §7）。
+profile、`add_walls=false`、door weight range、主线 K curriculum（`K_REGRESSED`，不移植）、主线 W 轴（pull现值已0.25，本阶段删除该轴）。
 
 例外：若 P0 trace 证明 Stage3 的 `pull_door_handle` / `pull_door_hinge` income 被 `tensile_proof`/E2 mask 完全归零
 （即 gate 改为 `grasp_completion` 后 Stage3 没有任何 handle 收入），则 Stage2→3 gate 保持 `tensile_proof`，E2 同时
@@ -112,8 +112,8 @@ profile、`add_walls=false`、door weight range、主线 K curriculum（`K_REGRE
 2. **能力窗口**：`a2_stage2_squeeze_force_min 0.5`、`a2_stage2_squeeze_force_max 30`、`a2_stage2_over_force_threshold 55`；
    其余 finger/M39 保持 pull 现值。
 3. **观测与 actor**：新建 `gr00t/rl/config/exp/wbmanip/door_open_a2_pull_v26_backbone_lstm.yaml`：defaults 取
-   `door_open_a2_pull_lstm`，obs 覆盖为主线 135/140-D 列表（不含任何 `z_a2_pull_*`、`a2_pull_h10_gate_info`），actor
-   `_target_` 与主线 `door_open_a2_base_lstm` 相同，`freeze_running_mean_std=false`。
+   `door_open_a2_pull_lstm`，obs 覆盖为 pull 的 plain 维度 **133/138** 列表（不含任何 `z_a2_pull_*`、`a2_pull_h10_gate_info`），actor
+   `_target_` 与主线 `door_open_a2_base_lstm` 相同，`running_mean_std=true`；plain ctor没有freeze参数，保留native RMS更新语义。
 4. **训练范式**：新建 `gr00t/rl/config/ablation/wbmanip/pull_v26_8_backbone_common.yaml` 与三个 seed cell yaml：
    `checkpoint: null`、`checkpoint_load_mode: full`、`auto_load_latest: false`；`a2_door_open_lr_distribution: bilateral`
    与 `a2_door_open_lr_permutation_seed=<seed>`（pull 已有 selector，不移植主线 `a2_v26_door_open_lr`）；
@@ -137,8 +137,8 @@ profile、`add_walls=false`、door weight range、主线 K curriculum（`K_REGRE
 
 ### 4.1 G0 — 静态与 memory smoke
 
-- source lock：`git rev-parse HEAD`、`git status --short`、全部本阶段改动文件 SHA-256。
-- 单元测试 PASS：镜像四元数（pull 常量 → 180.00°）、all-RIGHT no-op、per-env `doorOpenLR` fail-fast、obs 维度 135/140、
+- source lock：`git rev-parse HEAD`、`git status --short`、全部本阶段改动文件的原始副本（按Owner禁用digest的要求以revision及字节副本绑定）。
+- 单元测试 PASS：镜像四元数（pull 常量 → 180.00°）、all-RIGHT no-op、per-env `doorOpenLR` fail-fast、pull plain obs 维度 133/138、
   三格 resolved config 满足 §3 合同（能力窗口、gate、bilateral、seed 与 cell 名一致、无 `z_a2_pull_*` 进 actor）。
 - memory smoke：`num_envs=2048`、bilateral、staged reset on、5 batch；exit 0 且峰值显存留有 ≥2 GB 余量则冻结 2048；
   否则用 1024 重跑一次 smoke；两者都不过则停止交回。smoke 不进入统计。
@@ -151,11 +151,18 @@ profile、`add_walls=false`、door weight range、主线 K curriculum（`K_REGRE
 LEFT 目标相对 authored 常量偏 `180.00° ± 0.05°`，RIGHT 与 authored bit-identical，integrity 0，进程 exit 0。
 再以 `enabled=true` 跑一次 all-RIGHT 64-env eval 构造（zero LEFT clone），必须是合法 no-op。
 
+方案1的三条硬核对，缺一不得启动矩阵：
+1. G1与正式reducer逐项读取eval的resolved runtime config：`enable_staged_reset=true`、`staged_reset_ratios`精确为`[1,0,0,0,0,0]`、`a2_pull_v6_stage4_bank_enabled=false`、`a2_pull_v61_late_state_bank_enabled=false`、first-episode-only及exact64。任一不满足为`PULL_V26_8_INVALID`。
+2. 每个env首个落盘row是reset后、policy action前的实际采样，要求`stage_buf==0`、`episode_index==0`、`a2_v26_episode_start_stage==0`（pull等价字段）；不得从配置伪造。
+3. reducer合同与closure的“协议差异”写明主线natural为`enable_staged_reset=false`，pull为`true + [1,0,0,0,0,0]`；等价依据是配置与trace两层核对，不是假设。pull初始化路径不改。
+
+G0沿用原`_r2`的1024-env×5 PASS及8514MiB余量；仅eval协议与出生trace变化，不重跑G0。
+
 ### 4.3 G2 — 旧 winner 体征（可选）
 
 若 `logs_rl/a2_piper_pull_lr_grasp/pull_lr_grasp_h450_xseg_resume_seed2/model_step_000250.pt` 在 pull 机存在，
 用它的**原配置**做双侧 exact32 natural 评估，只复现 K5 体征；缺文件记 `REMOTE_ARTIFACT_UNAVAILABLE`，不阻塞。
-该 checkpoint 是 137-D override actor，**不能**作为新 backbone 的 warm-start 源。
+该 checkpoint 是实际135-D override actor，**不能**作为新 backbone 的 warm-start 源。
 
 ---
 
@@ -171,7 +178,7 @@ GPU0 专用于 G1/G2 与 milestone 评估。每格独立 tmux + run receipt，`C
 
 预算：`num_envs=2048` 时 `num_total_batches=4000`，milestones `500/1000/1500/2000/2500/3000/3500/4000`；
 `num_envs=1024` 时 `6000`，milestones 每 750。两种情形样本量都接近主线 v26-7 Q05 endpoint（3000×4096×64）。
-每个 milestone 三格 LEFT/RIGHT exact64 natural（`enable_staged_reset=false`，first-episode-only），GPU0 串行。
+每个 milestone 三格 LEFT/RIGHT exact64 natural（`enable_staged_reset=true` + `staged_reset_ratios=[1,0,0,0,0,0]`、所有v6 bank开关false，first-episode-only），GPU0 串行。
 **不早停**：三格跑满预算，unlatch endpoint 按 §6.1 记录首次达标 milestone；后续 milestone 继续报告 opening 与 full chain。
 
 ---
@@ -222,10 +229,7 @@ policy 读数产生前的 infra 失败（资产/代理/harness） -> 自主修�
 
 前提：Wave 1 得到 `PULL_BILATERAL_UNLATCH_SUPPORTED@step`。
 
-- **若未出现 `PULL_OPENING_EMERGED`**：W 轴。从 unlatch endpoint 的两个支持 seed 各自 checkpoint `policy_only` +
-  `policy_only_load_actor_rms=true` 接续，唯一差异 `a2_stage3_unlatch_near_closed_hinge_threshold 0.1 → 0.25`
-  （pull-v2-W 先例、主线 v26-8 W 轴），配对 C（阈值不变）：4 格，GPU0 评估，3000 batches（2048 env）；
-  判 `W_OPENING_SUPPORTED`（W 两侧 E4 ≥ C+8 且两侧 D ≥ C−8）/ `W_NOT_DIFFERENT` / `W_REGRESSED`。
+- **若未出现 `PULL_OPENING_EMERGED`**：Wave 2记`NOT_RUN`。W基线已为0.25，删除0.1→0.25轴及其配对C；closure交回Stage3→4收入几何trace，列出hinge 0.25前后各reward项的实际收入与mask，不现场发明新轴。
 - **若已出现 `PULL_OPENING_EMERGED`**：不加轴，从最终 milestone 的两个最佳 seed 各自 continuation 3000 batches，
   目标是 E5–E7 报告；判 `PULL_FULL_CHAIN_BILATERAL`（≥2 seed 两侧 E7 ≥ 32/64）或 `PULL_FULL_CHAIN_PARTIAL`。
 
@@ -263,6 +267,6 @@ Wave 2 的 warm-start 合同、评估协议与 reducer 与 Wave 1 相同；不�
 1. 三格训练 receipt（含 source lock、resolved config、num_envs 决定、proxy env、资产 preflight）。
 2. 每个 milestone 的 `reducer.json`（schema `a2_piper_pull_v26_8_backbone_reducer_v1`）与 endpoint reducer。
 3. `scriptsFORhuman/pull_v26_8/a2_piper_pull_v26_8_backbone_closure_<date>.md`：逐格逐侧主线字段 + E 事件表、
-   typed outcomes、Wave 2 判定、未运行事项、证据等级、changed paths。
+   typed outcomes、Wave 2 判定、未运行事项、证据等级、changed paths；必须包括“协议差异”与观测逐term维数。当前source没有主线额外2维term；旧pull的2维为`z_a2_pull_v6_release_mode`，不得混作主线差异。
 4. memory：`memory/a2-piper/pull-lr-full-stage/` 的 description/TODO/DONE 按里程碑更新；新建 entry 只在 Owner 批准后。
 5. Git：三个预授权 commit 点本地提交；不 push。

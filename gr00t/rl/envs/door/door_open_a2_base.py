@@ -15277,6 +15277,7 @@ class DoorPregrasp(
 
     def init_a2_eval_stage2_step_trace(
         self,
+        episode_indices: torch.Tensor,
         diagnostic_enabled: bool = False,
         diagnostic_reward_terms=(),
     ):
@@ -15336,6 +15337,23 @@ class DoorPregrasp(
         self._a2_eval_reward_scaled_by_name = None
         self._a2_stage2_step_trace_records = []
         self._a2_stage2_step_trace_step_index = 0
+        # The evaluator calls this immediately after reset_all, before policy
+        # actions. Preserve the observed reset stage for natural-start evidence.
+        self._a2_v26_episode_start_stage = self.stage_buf.detach().clone()
+        self._a2_eval_episode_start_trace_records = [
+            {
+                "record_type": "episode_start",
+                "step_index": -1,
+                "env_id": env_id,
+                "stage_buf": int(self.stage_buf[env_id].item()),
+                "episode_index": int(episode_indices[env_id].item()),
+                "first_episode_active": bool(episode_indices[env_id].item() == 0),
+                "a2_v26_episode_start_stage": int(self._a2_v26_episode_start_stage[env_id].item()),
+                "door_open_lr": float(self.door_open_lr[env_id].item()),
+                "door_handle_side": "left" if self.door_open_lr[env_id].item() > 0 else "right",
+            }
+            for env_id in range(self.num_envs)
+        ]
 
     def set_a2_eval_diagnostic_actions(
         self,
@@ -23897,6 +23915,9 @@ class DoorPregrasp(
                         first_episode_active_mask[env_id].item()
                     ),
                     "episode_index": int(episode_indices[env_id].item()),
+                    "a2_v26_episode_start_stage": int(
+                        self._a2_v26_episode_start_stage[env_id].item()
+                    ),
                     "physical_base_command": physical_base_command[env_id]
                     .detach()
                     .cpu()

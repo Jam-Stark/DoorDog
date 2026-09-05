@@ -14,6 +14,7 @@ import yaml
 from omegaconf import OmegaConf
 
 from gr00t.rl.utils.config_utils import register_rl_resolvers
+from natural_protocol import validate_natural_config
 
 register_rl_resolvers()
 
@@ -114,9 +115,10 @@ def validate_config(cfg: dict, cell: str, *, eval_side=None, smoke=False) -> dic
         require(eval_side in ("left", "right", "bilateral"), "evaluation side")
         require(cfg["checkpoint"] is not None and cfg["checkpoint_load_mode"] in ("full", "policy_only"), "evaluation checkpoint")
         require(env["a2_door_open_lr_distribution"] == eval_side, "evaluation side selector")
-        require(env["enable_staged_reset"] is False, "natural evaluation reset")
+        validate_natural_config(env)
         require(cfg["num_envs"] == 64, "exact64 evaluation")
         evaluation = cfg["algo"]["config"]["eval"]
+        require(evaluation["num_eval_episodes"] == 64, "exact64 episode target")
         require(evaluation["eval_num_envs_episodes"] is True, "first episode per environment")
         require(evaluation["a2_diagnostic_trace_enabled"] is True, "control-step trace")
         if not smoke:
@@ -131,6 +133,7 @@ def source_lock(output: Path) -> dict:
     files = [ROOT / path for path in (
         "gr00t/rl/envs/door/door_open_a2_base.py",
         "gr00t/rl/envs/door/door_open_a2_pull.py",
+        "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py",
         "gr00t/rl/envs/door/a2_pull_telemetry.py",
         "gr00t/rl/envs/door/a2_pull_v0_guard.py",
         "gr00t/rl/envs/door/a2_v26_6_handle_offset_mirror.py",

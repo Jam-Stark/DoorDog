@@ -15,6 +15,7 @@ from gr00t.rl.envs.door.a2_pull_telemetry import (
     validate_a2_pull_episode,
 )
 from verify import read_config, validate_config
+from natural_protocol import NaturalProtocolViolation, split_natural_trace_rows, validate_natural_runtime
 
 
 SCHEMA = "a2_piper_pull_v26_8_backbone_reducer_v1"
@@ -124,17 +125,10 @@ def terminal_rows(metrics: dict, records: list, side: str, path: Path) -> dict[i
 
 
 def trace_rows(trace: object, side: str, path: Path) -> dict[int, list[dict]]:
-    require(isinstance(trace, list), f"{path}: trace must be a list")
-    by_env: dict[int, list[dict]] = collections.defaultdict(list)
-    for index, row in enumerate(trace):
-        require(isinstance(row, dict), f"{path}: trace row {index} must be object")
-        require(row.get("first_episode_active") is True and row.get("episode_index") == 0, f"{path}: trace row {index} is not first natural episode")
-        env_id = row.get("env_id")
-        require(isinstance(env_id, int) and 0 <= env_id < EPISODES, f"{path}: trace env id")
-        require(row.get("door_handle_side") == side and float(row.get("door_open_lr")) == SIDE_SIGNS[side], f"{path}: trace side contamination env{env_id}")
-        by_env[env_id].append(row)
-    require(set(by_env).issubset(set(range(EPISODES))), f"{path}: trace env coverage")
+    by_env = split_natural_trace_rows(trace, str(path), side=side)
     for env_id, rows in by_env.items():
+        for row in rows:
+            require(row.get("door_handle_side") == side and float(row.get("door_open_lr")) == SIDE_SIGNS[side], f"{path}: trace side contamination env{env_id}")
         previous = None
         for row in sorted(rows, key=lambda item: item["step_index"]):
             step = row.get("step_index")
@@ -153,7 +147,7 @@ def side_summary(path: Path, side: str, seed: int) -> dict:
     require(runtime.get("checkpoint_load_mode") == "full" and runtime.get("auto_load_latest") is False, f"{path}: evaluation checkpoint contract")
     require(runtime.get("num_envs") == EPISODES and runtime.get("seed") == seed, f"{path}: evaluation seed/exact64 contract")
     require(evaluation.get("num_eval_episodes") == EPISODES and evaluation.get("eval_num_envs_episodes") is True, f"{path}: first-episode evaluation contract")
-    require(env.get("a2_door_open_lr_distribution") == side and env.get("enable_staged_reset") is False, f"{path}: natural-side/staged-reset contract")
+    validate_natural_runtime(runtime, side=side, mirror_enabled=True)
     terminals = terminal_rows(metrics, records, side, path)
     by_env = trace_rows(trace, side, path)
     predecessors = event_predecessors(runtime)
@@ -262,13 +256,20 @@ def main() -> int:
         contracts[cell] = validate_config(cfg, cell)
         budgets.add(int(cfg["algo"]["trl"]["num_total_batches"]))
     require(len(budgets) == 1, f"cell training budgets diverged: {sorted(budgets)}")
-    results = {
-        cell: {
-            side: side_summary(args.eval_root / f"{cell}_STEP{args.step}" / side, side, int(cell[-1]))
-            for side in SIDES
+    try:
+        results = {
+            cell: {
+                side: side_summary(args.eval_root / f"{cell}_STEP{args.step}" / side, side, int(cell[-1]))
+                for side in SIDES
+            }
+            for cell in cells
         }
-        for cell in cells
-    }
+    except NaturalProtocolViolation as exc:
+        payload = {"schema": SCHEMA, "status": "EXPERIMENT_INVALID", "step": args.step, "route": "PULL_V26_8_INVALID", "failures": [f"NATURAL_PROTOCOL:{exc}"]}
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+        print(json.dumps({"schema": SCHEMA, "step": args.step, "route": "PULL_V26_8_INVALID", "output": str(args.output)}, ensure_ascii=False))
+        return 2
     integrity_failures = [
         f"INTEGRITY_VIOLATIONS:{cell}/{side}"
         for cell in cells
@@ -286,6 +287,13 @@ def main() -> int:
         route = final_route(per_seed)
     else:
         route = "PULL_V26_8_MILESTONE_REPORTED"
+    labels = opening_labels(results)
+    if len(bilateral_supported) < 2:
+        wave2_decision = "NOT_RUN_UNLATCH_NOT_SUPPORTED"
+    elif "PULL_OPENING_EMERGED" not in labels:
+        wave2_decision = "NOT_RUN_GEOMETRY_DIAGNOSIS_REQUIRED"
+    else:
+        wave2_decision = "OPENING_TO_E7_CONTINUATION"
     payload = {
         "schema": SCHEMA,
         "status": "EXPERIMENT_INVALID" if integrity_failures else "EXPERIMENT_COMPLETE",
@@ -296,8 +304,9 @@ def main() -> int:
         "cells": results,
         "per_seed_outcomes": per_seed,
         "bilateral_supported_cells": bilateral_supported,
-        "opening_full_labels": opening_labels(results),
-        "wave2_eligible": len(bilateral_supported) >= 2,
+        "opening_full_labels": labels,
+        "wave2_decision": wave2_decision,
+        "wave2_eligible": wave2_decision == "OPENING_TO_E7_CONTINUATION",
         "route": route,
         "failures": integrity_failures,
     }

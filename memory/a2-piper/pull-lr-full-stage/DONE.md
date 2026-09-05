@@ -1,5 +1,11 @@
 # DONE
 
+- 2026-09-05 19:00 HKT — 新root `_natural1_r2` G1完整PASS：LEFT179.99458–179.99902°，RIGHT/all-RIGHT bit-identical，integrity0；四份resolved natural config与256个首episode Stage0出生row通过硬门。三seed Wave1已准入，将按原预算直接启动。
+
+- 2026-09-05 18:58 HKT — 方案1首轮eval在reset采样前因整数ratios被构造成Long tensor失败，无eval策略/几何读数。按既有harness预授权在新root `_natural1_r2` 重启，参数改为数值相同的浮点表示；不改core。配对bilateral old/fixed均已child/wrapper0并落盘64个Stage0出生row，完整G1仍待all-RIGHT与reducer。
+
+- 2026-09-05 18:47 HKT — Owner方案1修订落地：保留pull初始化，natural ratios精确Stage0-only，reducer新增resolved+出生trace硬门；W轴删除，新root启动G1，结果待定。
+
 - 2026-09-05 17:07 HKT — G1短训练64×5通过，old/bilateral natural eval因pull staged-buffer注册强制enable_staged_reset=true而构造失败；wrapper正确拒绝Isaac异常exit0。按plan硬停止并closure，Wave1/2、opening/E7均NOT_RUN；等待natural协议裁决，不作mirror/policy否定。
 
 - 2026-09-05 16:55 HKT — G0 memory smoke：2048-env首轮rollout LSTM buffer OOM；1024-env×5完成327680 transitions并exit0，峰值16062MiB/余量8514MiB。冻结Wave1三格1024×6000、每750 milestone；checkpoint实际plain133/138、20 actor tensors且RMS更新。G1与policy结论仍未通过。

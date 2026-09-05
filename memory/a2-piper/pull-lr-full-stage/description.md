@@ -1,8 +1,8 @@
 ---
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
-status: blocked_on_g1_source_contract
-last_updated: 2026-09-05 17:07 HKT
+status: wave1_admitted
+last_updated: 2026-09-05 19:00 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -108,9 +108,16 @@ related_entries:
 
 # Pull LR full stage
 
-本 entry 记录当前 handle 左右镜像 randomization 下的 full pull goal qualification。2026-09-05新backbone迁移在G1因source/eval reset合同冲突停止，尚无bilateral full-goal或hardware通过结论。
+本 entry 记录当前 handle 左右镜像 randomization 下的 full pull goal qualification。2026-09-05 Owner已裁决natural方案1，新root重跑G1；通过后自主启动Wave1。尚无bilateral full-goal或hardware通过结论。
 
 ## Current evidence
+
+### 2026-09-05 18:47 HKT：Owner采纳方案1并授权继续
+
+- Planner机器tracked文档仍为fe33241、无本次修订；本地按Owner转述裁决更新plan/contract。保留pull初始化要求enable_staged_reset=true，以精确ratios `[1,0,0,0,0,0]`、两项v6 banks false定义natural。必须通过resolved runtime及每env首个出生row stage_buf/episode_index/a2_v26_episode_start_stage均0的双层硬门；缺一PULL_V26_8_INVALID。
+- 出生trace从真实reset_all后、policy动作前采样；reducer排除出生行后计算原有duration与force等指标，不改reset/reward/event/loader。G1使用新root `pull_v26_8_backbone_20260905_natural1_r2`，GPU0 tmux `pull_v26_8_g1_natural1_r2`；G0沿用原r2 1024-env PASS，矩阵仍三seed×6000、每750 milestone。G1现已RUNTIME_PASS：LEFT179.99458–179.99902°、RIGHT与all-RIGHT bit-identical、integrity0，四份resolved/出生trace全通过；Wave1准入。
+- W轴已删除；仅opening-emerged后按原预算continuation报告E7；unlatch支持但无opening则Wave2 NOT_RUN并交回Stage3→4收入几何。主线v26-7实际plain同为133/138，没有可确认的额外2维term；旧pull override的2维为z_a2_pull_v6_release_mode。
+
 
 ### 2026-09-05 P0/G0：新 backbone 迁移（优先于下方历史后继建议）
 

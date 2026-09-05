@@ -5336,6 +5336,7 @@ class TRLPPOTrainer(PPOTrainer):
                     "env.init_a2_eval_stage2_step_trace()."
                 )
             init_stage2_trace(
+                episode_indices=eval_episode_indices,
                 diagnostic_enabled=a2_eval_diagnostics["diagnostic_enabled"],
                 diagnostic_reward_terms=a2_eval_diagnostics["reward_terms"],
             )
@@ -6517,6 +6518,7 @@ class TRLPPOTrainer(PPOTrainer):
             safe_stage2_trace = strict_safe_stage2_trace or _make_json_safe(
                 get_stage2_trace(), path="stage2_step_trace"
             )
+            safe_stage2_trace = self.env._a2_eval_episode_start_trace_records + safe_stage2_trace
             stage2_trace_path = os.path.join(
                 eval_output_dir, "stage2_5_step_trace.json"
             )

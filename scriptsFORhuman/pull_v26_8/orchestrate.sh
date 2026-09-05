@@ -9,8 +9,8 @@ isaac_py=/home/baoquanc/anaconda3/envs/isaaclab/bin/python
 supervisor="$repo/.ai/scripts/run_supervisor.py"
 attempt=${PULL_V26_8_ATTEMPT:-1}
 case "$attempt" in
-  1) attempt_suffix= ;;
-  2|3) attempt_suffix="_r$attempt" ;;
+  1) attempt_suffix=_natural1 ;;
+  2|3) attempt_suffix="_natural1_r$attempt" ;;
   *) echo "At most two pre-policy relaunches are authorized" >&2; exit 2 ;;
 esac
 run_id="pull_v26_8_backbone_20260905$attempt_suffix"
@@ -18,7 +18,9 @@ train_root="$repo/logs_rl/a2_piper_pull_v26_8_backbone/$run_id/train"
 eval_root="$repo/logs_eval/a2_piper_pull_v26_8_backbone/$run_id"
 runtime_logs="$repo/scriptsFORhuman/pull_v26_8/runtime_logs/$run_id"
 source_lock=${PULL_V26_8_SOURCE_LOCK:-"$runtime_logs/source_lock.json"}
-g0_root="$eval_root/G0_memory_smoke"
+# Owner's protocol amendment changes eval only. Reuse the already-passed
+# 1024-env G0 evidence from r2; the new G1/Wave1 root stays fresh.
+g0_root="$repo/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G0_memory_smoke"
 g1_root="$eval_root/G1_wiring"
 cells=(P_S0 P_S1 P_S2)
 
@@ -115,7 +117,12 @@ require_g0() {
   local envs=$1 root="$g0_root/num_envs$1"
   [[ -f "$root/g0_smoke.json" ]] || { echo "G0 $envs artifact missing" >&2; return 1; }
   require_gate "$root/g0_smoke.json" G0_PASS
-  require_receipt_pass "pull_v26_8_g0_${envs}"
+  "$py" - "$repo/.ai/runtime/runs/pull_v26_8_g0_${envs}_r2/RUN_RECEIPT.json" <<'PY'
+import json,sys
+receipt=json.load(open(sys.argv[1],encoding="utf-8"))
+if receipt["state"] != "PASS" or receipt["process_returncode"] != 0:
+    raise SystemExit("referenced G0 receipt is not PASS/0")
+PY
   require_runtime_pass "$root"
 }
 
@@ -176,7 +183,7 @@ g1_eval() {
   local root=$1 label=$2 side=$3 mirror=$4 checkpoint=$5
   local output="$root/$label"
   local runtime=(CUDA_VISIBLE_DEVICES=0 CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE=cuda:0 WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=8 PYTHONPATH="$repo")
-  local common=(checkpoint="$checkpoint" checkpoint_load_mode=full ++auto_load_latest=false ++seed=0 ++num_envs=64 ++headless=true ++use_wandb=false ++algo.config.num_mini_batches=1 ++algo.config.eval.num_eval_episodes=64 ++algo.config.eval.eval_num_envs_episodes=true ++algo.config.eval.dump_to_log_metrics=true ++algo.config.eval.a2_diagnostic_trace_enabled=true ++algo.config.eval.a2_diagnostic_reward_terms='[dont_push_door_handle,target_root_distance,pull_door_handle,pull_door_hinge]' ++env.config.a2_door_open_lr_distribution="$side" ++env.config.a2_door_open_lr_permutation_seed=0 ++env.config.enable_staged_reset=false ++env.config.a2_pull_v6_stage4_bank_enabled=false ++env.config.a2_pull_v61_late_state_bank_enabled=false ++env.config.a2_v26_6_side_mirrored_handle_offset_enabled="$mirror" ++simulator.config.render_results=false ++simulator.config.cameras.enable_cameras=false ++eval_name="PULL_V26_8_G1_${label}" ++eval_output_dir="$output" hydra.run.dir="$output" ++env.config.max_episode_length_s=0.02 +device=cuda:0)
+  local common=(checkpoint="$checkpoint" checkpoint_load_mode=full ++auto_load_latest=false ++seed=0 ++num_envs=64 ++headless=true ++use_wandb=false ++algo.config.num_mini_batches=1 ++algo.config.eval.num_eval_episodes=64 ++algo.config.eval.eval_num_envs_episodes=true ++algo.config.eval.dump_to_log_metrics=true ++algo.config.eval.a2_diagnostic_trace_enabled=true ++algo.config.eval.a2_diagnostic_reward_terms='[dont_push_door_handle,target_root_distance,pull_door_handle,pull_door_hinge]' ++env.config.a2_door_open_lr_distribution="$side" ++env.config.a2_door_open_lr_permutation_seed=0 ++env.config.enable_staged_reset=true ++env.config.staged_reset_ratios='[1.0,0.0,0.0,0.0,0.0,0.0]' ++env.config.a2_pull_v6_stage4_bank_enabled=false ++env.config.a2_pull_v61_late_state_bank_enabled=false ++env.config.a2_v26_6_side_mirrored_handle_offset_enabled="$mirror" ++simulator.config.render_results=false ++simulator.config.cameras.enable_cameras=false ++eval_name="PULL_V26_8_G1_${label}" ++eval_output_dir="$output" hydra.run.dir="$output" ++env.config.max_episode_length_s=0.02 +device=cuda:0)
   mkdir -p "$output"
   env "${runtime[@]}" "$isaac_py" -B -m gr00t.rl.eval_agent_trl "${common[@]}" --cfg job --resolve > "$output/eval_overrides.yaml"
   "$py" "$repo/scriptsFORhuman/pull_v26_8/p0_assets.py" --output "$output/p0_assets.json"

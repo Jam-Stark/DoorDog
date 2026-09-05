@@ -35,9 +35,9 @@ for side in left right; do
     ++seed="$seed" ++num_envs=64 ++headless=true ++use_wandb=false ++algo.config.num_mini_batches=1
     ++algo.config.eval.num_eval_episodes=64 ++algo.config.eval.eval_num_envs_episodes=true
     ++algo.config.eval.dump_to_log_metrics=true ++algo.config.eval.a2_diagnostic_trace_enabled=true
-    ++algo.config.eval.a2_diagnostic_reward_terms='[dont_push_door_handle,target_root_distance,pull_door_handle,pull_door_hinge]'
+    ++algo.config.eval.a2_diagnostic_reward_terms='[dont_push_door_handle,target_root_distance,pull_door_handle,pull_door_hinge,a2_stage3_unlatch_hold,a2_stage3_stage4_hold_and_drive]'
     ++env.config.a2_door_open_lr_distribution="$side" ++env.config.a2_door_open_lr_permutation_seed="$seed"
-    ++env.config.enable_staged_reset=false ++env.config.a2_pull_v6_stage4_bank_enabled=false
+    ++env.config.enable_staged_reset=true ++env.config.staged_reset_ratios='[1.0,0.0,0.0,0.0,0.0,0.0]' ++env.config.a2_pull_v6_stage4_bank_enabled=false
     ++env.config.a2_pull_v61_late_state_bank_enabled=false
     ++simulator.config.render_results=false ++simulator.config.cameras.enable_cameras=false
     ++eval_name="PULL_V26_8_${cell}_STEP${step}_${side}" ++eval_output_dir="$output" hydra.run.dir="$output" +device=cuda:0

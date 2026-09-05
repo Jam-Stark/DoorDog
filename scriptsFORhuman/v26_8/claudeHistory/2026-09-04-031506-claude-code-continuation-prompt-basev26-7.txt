@@ -1,0 +1,889 @@
+ ▐▛███▛█   Claude Code v2.1.259
+▝▜██████▀  Fable 5.1 · API Usage Billing
+  ▝▝ ▝▝    ~/workspace/DoorDog-A2_Piper
+
+
+❯ # Claude Code continuation prompt：完成 `base_v26-7`                          
+  最终总结，并裁定下一阶段入口                                                  
+                                                                                
+  你现在在 `/home/baoquanc/workspace/DoorDog-A2_Piper` 接续一个因 API timeout   
+  中断的                                                                        
+  Claude Code session。你接替的是旧 session 的 Owner-facing scientific          
+  adjudicator 角色，                                                            
+  不是重新执行 v26-7 的 worker。先恢复旧 session                                
+  的论证链，再直接完成它没有回答完的最后请求。                                  
+                                                                                
+  旧 session 对话导出：                                                         
+                                                                                
+  `/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_7/claude_histo 
+  ry/2026-09-03-142829-local-command-caveatcaveat-the-messages-below.txt`       
+                                                                                
+  旧 session 的最后一个 Owner 请求是：                                          
+                                                                                
+  > 由你做最后 v26-7 阶段的总结：定性当前是否满足 v26-7 阶段前的讨论目标；说明  
+  > LEFT/RIGHT 情况下的 max Stage+；裁定能否进入下一步，依旧参照 single-RIGHT   
+  的                                                                            
+  > 成功路径，继续优化后续推门行为。                                            
+                                                                                
+  旧 session 已开始读取 endpoint artifact，但汇总脚本先后因 step2000 reducer    
+  没有较晚加入的                                                                
+  `arm_j4_limit_residence_step_share` 字段、部分读数为 `null` 而报错，随后 API  
+  timeout。                                                                     
+  这不是新的实验失败。不要沿着这两个临时汇总错误继续调试，更不要重跑仿真或训练  
+  ；直接从冻结                                                                  
+  reducer 的已有字段完成总结。                                                  
+                                                                                
+  ## 1. 工作范围与成功标准                                                      
+                                                                                
+  本轮先完成一个只读、证据匹配的阶段判决：                                      
+                                                                                
+  1. 回答 v26-7 是否达成它在启动前冻结的目标；                                  
+  2. 用 endpoint 数据完整说明 LEFT/RIGHT 各自达到的最高 Stage+，既给逐 cell     
+  数字，也给总体定性；                                                          
+  3. 区分“可以进入下一轮后续推门优化”与“已经证明完整开门/可以更新               
+  Teacher、Student、G7”；                                                       
+  4. 若可以进入下一轮，说明怎样参照 single-RIGHT                                
+  正路径，以及下一轮首先应该解决哪个 stage transition；                         
+  5. 明确指出当前证据尚不能支持的结论。                                         
+                                                                                
+  先在对话中交付最终总结和裁定。Owner                                           
+  此请求没有授权新的训练、评估、render、core/config 修改、                      
+  Teacher/Student handoff 更新、Git commit 或 push。不要为了阶段总结重新激活    
+  team state、lease、                                                           
+  candidate freeze 或长跑。该任务是 tightly coupled 的只读综合，没有独立 writer 
+  lane。                                                                        
+                                                                                
+  ## 2. 必读顺序                                                                
+                                                                                
+  先遵守仓库根 `AGENTS.md`，并按项目要求读取最小 file-based                     
+  memory。随后按以下顺序核对：                                                  
+                                                                                
+  1. `.ai/ROLE.md`                                                              
+  2. `.ai/PROJECT.md`                                                           
+  3. `.ai/WORKFLOW.md`                                                          
+  4. `MEMORY.md`                                                                
+  5. `memory/a2-piper/MEMORY.md`                                                
+  6. `memory/a2-piper/base-v26-scratch-bilateral-teacher/description.md`        
+  7. 上述旧 session 对话导出，尤其最后约 270 行                                 
+  8. `scriptsFORhuman/v26_7/a2_piper_base_v26_7_bilateral_native_unlatch_plan_2 
+  0260902.md`                                                                   
+     的 §1、§2.5、§5、§6、§8                                                    
+  9. `logs_eval/base_v26/v26_7_bilateral_native_unlatch_20260902/milestones/ste 
+  p2000/reducer.json`                                                           
+  10. `logs_eval/base_v26/v26_7_bilateral_native_unlatch_20260902/milestones/st 
+  ep3000/reducer.json`                                                          
+  11.                                                                           
+  `scriptsFORhuman/v26_7/a2_piper_base_v26_7_goal_anomaly_appendix_20260903.md` 
+  12. `memory/a2-piper/push-open-door-optimization/description.md`              
+  13. 需要核对 single-RIGHT 历史时，再读：                                      
+      - `scriptsFORhuman/a2_piper_project_handoff_20260725.md`                  
+      - `scriptsFORhuman/pro_reviews/20260827-162429-HKT__e6310042348d/e6310042 
+  348d/FULL_REVIEW.md`                                                          
+        的 single-RIGHT `v12_C → v13_A → v13.1` 部分                            
+                                                                                
+  source truth 顺序保持为：当前 source/resolved config → runtime artifact →     
+  file-based memory →                                                           
+  plan/history。Memory 中尚未清理的旧 TODO 不能覆盖已冻结的 v26-7 endpoint 与   
+  closure。                                                                     
+                                                                                
+  ## 3. 已冻结事实：不要重新裁决或重复审计                                      
+                                                                                
+  - `v26_7_terminal_candidate_r1` 是被 Owner 拒绝的历史候选，不是终态。         
+  - `v26_7_terminal_candidate_r2` 已完成 technical closure，Owner 已接受        
+  durable route。                                                               
+  - Q20 endpoint 固定为 step2000；Q05 endpoint 固定为 step3000。                
+  - 两个 config 都按 plan §6.2 达到 `2/3 seed` 的                               
+    `BILATERAL_UNLATCH_SUPPORTED`，因此 step4000/5000/6000 合规未运行。         
+  - G1 PASS：LEFT offset 镜像约 180°，RIGHT bit-identical，integrity 0。        
+  - G2 PASS：24/24 exact64，offset 修复前的 Wave B endpoint LEFT durable 全为   
+  0。                                                                           
+  - Q05 endpoint receipts 为 PASS/0。                                           
+  - Q20 的历史 receipt FAIL/1 来自提前成功停止后，旧 post-loop 仍索要           
+  step2750–6000                                                                 
+    checkpoints；它已带 endpoint note，不改变 step2000 科学                     
+  endpoint，也不回写历史 receipt。                                              
+  - 无活跃 v26-7 process、tmux、writer 或排他 lease；team state 已归档为        
+  `INACTIVE`。                                                                  
+  - 未 commit、未 push；Teacher/Student handoff 与 G7 未更新。                  
+  - goal 异常只读核查已经完成，不要再审一次：                                   
+    - Q05_S1 LEFT `complete=62/64`；                                            
+    - `PASS_NO_MIRROR_DEFECT_FOUND`；                                           
+    - `PASS_NO_THRESHOLD_EVIDENCE`；                                            
+    - LEFT complete terminal hinge 没有系统性小于 RIGHT；                       
+    - arm_j4 限位主要发生在 Stage4，与 complete terminal 不重合；               
+    - 该现象保留为 policy/trajectory-side observation，按 plan §8 不进入 v26-7  
+  route，                                                                       
+      也不升级成稳定 goal 能力证据。                                            
+  - Q05_S2 LEFT step3000 的 durable `60/64`、arm_j4 p95 `1.314685`、限位驻留    
+    `0.0110%` 已否定“LEFT durable 必须顶限位”。Q05_S0 LEFT durable `0/64`、p95  
+    `1.142730`、限位 `0%` 支持探索/Stage2→3 收入结构分支，而不是机械撞限。      
+                                                                                
+  ## 4. Endpoint 的完整 Stage+ 事实表                                           
+                                                                                
+  统一按 `D / S3+ / S4+ / S5+ / complete` 报告。这里的 `Sx+` 是达到该 stage 的  
+  episode                                                                       
+  数，不要把它写成稳定通过率或下一阶段的预注册 route。                          
+                                                                                
+  ### Q05，冻结 endpoint = step3000                                             
+                                                                                
+  | Cell | LEFT D/S3+/S4+/S5+/complete | RIGHT D/S3+/S4+/S5+/complete | LEFT    
+  max | RIGHT max |                                                             
+  |---|---:|---:|---|---|                                                       
+  | Q05_S0 | `0/0/0/0/0` | `64/64/64/0/0` | Stage2 | Stage4 |                   
+  | Q05_S1 | `62/64/62/62/62` | `64/64/64/18/4` | complete | complete |         
+  | Q05_S2 | `60/60/0/0/0` | `57/64/64/21/0` | Stage3 | Stage5 |                
+                                                                                
+  ### Q20，冻结 endpoint = step2000                                             
+                                                                                
+  | Cell | LEFT D/S3+/S4+/S5+/complete | RIGHT D/S3+/S4+/S5+/complete | LEFT    
+  max | RIGHT max |                                                             
+  |---|---:|---:|---|---|                                                       
+  | Q20_S0 | `0/0/0/0/0` | `64/64/2/0/0` | Stage2 | Stage4 |                    
+  | Q20_S1 | `61/64/64/3/0` | `63/64/63/0/0` | Stage5 | Stage4 |                
+  | Q20_S2 | `63/64/63/7/0` | `64/64/61/0/0` | Stage5 | Stage4 |                
+                                                                                
+  由此需要给出的总体定性至少包括：                                              
+                                                                                
+  - LEFT 的最高观测是 complete，RIGHT 的最高观测也是 complete；两者出现在同一   
+    Q05_S1 actor/checkpoint，但数量强烈不对称（LEFT 62、RIGHT 4）。             
+  - 除 Q05_S1 外，LEFT 在 Q20_S1/S2 到过 Stage5，RIGHT 在 Q05_S2 到过 Stage5；  
+    其他多数组合最多到 Stage4，两个 S0 LEFT 仍停在 Stage2。                     
+  - 因而“后续推门/穿门通路已被偶发访问”成立；“双侧、跨 seed 稳定                
+  Stage5/complete”不成立。                                                      
+  - v26-7 的预注册目标止于 Stage0→Stage3 的 bilateral unlatch。不能因为以上     
+  Stage4/5/complete                                                             
+    读数存在，就改写 plan §8 的结论边界。                                       
+                                                                                
+  如果你用临时只读命令重算，只需打印上述 reducer 原始字段；不要修改             
+  reducer、补写缺失字段或                                                       
+  为 `null` 制造默认假数据。                                                    
+                                                                                
+  ## 5. 对“是否满足阶段前讨论目标”的正确问题边界                                
+                                                                                
+  冻结 plan §1 的目标不是完整开门，而是：                                       
+                                                                                
+  > 一个网络（单一 actor）在 Stage0→Stage3 上同时学会 LEFT 与 RIGHT 镜像门的    
+  handle                                                                        
+  > 下压解锁。Stage4/Stage5 只报告、不参与路由。                                
+                                                                                
+  因此最终答复应明确采用两层结论：                                              
+                                                                                
+  1. **对 v26-7 的 scoped target：满足。** Q20 在 step2000、Q05 在 step3000     
+  都以                                                                          
+     `2/3 seed` 达到预注册 bilateral durable threshold；它证明几何 offset       
+  修复与恢复夹爪                                                                
+     capability 后，单一 side-conditioned actor 可以原生学到双侧 unlatch，旧的  
+  LEFT                                                                          
+     结构性全零已经被突破。                                                     
+  2. **对完整推门/走过门任务：尚未满足。** Stage4/5/complete 没有作为本轮 route 
+  注册，                                                                        
+     也没有跨 config、跨 seed、双侧形成稳定证据；S0 LEFT 仍为                   
+  0，说明探索/收入结构与                                                        
+     seed stability 仍是现实问题。Teacher/Student/G7 继续不准入。               
+                                                                                
+  不要把“所有 LEFT 都恢复”“双侧已经对称”“goal 已解决”写进结论。                 
+                                                                                
+  ## 6. 下一步裁定：参照 single-RIGHT，但不要退回 single-RIGHT                  
+                                                                                
+  Owner                                                                         
+  问的是能否进入下一阶段研究。预期要作出明确裁定，而不是只说“需要更多数据”：    
+                                                                                
+  - **可以进入下一阶段的后续推门优化。** v26-7 已经建立这个入口所需的 bilateral 
+  unlatch                                                                       
+    foundation；继续把预算花在证明 handle 能否下压，信息增益已经很低。          
+  - 这里的“可以进入”只表示可以新开一个预注册的 research/training                
+  stage，不表示当前 checkpoint                                                  
+    已可发布为 Teacher，亦不授权你在本轮直接启动新阶段。                        
+  - single-RIGHT 历史应作为机制正对照和 stage ordering 参考：                   
+    `v12_C` 先建立 Stage3 admission，`v13_A` 再通过成熟 actor、Stage3 base      
+  unlock、                                                                      
+    grasp-gated unlatch/hold-and-drive 与 Stage3→4 grasp requirement            
+  建立开门，随后                                                                
+    `v13.1` 单独解决 release/target-root handoff 才得到完整 goal。              
+  - 参照的是这条“先稳定 creation/unlatch → 再 Stage3→4 推门并保持 → 最后        
+  release/Stage4→5/                                                             
+    through”的问题拆分，不是直接加载旧 single-RIGHT checkpoint，不是把          
+  bilateral door distribution                                                   
+    改回 RIGHT-only，也不是不核对 resolved config 就整包复制 v13_A/v13.1。      
+  - 下一阶段第一优先级应是把已偶发出现的 **bilateral Stage3→4 opening/hold**    
+  变成跨 seed、双侧                                                             
+    可重复能力；release、Stage4→5 与 final through 应在 opening foundation      
+  通过后作为后一层处理。                                                        
+  - v26-7 endpoint 中已有多个 downstream-positive cell，但 Stage4/5/complete    
+  在本轮是非路由观察。                                                          
+    不得静默用 Q05_S1 的 `62 complete` 事后挑 checkpoint 并声称它是正式         
+  winner。若下一阶段需要                                                        
+    选择 source checkpoint，应在新 plan 中显式冻结 selection rule，比较 Q20     
+  step2000 与 Q05                                                               
+    step3000 的 bilateral downstream coverage、seed stability、arm_j4 行为和    
+  resolved config；                                                             
+    选择规则必须先于新的 outcome route，不能用 goal anomaly 倒推 winner。       
+                                                                                
+  ## 7. 最终答复格式                                                            
+                                                                                
+  直接用中文给 Owner 一个可以据此决策的总结，建议结构：                         
+                                                                                
+  1. **一句话裁定**：v26-7 scoped target                                        
+  是否通过；能否进入下一阶段；完整任务是否已通过。                              
+  2. **阶段前目标逐项对照**：几何、夹爪能力、single actor bilateral             
+  unlatch、seed/config route、                                                  
+     未覆盖边界。                                                               
+  3. **LEFT/RIGHT max Stage+ 表**：使用 §4 的 endpoint 表，不混用非 endpoint    
+  milestone。                                                                   
+  4. **如何解释不对称**：区分 reachability、policy/trajectory observation、seed 
+  stability 与                                                                  
+     preregistered capability。                                                 
+  5. **下一步建议**：说明 single-RIGHT 参考链、建议先做 Stage3→4，再做          
+  release/through；                                                             
+     给出下一阶段应先冻结的最小问题和 checkpoint-selection                      
+  原则，但不要未经授权写实现 plan                                               
+     或启动实验。                                                               
+  6. **证据边界与状态**：experiment/INSPECTED 证据；无 hardware；无 active      
+  process；未更新                                                               
+     Teacher/Student/G7；未 commit/push。                                       
+                                                                                
+  不要把 worker 的 closure 文本原样复述一遍。Owner 已经知道 v26-7               
+  关闭；你的价值是回答“原目标                                                   
+  是否完成、两侧分别走到哪里、为什么现在可以/不可以转入后续推门优化”。          
+                                                                                
+
+  Thought for 24s (ctrl+o to expand)
+
+● 我先按必读顺序恢复旧 session 的论证链，再从冻结 reducer 读取 endpoint
+  字段完成只读裁定。
+
+  Thought for 1m 58s, read 1 file, ran 4 shell commands (ctrl+o to expand)
+
+● Streaming response ended before any complete data was received. 
+  Retrying without streaming. If this keeps happening, check any proxy 
+  or gateway between Claude Code and your model provider.
+
+● Now the reducers and the goal anomaly appendix, plus the push-open-door memory
+  and the pre-stage discussion in the earlier part of the export.
+
+  Thought for 21m 42s, ran 6 shell commands (ctrl+o to expand)
+
+● 核对完成。reducer 原始字段与 §4 表一致，goal 异常附录、plan §1/§2.5/§6/§8 与
+  single-RIGHT 历史（FULL_REVIEW §5.1）均已对照；机器上无 v26-7 进程，GPU0–7
+  均空闲。以下是最终裁定。
+
+  一句话裁定
+
+  v26-7 的预注册目标通过：两个 config 都以 2/3 seed 达到
+  BILATERAL_UNLATCH_SUPPORTED，单一 side-conditioned actor 原生学会了双侧 handle
+  下压。可以进入下一阶段的后续推门优化，参照 single-RIGHT
+  的问题拆分顺序。完整开门/穿门任务未通过，Teacher、Student、G7 继续不准入。
+
+  阶段前目标逐项对照
+
+  ┌──────────────────────────┬──────┬───────────────────────────────────────┐
+  │     阶段前讨论的目标     │ 判定 │                 依据                  │
+  ├──────────────────────────┼──────┼───────────────────────────────────────┤
+  │ 几何：LEFT 抓握目标      │      │ G1 PASS：LEFT 镜像                    │
+  │ offset 偏 180°           │ 达成 │ 179.998°–179.9997°，RIGHT             │
+  │ 修复并接入 runtime       │      │ bit-identical，integrity 0            │
+  ├──────────────────────────┼──────┼───────────────────────────────────────┤
+  │ 夹爪能力：恢复 45 N /    │      │ 六格 resolved config 满足             │
+  │ 1300 / 32 / M39 bundle   │ 达成 │ §6.5；下压期接触力 p50 两侧 33–50     │
+  │                          │      │ N，over-force 步占比 <1%              │
+  ├──────────────────────────┼──────┼───────────────────────────────────────┤
+  │ 单一 actor 双侧          │      │ Q20 step2000：S1 L61/R63、S2          │
+  │ unlatch（Stage0→3）      │ 达成 │ L63/R64；Q05 step3000：S1 L62/R64、S2 │
+  │                          │      │  L60/R57                              │
+  ├──────────────────────────┼──────┼───────────────────────────────────────┤
+  │ 反事实基线：offset       │ 达成 │ G2 Wave B 24/24 exact64，endpoint     │
+  │ 未修时 LEFT 为零         │      │ LEFT durable 全 0                     │
+  ├──────────────────────────┼──────┼───────────────────────────────────────┤
+  │ seed/config route 按     │ 达成 │ Q20 endpoint step2000、Q05 endpoint   │
+  │ §6.1/6.2 执行            │      │ step3000，未事后调阈值，§6.3 未触发   │
+  ├──────────────────────────┼──────┼───────────────────────────────────────┤
+  │                          │      │ 两个 config 的 seed0 LEFT 均为        │
+  │ 未覆盖边界               │ 保留 │ 0；Stage4/5/goal 按 §8                │
+  │                          │      │ 不路由；Stage2→3 收入结构按 §2.5 未动 │
+  └──────────────────────────┴──────┴───────────────────────────────────────┘
+
+  旧 memory 里"LEFT 结构性全零、需独立处理"的 TODO 已被本轮 endpoint
+  超越，那是历史状态，不影响本裁定。
+
+  LEFT/RIGHT 最高 Stage+ 事实表
+
+  Sx+ 是到达该 stage 的 episode 数，不是稳定通过率。Q05 与 Q20
+  的训练量不同（3000 vs 2000 batches），跨 config 比较带此 confound。
+
+  Q05，endpoint = step3000：
+
+  ┌───────┬──────────────────────┬──────────────────────┬─────────┬─────────┐
+  │ Cell  │ LEFT D/S3+/S4+/S5+/c │ RIGHT D/S3+/S4+/S5+/ │  LEFT   │ RIGHT   │
+  │       │       omplete        │       complete       │   max   │   max   │
+  ├───────┼──────────────────────┼──────────────────────┼─────────┼─────────┤
+  │ Q05_S │            0/0/0/0/0 │         64/64/64/0/0 │ Stage2  │ Stage4  │
+  │ 0     │                      │                      │         │         │
+  ├───────┼──────────────────────┼──────────────────────┼─────────┼─────────┤
+  │ Q05_S │       62/64/62/62/62 │        64/64/64/18/4 │ complet │ complet │
+  │ 1     │                      │                      │ e       │ e       │
+  ├───────┼──────────────────────┼──────────────────────┼─────────┼─────────┤
+  │ Q05_S │          60/60/0/0/0 │        57/64/64/21/0 │ Stage3  │ Stage5  │
+  │ 2     │                      │                      │         │         │
+  └───────┴──────────────────────┴──────────────────────┴─────────┴─────────┘
+
+  Q20，endpoint = step2000：
+
+  ┌───────┬───────────────────────┬───────────────────────┬───────┬───────┐
+  │ Cell  │ LEFT D/S3+/S4+/S5+/co │ RIGHT D/S3+/S4+/S5+/c │ LEFT  │ RIGHT │
+  │       │        mplete         │        omplete        │  max  │  max  │
+  ├───────┼───────────────────────┼───────────────────────┼───────┼───────┤
+  │ Q20_S │             0/0/0/0/0 │           64/64/2/0/0 │ Stage │ Stage │
+  │ 0     │                       │                       │ 2     │ 4     │
+  ├───────┼───────────────────────┼───────────────────────┼───────┼───────┤
+  │ Q20_S │          61/64/64/3/0 │          63/64/63/0/0 │ Stage │ Stage │
+  │ 1     │                       │                       │ 5     │ 4     │
+  ├───────┼───────────────────────┼───────────────────────┼───────┼───────┤
+  │ Q20_S │          63/64/63/7/0 │          64/64/61/0/0 │ Stage │ Stage │
+  │ 2     │                       │                       │ 5     │ 4     │
+  └───────┴───────────────────────┴───────────────────────┴───────┴───────┘
+
+  总体定性：
+
+  - 两侧最高观测都是 complete，且出现在同一个 checkpoint
+    Q05_S1，但数量强烈不对称：LEFT 62，RIGHT 4。
+  - RIGHT 的稳定层是 Stage4：6 格中 5 格 RIGHT S4+ ≥61，只有 Q20_S0 是 2。RIGHT
+    卡在 Stage4→5（要求 hinge >1.047 rad、handle <0.2 rad、root_x >0）和
+    complete（root_x >1.5）。
+  - LEFT 分成三层：seed0 两格停在 Stage2；Q05_S2 到 Stage3 后停住，durable 60 但
+    S4+ 为 0；其余三格到 Stage4 以上。
+  - 因此"后续推门/穿门通路已被偶发访问"成立，"双侧、跨 seed 稳定
+    Stage5/complete"不成立。
+
+  如何解释不对称
+
+  四类含义要分开：
+
+  - Reachability（已证）：LEFT 在几何修复后可以走完
+    unlatch、opening、release、through 全链；这是 v26 六轮里第一次。RIGHT
+    也能，但只有 4 例。
+  - Policy/trajectory observation（不路由）：Q05_S1 LEFT 的 62 complete
+    已被静态与数据核查排除镜像判据缺陷与阈值伪影，terminal hinge p50 2.23 rad
+    高于 RIGHT complete 的 1.70 rad。它是真实落盘现象，但是单 checkpoint、单
+    seed，不能升级为 goal 能力证据。
+  - arm_j4 相关性（不是因果）：三个 LEFT 到达 Stage4 以上的格，arm_j4 p95 都钉在
+    1.745 硬限位；Q05_S2 LEFT 不顶限位也拿到 durable 60，但没进 Stage4；Q05_S1
+    的限位步 95% 落在 Stage4。这说明限位不是 unlatch 的必要条件，但 LEFT 的
+    opening
+    姿态目前与顶限位同现。这是下一阶段必须带的报告项，不能由此推出机械结论。
+  - Seed stability（现实问题）：两个 config 的 seed0 LEFT 都为 0，且 arm_j4
+    从未接近限位，落在探索/Stage2→3 收入结构分支。两个零都是 seed0，env
+    permutation 与初始化都由 seed 决定，这是候选因素，但
+    n=1，只能作为下一阶段的预注册核查项。
+  - Preregistered capability（唯一可写进结论的）：双侧 durable depression，2/3
+    seed，两个 config。
+
+  下一步建议
+
+  裁定：可以新开一个预注册的后续推门阶段。继续把预算花在证明 handle
+  能否下压，信息增益已经很低。"可以进入"只表示可以立项，不表示当前任一
+  checkpoint 可以发布为 Teacher，本轮也不授权启动。
+
+  参照 single-RIGHT 的问题拆分，而不是回到 single-RIGHT：
+
+  - v12_C 建立 Stage3 admission，对应 v26-7 现在的位置，只是这次是双侧。
+  - v13_A 用成熟 actor warm-start，加 Stage3 base unlock、grasp-gated
+    unlatch/hold-and-drive、Stage3→4 grasp requirement，做出 16/16 Stage4。
+  - v13.1 再单独解决 release/target-root handoff，才拿到完整 goal。
+
+  因此下一阶段第一优先级是 bilateral Stage3→4 opening/hold 变成跨 
+  seed、双侧可重复能力。理由是它是当前最清楚的双侧断点：LEFT 有 Q05_S2
+  这种"durable 60 却 S4+ 为 0"的干净案例，RIGHT 虽然普遍到 Stage4 但 Q20_S0 只有
+  2。release、Stage4→5 与 final through 是第二层，那是 RIGHT
+  侧目前真正的瓶颈，但要等 opening foundation 双侧成立后再处理，否则会重复 v26-2
+  的 stage-order mismatch。
+
+  不做的事：不加载旧 v13_A/v13.1 checkpoint，不把 door distribution 改回
+  RIGHT-only，不在未核对 resolved config 的情况下整包复制 v13_A/v13.1 的 reward
+  bundle。plan §2.4 反对 warm-start 的理由是旧 checkpoint
+  训练在错误几何上，这个反对对 v26-7 endpoint 不再成立，所以 warm-start
+  可以作为候选方案与 from-scratch 一起在新 plan 里比较。
+
+  新 plan 必须先冻结的最小问题和选择规则：
+
+  1. source checkpoint 选择规则先于 outcome route。比较 Q20 step2000 与 Q05
+     step3000 的双侧 S4+ 覆盖、seed stability、arm_j4 限位驻留和 resolved
+     config；选哪个 endpoint 同时决定了 squeeze_min 是 2.0 还是
+     0.5，这是后续分布的一部分，不能事后改。
+  2. 不得用 Q05_S1 的 62 complete 倒推 
+     winner。它是非路由观察，而且是唯一顶限位比例 31.5% 的成功格。
+  3. Stage3→4 的成功判据要预注册为双侧、跨 seed 的 opening/hold 指标，并把
+     arm_j4 限位驻留、seed0 LEFT 探索失败作为固定报告项。
+  4. Stage2→3 收入悬崖是否在这一阶段动，需要在 plan 里明确决定。v26-7 证明它不是
+     unlatch 的硬墙，但它仍是 seed0 LEFT 为零的候选解释。
+
+  当前证据尚不能支持的结论
+
+  - LEFT 与 RIGHT 已对称，或 LEFT 已全部恢复。
+  - goal 已解决，或任一 checkpoint 具备 Teacher 资格。
+  - squeeze_min 0.5 与 2.0 的因果效应。step2000 时 Q20 LEFT durable 均值 41.3 对
+    Q05 21.3，但 Q05 在 step3000 追平，三 seed 且 endpoint 不同，只是 §6.4
+    报告项。
+  - arm_j4 顶限位是 LEFT opening 的原因或必要条件。
+  - seed0 本身导致 LEFT 为零。
+  - 任何 hardware 或 sim-to-real 结论。
+
+  证据边界与状态
+
+  - 证据等级：G1 runtime PASS，G2 与六格 endpoint 为 experiment 证据，goal
+    异常核查为 INSPECTED 加 artifact-derived。无 hardware。
+  - 机器状态已核实：无 v26-7 进程，GPU0–7 显存各 1 MiB，现存 tmux 均为 8 月的
+    p2/p3 会话与两个交互 shell，与 v26-7 无关。
+  - Q05 receipts PASS/0；Q20 历史 FAIL/1 保留并附 endpoint note；step4000–6000
+    合规未运行。
+  - 未 commit、未 push。工作树里 v26-7 的三个 core/config 改动、两个测试文件和
+    v26_6/v26_7 脚本仍是未提交状态。下一阶段要以它们为源，立项前需要 Owner
+    决定是否授权 commit 以冻结 source identity。
+  - Teacher/Student handoff 与 G7 未更新。本轮无新的 durable memory
+    candidate，也无 artifact handoff。
+
+✻ Churned for 46m 7s · done Thursday 4:13 PM
+
+❯ 我认可你的下一步优先级判断。但是我对于训练方法有一个想法：从历史来看，逐stage 
+  去优化的，每次选择上一阶段的winner policy 进行warm                            
+  start，然后为了后续的优化可能屏蔽之前stage优化使用的reward的了。导致后续如果  
+  要进行基建大修改，就会受困于之前可能关闭/调整了某个reward，导致从头开始训练的 
+  话，会遇到相当大的困难（比如当前由单RIGHT handle 替换为                       
+  LEFT/RIGHT，v26阶段就相当困难地才学习到现在的能力）。                         
+  那么后续我想启用这个变量："原版 DoorMan 里这个机制叫                          
+  reward_penalty_curriculum，核心动态变量是 reward_penalty_scale。              
+  原版配置是：                                                                  
+  reward_penalty_curriculum: True                                               
+  reward_initial_penalty_scale: 1.0                                             
+  reward_min_penalty_scale: 0.2                                                 
+  reward_max_penalty_scale: 1.0                                                 
+                                                                                
+  reward_penalty_level_down_ave_goal_reached_rate: 0.5                          
+  reward_penalty_level_up_ave_goal_reached_rate: 0.7                            
+  reward_penalty_degree: -0.0001                                                
+  由于 reward_penalty_degree 是负数，所以实际行为是：                           
+  - average_goal_reached > 0.7：reward_penalty_scale *=                         
+  0.9999，逐渐压低，最低到 0.2。                                                
+  - average_goal_reached < 0.5：reward_penalty_scale *=                         
+  1.0001，逐渐恢复，最高到 1.0。                                                
+  - 0.5～0.7：维持当前值，形成滞回区，避免来回震荡。                            
+    然后只有 reward_penalty_reward_names 列表中的 reward/penalty 会乘这个       
+  scale，代码路径在 [staged_task_base.py (line 414)](/home/baoquanc/workspace/D 
+  oorDog-A2_Piper/gr00t/rl/envs/base_task/staged_task_base.py:414) 和           
+  [legged_robot_base.py (line 1647)](/home/baoquanc/workspace/DoorDog-A2_Piper/ 
+  gr00t/rl/envs/legged_base_task/legged_robot_base.py:1647)。                   
+    值得注意的是，名字虽然叫 penalty curriculum，但原版列表里不仅有             
+  penalty，也包括：                                                             
+  - walk_to_door                                                                
+  - pregrasp_target_distance                                                    
+  - grasp                                                                       
+  - push_door_hinge                                                             
+  - target_root_distance" 加入reward_penalty_curriculum 来控制不同stage阶段各个 
+  reward的权重甚至计算逻辑选择/变化。这样不管是选择从已有 checkpoint warm-start 
+  ，还是从0开始重新训练，都可以保证训练可靠基本模型和优化特定stage行为？        
+  请你保持独立思考，判断一下是否采用这个想法，采用的话就想想reward_penalty_rewa 
+  rd_names 列表中的 reward/penalty选择，如何设计。                              
+  ps：当前我认为还不能结算v26阶段，下一步应该属于v26-8                          
+
+  Thought for 1m 45s (ctrl+o to expand)
+
+● 我先追踪这个机制在当前仓库里的真实执行路径，再给判断。看三处：scale
+  的更新逻辑与频率、驱动变量 average_goal_reached 的来源、以及 A2 config
+  里现在的相关键值。
+
+  Thought for 19m 25s, ran 20 shell commands (ctrl+o to expand)
+
+● 核对完成。我读了 staged_task_base.py 与 legged_robot_base.py
+  的真实执行路径、Q05_S1 的 resolved 训练 config，并从六格训练日志抽出了 driver
+  变量的实际轨迹。全部为 INSPECTED 级，未改任何代码或配置。
+
+  判断：采用思想，不采用原版配置，也不做成"逐 stage 权重/逻辑控制器"
+
+  先修正一处前提。 你对历史路径的诊断是对的：每轮 warm-start 上一阶段
+  winner，再关掉前一阶段的脚手架 reward，使 reward 集合与成熟 actor
+  耦合，基建一变就没有干净的重训起点。但 v26 的困难不是这个原因。v26 各轮都是
+  from scratch，52 个非零 reward 全部保留，walk_to_door、pregrasp、grasp、Stage2
+  shaping 都在。六轮失败的根因是夹爪 10 N 与 LEFT 目标姿态偏 180° 两个
+  bug。修好后 v26-7 从零起步，2000 到 3000 batch 内双侧到 Stage4，一个 seed 到
+  complete。所以"脚手架被移除导致从零很难"在 v26 上不成立。
+
+  成立的是另一件事：现有 reward 集合带着为成熟 actor 调出来的收入结构。Stage2
+  shaping 进 Stage3 归零造成每步 -0.093 的悬崖，unlatch_hold 只在 hinge<0.1
+  时付钱形成墙。这类"早期必要、后期有害"的项正是脚手架衰减该处理的对象。这个想法
+  值得采用，但目标要对准 stage transition 的收入结构，而不是"保证从零可训"。
+
+  机制的真实行为，以及原版配置为何在 v26-8 不会起作用
+
+  代码事实：
+
+  - 它是一个全局标量乘到列表内每一项。不能按 stage
+    分别加权，也不能切换计算逻辑。按 stage 切换逻辑已有现成机制，即
+    effective_in_stage 装饰器与各 reward 内部的 stage mask。
+  - 更新在每次 env reset 调用时执行一次。4096 env、约 500 步的 episode
+    下几乎每个 control step 都有 reset。degree 1e-4 时从 1.0 衰到 0.2 需约
+    16,000 次更新，即约 250 个 iteration 持续高于上阈值。恢复同样约 250
+    iteration。
+  - driver 有两种，由 config 选择：average_goal_reached，或
+    average_stage_reached。两者都是全部 env 的均值，包括 staged reset 从 Stage1
+    到 5 起步的 env，也不区分 LEFT 与 RIGHT。
+  - scale 不写入 checkpoint。warm-start 时从 initial scale 重新开始。
+  - A2 resolved config 已有一份 27 项的名单，但 curriculum 关闭，min 与 max 都是
+    1.0，degree 为 0。名单是历史遗留，含已置零的 push_door_handle。
+  - termination_curriculum 用同一 driver、同样 0.5/0.7 与 -0.0001
+    已经开着，六格全程 termination_level 停在上限。这是 goal-rate 驱动在 v26 是
+    no-op 的直接运行证据。
+
+  训练内 driver 实际读数（各格末点）：
+
+  ┌────────┬───────────────────┬───────────────────────────┐
+  │  Cell  │ avg_stage_reached │ avg_goal_reached 全程最大 │
+  ├────────┼───────────────────┼───────────────────────────┤
+  │ Q05_S0 │              3.42 │                    0.0000 │
+  ├────────┼───────────────────┼───────────────────────────┤
+  │ Q05_S1 │              4.24 │                    0.2602 │
+  ├────────┼───────────────────┼───────────────────────────┤
+  │ Q05_S2 │              3.88 │                    0.0000 │
+  ├────────┼───────────────────┼───────────────────────────┤
+  │ Q20_S0 │              3.35 │                    0.0005 │
+  ├────────┼───────────────────┼───────────────────────────┤
+  │ Q20_S1 │              4.04 │                    0.0456 │
+  ├────────┼───────────────────┼───────────────────────────┤
+  │ Q20_S2 │              4.00 │                    0.0000 │
+  └────────┴───────────────────┴───────────────────────────┘
+
+  goal 阈值 0.5/0.7 下，所有格全程低于 0.5，scale 会一直被推回 1.0。原版配置在
+  v26-8 要解决的 Stage3→4 阶段完全不会动。它在 DoorMan
+  里是"任务基本解决后放松脚手架"的后期机制。
+
+  stage driver 更危险。Q05_S0 的 LEFT 停在 Stage2，avg_stage 仍有 3.42，因为
+  RIGHT 到 4，staged reset 又从 Stage1 到 5 起步，零学习时底值就是
+  1.5。它无法区分"双侧到 Stage4"与"RIGHT 到 4、LEFT 卡在
+  2"。对双侧问题这是反向作用：LEFT 还没学会，脚手架就开始被撤。
+
+  结论：现有两种 driver 都不能直接用于 v26-8。需要一个侧感知、只统计
+  natural-start env、取双侧较小值的 driver。这是 A2 子类里一个小的
+  override，不是框架。
+
+  采用方式与列表设计
+
+  定位与纪律：
+
+  1. 作为 v26-8 的一个 matched arm，curriculum ON 对 OFF，不默认开启。否则
+     Stage3→4 的结果无法归因。
+  2. 不做通用控制器。逻辑切换用现有装饰器；若某项逻辑必须变，那是单独预注册的
+     reward 改动。
+  3. driver 取 natural-start env 上按侧统计的 max stage 均值，再取 min(LEFT,
+     RIGHT)。上阈值约 3.8、下阈值约 3.3，落在 v26-7 数据里"双侧到
+     Stage4"与"单侧卡住"之间的带内，需在 plan 中冻结。
+  4. 下限 0.2、degree 1e-4 作为起点假设，预注册。
+  5. scale 不持久，plan 必须写明 resume 时初值来自日志末尾的
+     reward_penalty_scale，并写进 receipt。
+  6. 一处小缺陷：log_dict 引用的是被原地乘过一次、尚未 clip 的张量，所以日志出现
+     1.0001 这种越过上限的值。启用前改为记录 clip 后的值。
+
+  列表原则： 只放当前目标 transition 之前的脚手架；不放定义当前目标 transition
+  的驱动项；不放安全惩罚与稀疏里程碑。列表随目标 transition 变化，每个 stage
+  plan 冻结一份。
+
+  纳入衰减（Stage0 到 Stage3 脚手架，16 项，当前 scale 合计 41.2）：
+
+  - Stage0/1：walk_to_door、gripper_handle_orientation、pregrasp_gripper_dof_pos
+    _l1、pregrasp_target_distance
+  - Stage2：grasp_target_distance、grasp、a2_stage2_close_command、a2_stage2_clo
+    se_progress、a2_stage2_handle_center_y、a2_stage2_handle_approach_xz、a2_sta
+    ge2_both_contact、a2_stage2_opposite_squeeze、a2_stage2_squeeze_force_window
+    、a2_stage2_contact_stability
+  - Stage3 租金与 creation：a2_stage3_handle_creation、a2_stage3_unlatch_hold
+
+  排除，因为它们定义 v26-8 的目标
+  transition：push_door_hinge、a2_stage3_stage4_hold_and_drive、四个
+  a2_stage3_stage4 接触项、a2_stage3_stage4_keep_close_command、target_root_dist
+  ance、a2_stage4_grasp_target_distance_mild。dont_push_door_handle
+  也排除，它奖励 Stage4/5 里 handle 回零与负向速度，属于 release 那一层。
+
+  排除，全部 penalty_*、limits_*、orientation_control、termination，以及
+  stage、complete、success_save_time、ref_dof_legs。
+
+  与原版名单的差别是有意的。原版放了 push_door_hinge 与
+  target_root_distance，因为它只在 goal 率过 0.7 后触发，那时这两项已经是相对
+  complete 的脚手架。v26-8 的目标就是
+  opening/hold，它们必须保持全额。等后续阶段转向 release 与
+  through，push_door_hinge 与 hold_and_drive 才移入衰减名单。
+
+  这样设计的效果： mastery 之后 Stage2 与 Stage3 收入同比缩小，Stage4
+  项保持全额，每步收入的梯度指向前方，悬崖与墙都被削弱。mastery 之前 scale 停在
+  1.0，从零起步的行为与现在一致。若 Stage4 表现回落，scale 在约 250 iteration
+  内恢复，比手工关 reward 多了可逆性。这是它相对历史做法的真实优势。
+
+  它解决不了的： 两个 seed0 的 LEFT 为零是 discovery 问题，mastery
+  之前此机制不介入，仍要靠 Stage2→3 收入结构或探索处理。RIGHT 的 Stage4→5
+  是后一层。它也不替代 checkpoint selection rule。
+
+  状态： 同意 v26 不结算，下一步为 v26-8。本回复不是
+  plan，未授权实现、训练或修改；无活跃进程，未 commit。
+
+✻ Crunched for 37m 21s · done Thursday 8:09 PM
+
+❯ 同意。GPU 0-7 都批准给v26-8阶段任务使用。放心大胆地设计ablatin实验或者进一步s 
+  tage4/5的优化推进训练。v26-8阶段不仅要实验引入scale思想，还要尝试继续v26-7的  
+  下一步优化。当然如果任务要的太多的话，也可以选择往后推，看你安排。那么接下来  
+  落地v26-8阶段任务plan文档。然后交付给我codex团队开工prompt（prompt不要落成文  
+  档），我转交给codex团队自主进行v26-8阶段了。                                  
+
+  Thought for 4m 15s (ctrl+o to expand)
+
+● 收到。v26-8 的落地我按两步做：先把还没核实的几个机制事实查清（warm-start
+  加载语义、B1 轴的确切键、源 checkpoint 存在与身份、v26-7 脚本可复用面），再写
+  plan 文档，最后在对话里给 Codex 开工 prompt。
+
+  Thought for 17m 20s, ran 10 shell commands (ctrl+o to expand)
+
+● 关键机制事实已核实齐全：LR
+  scheduler为constant、训练循环独立于checkpoint计数、policy_only
+  warm-start有仓库先例、A2 env已有可复用的per-env缓冲，以及stage3/4阈值间存在收
+  入谷作为W轴依据。现在开始撰写plan文档。 · summarized
+
+  Thought for 1m 43s, ran 1 shell command (ctrl+o to expand)
+
+● Plan 已落盘（430 行）。现在做最小 memory 更新（description 状态行与 authority
+  指针、TODO 条目），然后给出 Codex 开工 prompt。
+
+  Thought for 1m 15s, ran 2 shell commands (ctrl+o to expand)
+
+● v26-8 plan 已落盘，memory 已更新。下面是交付说明与 Codex 开工 prompt。
+
+  交付
+
+  Plan 文档：scriptsFORhuman/v26_8/a2_piper_base_v26_8_bilateral_opening_scaffol
+  d_decay_plan_20260903.md，状态 PLAN_FROZEN_NOT_IMPLEMENTED。
+
+  设计要点：
+
+  - 两问并行，证据互不借用。 Q_A 是 bilateral Stage3→4 opening/hold，干预轴 W 把
+    near_closed 阈值从 0.1 提到 0.25。依据是 resolved config 里 hold 收入在
+    hinge 0.1 断掉，而 Stage4 入场线在 0.25，中间是一段两头都不付钱的谷。Q_K
+    是你提出的 scaffold-decay curriculum，干预轴 K。
+  - K 不是原版配置。 driver 改为侧感知、只统计 natural-start episode、取双侧
+    Stage≥4 到达率的较小值，阈值 0.5/0.7，floor 0.2。名单 16 项，只放 Stage0 到
+    Stage3 的脚手架，排除 push_door_hinge、hold_and_drive、target_root_distance
+    等定义当前目标的项，以及全部惩罚与稀疏项。
+  - Wave 1 六格配对设计。 从 Q05_S1 与 Q05_S2 的 step3000 warm-start，C/W/K
+    各一格，同 source 三格起点权重相同。3000 batches，GPU2 到 7 训练，GPU0 到 1
+    评估，约 20 小时。源 checkpoint 的 SHA-256 已冻结在 plan §3。
+  - Wave 2 条件分支已预注册。 B1 是 from-scratch 加 K 的可靠性检验，用 v26-7 Q05
+    三个 seed 的冻结 milestone 作为现成对照。B2 是 KW
+    组合。满足条件即可自主启动，启动前通知你。
+  - 不动的轴：squeeze_min、reward scale 数值、stage 判据、S0 与 Q20
+    source、Teacher/Student/G7。
+
+  Memory：description 状态改为
+  v26_7_closed_v26_8_plan_frozen_not_implemented，加入 v26-8 authority
+  指针与一条状态记录；TODO 顶部加入 v26-8 待办。未 commit，未 push。
+
+  Codex 团队开工 prompt
+
+  以下内容请直接转交，不落文档：
+
+  ---
+
+  你是 DoorDog A2_Piper 仓库 /home/baoquanc/workspace/DoorDog-A2_Piper 的 Codex
+  Main。任务是自主完成 base_v26-8 阶段的实现、前置门、Wave 1
+  六格训练与评估、endpoint 裁定，以及满足条件时的 Wave 2。
+
+  Authority 顺序：当前 source 与 resolved config → runtime artifact →
+  scriptsFORhuman/v26_8/a2_piper_base_v26_8_bilateral_opening_scaffold_decay_pla
+  n_20260903.md → file-based memory → 本 prompt。plan 与本 prompt 冲突以 plan
+  为准；plan 与 source 冲突以 source 为准，并在 handoff 中回报，不得静默改判。
+
+  必读顺序：AGENTS.md、.ai/ROLE.md、.ai/PROJECT.md、.ai/WORKFLOW.md、.codex/AGEN
+  TS.md；.ai/SCIENTIFIC_ENGINEERING.md、.ai/LONG_RUNNING_TASKS.md；MEMORY.md、me
+  mory/a2-piper/MEMORY.md、memory/a2-piper/base-v26-scratch-bilateral-teacher/de
+  scription.md 与 TODO.md；随后通读 v26-8 plan 全文；再读 v26-7 plan 的
+  §3、§5、§6.5、§7 和 scriptsFORhuman/v26_7/ 下的
+  orchestrate、train_cell、eval_cell、eval_lane、reduce 脚本，它们是 v26-8
+  脚本的模板。需要委托时按 .codex/TEAM.md 使用最少必要的 agent。
+
+  Owner 授权范围：GPU0 到 GPU7 全部可用于 v26-8；Wave 1 与满足 plan §9 条件的
+  Wave 2 已授权；memory 三文件按里程碑更新已授权。未授权：Git commit 与
+  push、Teacher/Student handoff 与 G7 更新、任何 hardware 动作、修改 v26-7 的
+  artifact 或脚本、修改 reward 函数逻辑或 scale 数值、修改 stage 判据、修改
+  trainer 加载路径。
+
+  实现范围（plan §5，最小充分）：
+
+  1. door_open_a2_base.py 里 v26-8 curriculum driver 的 override 分支，只在
+     a2_v26_8_penalty_driver 设置时生效；同一 episode 的 start_stage 与
+     max_stage 配对缓冲；名单校验 fail-fast；JSONL trace；log_dict 记录 clip
+     后的 scale。键缺失时默认路径必须 bit-identical。trace
+     字段名可对齐仓库现有计数器，但必须在 reducer 合同里写明。
+  2. base_v26_8_common.yaml 与六个 cell yaml，继承 base_v26_7_common，加载合同为
+     policy_only 加 policy_only_load_actor_rms: true，num_total_batches: 
+     3000，源 checkpoint 按 plan §3。
+  3. scriptsFORhuman/v26_8/ 全套脚本，复制 v26-7 同名脚本再改，eval cell 追加
+     ++rewards.reward_penalty_curriculum=false。
+  4. gr00t/rl/tests/test_a2_v26_8_*.py 覆盖 plan §6.1 的五项单元测试。
+
+  执行顺序：G0 静态与单元门 → G1 在 GPU0 做 K 接线 smoke → 六格
+  train-launch，每格独立 tmux 与 run receipt → milestone 500 到 3000 每个都跑 12
+  lane exact64 双侧评估并出 reducer → step3000 endpoint reducer 与 typed
+  outcomes → closure 文档 → 按 plan §9 判定 Wave 2 分支并通知 Owner 后自主启动。
+
+  硬性规则：任一格非零退出即停止该格、保留证据、不重跑、不放宽阈值、不改
+  config、不追加预算；K 格 fail-fast 退出立即交回 Owner；exact64、integrity
+  0、resolved config 与源 SHA-256 核对不通过即该格 V26_8_INVALID；不得用
+  fallback、broad catch、默认假数据掩盖问题；Sx+ 与 open_hold
+  是到达计数，不得写成通过率；Q05_S1 源上的 LEFT 62 complete
+  是非路由观察，只记录。
+
+  每个 milestone 向 Owner 汇报：逐格逐侧 D/S3+/S4+/open_hold/S5+/complete 表，同
+  source 下 arm 减 C 的配对差，K 格 scale 与两侧 driver 的轨迹，integrity 与
+  receipt 状态，活跃进程与 GPU
+  占用。凡是与历史基线反向的读数，即使不进路由也必须列出。
+
+  Closure 交付：scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_<dat
+  e>.md，含 typed outcomes、Wave 2 分支判定、未运行事项、证据等级；memory
+  三文件更新；changed paths 清单；向 Owner 提出 commit 请求但不自行
+  commit。结束时确认无活跃 writer、tmux 或排他 lease。
+
+  ---
+
+  证据边界与状态
+
+  - 本轮全部为 INSPECTED 级：代码路径、resolved config、训练日志与冻结
+    reducer。未运行任何训练、评估或 smoke。
+  - 机器状态：无 v26-7 或 v26-8 进程，GPU0 到 7 空闲。
+  - 未 commit、未 push。工作树里的 v26-7 核心改动与新增的 v26_8
+    目录都是未提交状态，Codex 会在 source lock 里记录 HEAD 与文件哈希。
+
+✻ Cogitated for 30m 51s · done Thursday 8:52 PM
+
+❯ v26-8 已按硬规则在 G1 fail-fast 后关闭，未启动 Wave 1 或 Wave 2。             
+                                                                                
+  - G0：STATIC_PASS / TEST_PASS                                                 
+    - 20 个文件进入 source lock，无漂移。                                       
+    - 两个 source checkpoint SHA-256 均与 plan 匹配。                           
+    - 六格 config、16 项非零 reward 名单、eval curriculum-off 合同通过。        
+    - 五类单元门共 6 passed。                                                   
+  - G1：NOT_ADMITTED                                                            
+    - K_S1 在 Isaac scene construction 阶段无法打开远程                         
+  default_environment.usd，receipt 为 FAIL/1。                                  
+    - 失败早于 trainer/policy load；没有 policy step、checkpoint、K trace 或    
+  load receipt。                                                                
+    - 按要求没有重跑、改 config、放宽阈值或追加预算。                           
+  - Q_A、Q_K、step500–3000 milestones、endpoint reducer、Wave 2 B1/B2：全部     
+  NOT_RUN，没有用 0/64 伪造未运行数据。                                         
+                                                                                
+  完整裁定见 [v26-8 execution                                                   
+  closure](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_8/a2_p 
+  iper_base_v26_8_execution_closure_20260903.md)。失败机器证据见 [g1_failure.js 
+  on](/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v26/v26_8_bilate 
+  ral_opening_scaffold_decay_20260903/G1_k_wiring/g1_failure.json) 和 [G1       
+  receipt](/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v26_8_g1_ 
+  wiring/RUN_RECEIPT.json)。                                                    
+                                                                                
+  已修改：                                                                      
+                                                                                
+  - [door_open_a2_base.py](/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/e 
+  nvs/door/door_open_a2_base.py)                                                
+  - 7 个 base_v26_8_*.yaml                                                      
+  - v26-8 orchestrator、train/eval、receipt、verify 和 reducer 脚本             
+  - [CPU tests](/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/tests/test_a 
+  2_v26_8_penalty_curriculum.py)                                                
+  - [G0 source appendix](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhu 
+  man/v26_8/a2_piper_base_v26_8_g0_source_appendix_20260903.md)                 
+  - Memory 的 [description](/home/baoquanc/workspace/DoorDog-A2_Piper/memory/a2 
+  -piper/base-v26-scratch-bilateral-teacher/description.md)、[TODO](/home/baoqu 
+  anc/workspace/DoorDog-A2_Piper/memory/a2-piper/base-v26-scratch-bilateral-tea 
+  cher/TODO.md)、[DONE](/home/baoquanc/workspace/DoorDog-A2_Piper/memory/a2-pip 
+  er/base-v26-scratch-bilateral-teacher/DONE.md)                                
+                                                                                
+  未修改 v26-7、reward scale/逻辑、stage 判据、trainer                          
+  loader、Teacher/Student/G7 或硬件路径。                                       
+                                                                                
+  收尾状态：无活跃 v26-8 writer、tmux、训练/eval 进程或排他 lease；team state   
+  已归档并停用；GPU0–7 均空闲。未 commit、未 push。请 Owner                     
+  决定是否授权提交当前实现，以及是否另行授权使用新 run/output root 重试 G1。    
+
+  Thought for 3m 36s (ctrl+o to expand)
+
+● 我先核对盘上的失败证据，再对两项请求给出裁定。重点看 G1
+  失败的确切原因是否真是外部资产加载，以及 v26-7 当时同一资产是怎么加载成功的。
+
+  Thought for 26m 26s, ran 6 shell commands (ctrl+o to expand)
+
+● 确认了根因：不是资产服务器或v26-8代码的问题,而是本机tmux
+  server残留的陈旧proxy环境导致的。接下来我会把relaunch协议写入plan附录，并将这
+  条infra结论记录到memory中，再给出最终裁定。 · summarized
+
+  Thought for 1m 57s, ran 1 shell command (ctrl+o to expand)
+
+● 裁定：G1 失败是本机基础设施问题，不是科学失败，也不是 v26-8 缺陷。建议授权 G1 
+  r2 relaunch，并授权提交。
+
+  根因已在 runtime 级确认。 本机 tmux server 从 7 月 31
+  日一直活着，它的全局环境固定
+  http_proxy/https_proxy=127.0.0.1:18888。当前代理只在 18889 监听，18888
+  上没有任何进程。run_supervisor.py 用 tmux new-session -d 启动
+  run.sh，不显式传环境，所以 G1 的 Isaac 进程继承了指向死代理的变量，对 S3
+  的全部拉取失败，spawn_ground_plane 打开 default_environment.usd 时抛
+  FileNotFoundError。同一进程在 56 秒时对 NVIDIA 基础材质的 MDL
+  拉取也全部失败，与此一致。
+
+  我做了三项核对：
+
+  - 在当前 shell（18889）与不走代理两种方式下，该 USD 与 MDL 的 URL 都返回 HTTP
+    200。资产服务器没有问题。
+  - 用 curl -x 127.0.0.1:18888 访问同一 URL，退出码 7，连接被拒绝。
+  - 新建一个与 supervisor 完全相同方式的临时 tmux session，其中 env 显示
+    18888，curl 同样退出码 7。探测 session 已清理。
+
+  v26-7 在 9 月 2 日用同一个 wrapper 成功，说明代理端口是在 9 月 2 日到 9 月 3
+  日 13:48 UTC 之间变的。Codex 团队的 closure 把根因写成"无法打开远程
+  USD"，事实正确但停在了表层。
+
+  决定一：G1 r2 relaunch，建议授权。 依据与上一轮 v26-7 step1000
+  的裁定相同。"不重跑"保护的是有策略读数之后的选择性重跑；这次失败早于任何
+  policy step，没有 checkpoint、K trace 或 load receipt，不存在挑结果的可能。严
+  格执行"不重跑"的实际后果是因一个环境变量放弃整个 v26-8。我已把 relaunch
+  协议写进 plan §13，要点：
+
+  1. 新增失败类别 INFRA_FAILURE_BEFORE_POLICY_LOAD，只有这类失败允许一次
+     relaunch。policy step 一旦执行，任何非零退出仍按 §8.3 停格不重跑。
+  2. orchestrator 的 launch 必须把启动 shell 当前的 proxy 变量显式写进 receipt
+     记录的 command。每个 run 的网络环境从 receipt 可复现。
+  3. 启动 Isaac 前做 P0_ASSETS preflight：在与 tmux session 相同的环境下 curl
+     两个资产 URL，都 200 才启动。preflight 可无限重试，它不是实验。
+  4. 六格 config、K 代码、阈值、名单、源 checkpoint 零改动。source lock 只允许
+     orchestrator 相关文件出现 diff。
+  5. 新 run root 加 _r2 后缀，失败的 G1 目录与 receipt 原样保留。
+  6. G1 r2 通过后直接进 Wave 1，不需再审批。
+
+  不建议只用 tmux set-environment -g 把全局环境改到 18889。它能救这一次，但
+  receipt 里看不到网络环境，下次端口再变还会静默复发。可以作为附加动作，不能作为
+  唯一修复。
+
+  决定二：commit，建议授权，分两次提交。 第一次提交 v26-6/v26-7 的全部改动：核心
+  offset 修复、capability bundle 配置、测试、脚本、文档与 memory。这批改动有
+  runtime 与 experiment 证据，endpoint 已由你验收，却至今未入库，是当前最大的
+  source identity 风险。第二次提交 v26-8 实现：env driver 代码、七个
+  yaml、脚本、测试、plan、G0 附录与 closure。提交信息需写明只有 STATIC/TEST
+  证据，G1 NOT_ADMITTED，原因是 infra。不建议现在 push，除非你要走 Cloud Pro
+  review。另有三个更早的未跟踪目录
+  scriptsFORhuman/pro_reviews、knowledge_recap、v26_6 需要你决定是否一并纳入。
+
+  一个顺带的 hazard。 Isaac python 进程在场景构造抛异常后以 0 退出。这次是
+  v26_8_capture_train.py 依靠"strict policy-load
+  成功行"才判出失败。这个守卫必须保留，receipt 应同时记录 Isaac 进程与 wrapper
+  两个返回码。已写入 plan §13.1。
+
+  状态。 无活跃进程，GPU0 到 7 空闲。我更新了 plan §13、memory description 的
+  durable runtime findings 与 TODO；没有改 tmux 环境、代码、config 或任何 v26-8
+  artifact。未 commit，未 push。
+
+  可直接转给 Codex 的授权文本，供你确认后使用：
+
+  ▎ 授权 v26-8 G1 r2 relaunch，按 plan §13 执行：显式 proxy env 写入 receipt 
+  ▎ command、P0_ASSETS preflight、新 run root _r2、实验合同零改动；G1 r2 PASS 
+  ▎ 后直接进入 Wave 1。授权两次 commit：先 v26-6/v26-7 已验收改动，再 v26-8 
+  ▎ 实现；不 push。
+
+✻ Churned for 34m 31s · done Thursday 10:36 PM

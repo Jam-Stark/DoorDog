@@ -1,9 +1,19 @@
 # TODO
 
-- 2026-09-04 00:01 HKT - Owner 已授权两次本地 commit（v26-6/v26-7、v26-8；不 push）及 plan §13
-  G1 r2 relaunch。下一步按冻结顺序执行 r2 source/contract lock → `P0_ASSETS` → GPU0 G1；若 G1 PASS，
-  不再等待审批，立即启动 Wave 1 六格。旧失败 root/receipt 不得覆写。
-- 2026-09-03 21:59 HKT - **v26-8 已在 G1 fail-fast 后关闭并交回 Owner**。G0 为
+- 2026-09-05 07:21 HKT - **v26 已由 Owner 裁定收尾**（scoped 目标达成：S2 谱系双侧 complete 64/64；LEFT 行为质量与资格认定未做）。
+  资格认定作为 v27.0 执行；v27 authority：`scriptsFORhuman/v27/a2_piper_base_v27_plan_20260905.md`；
+  路线裁定见 `scriptsFORhuman/a2_piper_longterm_TODO.md` R 节。本 entry 不再新增实验；v27 建 entry
+  `base-v27-bilateral-hardening` 后把状态改为 closed。
+- 2026-09-04 23:17 HKT - v26-8已完成，无待运行的获准训练/eval。endpoint：W_NOT_DIFFERENT、K_REGRESSED，
+  C_ENTRY_EMERGED/C_CONSOLIDATED；K_S1/K_S2 RIGHT D相对C−16/−9为全部NO_REGRESS失败项。
+  B1/B2均NOT_RUN，不能自动启动scratch/KW，也不从中途checkpoint重选路由。原预算内六格/72lane全部完成。
+- 待Owner决定是否授权新的scoped commit：r3/r3a修复、执行文档与memory；此前两次commit已完成，仍不push。
+  这只是Git后续，不是未完成实验。Teacher/Student/G7/hardware不在本次交付范围。
+- 历史阻塞（已由Owner后续授权及plan §14–15解除，失败artifact保留）：2026-09-04 00:14 HKT，v26-8 G1 r2 已在 policy load 与 5 batches 后因 K natural-pairing gate
+  `FAIL/1`，不满足 §13 infra relaunch 条件；Wave 1/2 不得启动。待 Owner 审阅 r2 closure，并决定是否
+  另开新 plan 处理 curriculum update 的跨侧 episode 聚合语义；不得修改本次 artifact、重跑 r2 或把
+  LEFT/RIGHT 分别出现过 sample 改写为“同一次 update 双侧样本”。
+- 历史阻塞（已解除，原失败不改写）：2026-09-03 21:59 HKT，**v26-8 attempt1 已在 G1 fail-fast 后关闭并交回 Owner**。G0 为
   `STATIC_PASS/TEST_PASS`；首次 K_S1 smoke 因远程 `default_environment.usd` 无法打开而在 scene
   construction 非零退出，未到 policy load/step。按冻结合同不得重跑；Wave 1/milestone/endpoint/Wave 2
   均为 `NOT_RUN`。若 Owner 后续决定重试，必须明确授权新的 run/output root；不得覆写本次 failure artifact。

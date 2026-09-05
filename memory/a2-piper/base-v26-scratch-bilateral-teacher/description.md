@@ -1,8 +1,8 @@
 ---
 name: base-v26-scratch-bilateral-teacher
 scope: scratch-born bilateral A2+PiPER Teacher acquisition, far-start navigation, staged reset, and load consolidation
-status: v26_7_closed_v26_8_g1_r2_authorized_prelaunch
-last_updated: 2026-09-04 00:01 HKT
+status: v26_8_complete_wave2_not_admitted
+last_updated: 2026-09-04 23:17 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v26-scratch-bilateral-teacher/description.md
@@ -144,6 +144,78 @@ consolidation。
   `P0_ASSETS`。旧 G0 被直接复用，旧失败 G1 与 receipt 原样保留；逐文件 r2 contract verifier 只允许
   plan §13、orchestrator 与 child-process receipt wrapper 变化，并同时记录 Isaac 子进程与 wrapper 返回码。
   当前处于 P0/G1 r2 prelaunch，尚无新的 GPU/runtime 结果。
+- 2026-09-04 00:14 HKT - G1 r2 在 P0、scene construction、strict policy load 与 5 batches 均成功后，
+  于 K wiring reducer fail-fast：35 行 trace 中 LEFT/RIGHT 分别有 12/22 行 natural sample，但没有任何
+  同一次 update 两侧同时非零，故 35/35 skipped、scale 始终 1.0，未满足 §6.2。外层 receipt `FAIL/1`；
+  该失败已执行 policy step，不是可重试 infra。Wave 1/全部 milestone/endpoint/Wave 2 均 `NOT_RUN`，
+  终态 `V26_8_NOT_ADMITTED_G1_R2_K_NATURAL_PAIRING_GATE_FAILURE`；不得在本协议下再次 relaunch。
+  closure：`scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260904.md`。
+- 2026-09-04 00:27 HKT - Owner 授权 plan §14 amendment 与 G1 r3，只修改跨侧 episode 聚合/消费语义。
+  r3 保留 same-episode start/max snapshot，新增按侧 pending natural denominator/numerator；缺侧 update
+  保留窗口，双侧均非空后才按原 0.5/0.7 driver 决策并原子消费。六格 config、reward/stage、阈值/scale、
+  source checkpoint、trainer 与 reducer 判据不变。r3 使用全新 `_r3` source lock/G0/G1/Wave1 roots；
+  G1 PASS 后仍直接进入 Wave 1。
+- 2026-09-04 01:11 HKT - r3 窄修已通过独立 IsaacLab semantic review、7 项 CPU test 与正式门：
+  `R3_CONTRACT_PASS`、`STATIC_PASS`、`G0_PASS`。r3 verifier 以 r2 lock 为 baseline，19 个 locked 文件
+  byte-identical，仅 core pending 语义、对应 test、plan §14 与 `_r3` orchestrator 四项差分。当前进入
+  P0_ASSETS/GPU0 G1 r3；source 已冻结，不再修改。
+- 2026-09-04 01:20 HKT - G1 r3 证明 pending 聚合/消费已生效：35 行中 10 次 bilateral consume，
+  首次为 update2。update31 双侧均 `1/1` 到 Stage4，原 0.7 driver 正确把 scale 从 1.0 衰减到
+  `0.9998999834060669`，但旧 G1 门要求 5-batch 内 scale 全为 1.0，故 reducer `FAIL/1`。该失败在
+  policy load/step 后且不属于 infra；未启动 Wave 1/2，未放宽门或重跑。终态
+  `V26_8_NOT_ADMITTED_G1_R3_SCALE_ASSERTION_AFTER_VALID_CONSUMPTION`；closure：
+  `scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260904_r3.md`。
+- 2026-09-04 01:31 HKT - Owner 授权自主合理修复后，plan §15 将旧 G1“scale 必须全 1.0”替换为逐行
+  exact torch-float32 transition verifier；对 immutable r3 artifact 的 CPU-only readjudication 为
+  `PASS/0 + G1_READJUDICATION_PASS`，旧 r3 `FAIL/1`、failure JSON 与缺失的 `g1_wiring.json` 均原样保留。
+  r3a delta/source/G0 为 PASS，现按 gate 直接启动新 `_r3a` Wave 1 六格。
+- 2026-09-04 01:47 HKT - `_r3a` Wave 1 六格已在 GPU2–7 独立 tmux/receipt 启动，六次 P0 HTTP200、
+  strict policy-only + actor RMS load、resolved config、source checkpoint/hash/lock 与 receipt provenance
+  全部 PASS；当前约 batch13–16，无非零退出。K_S1 scale 已到 `0.945906`（ENGAGED 前兆），K_S2 仍
+  `1.0`，符合预期方向但不提前作 milestone 路由；等待六格 step500 后做 12-lane exact64。
+- 2026-09-04 05:54 HKT - `_r3a` step500 完成：12×exact64、integrity=0、两条 eval receipt PASS/0，
+  reducer `V26_8_MILESTONE_REPORTED`，无停格，endpoint outcomes 仍 null。C_S1 RIGHT D 从源64降至43，
+  为 `WARM_START_TRANSIENT`；C_S2 retained。S2 LEFT S4+ 的 C/W/K 为47/64/64（源0），但 RIGHT S5+
+  从源21降至1/14/2；S1 LEFT complete 为64/63/62，仅记录。K_S1/K_S2 均衰至0.2，K_S2 惰性预期
+  被实际轨迹推翻，但其 LEFT S4+=64，未触发 driver mismatch。eval-only 修复显式 driver=null，与
+  curriculum=false 一起在12份 runtime config 验证，未改训练/plan binding。完整计数、同源差、历史反向
+  读数与 consumed-only 双侧 driver 轨迹见 `scriptsFORhuman/v26_8/a2_piper_base_v26_8_step500_readout_20260904.md`。
+  六格仍运行，下一门为 step1000，不作中途阈值/config 修改。
+- 2026-09-04 09:21 HKT - `_r3a` step1000 完成：12×exact64、integrity=0、eval PASS/0，无停格。
+  C_S1 warm-start从transient恢复retained。W_S2 LEFT/RIGHT S5+=60/63、complete=59/63，但C_S2已
+  自行entry，不能把downstream正读数替换W的entry判据；K_S1 RIGHT D相对C为−9，K_S2 LEFT
+  S5+/complete相对C为−39/−37，负向结果保留。K两格在600–1000的100-batch边界均为0.2，
+  bilateral driver约0.992–0.999，无mismatch；endpoint仍未裁定。详见
+  `scriptsFORhuman/v26_8/a2_piper_base_v26_8_step1000_readout_20260904.md`；下一门step1500。
+- 2026-09-04 12:45 HKT - `_r3a` step1500完成：12×exact64、integrity=0、eval PASS/0，无停格。
+  C_S2 RIGHT S5+/complete从step1000的4/0升到63/63，W_S2为64/64；K_S2 LEFT仅5/1，相对C
+  为−52/−55，RIGHT D相对C为−24（相对历史源−19），即便该侧S5+/complete=64/64也保留负读数。
+  W_S1 min-side S5+相对C−8，触及附加downstream-harm数值线但不提前裁定。K两格1100–1500
+  边界scale约0.2，双侧driver约0.992–0.999，无mismatch；endpoint仍待3000。计数、同源差、
+  历史/上轮差、driver及PID/GPU快照见 `scriptsFORhuman/v26_8/a2_piper_base_v26_8_step1500_readout_20260904.md`。
+  六格继续原预算，下一门step2000。
+- 2026-09-04 16:11 HKT - `_r3a` step2000完成：12×exact64、integrity=0、eval PASS/0，无停格。
+  K_S2 LEFT S4+/open_hold=62/62但S5+/complete=0/0，相对C为−63/−63；K_S1 min-side S5+
+  相对C+18，同时RIGHT D−11；W_S1 LEFT D−10、K_S2 RIGHT D−16。正下游计数不取消冻结D guard，
+  也不提前裁定endpoint。K两格1600–2000边界scale约0.2，双侧driver约0.994–0.998，无mismatch。
+  逐侧计数、同源差、历史/上轮全部差与QA进程快照见
+  `scriptsFORhuman/v26_8/a2_piper_base_v26_8_step2000_readout_20260904.md`；下一门step2500，原预算不变。
+- 2026-09-04 19:36 HKT - `_r3a` step2500完成：12×exact64、integrity=0、eval PASS/0，无停格。
+  K_S2 LEFT S5+/complete从0/0恢复到63/63，但双侧D相对C均−26；W_S2双侧full-chain计数64，
+  同时LEFT D相对C−18；W_S1 LEFT D−9。K_S1 min-side S5+相对C+18，正负读数并存，不改D guard。
+  K两格2100–2500边界scale约0.2、无mismatch。完整历史反向差、driver与进程快照见
+  `scriptsFORhuman/v26_8/a2_piper_base_v26_8_step2500_readout_20260904.md`；下一步3000 endpoint，
+  typed outcomes和Wave2仍未裁定，六格继续原预算。
+- 2026-09-04 23:17 HKT - v26-8执行结束：六格3000/3000自然exit0，6个milestone/72个lane/4608
+  episodes均exact64、integrity=0，18份Wave1 run receipts均PASS/0，无停格/重跑。endpoint为
+  `W_NOT_DIFFERENT`、`K_REGRESSED`，C为`C_ENTRY_EMERGED/C_CONSOLIDATED`；独立数值核对PASS。
+  K_S1 min-side S5+相对C+8、RIGHT complete+17，但K_S1/K_S2 RIGHT D分别−16/−9，违反NO_REGRESS。
+  W_S1下游+11/+17仍是正读数，C_S2已自行entry，故W不获额外entry支持。K两格已engaged，无driver
+  mismatch/invalid或oscillating；末段K_S2 driver下降仍记录。按§9 B1/B2均NOT_RUN，不追加预算。
+  最终来源核对28个锁定文件通过，仅保留eval前登记的driver-null补充；原r2/r3 FAIL/1及r3 CPU重裁
+  PASS均保留。23:10 HKT训练/eval/background writer、v26-8 tmux与open leases均为0，GPU0–7空闲。
+  closure：`scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260904_wave1_r3a.md`。
+  Teacher/Student/G7/hardware不变；已授权两次commit为e3d496b/aa8a05f，r3/r3a及执行文档待新commit授权，不push。
 
 ## Frozen acquisition decisions
 

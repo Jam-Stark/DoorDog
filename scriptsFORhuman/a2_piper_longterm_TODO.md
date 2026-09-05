@@ -1,22 +1,41 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-18(v24 收口归档与 owner insight 补充;规则 16-18 入册;下一轮场地决策待 owner)。
+创建:2026-07-21;最近更新:2026-09-05(v25/v26 收口归档;三条 novelty 路线裁定入册为 R 节;v27 排期;force-feasibility 主线 C 节降级为背景与 v28 输入;规则 19-21 入册)。
 
-## Worktree 分工(2026-08-16 起)
+## Worktree 分工(2026-09-05 修订)
 
-- **推门主 worktree(本仓库)= novelty 引擎**:force-feasibility / arm-base 力耦合联动研究主线;同时产出对"推拉门"通用的 posture / arm-base 协同能力与接口(posture command 语义、gate 机制、E-region certificate 工具链保持 task-agnostic,供拉门 worktree 复用)。
-- **拉门 worktree(并行)**:in/out 拉门任务稳定路线探索(原 C.4 场地;lr 镜像工程随之移交)。
-- **蒸馏 worktree(并行)**:student distillation 稳定路线探索(teacher 在推门任务已到天花板,原 D 表入场条件实质满足)。
+- **推门主 worktree(本仓库)= 方法与可靠性主线**:v27 做 bilateral Teacher hardening(LEFT 行为对齐、门侧负载/摩擦分布、seed/从零可靠性)与"单次失抓恢复环"pilot(R 节方向 2 的最小切口);v28 起以"交互历史→有效交互状态估计"(R 节方向 1 的重构版)为科学主线。共同 obs/action/capability 语义由本仓库维护,pull 分支只能 additive 扩展。
+- **拉门 worktree(`DoorDog-A2_Piper_pull_v0`,训练在另一台 4×3090 机器)**:迁入主线 v26-7/v26-8 bilateral backbone,先重建双侧 unlatch→opening 全链路;计划见 `scriptsFORhuman/pull_v26_8_alignment/a2_piper_pull_v26_8_backbone_migration_plan_20260905.md`(canonical 副本在 pull 分支 `scriptsFORhuman/pull_task/`)。Stage0–3 与主线同语义,Stage3→4 起按 pull 物理分叉。
+- **蒸馏 worktree(并行)**:student distillation 稳定路线探索;bilateral Teacher 的 G7 binding 更新须待 v27.0 资格认定与 Owner 裁决。
 - GPU lease 是外部动态调度事实,worktree 间分配以用户当轮指令为准,不写 durable memory。
 
 ---
 
-## A. 已排期(进行中的 round)
+## R. 路线裁定(2026-09-05,Owner 三条 novelty 想法的独立判断)
+
+依据:v22–v26 的全部 typed 结论(见归档)、v26-8 r3a endpoint、一手文献边界(DoorMan 2025;Learning to Open and Traverse Doors with a Legged Manipulator,CoRL 2024;RMA 2021;RecoveryChaining 2024;Deep Whole-Body Control 2022;Learning Force Control for Legged Manipulation 2024)。三条想法都不是"换名字即 novelty";裁定按"现在切入 / 远期队列 / 不合适"三档。
+
+| 想法 | 裁定 | 理由与改写 |
+|---|---|---|
+| **1. 放弃/修改 force-feasible,改为本体感知实时估门、按普通/困难/极限门分层行为** | **远期主线(v28 入口),v27.2 先埋测量** | 同意放弃 certificate/E1-density 那套准入机器(v23/v24 两轮 inconclusive 的根源是容量代理与准入假设混杂),保留 force-aware 的物理问题意识。但目标要从"精确辨识 mass/hinge drive"改写为"对控制有用的交互状态估计"(有效阻力与回弹趋势、抓握可信度、近期动作能否产生 opening progress 及其不确定性),用 action-conditioned history latent(RMA 类)实现,并以 episode 内参数变化与训练外参数组合作为"实时适应"的判据。三层门不能由策略是否失败来定义,先按物理场景分层。前提是先有可靠双侧 Teacher 与真实存在"arm 单独不够"的门域——这正是 v27.2 要建立的;v27.2 只做 report-only 本体感知 telemetry 与离线 shadow estimator,不改 actor。当前 actor 是 privileged(看得到门重、门关节、side/IO、接触力),"proprio-only"必须先冻结可部署传感合同。 |
+| **2. 瀑布式 stage 框架改树形;push/pull 合一;每 stage 加 repair 分支;可被打断的 policy** | **拆三段:repair/重抓环——现在切入(v27.4 pilot);push/pull 合一与多次打断——远期;按外部条件长出策略树——不合适** | (a) v26-7 已证明单一 side-conditioned actor 在瀑布框架下同时学会两侧,"按 LEFT/RIGHT 分树"比条件策略更不通用,否决;push/pull 合一是能力目标不是方法 novelty(CoRL 2024 已有单策略推拉左右),且 pull 尚未双侧走通,列为 N-03。(b) 当前 `StagedTaskBase` 只允许 stage 单调上升,失抓只能等 overtime reset;这是 sim-to-real 的主要失败面(DepthADD r17/r18 的 stage4 抓握保持问题同源),也是 pull 回弹场景的必需能力。正确抽象不是树而是**带返回边的有向图**:历史进度(评估)、当前有效技能状态(控制)、训练 reset 来源(采样)三者分开记录。可检验的方法问题是:显式恢复状态 + 失效边界快照采样,是否优于同 RNN、同预算的普通扰动训练。v27.4 只做"未过门前非计划失抓→找回把手→重抓→按当前 latch/hinge 继续"这一条环的 pilot;Stage0/1 站位 repair 价值低(闭环策略本就自校正),多次打断、任意时刻扰动列为 N-05。 |
+| **3. arm–base 联动:加 coupling critic / 动力学建模 / 联动 reward** | **不合适(当前);带入场条件进停车场** | v22–v25 四轮的结论是:当前门域 arm 单独可完成;posture 主要帮助 reach/grasp 几何而非力;roll/pitch 的力价值 `UNRESOLVED`;body-assist 不安全。在没有"arm 单独失败"的 regime 里学联动(critic 或 reward)只会制造看起来联动的动作(v15 教训:无载荷 regime 学 gate 是噪声),无法证伪。现有 PPO critic 已通过任务回报间接评价联动,缺的是可识别的监督与因果证据。入场条件:v27.2/v28 的门域出现 arm-only 失败层,且 matched-intervention(LT-23-05)测得跨场景稳定、可预测的 interaction residual;届时先 shadow critic,后干预监督,最后才讨论 branch PPO(LT-23-06/07)。 |
+
+由此形成的阶段图:**v27** = v26 资格认定(v27.0)+ LEFT 行为对齐(v27.1)+ 门侧负载/摩擦分布(v27.2)+ seed/从零可靠性含 K 修正 guard 对照(v27.3)+ 单次失抓恢复环 pilot(v27.4);**v28 候选** = 恢复图多 seed 确认(N-01)与交互历史自适应(N-02)的 2×2 消融;**条件路线** = push/pull 合一(N-03)、hold/swing 策略选择(N-04)、多次打断与站位 repair(N-05)、coupling critic(N-06)。plan:`scriptsFORhuman/v27/a2_piper_base_v27_plan_20260905.md`。
+
+---
+
+## A. 已排期(进行中的 round,2026-09-05)
 
 | 条目 | 排期 | 出处 |
 |---|---|---|
-| **下一轮场地决策(owner)**:force-feasibility 主线迁移拉门 worktree(A,推荐)/ 既有 F3′ checkpoints 上的 RQ3 measurement-only 池化大 N 评估(B,轻量,需新 scope 注册)/ v25-push E1 密度导向设计(C)。v24 已交付可迁移资产:friction Branch A 基建(per-env τ_s/τ_d/c_v)、行为 E 区分类器、certificate/gate 工具链、五个跨 worktree schema | **待 owner 决策** | v24 收口(2026-08-18) |
+| **V27-00 v26 资格认定(v26 收尾动作)**:r3a step3000 C_S2/W_S2/K_S2 的 DEV(exact128/side)+ CONF 集质量门、render QA、候选 manifest;Teacher/G7 binding 由 Owner 裁决 | v27 第一步,GPU0–1 只评估 | v27 plan §3 |
+| **V27-01 LEFT 行为对齐**:C / Q1(event_v17 body-contact 计价)/ Q2(Q1 + v17 G5 corridor/release 制度)配对,判 `clean_complete` | Wave A,GPU2–7 | v27 plan §4;v17 G5 先例 |
+| **V27-02 门侧负载/摩擦分布收敛**:mass 80–160 + native hinge friction {0,2,5} N·m;report-only 本体感知 telemetry 与离线 shadow estimator(v28 N-02 入口证据) | Wave B,GPU2–4 | v27 plan §5.1;v24 friction backend、v16 mass 结论 |
+| **V27-04 单次失抓恢复环 pilot**:R0 单调状态机 / R1 恢复环 / R2 恢复环 + 失效边界快照采样;注入式扰动评估 | Wave B,GPU5–7 | v27 plan §5.2;R 节方向 2 |
+| **V27-03 seed 与从零可靠性**:C-scratch ×3 seed 对 K-scratch ×3 seed(K 用 S4+/open_hold 作 NO_REGRESS guard,不再用握把时长 D) | Wave C,GPU2–7 | v27 plan §6;v26-8 K_REGRESSED 的 guard 教训 |
+| **PULL-01 pull backbone 迁移**:镜像目标修复、能力窗口 30/55、135/140-D plain actor、v26-7 scratch 范式;Stage3→4 起保留 pull 物理 | pull 机 GPU0–3 | pull 迁移 plan |
 | LT-23-12 源码版本隔离重构 + 根目录垃圾清理(用户自查清单已有) | 轮间窗口 | v23 owner 决策:mid-round 禁清理 |
 
 ## B. 下一批候选(状态更新 2026-08-16)
@@ -24,10 +43,10 @@
 | 条目 | 前置/触发 | 出处与要点 |
 |---|---|---|
 | ~~真实 Piper 限位改造(调弱到真实规格)~~ **已被 v23 supersede**:effort ladder 100→20 N·m 零样本全无退化(`LADDER_INCONCLUSIVE`,矩阵冻结 40)——sim 内 arm 力矩不是约束;实机规格标定保留为 LT-23-01 | 已收口 | v23 F2 receipt |
-| **door_open_lr 左右镜像** | **移交拉门 worktree**(in/out 任务自带出生侧镜像工程) | memory `door-asset-randomization-baseline` |
+| ~~door_open_lr 左右镜像~~ **主线已于 v26-7 完成**(几何 offset 修复 + 45 N bundle 后单一 actor 双侧原生 unlatch,v26-8 双侧 complete 64/64);pull 侧同类缺陷(常量目标四元数,镜像偏 180°)由 PULL-01 修复 | 已收口(主线)/ 进行中(pull) | v26-7 plan §2.3;pull 迁移 plan §2.2 |
 | ~~弹簧上限 >12 N·m~~ **已被 v22/v23 否决**:25/30 N·m 探针 below resolution,spring/drive 轴死亡;阻力轴改走 joint friction(A 表 v24 P1) | 已收口 | v22 `higher_torque_probe` + v23 H4 |
 
-## C. Research 主线路线图(force-feasibility-aware policy)
+## C. 原 Research 主线路线图(force-feasibility-aware policy)——2026-09-05 起降级为背景与 v28 输入,裁定见 R 节
 
 依据:`scriptsFORhuman/force_feasible/` 三份讨论(方向:力可行域内偏好 arm 余量大/base 干预小的构型;`u_base = u_user + gate(s)·u_assist`;主任务 + tie-breaker 分层)。
 
@@ -40,6 +59,7 @@
 7. **[v24+ novelty] arm-base 力耦合测量与建模**:高 arm wrench 下的足底反力 / frozen locomotion 抗滑耦合从未被进入过(v23 rescue latch 仅 52/256 触发)。friction 门建立力负载后先做测量级研究(反作用力路径、姿态-足底力分布、locomotion 补偿行为),再决定 coupling critic(LT-23-06/07)的监督数据形态;1280 个 forward-intervention episode 的基础设施已在 v23 建成。
 8. **[跨 worktree novelty] push↔pull 通用 posture/协同接口**:posture command 语义、gate 输入(force/progress/margin history,不含任务特有量)、E-region certificate 工具链保持 task-agnostic;推门 worktree 产出的 gate/coupling 机制以"拉门 worktree 可直接复用"为验收条件之一。
 9. **[叙事定位,2026-08-16 晚修订] 论文主张按证据等级表述**:"roll/pitch 的可达性/协调作用"有中等证据(v22 P0-B acute 37/40 + atlas);"roll/pitch 的力价值"为 `UNRESOLVED`,由 v24 RQ3 在 friction-calibrated E1 上做终裁(四分支预注册,负结果同样成文)。"minimal base intervention" 的力通道候选主角是 bracing(body-assist)与 planar 站位——作为工作假设而非已证结论。
+10. **[2026-09-05 裁定] 本节的 certificate/E1-density 准入机器不再作为立项依据。** 保留的资产:friction Branch A 基建(per-env τ_s/τ_d/c_v,v27.2 直接使用)、matched-intervention runner(LT-23-05,N-06 入场测量工具)、posture/协同接口 task-agnostic 约束(第 8 条)。"力可行性"问题改写为 R 节方向 1 的"交互状态估计",在 v28 以 history latent 实现,并以 episode 内参数变化为判据。
 
 ## D. 停车场(有明确入场条件,暂不排期)
 
@@ -50,6 +70,14 @@
 | latch/handle 几何进一步 randomization(hook 概率、handle 长径、latch 行程) | lr 镜像之后 | v13 §2.5、门生成器已有参数 |
 | privileged obs 加门动力学参数(输入层扩展手术保 warm-start) | 仅当分桶显示策略对门参数自适应失败 | v14 plan M20.4(v14/v15 均未触发) |
 | Phase3 student bootstrapping / GRPO | distillation 之后 | memory `phase3-student-bootstrapping` |
+| **N-01 恢复图多 seed 确认** | v27.4 pilot 判 `RECOVERY_PILOT_PROMISING`;3 seed 同预算,与普通 RNN 扰动训练比较 | R 节方向 2 |
+| **N-02 交互历史 latent / 在线适应(方向 1 重构版)** | v27.2 门域含 arm-only 失败层且 shadow estimator 显示可辨识;冻结可部署传感合同;对照 = 同传感预算 recurrent DR、+history latent、oracle 上界;含 episode 内阻力变化 | R 节方向 1 |
+| **N-03 同一 actor 的 push/pull × LEFT/RIGHT** | PULL-01 建立 pull 双侧全链路;共同 135/140-D 语义;四格分别报告,不以平均掩盖单格失效 | R 节方向 2(a) |
+| **N-04 hold / controlled-swing 策略选择** | 两种策略均在质量规则下成立;由风险/回弹预测决定,不按门重硬编码 | R 节方向 1 三层门的正确形式 |
+| **N-05 多次打断、动态障碍与 Stage0/1 站位 repair** | N-01 之后;独立预算与恢复窗口 | R 节方向 2(c) |
+| **N-06 coupling critic / branch PPO / 联动 reward(方向 3)** | v27.2 或 v28 门域出现 arm-only 失败层,且 LT-23-05 matched-intervention 测得跨场景稳定、可预测的 interaction residual;先 shadow、后干预监督、最后 branch PPO | R 节方向 3;LT-23-05/06/07 |
+| **K scaffold-decay curriculum 的第二次检验** | v27.3 K-scratch 对照;guard 用 S4+/open_hold 而非 D;若仍 `K_SCRATCH_INFERIOR` 则关闭该路线 | v26-8 `K_REGRESSED` + 下游正读数 |
+| ~~按 LEFT/RIGHT 等外部条件长出独立策略树~~ | **否决**:v26-7 证明条件化单一 actor 已覆盖;树比条件策略更不通用 | R 节方向 2(a) |
 
 ## E. 维护性挂账(小,勿丢)
 
@@ -63,6 +91,11 @@
 
 ## 归档(已完成/已否决)
 
+- [x] 2026-09-05:**v26 收口(`V26_SCOPED_TARGET_ACHIEVED`,资格认定移交 v27.0)**——v26-7 以几何 offset 修复(LEFT 目标偏 180°)+ 45 N/1300/32/M39 bundle 从零建立单一 actor 双侧 unlatch(Q20 step2000、Q05 step3000 各 2/3 seed);v26-8 r3a 六格 warm continuation 3000 batches、72 lane exact64、integrity 0:C 自身达 Stage3→4 entry 与 consolidation(C_S2 双侧 complete 64/64),`W_NOT_DIFFERENT`,`K_REGRESSED`(RIGHT durable −16/−9 触发 guard;但 S4+ 仅 −3/−1、Stage4 停留缩短、K_S2 LEFT 握门穿过 61/64——guard 与机制目标不匹配,记为规则 19)。RIGHT 达 v25 计数水平且行为干净;LEFT 计数达标但以"1.2 rad 松手后身体顶门"完成(四分之一到三分之一集有数百牛身体接触),seed0 谱系 LEFT 停 Stage2。Teacher/Student/G7 未更新。
+- [x] 2026-09-05:**规则 19(guard 必须与干预机制的目标量正交)**——衡量"是否回退"的 guard 不能是干预本身要减少的量。v26-8 K 的目标是减少 Stage3 握把租金,guard 却用握把时长 D,导致机制按设计生效即被判回退;opening 已形成后应以 S4+/open_hold 作 NO_REGRESS。
+- [x] 2026-09-05:**规则 20(stage 边界收益断层的谷形变体)**——除已知的"边界前后收益断层"(2026-07-22 规则)外,还要检查两项收益的定义域之间是否留有两头都不付钱的区间:v26 的 `unlatch_hold` 止于 hinge 0.1、Stage4 收益始于 0.25,[0.1,0.25) 是收益谷;W 轴(0.1→0.25)对齐后 `W_NOT_DIFFERENT`,因为 C 自己已越过,但 S1 谱系 RIGHT 下游 +11/+17 说明谷仍有代价。
+- [x] 2026-09-05:**规则 21(长跑环境显式化)**——长寿 tmux server 会把陈旧 proxy 环境传给 supervisor 启动的 Isaac 进程(v26-8 G1 因 18888→18889 端口变更在 `spawn_ground_plane` 抛 FileNotFoundError);此后 receipt command 必须显式写入网络环境,启动 Isaac 前做资产 preflight;policy 读数产生前的 infra 失败允许自主 relaunch,不算科学重跑。
+- [x] 2026-08-21(补录):**v25 收口(retain G7)**——四个 4096×1500 formal cells 完成;Teacher 结论保留 G7(v23 seed0 step1500);FULL S0 step500 为 science checkpoint:LEFT 22/32 crossing-while-holding 但 0/32 goal,RIGHT 32/32;matched-prefix 30 LEFT/32 RIGHT:planar 开关 hinge 效应 LEFT +0.074 / RIGHT +0.148 rad,posture +0.007 / −0.013 rad——posture 主要帮助 reach/grasp 几何,planar 主导即时 opening progress。这是 R 节方向 3"当前不合适"的直接依据。
 - [x] 2026-08-18:**规则 16（measurement-vitals admission）**——任何 calibration/eval population 必须先用同一 checkpoint 在 easy/sham cell 复现已知基线体征；只有体征 PASS 后，派生 denominator、partition 与 typed terminal 才可解释。零分母不是自动的“分母不足”，且零分母终局必须附体征 PASS。该规则由 base_v24 P2 r10 的 0/288 grasp 仪器特征触发，并由 r12 sham 16/16 与 post-F3 64/64 source-vitals-valid population 完成闭环。
 - [x] 2026-08-18:**规则 17（参数域量级锚）**——任何 parameter-domain freeze 必须携带仓库内已验证证据的 magnitude anchor，并明确锚只校准量级、不自动声明物理等价。base_v24 r13 以 v22 可解 `24 N·m` drive-resistance face 为量级锚，将 friction `tau_s` 从 null 域 `[0,1]` 升至稳定的 `{2,5,10,20} N·m`，P1-lite 四档 breakaway literal containment 全过。
 - [x] 2026-08-18:**规则 18（派生量 gate 有效性）**——gate 若依赖 derived quantity 的单调性/可识别性，必须先证明该假设；未证明或被行为自适应混杂时，该量只能 report-only。base_v24 r13 的 modeled `tau_req=I*theta_ddot+c*omega+k*theta+tau_f` 因 policy 随摩擦升高而减速，只得到 matched strict `47/96`，而物理 breakaway 与行为 progress 梯度均强通过；该预测子因此降级为 `MODELED_TAU_MATCHED_ORDERING_CONFOUNDED_BY_SPEED_ADAPTATION`。

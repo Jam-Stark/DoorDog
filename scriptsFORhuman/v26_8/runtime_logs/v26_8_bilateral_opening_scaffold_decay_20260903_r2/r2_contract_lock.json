@@ -1,0 +1,132 @@
+{
+  "schema": "a2_piper_base_v26_8_r2_contract_lock_v1",
+  "status": "R2_CONTRACT_PASS",
+  "baseline_source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_8/runtime_logs/v26_8_bilateral_opening_scaffold_decay_20260903/source_lock.json",
+  "baseline_git_head": "b228bb0c81380618160a61166d4be208d1eb1b45",
+  "experiment_contract_unchanged": true,
+  "unchanged_locked_files": [
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_C_S1.yaml",
+      "baseline_sha256": "54d0c786a7c5f342802f52537b70adcd70f3930dcd6066c4560851080fa85d16",
+      "current_sha256": "54d0c786a7c5f342802f52537b70adcd70f3930dcd6066c4560851080fa85d16"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_C_S2.yaml",
+      "baseline_sha256": "5736ed61154631316be64b68cf4111dd6c8083ac35a3f1f3aa28b9a1b31bdb76",
+      "current_sha256": "5736ed61154631316be64b68cf4111dd6c8083ac35a3f1f3aa28b9a1b31bdb76"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_K_S1.yaml",
+      "baseline_sha256": "f0c7ea581db3f66debbd1c3db164e8663b9928c4af9a70434ed5a1220ae15336",
+      "current_sha256": "f0c7ea581db3f66debbd1c3db164e8663b9928c4af9a70434ed5a1220ae15336"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_K_S2.yaml",
+      "baseline_sha256": "f5d61b1ef96508c3535127636d1c43ddc92b201fc79811db604d73d1f173cb4f",
+      "current_sha256": "f5d61b1ef96508c3535127636d1c43ddc92b201fc79811db604d73d1f173cb4f"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_W_S1.yaml",
+      "baseline_sha256": "1c70d9224c64d9505af8145dd4b9785f818d21ff26b22a8b63b798284c068c61",
+      "current_sha256": "1c70d9224c64d9505af8145dd4b9785f818d21ff26b22a8b63b798284c068c61"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_W_S2.yaml",
+      "baseline_sha256": "41aa3bacaa007b9ac0097120974c2008a06fbc897c5d890a3783411278283861",
+      "current_sha256": "41aa3bacaa007b9ac0097120974c2008a06fbc897c5d890a3783411278283861"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_common.yaml",
+      "baseline_sha256": "17888f84a4d27c6df4513727a61f4e63b43e725a8631f3396a7464c082505f4c",
+      "current_sha256": "17888f84a4d27c6df4513727a61f4e63b43e725a8631f3396a7464c082505f4c"
+    },
+    {
+      "path": "gr00t/rl/envs/door/door_open_a2_base.py",
+      "baseline_sha256": "01d6486ba60c92449e88998952ed31d4d169b549a769eed856909d65abbbd446",
+      "current_sha256": "01d6486ba60c92449e88998952ed31d4d169b549a769eed856909d65abbbd446"
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v26_8_penalty_curriculum.py",
+      "baseline_sha256": "7af10f474a2d790eccc6e79e5937e72d37f5b50e5d8b280553411c25ab2155a6",
+      "current_sha256": "7af10f474a2d790eccc6e79e5937e72d37f5b50e5d8b280553411c25ab2155a6"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/a2_piper_base_v26_8_g0_source_appendix_20260903.md",
+      "baseline_sha256": "2c5e6a627ba8643ea673e1beab7fdb0d95aab5e2f2f05c7738cadb96645fd696",
+      "current_sha256": "2c5e6a627ba8643ea673e1beab7fdb0d95aab5e2f2f05c7738cadb96645fd696"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_eval_cell.sh",
+      "baseline_sha256": "147a9cdaa2b92b2f01221725a0d66cd4da2020cc2fc01ce2d065e57977b23b08",
+      "current_sha256": "147a9cdaa2b92b2f01221725a0d66cd4da2020cc2fc01ce2d065e57977b23b08"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_eval_lane.sh",
+      "baseline_sha256": "164532eefd9a9c9b5940e527311521bc90500a1706e15ddea62809a47ce361e7",
+      "current_sha256": "164532eefd9a9c9b5940e527311521bc90500a1706e15ddea62809a47ce361e7"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_g1_reduce.py",
+      "baseline_sha256": "be4f14da24c37239580b32e162ed100f89d9f944b96e46d92cf32dd3f5b63607",
+      "current_sha256": "be4f14da24c37239580b32e162ed100f89d9f944b96e46d92cf32dd3f5b63607"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_g1_wiring_gate.sh",
+      "baseline_sha256": "a69b8987fcabecc1e4696c960f1afa8643eabe337dfda552c7ee2736a00660bd",
+      "current_sha256": "a69b8987fcabecc1e4696c960f1afa8643eabe337dfda552c7ee2736a00660bd"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_reduce.py",
+      "baseline_sha256": "a8d6b0cd99bee5d1df88c8c2fae7570095a8d5ea2c1c060494328764d89fc37c",
+      "current_sha256": "a8d6b0cd99bee5d1df88c8c2fae7570095a8d5ea2c1c060494328764d89fc37c"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_train_cell.sh",
+      "baseline_sha256": "1bb80c939e0422f286843276255ad443fe58da421b9645e38d53c012bbb3b689",
+      "current_sha256": "1bb80c939e0422f286843276255ad443fe58da421b9645e38d53c012bbb3b689"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_verify.py",
+      "baseline_sha256": "a86061ce918a642467e60183126e7c65a01fce0558286eb1cc0095469963c553",
+      "current_sha256": "a86061ce918a642467e60183126e7c65a01fce0558286eb1cc0095469963c553"
+    }
+  ],
+  "allowed_changed_files": [
+    {
+      "path": "scriptsFORhuman/v26_8/a2_piper_base_v26_8_bilateral_opening_scaffold_decay_plan_20260903.md",
+      "baseline_sha256": "8a5a5e8321d83bdfa33291fbbda82d65bd4f5ecd40e1bd26dd205386ffbda653",
+      "current_sha256": "60fd116d9caa1a753a279f6ebf811b44bf4b11329b260e54e9b16960cf2c73fb",
+      "classification": "authority_appendix_13_r2_protocol"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_capture_train.py",
+      "baseline_sha256": "6fb613dda58f1d7c26f1b9cde8d38e0c489987f35e4e4b38a4a7bd718e11c23a",
+      "current_sha256": "588732e5f527862ce6e18af21dede54b92ede86daf01374cf9b8755df10ef096",
+      "classification": "supervisor_child_process_receipt"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_orchestrate.sh",
+      "baseline_sha256": "b66ad6de777aa93a51ecf6a913159a6838651708c0787b070613bec8fff39b77",
+      "current_sha256": "b751f3cc5b4689f58e4fa478bc36cf31b27b7b2b9cfaab18782083088b3b72b6",
+      "classification": "r2_runtime_orchestration"
+    }
+  ],
+  "new_r2_support_files": [
+    {
+      "path": "scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260903.md",
+      "current_sha256": "fe453a4ba644d0b15a6bc44470fcd4801c2e4ffb204e299764b985d474df8c13",
+      "classification": "attempt_1_runtime_evidence"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_p0_assets.py",
+      "current_sha256": "0b06300fadcee2ba82c411f2237ff0e9491e574a106b6422f47f697a7aab6ea0",
+      "classification": "r2_asset_preflight"
+    },
+    {
+      "path": "scriptsFORhuman/v26_8/v26_8_r2_verify.py",
+      "current_sha256": "33a60ff6386c681cd42cbdcca64d15a2ea8009844907d978ef0513ad6e6bffef",
+      "classification": "r2_contract_verifier"
+    }
+  ],
+  "source_lock_delta_contract": "Every baseline-locked experiment source/config/test/train/eval/reducer file is byte-identical. Only the frozen plan's r2 authority appendix, the orchestrator, and its child-process capture wrapper changed; attempt-1 evidence and r2 preflight/verification are listed separately."
+}

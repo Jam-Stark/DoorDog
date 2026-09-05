@@ -1,0 +1,133 @@
+{
+  "schema": "a2_piper_base_v26_8_static_lock_v1",
+  "status": "STATIC_PASS",
+  "git_head": "aa8a05fbbba62600ee2ac87cd1ad16f1bffa03e5",
+  "git_status_short": [
+    " M gr00t/rl/envs/door/door_open_a2_base.py",
+    " M gr00t/rl/tests/test_a2_v26_8_penalty_curriculum.py",
+    " M memory/a2-piper/base-v26-scratch-bilateral-teacher/DONE.md",
+    " M memory/a2-piper/base-v26-scratch-bilateral-teacher/TODO.md",
+    " M memory/a2-piper/base-v26-scratch-bilateral-teacher/description.md",
+    " M scriptsFORhuman/v26_8/a2_piper_base_v26_8_bilateral_opening_scaffold_decay_plan_20260903.md",
+    " M scriptsFORhuman/v26_8/v26_8_g1_reduce.py",
+    " M scriptsFORhuman/v26_8/v26_8_orchestrate.sh",
+    "?? gr00t/rl/tests/test_a2_v26_8_g1_reduce.py",
+    "?? scriptsFORhuman/knowledge_recap/",
+    "?? scriptsFORhuman/pro_reviews/",
+    "?? scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260904.md",
+    "?? scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260904_r3.md",
+    "?? scriptsFORhuman/v26_8/runtime_logs/v26_8_bilateral_opening_scaffold_decay_20260903_r2/",
+    "?? scriptsFORhuman/v26_8/runtime_logs/v26_8_bilateral_opening_scaffold_decay_20260903_r3/",
+    "?? scriptsFORhuman/v26_8/runtime_logs/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/",
+    "?? scriptsFORhuman/v26_8/v26_8_r3_verify.py",
+    "?? scriptsFORhuman/v26_8/v26_8_r3a_verify.py"
+  ],
+  "selectors": {
+    "C_S1": {
+      "physical_gpu": 2,
+      "seed": 1,
+      "source": "SRC_S1",
+      "checkpoint": "logs_rl/by_batch/base_v26/v26_7_bilateral_native_unlatch_20260902/train/Q05_S1/model_step_003000.pt",
+      "checkpoint_sha256": "a683257213aaba82b583924d841235f772182f53113e513e16c8d27bcb394df1"
+    },
+    "W_S1": {
+      "physical_gpu": 3,
+      "seed": 1,
+      "source": "SRC_S1",
+      "checkpoint": "logs_rl/by_batch/base_v26/v26_7_bilateral_native_unlatch_20260902/train/Q05_S1/model_step_003000.pt",
+      "checkpoint_sha256": "a683257213aaba82b583924d841235f772182f53113e513e16c8d27bcb394df1"
+    },
+    "K_S1": {
+      "physical_gpu": 4,
+      "seed": 1,
+      "source": "SRC_S1",
+      "checkpoint": "logs_rl/by_batch/base_v26/v26_7_bilateral_native_unlatch_20260902/train/Q05_S1/model_step_003000.pt",
+      "checkpoint_sha256": "a683257213aaba82b583924d841235f772182f53113e513e16c8d27bcb394df1"
+    },
+    "C_S2": {
+      "physical_gpu": 5,
+      "seed": 2,
+      "source": "SRC_S2",
+      "checkpoint": "logs_rl/by_batch/base_v26/v26_7_bilateral_native_unlatch_20260902/train/Q05_S2/model_step_003000.pt",
+      "checkpoint_sha256": "0b2f739f020b056adb2fb47105fdb5bc00d1d1189ef331d42332b3e0740e54ec"
+    },
+    "W_S2": {
+      "physical_gpu": 6,
+      "seed": 2,
+      "source": "SRC_S2",
+      "checkpoint": "logs_rl/by_batch/base_v26/v26_7_bilateral_native_unlatch_20260902/train/Q05_S2/model_step_003000.pt",
+      "checkpoint_sha256": "0b2f739f020b056adb2fb47105fdb5bc00d1d1189ef331d42332b3e0740e54ec"
+    },
+    "K_S2": {
+      "physical_gpu": 7,
+      "seed": 2,
+      "source": "SRC_S2",
+      "checkpoint": "logs_rl/by_batch/base_v26/v26_7_bilateral_native_unlatch_20260902/train/Q05_S2/model_step_003000.pt",
+      "checkpoint_sha256": "0b2f739f020b056adb2fb47105fdb5bc00d1d1189ef331d42332b3e0740e54ec"
+    }
+  },
+  "source_consumers": {
+    "a2_stage3_unlatch_near_closed_hinge_threshold": 6
+  },
+  "penalty_reward_names": [
+    "walk_to_door",
+    "gripper_handle_orientation",
+    "pregrasp_gripper_dof_pos_l1",
+    "pregrasp_target_distance",
+    "grasp_target_distance",
+    "grasp",
+    "a2_stage2_close_command",
+    "a2_stage2_close_progress",
+    "a2_stage2_handle_center_y",
+    "a2_stage2_handle_approach_xz",
+    "a2_stage2_both_contact",
+    "a2_stage2_opposite_squeeze",
+    "a2_stage2_squeeze_force_window",
+    "a2_stage2_contact_stability",
+    "a2_stage3_handle_creation",
+    "a2_stage3_unlatch_hold"
+  ],
+  "source_lock": {
+    "gr00t/rl/envs/door/door_open_a2_base.py": "a91203a921ad7b59de45ff32f0a3f8014eb421f3939d87e518c7d848f1fd0925",
+    "gr00t/rl/config/ablation/wbmanip/base_v26_8_C_S1.yaml": "54d0c786a7c5f342802f52537b70adcd70f3930dcd6066c4560851080fa85d16",
+    "gr00t/rl/config/ablation/wbmanip/base_v26_8_C_S2.yaml": "5736ed61154631316be64b68cf4111dd6c8083ac35a3f1f3aa28b9a1b31bdb76",
+    "gr00t/rl/config/ablation/wbmanip/base_v26_8_K_S1.yaml": "f0c7ea581db3f66debbd1c3db164e8663b9928c4af9a70434ed5a1220ae15336",
+    "gr00t/rl/config/ablation/wbmanip/base_v26_8_K_S2.yaml": "f5d61b1ef96508c3535127636d1c43ddc92b201fc79811db604d73d1f173cb4f",
+    "gr00t/rl/config/ablation/wbmanip/base_v26_8_W_S1.yaml": "1c70d9224c64d9505af8145dd4b9785f818d21ff26b22a8b63b798284c068c61",
+    "gr00t/rl/config/ablation/wbmanip/base_v26_8_W_S2.yaml": "41aa3bacaa007b9ac0097120974c2008a06fbc897c5d890a3783411278283861",
+    "gr00t/rl/config/ablation/wbmanip/base_v26_8_common.yaml": "17888f84a4d27c6df4513727a61f4e63b43e725a8631f3396a7464c082505f4c",
+    "scriptsFORhuman/v26_8/a2_piper_base_v26_8_bilateral_opening_scaffold_decay_plan_20260903.md": "e1434320918d26d86fd00c6434cff9c1dd2093d33a6600095d4cf3b4d9a36d63",
+    "scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260903.md": "fe453a4ba644d0b15a6bc44470fcd4801c2e4ffb204e299764b985d474df8c13",
+    "scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260904.md": "7be70be9acdfb3b38fd3a9fa9d755a1ebe0f366ce83d06d044ffd8523ce1992a",
+    "scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260904_r3.md": "70105fcdf175e227542108f084c8c6955eb79d0939ec43d3e3be91e6df7f3018",
+    "scriptsFORhuman/v26_8/a2_piper_base_v26_8_g0_source_appendix_20260903.md": "2c5e6a627ba8643ea673e1beab7fdb0d95aab5e2f2f05c7738cadb96645fd696",
+    "scriptsFORhuman/v26_8/v26_8_capture_train.py": "588732e5f527862ce6e18af21dede54b92ede86daf01374cf9b8755df10ef096",
+    "scriptsFORhuman/v26_8/v26_8_eval_cell.sh": "147a9cdaa2b92b2f01221725a0d66cd4da2020cc2fc01ce2d065e57977b23b08",
+    "scriptsFORhuman/v26_8/v26_8_eval_lane.sh": "164532eefd9a9c9b5940e527311521bc90500a1706e15ddea62809a47ce361e7",
+    "scriptsFORhuman/v26_8/v26_8_g1_reduce.py": "1e3a4c8b2a71ff80700be68cdab1fa4571c7fa3d15d54c96aa1efeca1c7fc98d",
+    "scriptsFORhuman/v26_8/v26_8_g1_wiring_gate.sh": "a69b8987fcabecc1e4696c960f1afa8643eabe337dfda552c7ee2736a00660bd",
+    "scriptsFORhuman/v26_8/v26_8_orchestrate.sh": "93af6cc59d2b6719bfde1dc817f79d91ec5999dc65c09ef973689ffeeb351016",
+    "scriptsFORhuman/v26_8/v26_8_p0_assets.py": "0b06300fadcee2ba82c411f2237ff0e9491e574a106b6422f47f697a7aab6ea0",
+    "scriptsFORhuman/v26_8/v26_8_r2_verify.py": "33a60ff6386c681cd42cbdcca64d15a2ea8009844907d978ef0513ad6e6bffef",
+    "scriptsFORhuman/v26_8/v26_8_r3_verify.py": "b5f2066c57f1363985cf0ae568db8bb70320bde358ac97da2c387c8026719f1d",
+    "scriptsFORhuman/v26_8/v26_8_r3a_verify.py": "ce0ad4eebc3762c8079ddef1b9b20b9cf69c03a895a3a095196b40a4352ca148",
+    "scriptsFORhuman/v26_8/v26_8_reduce.py": "a8d6b0cd99bee5d1df88c8c2fae7570095a8d5ea2c1c060494328764d89fc37c",
+    "scriptsFORhuman/v26_8/v26_8_train_cell.sh": "1bb80c939e0422f286843276255ad443fe58da421b9645e38d53c012bbb3b689",
+    "scriptsFORhuman/v26_8/v26_8_verify.py": "a86061ce918a642467e60183126e7c65a01fce0558286eb1cc0095469963c553",
+    "gr00t/rl/tests/test_a2_v26_8_g1_reduce.py": "926fb9bdb7f512a317e493ad3b483890464371d98309396e6fd98813732f4041",
+    "gr00t/rl/tests/test_a2_v26_8_penalty_curriculum.py": "3eb2599d416137c9a31ac7b9ac3223070ac58f7141f1d4112ae51120c5a44dfd"
+  },
+  "eval_contract": {
+    "exact_episodes": 64,
+    "curriculum_override": "++rewards.reward_penalty_curriculum=false",
+    "natural_start": true
+  },
+  "runtime_load_contract": {
+    "checkpoint_load_mode": "policy_only",
+    "actor_rms_loaded": true,
+    "strict": true,
+    "state_key": "policy_state_dict",
+    "receipt": "v26_8_policy_load_receipt.json"
+  },
+  "source_conflict_reconciliation": "The official v26-5 receipt always derives residual-only optimizer facts for train and therefore cannot certify the legacy actor. v26-8 keeps the ordinary strict policy-only+actor-RMS loader, then the v26-8 stream wrapper creates its own receipt only after the loader's observed success line; full exact64 eval uses full checkpoint loading and has no load receipt."
+}

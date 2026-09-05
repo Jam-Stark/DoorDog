@@ -1,0 +1,40 @@
+{
+  "schema": "a2_piper_base_v26_8_wave2_branch_decision_v1",
+  "status": "WAVE2_NOT_ADMITTED",
+  "endpoint": "logs_eval/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/milestones/step3000/reducer.json",
+  "typed_outcomes": {
+    "W": {
+      "outcome": "W_NOT_DIFFERENT",
+      "labels": []
+    },
+    "C": {
+      "labels": [
+        "C_ENTRY_EMERGED",
+        "C_CONSOLIDATED"
+      ]
+    },
+    "K": {
+      "outcome": "K_REGRESSED",
+      "labels": [
+        "K_ENGAGED",
+        "K_S2_ENGAGED"
+      ],
+      "driver_mismatch_cells": []
+    },
+    "wave2": {
+      "B1": "NOT_RUN",
+      "B2": "NOT_RUN"
+    }
+  },
+  "B1": {
+    "decision": "NOT_RUN",
+    "reason": "K_REGRESSED violates plan section9 B1 admission; K_S1 RIGHT D delta=-16 and K_S2 RIGHT D delta=-9"
+  },
+  "B2": {
+    "decision": "NOT_RUN",
+    "reason": "requires W_STAGE34_SUPPORTED and K_SUPPORTED; endpoint is W_NOT_DIFFERENT and K_REGRESSED"
+  },
+  "owner_notification": "Endpoint outcomes and both NOT_RUN decisions reported in this task commentary before closure; no Wave2 launched.",
+  "additional_budget_used": 0,
+  "independent_endpoint_numeric_check": "PASS"
+}

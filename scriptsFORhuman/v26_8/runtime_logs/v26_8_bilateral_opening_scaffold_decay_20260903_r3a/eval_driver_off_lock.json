@@ -1,0 +1,35 @@
+{
+  "schema": "a2_piper_base_v26_8_eval_driver_off_lock_v1",
+  "status": "EVAL_DRIVER_OFF_STATIC_PASS",
+  "authority": "Owner autonomous reasonable-fix authorization; existing curriculum-off evaluation contract",
+  "training_source_lock": "scriptsFORhuman/v26_8/runtime_logs/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/source_lock.json",
+  "training_source_lock_sha256": "d7570b6d3ddbdb39d740b1e2b47bec9677ea1f16eed5f028e57f4527e84b7ae0",
+  "canonical_plan_sha256_unchanged": "e1434320918d26d86fd00c6434cff9c1dd2093d33a6600095d4cf3b4d9a36d63",
+  "six_training_load_receipts_plan_binding_unchanged": true,
+  "only_changed_training_locked_path": {
+    "path": "scriptsFORhuman/v26_8/v26_8_eval_cell.sh",
+    "before_sha256": "147a9cdaa2b92b2f01221725a0d66cd4da2020cc2fc01ce2d065e57977b23b08",
+    "after_sha256": "86f1ac0cc059619c31c4092e055db09563becd81c95dc5d7634c9c610a5a9c55"
+  },
+  "all_other_training_locked_paths_unchanged": true,
+  "overrides": [
+    "++rewards.reward_penalty_curriculum=false",
+    "++env.config.a2_v26_8_penalty_driver=null"
+  ],
+  "static_merge_path": "checkpoint-adjacent config.yaml plus eval_overrides, then OmegaConf.merge(train_config, base_eval+CLI overrides)",
+  "verified_cells": ["C_S1", "W_S1", "K_S1", "C_S2", "W_S2", "K_S2"],
+  "verified_sides": ["left", "right"],
+  "verified_compositions": 12,
+  "resolved_eval_contract": {
+    "reward_penalty_curriculum": false,
+    "a2_v26_8_penalty_driver": null,
+    "enable_staged_reset": false,
+    "checkpoint_load_mode": "full",
+    "num_envs": 64,
+    "seed_matches_source": true,
+    "side_matches_lane": true
+  },
+  "runtime_verification_required": "each lane runtime_config must retain curriculum=false, driver=null, natural start, exact64 and correct side/seed",
+  "failed_eval_attempt_created": false,
+  "addendum": "scriptsFORhuman/v26_8/a2_piper_base_v26_8_eval_driver_off_addendum_20260904.md"
+}

@@ -52,6 +52,8 @@ def _driver_state(*, scale: float = 1.0):
     state._a2_v26_8_last_episode_start_stage = torch.zeros(4, dtype=torch.long)
     state._a2_v26_8_last_episode_max_stage = torch.zeros(4, dtype=torch.long)
     state._a2_v26_8_last_episode_valid = torch.ones(4, dtype=torch.bool)
+    state._a2_v26_8_pending_natural_count_by_side = torch.tensor([2, 2])
+    state._a2_v26_8_pending_natural_reached_by_side = torch.tensor([2, 2])
     state.door_open_lr = torch.tensor([1.0, 1.0, -1.0, -1.0])
     state.reward_penalty_scale = torch.tensor(scale)
     state.log_dict = {}
@@ -65,22 +67,25 @@ def _driver_state(*, scale: float = 1.0):
 
 def test_v26_8_hysteresis_decay_restore_hold_and_clip():
     state = _driver_state()
-    state._a2_v26_8_last_episode_max_stage[:] = 4
     state._update_reward_penalty_curriculum()
     assert state.reward_penalty_scale.item() == pytest.approx(0.9999)
 
     state.reward_penalty_scale.fill_(0.20001)
+    state._a2_v26_8_pending_natural_count_by_side[:] = 2
+    state._a2_v26_8_pending_natural_reached_by_side[:] = 2
     state._update_reward_penalty_curriculum()
     assert state.reward_penalty_scale.item() == pytest.approx(0.2)
 
     state.reward_penalty_scale.fill_(0.99999)
-    state._a2_v26_8_last_episode_max_stage.zero_()
+    state._a2_v26_8_pending_natural_count_by_side[:] = 2
+    state._a2_v26_8_pending_natural_reached_by_side.zero_()
     state._update_reward_penalty_curriculum()
     assert state.reward_penalty_scale.item() == 1.0
     assert state.log_dict["reward_penalty_scale"].item() == 1.0
 
     state.reward_penalty_scale.fill_(0.6)
-    state._a2_v26_8_last_episode_max_stage[:] = torch.tensor([4, 0, 4, 0])
+    state._a2_v26_8_pending_natural_count_by_side[:] = 2
+    state._a2_v26_8_pending_natural_reached_by_side[:] = 1
     state._update_reward_penalty_curriculum()
     assert state.log_dict["a2_v26_8_penalty_driver_min"].item() == 0.5
     assert state.reward_penalty_scale.item() == pytest.approx(0.6)
@@ -88,6 +93,8 @@ def test_v26_8_hysteresis_decay_restore_hold_and_clip():
 
 def test_v26_8_start_and_max_stage_are_captured_from_the_same_episode():
     state = _driver_state(scale=0.6)
+    state._a2_v26_8_pending_natural_count_by_side.zero_()
+    state._a2_v26_8_pending_natural_reached_by_side.zero_()
     state.door_open_lr = torch.tensor([1.0, -1.0, 1.0, -1.0])
     state._a2_v26_episode_started = torch.tensor([True, True, False, False])
     state._a2_v26_episode_start_stage = torch.tensor([0, 0, 3, 0])
@@ -104,6 +111,39 @@ def test_v26_8_start_and_max_stage_are_captured_from_the_same_episode():
     assert state._a2_v26_8_last_episode_max_stage.tolist() == [4, 3, 0, 0]
     assert state.log_dict["a2_v26_8_penalty_driver_left"].item() == 1.0
     assert state.log_dict["a2_v26_8_penalty_driver_right"].item() == 0.0
+
+
+def test_v26_8_cross_side_pending_window_is_retained_then_consumed_once():
+    state = _driver_state(scale=0.6)
+    state._a2_v26_8_pending_natural_count_by_side.zero_()
+    state._a2_v26_8_pending_natural_reached_by_side.zero_()
+    state.door_open_lr = torch.tensor([1.0, -1.0, 1.0, -1.0])
+    state._a2_v26_episode_started = torch.ones(4, dtype=torch.bool)
+    state._a2_v26_episode_start_stage = torch.zeros(4, dtype=torch.long)
+    state.current_max_stage_buf = torch.tensor([4, 4, 0, 0])
+
+    state._record_a2_v26_8_last_episodes(torch.tensor([0]))
+    state._update_reward_penalty_curriculum()
+    assert state._a2_v26_8_pending_natural_count_by_side.tolist() == [1, 0]
+    assert state._a2_v26_8_pending_natural_reached_by_side.tolist() == [1, 0]
+    assert state.reward_penalty_scale.item() == pytest.approx(0.6)
+
+    state._record_a2_v26_8_last_episodes(torch.tensor([2]))
+    state._update_reward_penalty_curriculum()
+    assert state._a2_v26_8_pending_natural_count_by_side.tolist() == [2, 0]
+    assert state._a2_v26_8_pending_natural_reached_by_side.tolist() == [1, 0]
+
+    state._record_a2_v26_8_last_episodes(torch.tensor([1]))
+    state._update_reward_penalty_curriculum()
+    assert state.log_dict["a2_v26_8_penalty_driver_left"].item() == 0.5
+    assert state.log_dict["a2_v26_8_penalty_driver_right"].item() == 1.0
+    assert state.reward_penalty_scale.item() == pytest.approx(0.6)
+    assert state._a2_v26_8_pending_natural_count_by_side.tolist() == [0, 0]
+    assert state._a2_v26_8_pending_natural_reached_by_side.tolist() == [0, 0]
+
+    state._update_reward_penalty_curriculum()
+    assert state.reward_penalty_scale.item() == pytest.approx(0.6)
+    assert state._a2_v26_8_penalty_curriculum_skipped_updates == 3
 
 
 @pytest.mark.parametrize("penalty_names", [["active", "zero"], ["active", "unknown"]])

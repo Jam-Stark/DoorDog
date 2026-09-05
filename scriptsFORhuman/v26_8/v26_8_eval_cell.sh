@@ -29,6 +29,7 @@ for side in left right; do
       ++env.config.a2_v26_2_telemetry_enabled=true ++env.config.a2_v26_3_telemetry_enabled=true \
       ++env.config.a2_v26_door_open_lr="$side" ++env.config.a2_v26_side_permutation_seed="$seed" \
       ++env.config.enable_staged_reset=false ++rewards.reward_penalty_curriculum=false \
+      ++env.config.a2_v26_8_penalty_driver=null \
       ++simulator.config.render_results=false ++env.config.save_rendering_dir="$output/renderings" \
       ++eval_name="V26_8_${label}_${side}" ++eval_output_dir="$output"
   for required in metrics_eval.json a2_v14_per_env_records.json stage2_5_step_trace.json a2_eval_diagnostic_metadata.json .hydra/runtime_config.yaml; do

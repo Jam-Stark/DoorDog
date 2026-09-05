@@ -7883,6 +7883,12 @@ class DoorPregrasp(
         self._a2_v26_8_last_episode_valid = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+        self._a2_v26_8_pending_natural_count_by_side = torch.zeros(
+            2, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_8_pending_natural_reached_by_side = torch.zeros(
+            2, dtype=torch.long, device=self.device
+        )
         self._a2_v26_8_penalty_curriculum_update_index = 0
         self._a2_v26_8_penalty_curriculum_skipped_updates = 0
         self._a2_v26_8_penalty_curriculum_trace_path = None
@@ -7914,6 +7920,17 @@ class DoorPregrasp(
             self.current_max_stage_buf[completed_env_ids]
         )
         self._a2_v26_8_last_episode_valid[completed_env_ids] = True
+        natural = self._a2_v26_8_last_episode_start_stage[completed_env_ids] == 0
+        for side_index, side_sign in enumerate((1.0, -1.0)):
+            selected = natural & (self.door_open_lr[completed_env_ids] == side_sign)
+            selected_env_ids = completed_env_ids[selected]
+            self._a2_v26_8_pending_natural_count_by_side[side_index] += (
+                selected_env_ids.numel()
+            )
+            self._a2_v26_8_pending_natural_reached_by_side[side_index] += (
+                self._a2_v26_8_last_episode_max_stage[selected_env_ids]
+                >= self._a2_v26_8_penalty_driver_target_stage
+            ).sum()
 
     @override
     def _update_reward_penalty_curriculum(self):
@@ -7922,23 +7939,25 @@ class DoorPregrasp(
         if not getattr(self, "_a2_v26_8_penalty_driver_enabled", False):
             raise RuntimeError("a2_v26_8 penalty driver was not initialized.")
 
+        sample_counts = [
+            int(value.item())
+            for value in self._a2_v26_8_pending_natural_count_by_side
+        ]
+        reached_counts = [
+            int(value.item())
+            for value in self._a2_v26_8_pending_natural_reached_by_side
+        ]
         rates: list[float | None] = []
-        sample_counts: list[int] = []
-        natural = self._a2_v26_8_last_episode_valid & (
-            self._a2_v26_8_last_episode_start_stage == 0
-        )
-        for side_sign in (1.0, -1.0):
-            sample_mask = natural & (self.door_open_lr == side_sign)
-            sample_count = int(sample_mask.sum().item())
-            sample_counts.append(sample_count)
+        for side_index, sample_count in enumerate(sample_counts):
+            reached_count = reached_counts[side_index]
+            if not 0 <= reached_count <= sample_count:
+                raise RuntimeError(
+                    "a2_v26_8 pending reached count must be within its natural count."
+                )
             if sample_count == 0:
                 rates.append(None)
                 continue
-            reached = (
-                self._a2_v26_8_last_episode_max_stage[sample_mask]
-                >= self._a2_v26_8_penalty_driver_target_stage
-            )
-            rates.append(float(reached.float().mean().item()))
+            rates.append(reached_count / sample_count)
 
         scale_before = float(self.reward_penalty_scale.item())
         skipped = any(rate is None for rate in rates)
@@ -7995,12 +8014,18 @@ class DoorPregrasp(
                 "driver_right": rates[1],
                 "natural_sample_left": sample_counts[0],
                 "natural_sample_right": sample_counts[1],
+                "natural_reached_left": reached_counts[0],
+                "natural_reached_right": reached_counts[1],
+                "consumed": not skipped,
                 "skipped": skipped,
             }
             with trace_path.open("a", encoding="utf-8") as handle:
                 handle.write(
                     json.dumps(row, allow_nan=False, separators=(",", ":")) + "\n"
                 )
+        if not skipped:
+            self._a2_v26_8_pending_natural_count_by_side.zero_()
+            self._a2_v26_8_pending_natural_reached_by_side.zero_()
         self._a2_v26_8_penalty_curriculum_update_index += 1
 
     def _init_a2_v26_2_handle_depression_telemetry(self) -> None:

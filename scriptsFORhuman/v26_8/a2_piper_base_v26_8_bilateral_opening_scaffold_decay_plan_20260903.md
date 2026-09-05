@@ -476,3 +476,114 @@ relaunch；一旦 policy step 已执行，任何非零退出仍按 §8.3 停止�
 
 `P0_ASSETS` PASS → G1 r2（GPU0）→ PASS 后按 §4–§8 直接进入 Wave 1，不需再次审批。
 G1 r2 若再次失败且不属于 `INFRA_FAILURE_BEFORE_POLICY_LOAD`，停止并交回 Owner。
+
+---
+
+## 14. 附录（2026-09-04 HKT）：跨侧 pending-window 语义与 G1 r3
+
+### 14.1 r2 暴露的 source/runtime 事实
+
+G1 r2 已排除 proxy、asset、scene construction 与 checkpoint load 问题：K_S1 strict policy-only +
+actor RMS 成功，执行 5 batches 并写出 checkpoint。失败只发生在 G1 wiring reducer：35 次 curriculum
+update 中 LEFT 有 natural sample 的 row 为 12、RIGHT 为 22，但同一 row 双侧同时有 sample 为 0，
+因此 35/35 skipped、scale 始终 1.0。
+
+当前调用顺序是：Door `_reset_tasks_callback` 先记录本次结束 episode，父类随后在**每一次异步 reset
+callback** 调用 `_update_reward_penalty_curriculum`。r2 source 在每次记录前对整张
+`_a2_v26_8_last_episode_valid` 清零，因此 update 只能消费本次 reset cohort；LEFT/RIGHT episode 在不同
+control step 结束时，合法证据被当作缺侧样本丢弃。这不是 start/max 错配，也不是 policy 读数失败。
+
+### 14.2 唯一获准的语义修订
+
+本附录只 supersede §4.3 中 `N_s/r_s` 的**跨 reset 聚合与消费窗口**，不改任何实验变量：
+
+```text
+record(completed episodes):
+  继续从同一已结束 episode 配对读取 start_stage 与 max_stage；只接收 start_stage == 0。
+  对 side s 累积 pending_N_s += 1；若 max_stage >= 4，则 pending_R_s += 1。
+
+curriculum update:
+  若任一侧 pending_N_s == 0：skipped=true，scale 不变，两个 side 的 pending_N/pending_R 均保留。
+  若两侧 pending_N_s > 0：r_s = pending_R_s / pending_N_s，driver=min(r_LEFT,r_RIGHT)，
+  完全沿用 0.5/0.7、degree=-0.0001 与 [0.2,1.0] clip；本次决策后原子清零两侧 pending counters。
+```
+
+不变量：每个 natural episode 在结束时只累积一次；缺侧 skip 不消费任何一侧；一次 bilateral decision
+后两侧窗口同时清零，因此 episode 不会跨 decision 重复使用。per-env last-episode snapshot 继续仅承担
+same-episode pairing 证据。trace 的 `natural_sample_left/right` 改为当前 pending window 的 denominator，
+并增加 `natural_reached_left/right` 与 `consumed`；`consumed == !skipped`。其余 trace/reducer 字段不变。
+
+允许改动严格限于：
+
+1. `door_open_a2_base.py` 的上述 pending numerator/denominator 累积与原子消费；
+2. `test_a2_v26_8_penalty_curriculum.py` 的交错双侧保留、聚合、单次消费证明；
+3. 本 plan 附录、r3 source-lock verifier 与 orchestrator 的 `_r3` roots/gates。
+
+禁止改动六格 YAML、driver target、hysteresis 阈值、degree/floor/ceiling、16 项名单、reward/stage 逻辑、
+source checkpoint、trainer loader、eval/reducer 判据。r3 contract lock 必须以 r2 `STATIC_PASS` source lock
+为 baseline，逐文件列出上述 allowlist，并证明其余 locked files byte-identical。
+
+### 14.3 r3 gate 与后续流程
+
+Owner 明确授权一次 G1 r3；它是对 pre-Wave1 wiring implementation 的窄修复验证，不把 r2 结果重解释为
+PASS。使用全新 run/output/receipt/tmux root 后缀 `_r3`，旧 attempt/r2 artifact 原样保留。执行：
+
+```text
+r3 source/contract lock → G0 r3 unit gate → P0_ASSETS → G1 r3 (GPU0)
+```
+
+G1 r3 仍使用 64 env、K_S1、≤5 batches；除原 §6.2 条件外，必须至少出现一行
+`natural_sample_left > 0 && natural_sample_right > 0 && skipped == false`，证明 pending window 被消费。
+G1 r3 PASS 后直接按 §4–§9 进入 `_r3` Wave 1，不需再次审批。若 G1 r3 非零退出，立即停止并交回 Owner；
+不得再 relaunch、改阈值/config 或扩预算。
+
+本授权不包含新的 Git commit 或 push。
+
+---
+
+## 15. 附录（2026-09-04 HKT）：G1 transition verifier 与 r3 artifact 重裁
+
+### 15.1 r3 新事实
+
+r3 的授权窄修已按 §14 生效：35 行 trace 中有 10 行双侧 pending window 被消费。update 31 的窗口为
+LEFT `1/1`、RIGHT `1/1` 到 Stage4，故 `driver=min(1.0,1.0)=1.0 > 0.7`，当前 source 按冻结公式将
+float32 scale 从 `1.0` 更新为 `0.9998999834060669`。Isaac child、capture wrapper、strict load、5 batches
+与 checkpoint 均 PASS；外层 `FAIL/1` 唯一来自旧 G1 reducer 的 `scale_after == 1.0` 断言。
+
+该断言与 §6.2“G1 只证明 wiring，不证明 decay outcome”冲突：一旦 pending 聚合恢复，5-batch 内完全可能
+合法触发一次 driver。把正确 engagement 判为 wiring failure 既不能验证公式，也会阻断 Wave 1。
+
+### 15.2 G1 判据的最小修订
+
+Owner 已授权自主合理修复以继续 v26-8。本节 supersede §6.2 与 §14.3 中“G1 全程 scale==1.0”的部分；
+其余 G1、实验与路由合同不变。新 G1 trace verifier 对**每一行**严格检查：
+
+1. `natural_reached_s` 与 `natural_sample_s` 为整数且 `0 <= reached <= sample`；
+2. `driver_s == null` 当且仅当 `sample_s == 0`，否则精确等于 `reached_s / sample_s`；
+3. 任一侧缺样本时 `skipped=true, consumed=false, scale_after==scale_before`；
+4. 双侧都有样本时 `skipped=false, consumed=true`，以冻结 0.5/0.7、degree=-0.0001 在 torch float32
+   中复算更新并 clip 到 `[0.2,1.0]`，`scale_after` 必须与复算值精确相等；
+5. 相邻行满足 `next.scale_before == previous.scale_after`，至少一行 bilateral consumed；
+6. strict policy-only + actor RMS load receipt、5-batch checkpoint、四项 log telemetry 仍必须存在。
+
+这不是放宽：旧 reducer 只接受常数 1.0，新 reducer 同时拒绝错误的不变、错误的变化、缺侧消费、重复消费、
+分子/分母/driver 不一致或非 float32 冻结公式。G1 仍不用于判定 K 的 experiment outcome；K engagement、
+benefit/regression 仍只由 Wave 1 milestone/endpoint reducer 决定。
+
+### 15.3 不重跑的 r3 reducer-only adjudication
+
+r3 Isaac artifact 已完整且 immutable，不做 stochastic relaunch。保留原
+`.ai/runtime/runs/v26_8_g1_wiring_r3/RUN_RECEIPT.json` 的 `FAIL/1`；用新 source lock 下的 amended reducer
+对同一 trace/config/load/checkpoint 做一次 CPU-only readjudication，并以独立 receipt 记录命令和结果。
+只有 amended reducer 以 `--readjudication` 写出新的
+`g1_readjudication.json: G1_READJUDICATION_PASS` 且 reducer-only receipt PASS，才准入 Wave 1；原本缺失的
+`g1_wiring.json` 保持缺失，避免把历史 outer gate 伪写为直接 PASS。
+
+新 source/delta lock 与 G0 使用独立 `_r3a` runtime/eval root。r3a allowlist 仅为：本 plan、
+`v26_8_g1_reduce.py`、对应新 unit test、`v26_8_orchestrate.sh` 与 r3a verifier；§14 core 与六格 config
+必须相对 r3 source lock byte-identical。Wave 1 train/eval/receipt/tmux 使用新 `_r3a` root，G1 evidence
+引用 immutable `_r3/G1_k_wiring`。readjudication PASS 后直接启动 Wave 1；不需再跑 G1 Isaac。
+orchestrator 只提供 `g1-readjudication-launch/finalize` 的 CPU-only 路径；r3a 不提供 Isaac G1 relaunch。
+
+本 amendment 不授权新的 Git commit/push，不改 reward、stage、阈值、scale、config、source checkpoint、
+trainer loader、Wave 1 eval/reducer 或 route 判据。

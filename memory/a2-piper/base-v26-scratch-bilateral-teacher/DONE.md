@@ -1,5 +1,64 @@
 # DONE
 
+- 2026-09-04 23:17 HKT - 完成v26-8 endpoint与closure：六格3000自然exit0，72lane/4608 episodes
+  exact64/integrity0，18份Wave1 receipts PASS/0；独立typed-outcome核对PASS。W_NOT_DIFFERENT、
+  K_REGRESSED（仅两源RIGHT D的−16/−9触发），C_ENTRY_EMERGED/C_CONSOLIDATED；B1/B2未准入且未运行。
+  K_S1下游+8/+17、W_S1下游+11/+17及全部历史反向读数保留，未改D guard或按complete路由。
+  28文件最终source核对PASS；G1历史失败及CPU重裁保留；writer/tmux/lease清零。closure：
+  `scriptsFORhuman/v26_8/a2_piper_base_v26_8_execution_closure_20260904_wave1_r3a.md`。未新增commit/push/hardware动作。
+
+- 2026-09-04 19:36 HKT - 完成 `_r3a` step2500：12×exact64、integrity=0、两条eval receipt PASS/0，无停格。
+  runtime checkpoint/driver-off合同、同源差和K前缀≤160000独立统计均匹配。K_S2 LEFT下游恢复与
+  双侧D负差并存，W/K跨source正负读数及完整历史差已写入
+  `scriptsFORhuman/v26_8/a2_piper_base_v26_8_step2500_readout_20260904.md`；下一步3000 endpoint，不改实验变量。
+
+- 2026-09-04 16:11 HKT - 完成 `_r3a` step2000：12×exact64、integrity=0、eval PASS/0，无停格。
+  runtime checkpoint/curriculum-off/driver-null、同源差及K前缀≤128000的独立汇总全部匹配。
+  K_S2 LEFT下游0/0、K_S1下游正差与D负差并存、W_S1 D负差及完整历史反向读数均已写入
+  `scriptsFORhuman/v26_8/a2_piper_base_v26_8_step2000_readout_20260904.md`；继续至step2500，不改guard或实验变量。
+
+- 2026-09-04 12:45 HKT - 完成 `_r3a` step1500：12×exact64、integrity=0、两条eval receipt PASS/0、无停格。
+  12份runtime config接线匹配，同源差复算一致，K前缀≤96000的独立row/skipped/reversal统计与reducer一致。
+  C_S2 RIGHT与W_S2下游高计数、K_S2 LEFT下游/RIGHT D负差、W_S1 min-side S5+−8及全部历史反向差
+  已写入 `scriptsFORhuman/v26_8/a2_piper_base_v26_8_step1500_readout_20260904.md`；六格训练继续至step2000。
+
+- 2026-09-04 09:21 HKT - 完成 `_r3a` step1000：12×exact64、integrity=0、eval receipt PASS/0，无停格。
+  C_S1 warm-start复查retained；12份eval runtime config的checkpoint/curriculum-off/driver-null匹配，
+  同源差独立复算一致，K轨迹仅使用common_step≤64000。W_S2下游正读数、K_S1 RIGHT D相对C−9、
+  K_S2 LEFT S5+/complete相对C−39/−37及全部历史反向差已写入
+  `scriptsFORhuman/v26_8/a2_piper_base_v26_8_step1000_readout_20260904.md`。继续至step1500，不改实验合同。
+
+- 2026-09-04 05:54 HKT - 完成 `_r3a` step500：12-lane natural exact64、integrity=0，两条 eval receipt
+  `PASS/0`，reducer 无失败/停格。12份 runtime config 确认 eval checkpoint 对应 cell/step 且 curriculum
+  false、driver null；同源差独立复算一致，K轨迹严格截到32000 common steps。C_S1 transient、C_S2
+  retained；K_S1/K_S2 均到0.2，未见 driver mismatch；S2 RIGHT S5+ 回退与源S1 LEFT complete走势
+  全部保留为报告，不作 endpoint 结论。readout：`scriptsFORhuman/v26_8/a2_piper_base_v26_8_step500_readout_20260904.md`。
+
+- 2026-09-04 01:47 HKT - 完成 `_r3a` Wave 1 六格 launch 与 load gate：GPU2–7 六个独立 tmux/receipt、
+  六次 P0 PASS，六份 strict actor+RMS load、resolved config、source hash/lock、r3a source/contract lock
+  和 receipt provenance 全部匹配。六格均 live，无 retry；下一证据为 step500 exact64。
+
+- 2026-09-04 01:31 HKT - 完成 plan §15 G1 reducer-only readjudication：新 verifier 对 r3 trace 的 pending、
+  skip-retention、consume、driver 与每行 torch float32 0.5/0.7/hysteresis/clip 全部精确复算；CPU tests
+  `10 passed`。独立 receipt `PASS/0`、gate `G1_READJUDICATION_PASS`；旧 r3 outer `FAIL/1` 未改写。
+  r3a contract/static/G0 均 PASS，Wave 1 已准入。
+
+- 2026-09-04 01:20 HKT - 完成获批 G1 r3：r3 delta/static/G0/P0 均 PASS；K_S1 strict load、5 batches、
+  step5 checkpoint PASS。pending window 产生 10 次 bilateral consume，修复目标得到 runtime 证明；
+  update31 双侧 rate=1.0 触发原定 0.9999 decay，违反旧 G1 全程 scale1.0 断言，外层 `FAIL/1`。
+  按门停止，Wave 1/milestone/endpoint/Wave 2 未运行，r3 closure 已落盘。
+
+- 2026-09-04 01:11 HKT - 完成 v26-8 r3 pending-window 窄修与前置门：按侧累计 natural
+  numerator/denominator，缺侧保留，双侧到齐后按原 driver 决策并原子消费；same-episode pairing 与
+  driver 缺失 legacy delegate 保持。独立 semantic review PASS，CPU `7 passed`，r3 contract/static/G0
+  均 PASS；六格 YAML、阈值/scale、reward/stage、source、trainer/eval/reducer 无改动。
+
+- 2026-09-04 00:14 HKT - 完成获批的 v26-8 G1 r2：r2 static/contract 与 `P0_ASSETS` PASS，
+  proxy 18889 六键显式进入 receipt command；K_S1 strict actor+RMS load、5 batches、step5 checkpoint
+  均成功。35 行 K trace 的 LEFT/RIGHT positive rows 为 12/22，但 both-positive 为 0，全部 skipped、
+  scale=1.0，G1 reducer 因 natural pairing gate `FAIL/1`。失败在 policy step 后，不可再按 §13 relaunch；
+  Wave 1、六个 milestone、endpoint 与 Wave 2 均未运行，2026-09-04 closure 已落盘。
+
 - 2026-09-04 00:01 HKT - 完成 v26-8 r2 prelaunch 合同实现：新 `_r2` roots/receipts/tmux，receipt command
   显式六项 proxy env，每次 Isaac launch 前对两个冻结资产执行 HTTP 200 `P0_ASSETS`，复用原 G0，并以
   旧 source lock 逐文件证明实验 core/config/test/train/eval/reducer 不变。child-process receipt 同时记录

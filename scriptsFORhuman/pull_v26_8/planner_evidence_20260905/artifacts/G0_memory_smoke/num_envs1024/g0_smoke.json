@@ -1,0 +1,9 @@
+{
+  "schema": "a2_piper_pull_v26_8_g0_v1",
+  "status": "G0_PASS",
+  "num_envs": 1024,
+  "batches": 5,
+  "peak_memory_mib": 16062,
+  "minimum_headroom_mib": 8514,
+  "decision": "Main freezes this size only after measured minimum headroom is at least 2048 MiB"
+}

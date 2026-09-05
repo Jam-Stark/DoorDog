@@ -1,0 +1,22 @@
+{
+  "name": "pull_v26_8_g1_r2",
+  "session": "pull_v26_8_g1_r2",
+  "command": "env -u DISPLAY -u XAUTHORITY PULL_V26_8_ATTEMPT=2 PULL_V26_8_SOURCE_LOCK=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v26_8/runtime_logs/pull_v26_8_backbone_20260905_r2/g1_lock/source_lock.json http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost\\,127.0.0.1 NO_PROXY=localhost\\,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v26_8/orchestrate.sh _g1-worker /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring ",
+  "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "output": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v26_8/runtime_logs/pull_v26_8_backbone_20260905_r2/g1/g1.log",
+  "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/g1_wiring.json",
+  "eval_command": null,
+  "resources": [
+    "GPU0",
+    "IsaacSim_GPU0"
+  ],
+  "state": "FAIL",
+  "created_at": "2026-09-05T08:54:44+00:00",
+  "source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v26_8/runtime_logs/pull_v26_8_backbone_20260905_r2/g1_lock/source_lock.json",
+  "git_revision": "d48793cb15a8eee33f5d785eff44a0671ea20d54",
+  "stopping_contract": "Plan sections 4-8: no policy-based early stop; pre-policy infrastructure retries only under Main, maximum 2 and fresh roots",
+  "launched_at": "2026-09-05T08:54:44+00:00",
+  "process_returncode": 1,
+  "finalized_at": "2026-09-05T09:00:59+00:00",
+  "summary": "process exited 1"
+}

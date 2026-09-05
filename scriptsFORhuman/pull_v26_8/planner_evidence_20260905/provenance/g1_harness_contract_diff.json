@@ -1,0 +1,11 @@
+{
+  "schema": "a2_piper_pull_v26_8_harness_contract_diff_v1",
+  "changed_files": [
+    "scriptsFORhuman/pull_v26_8/eval_cell.sh",
+    "scriptsFORhuman/pull_v26_8/orchestrate.sh",
+    "scriptsFORhuman/pull_v26_8/reduce.py",
+    "scriptsFORhuman/pull_v26_8/verify.py"
+  ],
+  "experiment_contract_changed_files": [],
+  "reason": "Evaluator must compose base_eval with checkpoint-adjacent config; training exp override is not a valid base_eval Hydra defaults group. Read actual runtime YAML with root interpolation and PosixPath support. No core/config/reward/event/actor change."
+}

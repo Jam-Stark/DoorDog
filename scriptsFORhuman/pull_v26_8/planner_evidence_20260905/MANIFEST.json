@@ -1,0 +1,201 @@
+{
+  "schema": "a2_piper_pull_v26_8_planner_evidence_v1",
+  "source_host": "ai-precog-machine5",
+  "source_worktree": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "implementation_commit": "2033049914c93e5599e06c236da87cb64751af24",
+  "purpose": "Owner-authorized Git delivery to plan machine; no new experiment or policy verdict",
+  "files": [
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/P0/source_trace.json",
+      "delivery_path": "artifacts/P0/source_trace.json",
+      "bytes": 926,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/frozen_wave1_contract.json",
+      "delivery_path": "artifacts/frozen_wave1_contract.json",
+      "bytes": 1139,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/closure.json",
+      "delivery_path": "artifacts/closure.json",
+      "bytes": 3322,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/g1_wiring.json",
+      "delivery_path": "artifacts/G1_wiring/g1_wiring.json",
+      "bytes": 1540,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G0_memory_smoke/num_envs2048/runtime_result.json",
+      "delivery_path": "artifacts/G0_memory_smoke/num_envs2048/runtime_result.json",
+      "bytes": 1803,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G0_memory_smoke/num_envs1024/runtime_result.json",
+      "delivery_path": "artifacts/G0_memory_smoke/num_envs1024/runtime_result.json",
+      "bytes": 1772,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G0_memory_smoke/num_envs1024/g0_smoke.json",
+      "delivery_path": "artifacts/G0_memory_smoke/num_envs1024/g0_smoke.json",
+      "bytes": 261,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G0_memory_smoke/num_envs1024/resolved_config.yaml",
+      "delivery_path": "artifacts/G0_memory_smoke/num_envs1024/resolved_config.yaml",
+      "bytes": 76820,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/train/runtime_result.json",
+      "delivery_path": "artifacts/G1_wiring/train/runtime_result.json",
+      "bytes": 1744,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/old/runtime_result.json",
+      "delivery_path": "artifacts/G1_wiring/old/runtime_result.json",
+      "bytes": 2730,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/old/.hydra/runtime_config.yaml",
+      "delivery_path": "artifacts/G1_wiring/old/runtime_config.yaml",
+      "bytes": 57520,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/old/eval_overrides.yaml",
+      "delivery_path": "artifacts/G1_wiring/old/eval_overrides.yaml",
+      "bytes": 7187,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g0_2048/RUN_RECEIPT.json",
+      "delivery_path": "receipts/pull_v26_8_g0_2048/RUN_RECEIPT.json",
+      "bytes": 1610,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g0_2048/exit_code.txt",
+      "delivery_path": "receipts/pull_v26_8_g0_2048/exit_code.txt",
+      "bytes": 2,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g0_2048/finished_at.txt",
+      "delivery_path": "receipts/pull_v26_8_g0_2048/finished_at.txt",
+      "bytes": 26,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g0_2048_r2/RUN_RECEIPT.json",
+      "delivery_path": "receipts/pull_v26_8_g0_2048_r2/RUN_RECEIPT.json",
+      "bytes": 1674,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g0_2048_r2/exit_code.txt",
+      "delivery_path": "receipts/pull_v26_8_g0_2048_r2/exit_code.txt",
+      "bytes": 2,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g0_2048_r2/finished_at.txt",
+      "delivery_path": "receipts/pull_v26_8_g0_2048_r2/finished_at.txt",
+      "bytes": 26,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g0_1024_r2/RUN_RECEIPT.json",
+      "delivery_path": "receipts/pull_v26_8_g0_1024_r2/RUN_RECEIPT.json",
+      "bytes": 1719,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g0_1024_r2/exit_code.txt",
+      "delivery_path": "receipts/pull_v26_8_g0_1024_r2/exit_code.txt",
+      "bytes": 2,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g0_1024_r2/finished_at.txt",
+      "delivery_path": "receipts/pull_v26_8_g0_1024_r2/finished_at.txt",
+      "bytes": 26,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g1_r2/RUN_RECEIPT.json",
+      "delivery_path": "receipts/pull_v26_8_g1_r2/RUN_RECEIPT.json",
+      "bytes": 1790,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g1_r2/exit_code.txt",
+      "delivery_path": "receipts/pull_v26_8_g1_r2/exit_code.txt",
+      "bytes": 2,
+      "form": "verbatim"
+    },
+    {
+      "source_path": ".ai/runtime/runs/pull_v26_8_g1_r2/finished_at.txt",
+      "delivery_path": "receipts/pull_v26_8_g1_r2/finished_at.txt",
+      "bytes": 26,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "scriptsFORhuman/pull_v26_8/runtime_logs/pull_v26_8_backbone_20260905_r2/contract_lock_diff.json",
+      "delivery_path": "provenance/contract_lock_diff.json",
+      "bytes": 1010,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "scriptsFORhuman/pull_v26_8/runtime_logs/pull_v26_8_backbone_20260905_r2/g1_harness_contract_diff.json",
+      "delivery_path": "provenance/g1_harness_contract_diff.json",
+      "bytes": 579,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "scriptsFORhuman/pull_v26_8/runtime_logs/pull_v26_8_backbone_20260905_r2/g1_lock/source_lock.json",
+      "delivery_path": "provenance/g1_lock/source_lock.json",
+      "bytes": 2631,
+      "form": "verbatim"
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G0_memory_smoke/num_envs2048/isaac.log",
+      "delivery_path": "excerpts/G0_2048_OOM.txt",
+      "bytes": 5759,
+      "form": "contiguous excerpt, ANSI formatting removed",
+      "source_lines": [
+        758,
+        810
+      ]
+    },
+    {
+      "source_path": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/old/isaac.log",
+      "delivery_path": "excerpts/G1_constructor_failure.txt",
+      "bytes": 3774,
+      "form": "contiguous excerpt, ANSI formatting removed",
+      "source_lines": [
+        716,
+        769
+      ]
+    }
+  ],
+  "file_count": 29,
+  "total_bytes": 177422,
+  "excluded": [
+    "checkpoint binaries",
+    "full Isaac logs",
+    "GPU memory sampling CSV",
+    "source_snapshot duplicates",
+    "live team database",
+    "credentials and unrelated Owner changes"
+  ]
+}

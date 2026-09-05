@@ -1,0 +1,39 @@
+{
+  "schema": "a2_piper_pull_v26_8_g1_wiring_v1",
+  "status": "PULL_V26_8_WIRING_NOT_CONFIRMED",
+  "typed_outcome": "NOT_ADMITTED",
+  "producer": "Main adjudication of recorded environment-construction failure; geometric reducer NOT_RUN",
+  "reason": "SOURCE_PLAN_RESET_CONTRACT_CONFLICT",
+  "source": "gr00t/rl/envs/door/door_open_a2_pull.py:2424",
+  "exception": "Pull-v6 staged reset requires enable_staged_reset=true.",
+  "plan_eval_value": false,
+  "source_required_value": true,
+  "train_probe": {
+    "batches": 5,
+    "num_envs": 64,
+    "child_returncode": 0,
+    "wrapper_returncode": 0,
+    "checkpoint": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/train/model_step_000005.pt"
+  },
+  "old_eval": {
+    "child_returncode": 0,
+    "wrapper_returncode": 1,
+    "policy_readings_observed": false,
+    "runtime_config": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/old/.hydra/runtime_config.yaml",
+    "missing_artifacts": [
+      "metrics_eval.json",
+      "a2_v14_per_env_records.json",
+      "stage2_5_step_trace.json",
+      "a2_eval_diagnostic_metadata.json"
+    ]
+  },
+  "bilateral_left_relative_rotation_degrees": null,
+  "bilateral_right_target_quat_bit_identical": null,
+  "all_right_target_quat_bit_identical": null,
+  "integrity_violations": null,
+  "fixed_eval": "NOT_RUN",
+  "all_right_eval": "NOT_RUN",
+  "wave1": "NOT_RUN",
+  "wave2": "NOT_RUN",
+  "stop_rule": "Migration plan section 6.3: G1 failure stops progression and returns to Owner."
+}

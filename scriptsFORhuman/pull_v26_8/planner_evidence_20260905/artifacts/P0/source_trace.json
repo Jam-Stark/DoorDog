@@ -1,0 +1,27 @@
+{
+  "schema": "a2_piper_pull_v26_8_p0_source_trace_v1",
+  "status": "STATIC_PASS",
+  "pull_start_revision": "d48793c",
+  "mainline_reference": "cb15678",
+  "plain_observation_dimensions": {
+    "actor": 133,
+    "critic": 138
+  },
+  "plan_observation_dimensions": {
+    "actor": 135,
+    "critic": 140
+  },
+  "old_winner_input_weight_shape": [
+    1024,
+    135
+  ],
+  "old_winner_file": "logs_rl/a2_piper_pull_lr_grasp/pull_lr_grasp_h450_xseg_resume_seed2/model_step_000250.pt",
+  "gate": "grasp_completion",
+  "gate_reason": "Proof can start/update outside Stage2 using Stage3/4 hold streak; total-zero income exception is not established.",
+  "threshold_source_value": 0.25,
+  "wave2_W_status": "UNRESOLVED_SOURCE_PLAN_CONFLICT",
+  "full_reward_config_equal_to_pull_gate_a": true,
+  "mirror_tests": "7 passed in 2.39s",
+  "runtime_evidence": "NOT_YET_PASSED_G0_G1",
+  "contract": "scriptsFORhuman/pull_v26_8/CONTRACT.md"
+}

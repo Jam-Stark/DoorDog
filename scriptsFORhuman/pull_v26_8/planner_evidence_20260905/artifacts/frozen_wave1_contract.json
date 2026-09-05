@@ -1,0 +1,51 @@
+{
+  "schema": "a2_piper_pull_v26_8_frozen_wave1_v1",
+  "num_envs": 1024,
+  "num_total_batches": 6000,
+  "save_frequency": 250,
+  "num_steps_per_env": 64,
+  "milestones": [
+    750,
+    1500,
+    2250,
+    3000,
+    3750,
+    4500,
+    5250,
+    6000
+  ],
+  "cells": {
+    "P_S0": {
+      "seed": 0,
+      "gpu": 1
+    },
+    "P_S1": {
+      "seed": 1,
+      "gpu": 2
+    },
+    "P_S2": {
+      "seed": 2,
+      "gpu": 3
+    }
+  },
+  "eval_gpu": 0,
+  "eval_episodes_per_side": 64,
+  "G0": {
+    "schema": "a2_piper_pull_v26_8_g0_v1",
+    "status": "G0_PASS",
+    "num_envs": 1024,
+    "batches": 5,
+    "peak_memory_mib": 16062,
+    "minimum_headroom_mib": 8514,
+    "decision": "Main freezes this size only after measured minimum headroom is at least 2048 MiB"
+  },
+  "g0_actor_input": 133,
+  "g0_critic_input": 138,
+  "g0_actor_state_tensors": 20,
+  "g0_actor_rms_count": 2031041.0,
+  "planned_transitions_per_cell": 393216000,
+  "mainline_step2000_equivalent_transitions": 524288000,
+  "early_structural_failure_sample_gate_within_budget": false,
+  "G1_status": "PULL_V26_8_WIRING_NOT_CONFIRMED",
+  "wave1_execution_status": "NOT_RUN"
+}

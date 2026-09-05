@@ -1,0 +1,54 @@
+    self._init_a2_door_pregrasp_state()
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_pull.py", line 2367, in _init_a2_door_pregrasp_state
+    self._register_a2_pull_v6_staged_reset_buffers()
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_pull.py", line 2415, in _register_a2_pull_v6_staged_reset_buffers
+    self._register_a2_pull_staged_reset_buffers(
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_pull.py", line 2425, in _register_a2_pull_staged_reset_buffers
+    raise RuntimeError(
+RuntimeError: Pull-v6 staged reset requires enable_staged_reset=true.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/eval_agent_trl.py", line 873, in <module>
+    main()
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+    raise ex
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+    _ = ret.return_value
+        ^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+    raise self._return_value
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/eval_agent_trl.py", line 713, in main
+    env = instantiate(config=config.env, device=device)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 226, in instantiate
+    return instantiate_node(
+           ^^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 347, in instantiate_node
+    return _call_target(_target_, partial, args, kwargs, full_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 97, in _call_target
+    raise InstantiationException(msg) from e
+hydra.errors.InstantiationException: Error in call to target 'gr00t.rl.envs.door.door_open_a2_pull.DoorOpenA2Pull':
+RuntimeError('Pull-v6 staged reset requires enable_staged_reset=true.')
+full_key: env
+2026-09-05T08:58:28Z [62,664ms] [Warning] [omni.physx.plugin] USD stage detach not called, holding a loose ptr to a stage!
+2026-09-05T08:58:29Z [63,389ms] [Warning] [carb] Recursive unloadAllPlugins() detected!

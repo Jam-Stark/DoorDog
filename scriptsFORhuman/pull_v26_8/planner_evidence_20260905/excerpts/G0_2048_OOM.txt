@@ -1,0 +1,53 @@
+  )
+)
+2026-09-05 16:43:20.602 | INFO     | __main__:main:572 - Saving config file to /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G0_memory_smoke/num_envs2048
+saved meta: {'wandb_run': None}
+Using frozen A2_Base policy for low-level leg actions
+===training policy===
+2026-09-05 16:43:22.025 | INFO     | gr00t.rl.envs.door.door_open_a2_base:_get_a2_door_panel_contact_force_components:12450 - A2 runtime evidence: filtered sensor key=a2_door_body_panel_contact_sensor force_matrix_w_shape=(2048, 1, 13, 3) dtype=torch.float32 device=cuda:0
+2026-09-05 16:43:22.218 | INFO     | gr00t.rl.envs.door.door_open_a2_base:_get_a2_door_panel_contact_force_components:12450 - A2 runtime evidence: filtered sensor key=a2_door_arm_panel_contact_sensor force_matrix_w_shape=(2048, 1, 10, 3) dtype=torch.float32 device=cuda:0
+2026-09-05 16:43:22.901 | INFO     | gr00t.rl.envs.door.door_open_a2_base:_get_a2_door_panel_contact_force_components:12450 - A2 runtime evidence: filtered sensor key=a2_pull_door_body_frame_contact_sensor force_matrix_w_shape=(2048, 1, 13, 3) dtype=torch.float32 device=cuda:0
+2026-09-05 16:43:22.902 | INFO     | gr00t.rl.envs.door.door_open_a2_base:_get_a2_door_panel_contact_force_components:12450 - A2 runtime evidence: filtered sensor key=a2_pull_door_arm_frame_contact_sensor force_matrix_w_shape=(2048, 1, 10, 3) dtype=torch.float32 device=cuda:0
+Error executing job with overrides: ['+exp=wbmanip/door_open_a2_pull_v26_backbone_lstm', '+ablation=wbmanip/pull_v26_8_backbone_P_S0', 'checkpoint=null', 'checkpoint_load_mode=full', 'auto_load_latest=false', 'seed=0', 'num_envs=2048', 'algo.trl.num_total_batches=5', 'callbacks.model_save.save_frequency=5', 'headless=true', 'use_wandb=false', 'simulator.config.render_results=false', 'simulator.config.cameras.enable_cameras=false', 'experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G0_memory_smoke/num_envs2048', 'output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G0_memory_smoke/num_envs2048/output', 'project_name=a2_piper_pull_v26_8_backbone', 'experiment_name=P_S0', '+device=cuda:0']
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/train_agent_trl.py", line 612, in <module>
+    main()
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+    raise ex
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+    _ = ret.return_value
+        ^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+    raise self._return_value
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/train_agent_trl.py", line 605, in main
+    trainer.train()
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py", line 4769, in train
+    obs_dict = self._rollout_step(model, obs_dict)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py", line 4031, in _rollout_step
+    self.storage._save_hidden_states(policy_state_dict["hidden_states"])
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/agents/modules/data_utils.py", line 104, in _save_hidden_states
+    self.saved_hidden_states_c = [
+                                 ^
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/agents/modules/data_utils.py", line 105, in <listcomp>
+    torch.zeros(self.num_transitions_per_env, *hid_c[i].shape, device=self.device)
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 256.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 58.88 MiB is free. Including non-PyTorch memory, this process has 23.47 GiB memory in use. Of the allocated memory 19.30 GiB is allocated by PyTorch, and 157.24 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+2026-09-05T08:43:30Z [279,957ms] [Warning] [omni.physx.plugin] USD stage detach not called, holding a loose ptr to a stage!
+2026-09-05T08:43:32Z [281,573ms] [Warning] [carb] Recursive unloadAllPlugins() detected!

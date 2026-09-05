@@ -1,0 +1,17 @@
+{
+  "schema": "a2_piper_pull_v26_8_infra_relaunch_v1",
+  "attempt": 2,
+  "previous_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v26_8/runtime_logs/pull_v26_8_backbone_20260905",
+  "previous_process": "CONTROLLED_INTERRUPTION_BEFORE_POLICY_READOUT",
+  "reason": "Main interrupted scene construction to diagnose GPU/display warnings; identical warnings occur in successful historical H16. CUDA allocation and Vulkan enumeration pass. Warning alone is not a CUDA-failure verdict.",
+  "interruption_signal": "SIGTERM",
+  "child_returncode": 0,
+  "wrapper_returncode": 1,
+  "policy_readings_observed": false,
+  "changed_files": [
+    "scriptsFORhuman/pull_v26_8/orchestrate.sh"
+  ],
+  "experiment_contract_changed_files": [],
+  "environment_change": "Unset DISPLAY and XAUTHORITY explicitly for headless invocation; preserve all experiment config/source.",
+  "next_startup_wait": "Allow at least 10 minutes for 2048-clone construction unless a definitive exception/exit occurs."
+}

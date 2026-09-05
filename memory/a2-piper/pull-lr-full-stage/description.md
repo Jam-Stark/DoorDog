@@ -7,6 +7,7 @@ read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
 source_of_truth:
+  - scriptsFORhuman/pull_v26_8/planner_evidence_20260905/README.md
   - scriptsFORhuman/pull_v26_8/a2_piper_pull_v26_8_backbone_closure_20260905.md
   - logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/g1_wiring.json
   - scriptsFORhuman/pull_v26_8/CONTRACT.md

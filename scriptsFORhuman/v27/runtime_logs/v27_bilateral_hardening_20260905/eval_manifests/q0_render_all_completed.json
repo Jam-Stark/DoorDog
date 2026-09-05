@@ -1,0 +1,206 @@
+{
+  "schema": "a2_piper_base_v27_eval_manifest_v1",
+  "name": "q0_render_all_completed",
+  "step": 0,
+  "endpoint": false,
+  "episodes": 3,
+  "lanes": [
+    {
+      "cell": "C_S2",
+      "stratum": "DEV",
+      "side": "left",
+      "seed": 270001,
+      "episodes": 3,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render/C_S2/DEV/left",
+      "overrides": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "C_S2",
+      "stratum": "DEV",
+      "side": "right",
+      "seed": 270001,
+      "episodes": 3,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render/C_S2/DEV/right",
+      "overrides": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "W_S2",
+      "stratum": "DEV",
+      "side": "left",
+      "seed": 270001,
+      "episodes": 3,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/W_S2/model_step_003000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render/W_S2/DEV/left",
+      "overrides": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "W_S2",
+      "stratum": "DEV",
+      "side": "right",
+      "seed": 270001,
+      "episodes": 3,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/W_S2/model_step_003000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render/W_S2/DEV/right",
+      "overrides": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "K_S2",
+      "stratum": "DEV",
+      "side": "left",
+      "seed": 270001,
+      "episodes": 3,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/K_S2/model_step_003000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_k_after_cpu/K_S2/DEV/left",
+      "overrides": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "K_S2",
+      "stratum": "DEV",
+      "side": "right",
+      "seed": 270001,
+      "episodes": 3,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/K_S2/model_step_003000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_k_after_cpu/K_S2/DEV/right",
+      "overrides": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "simulator.config.render_results": true,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    }
+  ],
+  "provenance": {
+    "C_W": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/q0_render.json",
+    "K": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/q0_render_k_after_cpu.json",
+    "K_previous_render_status": "NOT_RUN_CELL_STOPPED; no prior K render rollout"
+  }
+}

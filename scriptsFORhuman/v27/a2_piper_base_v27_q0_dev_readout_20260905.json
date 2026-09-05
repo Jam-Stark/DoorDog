@@ -1,0 +1,170 @@
+{
+  "paired_deltas": {},
+  "negative_deltas": [],
+  "k_trace": {
+    "K_S2": {
+      "through_batch": 0,
+      "max_common_step": 0,
+      "scale_min": 1.0,
+      "first_update_below_0.95": null,
+      "share_of_updates_below_0.5": 0.0,
+      "reversal_count": 0,
+      "skipped_updates": 1,
+      "trace_rows": 1
+    }
+  },
+  "quality_failure_components": {
+    "C_S2/DEV/left": {
+      "complete_with_crossing_hinge_below_threshold": 0,
+      "complete_with_body_contact_above_5N": 53,
+      "complete_without_crossing_measurement": 0
+    },
+    "C_S2/DEV/right": {
+      "complete_with_crossing_hinge_below_threshold": 53,
+      "complete_with_body_contact_above_5N": 6,
+      "complete_without_crossing_measurement": 0
+    },
+    "W_S2/DEV/left": {
+      "complete_with_crossing_hinge_below_threshold": 0,
+      "complete_with_body_contact_above_5N": 25,
+      "complete_without_crossing_measurement": 0
+    },
+    "W_S2/DEV/right": {
+      "complete_with_crossing_hinge_below_threshold": 15,
+      "complete_with_body_contact_above_5N": 0,
+      "complete_without_crossing_measurement": 0
+    },
+    "K_S2/DEV/left": {
+      "complete_with_crossing_hinge_below_threshold": 21,
+      "complete_with_body_contact_above_5N": 35,
+      "complete_without_crossing_measurement": 0
+    },
+    "K_S2/DEV/right": {
+      "complete_with_crossing_hinge_below_threshold": 3,
+      "complete_with_body_contact_above_5N": 0,
+      "complete_without_crossing_measurement": 0
+    }
+  },
+  "receipts": {
+    "v27_eval_g0_runtime_eval_gpu0": {
+      "state": "FAIL",
+      "returncode": 1,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_gpu1": {
+      "state": "FAIL",
+      "returncode": 1,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_r2_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_r2_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_r2_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_r2_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_q0_dev_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_dev_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_q0_dev_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_dev_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_q0_render_gpu0": {
+      "state": "RUNNING",
+      "returncode": 1,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_render_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_q0_render_gpu1": {
+      "state": "RUNNING",
+      "returncode": 1,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_render_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_smoke_a": {
+      "state": "PASS",
+      "returncode": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_smoke_a/RUN_RECEIPT.json"
+    },
+    "v27_train_c_s21": {
+      "state": "RUNNING",
+      "returncode": null,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_c_s21/RUN_RECEIPT.json"
+    },
+    "v27_train_c_s22": {
+      "state": "RUNNING",
+      "returncode": null,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_c_s22/RUN_RECEIPT.json"
+    },
+    "v27_train_q1_s21": {
+      "state": "RUNNING",
+      "returncode": null,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q1_s21/RUN_RECEIPT.json"
+    },
+    "v27_train_q1_s22": {
+      "state": "RUNNING",
+      "returncode": null,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q1_s22/RUN_RECEIPT.json"
+    },
+    "v27_train_q2_s21": {
+      "state": "RUNNING",
+      "returncode": null,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q2_s21/RUN_RECEIPT.json"
+    },
+    "v27_train_q2_s22": {
+      "state": "RUNNING",
+      "returncode": null,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q2_s22/RUN_RECEIPT.json"
+    },
+    "v27_watch_a": {
+      "state": "RUNNING",
+      "returncode": 143,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_a/RUN_RECEIPT.json"
+    },
+    "v27_watch_a_r2": {
+      "state": "RUNNING",
+      "returncode": null,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_a_r2/RUN_RECEIPT.json"
+    }
+  },
+  "gpu": [
+    "0, 1 MiB, 49140 MiB, 0 %",
+    "1, 1 MiB, 49140 MiB, 0 %",
+    "2, 13702 MiB, 49140 MiB, 48 %",
+    "3, 12882 MiB, 49140 MiB, 15 %",
+    "4, 12758 MiB, 49140 MiB, 17 %",
+    "5, 13148 MiB, 49140 MiB, 38 %",
+    "6, 12892 MiB, 49140 MiB, 16 %",
+    "7, 12892 MiB, 49140 MiB, 29 %"
+  ],
+  "processes": [
+    "1273739 2692622       57:25 bash /home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_c_s21/run.sh",
+    "1273741 1273739       57:25 /home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_run_cell.py train --gpu 2 --cell C_S21 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21",
+    "1273833 1273741       57:24 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl +exp=wbmanip/door_open_a2_base_lstm +ablation=wbmanip/base_v27_C_S21 headless=true use_wandb=false simulator.config.render_results=false simulator.config.cameras.enable_cameras=false experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21 output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/output project_name=base_v27_bilateral_hardening experiment_name=V27_C_S21",
+    "1273882 2692622       57:23 bash /home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q1_s21/run.sh",
+    "1273884 1273882       57:23 /home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_run_cell.py train --gpu 3 --cell Q1_S21 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21",
+    "1274036 1273884       57:22 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl +exp=wbmanip/door_open_a2_base_lstm +ablation=wbmanip/base_v27_Q1_S21 headless=true use_wandb=false simulator.config.render_results=false simulator.config.cameras.enable_cameras=false experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21 output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21/output project_name=base_v27_bilateral_hardening experiment_name=V27_Q1_S21",
+    "1274079 2692622       57:22 bash /home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q2_s21/run.sh",
+    "1274084 1274079       57:22 /home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_run_cell.py train --gpu 4 --cell Q2_S21 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21",
+    "1274172 1274084       57:21 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl +exp=wbmanip/door_open_a2_base_lstm +ablation=wbmanip/base_v27_Q2_S21 headless=true use_wandb=false simulator.config.render_results=false simulator.config.cameras.enable_cameras=false experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21 output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21/output project_name=base_v27_bilateral_hardening experiment_name=V27_Q2_S21",
+    "1274215 2692622       57:20 bash /home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_c_s22/run.sh",
+    "1274216 1274215       57:20 /home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_run_cell.py train --gpu 5 --cell C_S22 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22",
+    "1274238 1274216       57:19 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl +exp=wbmanip/door_open_a2_base_lstm +ablation=wbmanip/base_v27_C_S22 headless=true use_wandb=false simulator.config.render_results=false simulator.config.cameras.enable_cameras=false experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22 output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22/output project_name=base_v27_bilateral_hardening experiment_name=V27_C_S22",
+    "1274257 2692622       57:19 bash /home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q1_s22/run.sh",
+    "1274259 1274257       57:19 /home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_run_cell.py train --gpu 6 --cell Q1_S22 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22",
+    "1274299 1274259       57:18 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl +exp=wbmanip/door_open_a2_base_lstm +ablation=wbmanip/base_v27_Q1_S22 headless=true use_wandb=false simulator.config.render_results=false simulator.config.cameras.enable_cameras=false experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22 output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22/output project_name=base_v27_bilateral_hardening experiment_name=V27_Q1_S22",
+    "1274321 2692622       57:17 bash /home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q2_s22/run.sh",
+    "1274323 1274321       57:17 /home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_run_cell.py train --gpu 7 --cell Q2_S22 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22",
+    "1274431 1274323       57:16 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl +exp=wbmanip/door_open_a2_base_lstm +ablation=wbmanip/base_v27_Q2_S22 headless=true use_wandb=false simulator.config.render_results=false simulator.config.cameras.enable_cameras=false experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22 output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22/output project_name=base_v27_bilateral_hardening experiment_name=V27_Q2_S22",
+    "1294957 2692622       40:15 bash /home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_a_r2/run.sh",
+    "1294960 1294957       40:15 /home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_watch_wave.py --wave A",
+    "1323746 3155584       00:01 /bin/bash -c /home/baoquanc/anaconda3/envs/isaaclab/bin/python - <<'PY' import sys sys.path.insert(0,'scriptsFORhuman/v27') from v27_contract import RUNTIME,EVAL,read_json,write_json,input_checkpoint from v27_orchestrate import eval_manifest,eval_launch old=read_json(EVAL/'q0_dev/reducer.json');k=read_json(EVAL/'q0_k_cpu_readjudication/reducer.json');combined=read_json(EVAL/'q0_dev_cpu_adjudicated/reducer.json') combined['lanes']=[lane for lane in old['lanes'] if lane['cell']!='K_S2']+k['lanes'] assert all(lane['status']=='COMPLETE' for lane in combined['lanes']) write_json(EVAL/'q0_dev_cpu_adjudicated/reducer.json',combined,replace=True) p=eval_manifest('q0_render_k_after_cpu',{'K_S2':input_checkpoint('K_S2')},['DEV'],3,270001,extra_overrides={'simulator.config.render_results':True}) eval_launch(p) PY",
+    "1323764 1323753       00:01 /home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_8/v26_8_p0_assets.py --output /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/p0_assets/eval_q0_render_k_after_cpu_gpu0.json",
+    "1323768 3155584       00:00 /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/v27/v27_readout.py --reducer logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_dev_cpu_adjudicated/reducer.json --manifest scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/q0_dev.json --train-root logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train --output scriptsFORhuman/v27/a2_piper_base_v27_q0_dev_readout_20260905.md"
+  ]
+}

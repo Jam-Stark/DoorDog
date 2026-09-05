@@ -4,6 +4,8 @@
 
 ## Entries
 
+- [base-v27-bilateral-hardening/description.md](base-v27-bilateral-hardening/description.md): 2026-09-05 20:15 HKT — G0/v27.0 完成：三候选 DEV exact128/侧、integrity0，C/W/K LEFT clean=75/100/71、RIGHT=69/112/119，K 超速6/5；NO_QUALIFIED_CANDIDATE、CONF未运行。18 QA回合/54videos与manifest v1齐全；K原INVALID保留，经Owner批准仅CPU重判，无训练/DEV重跑。Wave A六格运行中；后续门域/恢复pilot/scratch-K仍待wave推进。
+
 - [worktree-routing/description.md](worktree-routing/description.md): A2_Piper active implementation worktree 与 doorman baseline/reference worktree 的使用约定。
 - [doorman-door-training-goal/description.md](doorman-door-training-goal/description.md): 长期目标：基于 Doorman door-opening workflow 替换为用户自己的 robot，并设计/适配 observation、action、reward、env config、training/eval workflow 以完成开门任务训练。
 - [push-open-door-optimization/description.md](push-open-door-optimization/description.md): 2026-07-28 06:43 HKT — v19七组1×4096/2500 formal均natural exit0且W&B finished；70-checkpoint M22与selected-endpoint pooled48、G3/G7 render和final analysis已关闭。七组goal/crossing均48/48、overspeed均0，但carry G1/G2/G6 held p50均低于1.45、G7 plateau低于1.5；按预注册规则选择G3 no-carry fallback，所有组full judgement及render行为门均FAIL，48-door不构成statistical proof。

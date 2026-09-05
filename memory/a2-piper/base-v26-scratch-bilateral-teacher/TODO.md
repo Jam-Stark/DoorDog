@@ -1,5 +1,9 @@
 # TODO
 
+- 2026-09-05 18:01 HKT — 本 entry 已 closed；新建 `base-v27-bilateral-hardening` 承接资格与可靠性任务。
+  当前无获准待运行的 v26 实验；以下旧 TODO 保留为对应时点的历史，不能作为新实验授权。
+  `cb15678`（v26 finish）已覆盖此前待提交收尾，当前 Git 工作属于 v27。
+
 - 2026-09-05 07:21 HKT - **v26 已由 Owner 裁定收尾**（scoped 目标达成：S2 谱系双侧 complete 64/64；LEFT 行为质量与资格认定未做）。
   资格认定作为 v27.0 执行；v27 authority：`scriptsFORhuman/v27/a2_piper_base_v27_plan_20260905.md`；
   路线裁定见 `scriptsFORhuman/a2_piper_longterm_TODO.md` R 节。本 entry 不再新增实验；v27 建 entry

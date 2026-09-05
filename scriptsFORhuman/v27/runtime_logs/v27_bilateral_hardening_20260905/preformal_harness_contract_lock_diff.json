@@ -1,0 +1,20 @@
+{
+  "status": "CONTRACT_LOCK_DIFF_PASS",
+  "source_diff": {
+    "scriptsFORhuman/v27/v27_orchestrate.py": {
+      "before": "2af4a90179030aaccf39e5125846b4184c82f902e603aa6c292dc97b251f39fe",
+      "after": "72f30894ba58c4fc8d49b2c977dbcde86823eba26a499669a46337e05fb330d7"
+    },
+    "scriptsFORhuman/v27/v27_reduce.py": {
+      "before": "183ded3d051f747f6e8fef44ceaecb244af5084e0520ee6e61335e476e0e93c6",
+      "after": "b90a3b0d056a5911e8f5775ada7536a98929a7b9b2f3ca65c9a65644756e1c79"
+    }
+  },
+  "new_report_only_files": [
+    "scriptsFORhuman/v27/v27_readout.py"
+  ],
+  "experimental_contract_diff": {},
+  "core_and_configs": "BYTE_IDENTICAL_TO_G0_RUNTIME",
+  "change": "Complete registered per-cell failure isolation and include current endpoint in Wave C first-passage history; no thresholds or route definitions changed.",
+  "proof": "reducer targeted suite 6 passed in 0.05s; G0 runtime measurement functions unchanged."
+}

@@ -1,0 +1,50 @@
+{
+  "status": "DECLARED_BEFORE_POLICY",
+  "source": "gr00t/rl/config/ablation/wbmanip/base_v17_G5_full_m34_m35_hinge125.yaml",
+  "Q1": {
+    "env": {
+      "config": {
+        "a2_door_body_contact_penalty_mode": "event_v17",
+        "a2_door_body_contact_event_force_threshold": 5.0,
+        "a2_door_body_contact_event_peak_force_norm": 200.0,
+        "a2_door_body_contact_event_component_cap": 2.0
+      }
+    },
+    "rewards": {
+      "reward_scales": {
+        "penalty_a2_door_body_contact": -3.0
+      }
+    }
+  },
+  "Q2": {
+    "env": {
+      "config": {
+        "a2_door_body_contact_penalty_mode": "event_v17",
+        "a2_door_body_contact_event_force_threshold": 5.0,
+        "a2_door_body_contact_event_peak_force_norm": 200.0,
+        "a2_door_body_contact_event_component_cap": 2.0,
+        "a2_corridor_enabled": true,
+        "a2_stage3_stage4_hold_and_drive_velocity_norm_in_corridor": 0.4,
+        "a2_stage4_release_hinge_threshold": 1.4
+      }
+    },
+    "rewards": {
+      "reward_scales": {
+        "penalty_a2_door_body_contact": -3.0,
+        "a2_corridor_door_wide": 4.0,
+        "a2_corridor_clean_passage": 1.0
+      }
+    }
+  },
+  "inherited_unchanged": {
+    "env.config.a2_corridor_door_wide_hinge_norm": 1.5,
+    "env.config.a2_corridor_latch_mode": "legacy_root_or_hinge",
+    "env.config.a2_stage5_hold_income_continuity_enabled": false,
+    "env.config.a2_stage4_to5_door_hinge_threshold": 1.0472
+  },
+  "scope_reconciliation": [
+    "G5 omits corridor norm and latch mode; current resolved values retained, no values invented.",
+    "G5 stage4_to5 1.25 is outside authorized unchanged stage predicates.",
+    "G5 stage5_hold_income_continuity true is outside named corridor/latch/release keys and reward scales; retain current false under section4 boundary."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "status": "OWNER_APPROVED",
+  "requested_at": "2026-09-05T11:30:59.559487+00:00",
+  "default_after": "2026-09-05T23:30:59.559487+00:00",
+  "default_action": "KEEP_ORIGINAL_K_V27_INVALID_AND_CONTINUE_OTHER_WAVES",
+  "authority": "plan section9.2/9.7",
+  "request": "CPU-only reread of immutable K_S2 DEV artifacts with source-matched Stage2+ trace coverage; no training/DEV rollout restart",
+  "candidate": ".ai/runtime/v27_reducer_candidate/v27_reduce.py",
+  "proposal_diff": "scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/reducer_trace_coverage_proposal.diff",
+  "candidate_cpu_tests": "9 passed in 0.06s",
+  "approved_at": "2026-09-05T11:33:53.681445+00:00",
+  "authorization": "Owner explicitly approved CPU-only reread of existing K_S2 DEV artifacts; no training/DEV restart."
+}

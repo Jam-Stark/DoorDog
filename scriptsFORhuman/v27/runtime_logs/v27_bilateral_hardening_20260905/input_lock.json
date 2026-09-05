@@ -1,0 +1,56 @@
+{
+  "status": "INPUTS_FROZEN",
+  "inputs": {
+    "C_S2": {
+      "model_step_003000.pt": {
+        "original": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/model_step_003000.pt",
+        "copy": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+        "sha256": "95abbf7f2facf59e98b7ee15f2134a667f43938d0146e821d9a42702198d4169"
+      },
+      "config.yaml": {
+        "original": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/config.yaml",
+        "copy": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/config.yaml",
+        "sha256": "0785498c25c31f65955afc9422266c7bbb53943407597061fdb429287c487a8b"
+      },
+      "resolved_config.yaml": {
+        "original": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/resolved_config.yaml",
+        "copy": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/resolved_config.yaml",
+        "sha256": "776c505c2014df391ac2a91bf1821adbd65c89ffc4f497a0d6856dd183a29f36"
+      }
+    },
+    "W_S2": {
+      "model_step_003000.pt": {
+        "original": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/W_S2/model_step_003000.pt",
+        "copy": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/W_S2/model_step_003000.pt",
+        "sha256": "3385ef36252f922192cf0e8dc6ad938d240c9e9b8e6fbd026bacec4cb4ebf93d"
+      },
+      "config.yaml": {
+        "original": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/W_S2/config.yaml",
+        "copy": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/W_S2/config.yaml",
+        "sha256": "9ea0cc337091d6b1c9cb5bd85b9a904f771d8a4dc64fe41cbeeda13294b3f8d2"
+      },
+      "resolved_config.yaml": {
+        "original": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/W_S2/resolved_config.yaml",
+        "copy": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/W_S2/resolved_config.yaml",
+        "sha256": "8e33aae0a96e0f92fa3d868b6059cb1e0db031f60fd62b7e810c799795a635d6"
+      }
+    },
+    "K_S2": {
+      "model_step_003000.pt": {
+        "original": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/K_S2/model_step_003000.pt",
+        "copy": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/K_S2/model_step_003000.pt",
+        "sha256": "861c6c853c22840d95c8b8873302199ba9557d4a63057eae6cb8f5c1211938c6"
+      },
+      "config.yaml": {
+        "original": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/K_S2/config.yaml",
+        "copy": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/K_S2/config.yaml",
+        "sha256": "874c75973f7108c636da850c0e3bbd0b18da8144951f8ea127e050ac41b844aa"
+      },
+      "resolved_config.yaml": {
+        "original": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/K_S2/resolved_config.yaml",
+        "copy": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/K_S2/resolved_config.yaml",
+        "sha256": "220d89800d40b6722b5d2ec81ae2ee5f6dd87d27d3db1755b16543776e080995"
+      }
+    }
+  }
+}

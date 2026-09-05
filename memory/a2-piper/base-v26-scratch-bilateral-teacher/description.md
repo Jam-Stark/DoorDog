@@ -1,8 +1,8 @@
 ---
 name: base-v26-scratch-bilateral-teacher
 scope: scratch-born bilateral A2+PiPER Teacher acquisition, far-start navigation, staged reset, and load consolidation
-status: v26_8_complete_wave2_not_admitted
-last_updated: 2026-09-04 23:17 HKT
+status: closed
+last_updated: 2026-09-05 18:01 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v26-scratch-bilateral-teacher/description.md
@@ -31,6 +31,10 @@ read_when:
 ---
 
 # base_v26 Scratch Bilateral Teacher
+
+2026-09-05 — Owner 已裁定 v26 scoped 目标达成并收尾；资格认定移交
+`../base-v27-bilateral-hardening/description.md` 的 v27.0。v26 不再新增实验；
+历史 typed outcomes、closure 与失败 artifact 原样保留。本地 `cb15678` 已提交 v26 finish。
 
 ## Purpose
 

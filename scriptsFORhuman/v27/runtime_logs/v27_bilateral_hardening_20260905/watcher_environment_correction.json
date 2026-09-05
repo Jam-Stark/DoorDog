@@ -1,0 +1,5 @@
+{
+  "reason": "CPU watcher must pass current explicit proxy environment to its future evaluator launches, instead of inheriting stale tmux defaults.",
+  "replaced_monitor_pid": 1293416,
+  "gpu_runs_affected": []
+}

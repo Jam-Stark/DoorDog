@@ -1,0 +1,97 @@
+{
+  "schema": "a2_piper_base_v27_reducer_v1",
+  "status": "V27_COMPLETE",
+  "expected_n": 64,
+  "cells": {
+    "C_S2": {
+      "DEV": {
+        "left": {
+          "episodes": 64,
+          "D": 57,
+          "S3+": 64,
+          "S4+": 64,
+          "open_hold": 64,
+          "S5+": 64,
+          "complete": 64,
+          "clean_complete": 43,
+          "hold_through": 0,
+          "crossing_while_holding": 0,
+          "post_release_body_force_p95": 585.5422973632812,
+          "first_crossing_hinge_p50": 2.0747756958007812,
+          "episode_length_p50": 815.0,
+          "arm_j4_limit_residence_step_share": 0.00393301192590713,
+          "terminal_reasons": {
+            "complete": 64
+          },
+          "integrity_violations": 0,
+          "runtime_contract": {
+            "historical": true
+          },
+          "clean_complete_available": true
+        },
+        "right": {
+          "episodes": 64,
+          "D": 54,
+          "S3+": 64,
+          "S4+": 64,
+          "open_hold": 64,
+          "S5+": 64,
+          "complete": 64,
+          "clean_complete": 34,
+          "hold_through": 64,
+          "crossing_while_holding": 64,
+          "post_release_body_force_p95": 62.23408889770508,
+          "first_crossing_hinge_p50": 1.086075782775879,
+          "episode_length_p50": 485.0,
+          "arm_j4_limit_residence_step_share": 0.0,
+          "terminal_reasons": {
+            "complete": 64
+          },
+          "integrity_violations": 0,
+          "runtime_contract": {
+            "historical": true
+          },
+          "clean_complete_available": true
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "cell": "C_S2",
+      "stratum": "DEV",
+      "side": "left",
+      "status": "COMPLETE"
+    },
+    {
+      "cell": "C_S2",
+      "stratum": "DEV",
+      "side": "right",
+      "status": "COMPLETE"
+    }
+  ],
+  "invalid_cells": {},
+  "typed_outcomes": {
+    "qualification": {
+      "outcome": "UNRESOLVED",
+      "selected_candidate": null
+    },
+    "wave_a": {
+      "outcome": "UNRESOLVED",
+      "recipe_a": null,
+      "labels": []
+    },
+    "wave_b_domain": {
+      "outcome": "UNRESOLVED",
+      "recipe_b": null
+    },
+    "recovery": {
+      "outcome": "UNRESOLVED"
+    },
+    "wave_c": {
+      "sc_outcome": "UNRESOLVED",
+      "sk_outcome": "UNRESOLVED"
+    }
+  },
+  "route": "V27_REDUCED"
+}

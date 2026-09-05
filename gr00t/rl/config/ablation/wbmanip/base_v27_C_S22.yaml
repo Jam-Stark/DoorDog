@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+- /ablation/wbmanip/base_v27_common
+- _self_
+v26_cell: V27_C_S22
+seed: 22
+checkpoint: /home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt
+algo:
+  trl:
+    num_total_batches: 3000
+env:
+  config:
+    a2_v26_side_permutation_seed: 22

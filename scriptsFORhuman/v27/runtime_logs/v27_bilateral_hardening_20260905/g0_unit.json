@@ -1,0 +1,7 @@
+{
+  "status": "TEST_PASS",
+  "tests": 15,
+  "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python -m pytest -q gr00t/rl/tests/test_a2_v27_reduce.py gr00t/rl/tests/test_a2_v27_recovery.py gr00t/rl/tests/test_a2_v27_friction.py",
+  "result": "15 passed in 11.33s",
+  "level": "TEST_PASS"
+}

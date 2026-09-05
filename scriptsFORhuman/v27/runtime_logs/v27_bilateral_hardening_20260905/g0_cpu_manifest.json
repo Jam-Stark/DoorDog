@@ -1,0 +1,27 @@
+{
+  "schema": "a2_piper_base_v27_eval_manifest_v1",
+  "step": 3000,
+  "endpoint": false,
+  "lanes": [
+    {
+      "cell": "C_S2",
+      "stratum": "historical",
+      "side": "left",
+      "seed": 2,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/model_step_003000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/milestones/step3000/C_S2_STEP3000/left",
+      "historical": true
+    },
+    {
+      "cell": "C_S2",
+      "stratum": "historical",
+      "side": "right",
+      "seed": 2,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/model_step_003000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/milestones/step3000/C_S2_STEP3000/right",
+      "historical": true
+    }
+  ]
+}

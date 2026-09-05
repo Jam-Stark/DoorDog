@@ -1,0 +1,101 @@
+{
+  "paired_counts": {
+    "W": {
+      "left": {
+        "D": 7,
+        "S3+": 0,
+        "S4+": -3,
+        "open_hold": -3,
+        "S5+": -3,
+        "complete": -3,
+        "clean_complete": 25
+      },
+      "right": {
+        "D": -5,
+        "S3+": 0,
+        "S4+": -1,
+        "open_hold": -1,
+        "S5+": -1,
+        "complete": -1,
+        "clean_complete": 43
+      }
+    },
+    "K": {
+      "left": {
+        "D": -7,
+        "S3+": -1,
+        "S4+": -1,
+        "open_hold": -1,
+        "S5+": -1,
+        "complete": -6,
+        "clean_complete": -4
+      },
+      "right": {
+        "D": -17,
+        "S3+": -2,
+        "S4+": -3,
+        "open_hold": -4,
+        "S5+": -4,
+        "complete": -6,
+        "clean_complete": 50
+      }
+    }
+  },
+  "historical_rate_delta_percentage_points": {
+    "C_S2": {
+      "left": {
+        "D": -0.78125,
+        "S3+": 0.0,
+        "S4+": 0.0,
+        "open_hold": 0.0,
+        "S5+": 0.0,
+        "complete": 0.0
+      },
+      "right": {
+        "D": 0.78125,
+        "S3+": 0.0,
+        "S4+": 0.0,
+        "open_hold": 0.0,
+        "S5+": 0.0,
+        "complete": 0.0
+      }
+    },
+    "W_S2": {
+      "left": {
+        "D": -4.6875,
+        "S3+": 0.0,
+        "S4+": -2.34375,
+        "open_hold": -2.34375,
+        "S5+": -2.34375,
+        "complete": -2.34375
+      },
+      "right": {
+        "D": 3.125,
+        "S3+": 0.0,
+        "S4+": -0.78125,
+        "open_hold": -0.78125,
+        "S5+": -0.78125,
+        "complete": -0.78125
+      }
+    },
+    "K_S2": {
+      "left": {
+        "D": 1.5625,
+        "S3+": -0.78125,
+        "S4+": -0.78125,
+        "open_hold": -0.78125,
+        "S5+": 0.78125,
+        "complete": 1.5625
+      },
+      "right": {
+        "D": 1.5625,
+        "S3+": 0.0,
+        "S4+": -0.78125,
+        "open_hold": -1.5625,
+        "S5+": -1.5625,
+        "complete": -3.125
+      }
+    }
+  },
+  "historical_reference": "v26-8 r3a step3000 exact64; different N and eval seed, not a causal contrast"
+}

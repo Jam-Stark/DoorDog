@@ -64,6 +64,16 @@ never select GPU4–7.
 
 ## Memory routing
 
+### Verified base_v27 entrypoints (2026-09-05)
+
+`bash scriptsFORhuman/v27/v27_orchestrate.sh` 的 `smoke-launch --wave A`、
+`train-launch --wave A`、`q0-dev-launch`、`q0-render-launch` 与 `eval-finalize --manifest ...`
+已走通本机 runtime。Python 使用 `/home/baoquanc/anaconda3/envs/isaaclab/bin/python`；
+每个 Isaac 进程只暴露其物理 GPU，并使用进程内 `cuda:0`。GPU2–7 训练、GPU0/1 评估；
+当前六项 proxy env 显式进入 receipt command。具体 paths/合同从 `v27_contract.py` 与对应 runtime
+source/config lock 读取。v27.0 终态是 NO_QUALIFIED_CANDIDATE，不能据此更新 Teacher/G7。
+这记录已验证命令，不向其他任务授予 GPU 或实验预算。Wave B/C 启用路径尚未完成 runtime 证明。
+
 For non-trivial implementation、debugging、review 或 stage planning, read only the minimum relevant route:
 
 ```text

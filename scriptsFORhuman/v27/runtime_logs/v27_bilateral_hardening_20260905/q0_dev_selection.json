@@ -1,0 +1,9 @@
+{
+  "status": "DEV_SELECTION_FROZEN",
+  "selection": {
+    "outcome": "NO_QUALIFIED_CANDIDATE",
+    "selected_candidate": null
+  },
+  "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_dev_cpu_adjudicated/reducer.json",
+  "selected_at": "2026-09-05T11:37:31.730090+00:00"
+}

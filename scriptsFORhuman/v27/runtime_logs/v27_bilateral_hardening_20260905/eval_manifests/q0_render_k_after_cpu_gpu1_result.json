@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "lanes": [
+    {
+      "index": 1,
+      "cell": "K_S2",
+      "stratum": "DEV",
+      "side": "right",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_k_after_cpu/K_S2/DEV/right"
+    }
+  ]
+}

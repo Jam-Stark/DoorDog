@@ -1,0 +1,57 @@
+{
+  "paired_deltas": {},
+  "negative_deltas": [],
+  "k_trace": {},
+  "quality_failure_components": {
+    "G0_Q2_S21/nominal/left": {
+      "complete_with_crossing_hinge_below_threshold": 0,
+      "complete_with_body_contact_above_5N": 31,
+      "complete_without_crossing_measurement": 0
+    },
+    "G0_Q2_S21/nominal/right": {
+      "complete_with_crossing_hinge_below_threshold": 26,
+      "complete_with_body_contact_above_5N": 7,
+      "complete_without_crossing_measurement": 0
+    }
+  },
+  "receipts": {
+    "v27_eval_g0_runtime_eval_gpu0": {
+      "state": "FAIL",
+      "returncode": 1,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_gpu1": {
+      "state": "FAIL",
+      "returncode": 1,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_r2_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_r2_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_r2_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_r2_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_smoke_a": {
+      "state": "PASS",
+      "returncode": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_smoke_a/RUN_RECEIPT.json"
+    }
+  },
+  "gpu": [
+    "0, 1 MiB, 49140 MiB, 0 %",
+    "1, 1 MiB, 49140 MiB, 0 %",
+    "2, 1 MiB, 49140 MiB, 0 %",
+    "3, 1 MiB, 49140 MiB, 0 %",
+    "4, 1 MiB, 49140 MiB, 0 %",
+    "5, 1 MiB, 49140 MiB, 0 %",
+    "6, 1 MiB, 49140 MiB, 0 %",
+    "7, 1 MiB, 49140 MiB, 0 %"
+  ],
+  "processes": [
+    "1273395 3155584       00:00 /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/v27/v27_readout.py --reducer logs_eval/base_v27/v27_bilateral_hardening_20260905/G0_runtime_eval_r2/reducer.json --manifest scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/G0_runtime_eval_r2.json --output scriptsFORhuman/v27/a2_piper_base_v27_g0_readout_20260905.md"
+  ]
+}

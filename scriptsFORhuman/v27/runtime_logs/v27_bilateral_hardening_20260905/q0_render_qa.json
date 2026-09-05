@@ -1,0 +1,38 @@
+{
+  "status": "REVIEWED",
+  "reviewed_at": "2026-09-05 20:15 HKT",
+  "selection": {
+    "seed": 270001,
+    "num_envs": 3,
+    "env_ids": [
+      0,
+      1,
+      2
+    ],
+    "episode_index": 0,
+    "relation_to_DEV": "Separate predeclared 3-env QA; not a subset or statistical extension of exact128 DEV."
+  },
+  "main_camera_sample_fractions": [
+    0.3,
+    0.55,
+    0.75,
+    0.95
+  ],
+  "main_camera_clips_decoded": 18,
+  "sampled_frames_reviewed": 72,
+  "sheets": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_qa/C_S2_left_main_sheet.png",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_qa/C_S2_right_main_sheet.png",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_qa/K_S2_left_main_sheet.png",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_qa/K_S2_right_main_sheet.png",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_qa/W_S2_left_main_sheet.png",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_qa/W_S2_right_main_sheet.png"
+  ],
+  "observations": [
+    "C/W LEFT 主视角中可见开门后手臂回收再通行，RIGHT 保持伸臂握门通行。",
+    "K LEFT 更长时间保持手臂伸向门把；与 C/W LEFT 的回收动作不同。",
+    "主视角可见接近与开门过程，穿门后常被门板遮挡；接触力与精确 crossing 时刻以 telemetry 为准。",
+    "渲染与抽帧只做 QA，不替代 exact128 质量门。"
+  ],
+  "render_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_render_all_completed/reducer.json"
+}

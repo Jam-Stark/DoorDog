@@ -1,0 +1,169 @@
+{
+  "wave": "A",
+  "RECIPE_A": "C",
+  "RECIPE_B": "current",
+  "cells": {
+    "C_S21": {
+      "defaults": [
+        "/ablation/wbmanip/base_v27_common",
+        "_self_"
+      ],
+      "v26_cell": "V27_C_S21",
+      "seed": 21,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+      "algo": {
+        "trl": {
+          "num_total_batches": 3000
+        }
+      },
+      "env": {
+        "config": {
+          "a2_v26_side_permutation_seed": 21
+        }
+      }
+    },
+    "Q1_S21": {
+      "defaults": [
+        "/ablation/wbmanip/base_v27_common",
+        "_self_"
+      ],
+      "v26_cell": "V27_Q1_S21",
+      "seed": 21,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+      "algo": {
+        "trl": {
+          "num_total_batches": 3000
+        }
+      },
+      "env": {
+        "config": {
+          "a2_v26_side_permutation_seed": 21,
+          "a2_door_body_contact_penalty_mode": "event_v17",
+          "a2_door_body_contact_event_force_threshold": 5.0,
+          "a2_door_body_contact_event_peak_force_norm": 200.0,
+          "a2_door_body_contact_event_component_cap": 2.0
+        }
+      },
+      "rewards": {
+        "reward_scales": {
+          "penalty_a2_door_body_contact": -3.0
+        }
+      }
+    },
+    "Q2_S21": {
+      "defaults": [
+        "/ablation/wbmanip/base_v27_common",
+        "_self_"
+      ],
+      "v26_cell": "V27_Q2_S21",
+      "seed": 21,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+      "algo": {
+        "trl": {
+          "num_total_batches": 3000
+        }
+      },
+      "env": {
+        "config": {
+          "a2_v26_side_permutation_seed": 21,
+          "a2_door_body_contact_penalty_mode": "event_v17",
+          "a2_door_body_contact_event_force_threshold": 5.0,
+          "a2_door_body_contact_event_peak_force_norm": 200.0,
+          "a2_door_body_contact_event_component_cap": 2.0,
+          "a2_corridor_enabled": true,
+          "a2_stage3_stage4_hold_and_drive_velocity_norm_in_corridor": 0.4,
+          "a2_stage4_release_hinge_threshold": 1.4
+        }
+      },
+      "rewards": {
+        "reward_scales": {
+          "penalty_a2_door_body_contact": -3.0,
+          "a2_corridor_door_wide": 4.0,
+          "a2_corridor_clean_passage": 1.0
+        }
+      }
+    },
+    "C_S22": {
+      "defaults": [
+        "/ablation/wbmanip/base_v27_common",
+        "_self_"
+      ],
+      "v26_cell": "V27_C_S22",
+      "seed": 22,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+      "algo": {
+        "trl": {
+          "num_total_batches": 3000
+        }
+      },
+      "env": {
+        "config": {
+          "a2_v26_side_permutation_seed": 22
+        }
+      }
+    },
+    "Q1_S22": {
+      "defaults": [
+        "/ablation/wbmanip/base_v27_common",
+        "_self_"
+      ],
+      "v26_cell": "V27_Q1_S22",
+      "seed": 22,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+      "algo": {
+        "trl": {
+          "num_total_batches": 3000
+        }
+      },
+      "env": {
+        "config": {
+          "a2_v26_side_permutation_seed": 22,
+          "a2_door_body_contact_penalty_mode": "event_v17",
+          "a2_door_body_contact_event_force_threshold": 5.0,
+          "a2_door_body_contact_event_peak_force_norm": 200.0,
+          "a2_door_body_contact_event_component_cap": 2.0
+        }
+      },
+      "rewards": {
+        "reward_scales": {
+          "penalty_a2_door_body_contact": -3.0
+        }
+      }
+    },
+    "Q2_S22": {
+      "defaults": [
+        "/ablation/wbmanip/base_v27_common",
+        "_self_"
+      ],
+      "v26_cell": "V27_Q2_S22",
+      "seed": 22,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+      "algo": {
+        "trl": {
+          "num_total_batches": 3000
+        }
+      },
+      "env": {
+        "config": {
+          "a2_v26_side_permutation_seed": 22,
+          "a2_door_body_contact_penalty_mode": "event_v17",
+          "a2_door_body_contact_event_force_threshold": 5.0,
+          "a2_door_body_contact_event_peak_force_norm": 200.0,
+          "a2_door_body_contact_event_component_cap": 2.0,
+          "a2_corridor_enabled": true,
+          "a2_stage3_stage4_hold_and_drive_velocity_norm_in_corridor": 0.4,
+          "a2_stage4_release_hinge_threshold": 1.4
+        }
+      },
+      "rewards": {
+        "reward_scales": {
+          "penalty_a2_door_body_contact": -3.0,
+          "a2_corridor_door_wide": 4.0,
+          "a2_corridor_clean_passage": 1.0
+        }
+      }
+    }
+  },
+  "plan": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/a2_piper_base_v27_plan_20260905.md",
+  "status": "DECLARED"
+}

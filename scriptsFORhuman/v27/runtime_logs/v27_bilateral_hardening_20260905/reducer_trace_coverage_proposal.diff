@@ -1,0 +1,28 @@
+--- scriptsFORhuman/v27/v27_reduce.py
++++ .ai/runtime/v27_reducer_candidate/v27_reduce.py
+@@ -131,14 +131,14 @@
+         require(names == ["arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6"] and isinstance(positions, list) and len(positions) == 6, f"trace arm_j4 contract env{env_id}")
+         arm_j4_limit_steps += int(abs(1.745 - finite_number(positions[3], f"trace arm_j4 env{env_id}")) < 1e-3)
+         trace_steps += 1
+-    require(all(seen), f"trace complete env coverage: {path}")
+     return {
++        "trace_seen": seen,
+         "D": sum(value >= HOLD_STEPS for value in durable_best),
+         "open_hold": sum(value >= HOLD_STEPS for value in open_best),
+         "first_crossing_hinge": first_crossing_hinge,
+         "crossing_while_holding": crossing_while_holding,
+         "stage3_body_force_max": stage3_body_force_max,
+-        "arm_j4_limit_residence_step_share": arm_j4_limit_steps / trace_steps,
++        "arm_j4_limit_residence_step_share": None if trace_steps == 0 else arm_j4_limit_steps / trace_steps,
+     }
+ 
+ 
+@@ -282,6 +282,8 @@
+     require(trace_path.is_file() and trace_path.stat().st_size > 0, f"trace artifact: {trace_path}")
+     trace_counts = trace_reach_counts(trace_path, expected_n)
+     terminals = terminal_rows(metrics, expected_n, lane["side"])
++    require(all(trace_counts["trace_seen"][env_id] or row["max_stage"] < 2
++                for env_id, row in terminals.items()), "missing trace for episode that reached Stage2")
+     rows = list(terminals.values())
+     for row in rows:
+         v26_integrity(row, require_both=not historical)

@@ -1,0 +1,13 @@
+{
+  "status": "FAIL",
+  "lanes": [
+    {
+      "index": 1,
+      "cell": "G0_Q2_S21",
+      "stratum": "nominal",
+      "side": "right",
+      "returncode": 1,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/G0_runtime_eval/G0_Q2_S21/nominal/right"
+    }
+  ]
+}

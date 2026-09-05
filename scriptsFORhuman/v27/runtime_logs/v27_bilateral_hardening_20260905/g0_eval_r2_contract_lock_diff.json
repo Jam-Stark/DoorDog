@@ -1,0 +1,39 @@
+{
+  "status": "CONTRACT_LOCK_DIFF_PASS",
+  "classification": "HARNESS_FAILURE_BEFORE_POLICY_ROLLOUT",
+  "retry_number": 1,
+  "limit": 2,
+  "source_diff": {
+    "scriptsFORhuman/v27/v27_orchestrate.py": {
+      "before": "8646221d8e569a41782a8cc95eabb9afac626096358daca1a1ac087f5a817770",
+      "after": "2af4a90179030aaccf39e5125846b4184c82f902e603aa6c292dc97b251f39fe"
+    },
+    "scriptsFORhuman/v27/v27_run_cell.py": {
+      "before": "1bbd487537a0734169080a2c53f9f9b26d790b8266ba18178703644c3ad259b4",
+      "after": "8c8861829da13c8ebb3dae300884af79279bdeaff94a71088946fc368e34573f"
+    },
+    "scriptsFORhuman/v27/v27_verify.py": {
+      "before": "428649e7e59c36f1dad7f00c9933444a78f8025c88946cc6fd028eb7e2ebd8b2",
+      "after": "6746062872b967a55afb6cfccc0af47ca5fdc1761dab035c1fb17b7396ece440"
+    }
+  },
+  "experimental_source_config_and_checkpoints": "BYTE_IDENTICAL",
+  "experimental_contract_diff": {},
+  "harness_change": "Remove inactive zero-scale transition diagnostic; explicit active source receipt pointer only.",
+  "failure_evidence": {
+    "left": {
+      "policy_load_observed": true,
+      "policy_readout_observed": false,
+      "policy_execution_started": false,
+      "isaac_process_returncode": 0,
+      "wrapper_returncode": 1
+    },
+    "right": {
+      "policy_load_observed": true,
+      "policy_readout_observed": false,
+      "policy_execution_started": false,
+      "isaac_process_returncode": 0,
+      "wrapper_returncode": 1
+    }
+  }
+}

@@ -1,5 +1,8 @@
 # DONE
 
+- 2026-09-05 18:01 HKT — 按 Owner 裁定关闭 v26 entry，将资格认定移交 v27.0。
+  当前 Git HEAD `cb15678`（v26 finish）；未回写旧 artifact 或启动额外 v26 实验。
+
 - 2026-09-04 23:17 HKT - 完成v26-8 endpoint与closure：六格3000自然exit0，72lane/4608 episodes
   exact64/integrity0，18份Wave1 receipts PASS/0；独立typed-outcome核对PASS。W_NOT_DIFFERENT、
   K_REGRESSED（仅两源RIGHT D的−16/−9触发），C_ENTRY_EMERGED/C_CONSOLIDATED；B1/B2未准入且未运行。

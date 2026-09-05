@@ -1,0 +1,18 @@
+{
+  "status": "CONTRACT_LOCK_DIFF_PASS",
+  "applies_to": "Future not-yet-run evaluation reductions only; K DEV original INVALID remains frozen pending Owner exception.",
+  "source_diff": {
+    "scriptsFORhuman/v27/v27_reduce.py": {
+      "before": "b90a3b0d056a5911e8f5775ada7536a98929a7b9b2f3ca65c9a65644756e1c79",
+      "after": "6de23582438ee29dbec54549b76d8cf8282f7564a5f43cf6ad745db61359fe68"
+    },
+    "gr00t/rl/tests/test_a2_v27_reduce.py": {
+      "before": "daf7b5ff998058fb6d3f8d9e9a5fc8fc62cc330a3f4f60cc5d435111ff6b5afb",
+      "after": "87bb4ac12da4f5fffd02e746ae51c9364e478f33775eac41e8a6258f7c3ef74e"
+    }
+  },
+  "experimental_core_config_checkpoint_diff": {},
+  "metric_and_gate_values_diff": {},
+  "source_basis": "Existing trace exporter covers Stage2-5 only; Stage0/1 terminal episodes remain exact-N failures with zero D/open_hold, not missing observations.",
+  "proof": "Candidate 9 CPU tests passed; live reducer is byte-identical to tested candidate."
+}

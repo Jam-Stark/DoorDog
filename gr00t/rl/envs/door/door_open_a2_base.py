@@ -6665,6 +6665,8 @@ class DoorPregrasp(
         self._a2_v24_friction_config = V24FrictionConfig.from_mapping(config)
         self._a2_v24_friction_backend = None
         self._a2_v24_last_reset_friction_receipt = None
+        self._a2_v27_recovery_config = self._parse_a2_v27_recovery_config(config)
+        self._a2_v27_friction_bucket_config = self._parse_a2_v27_friction_bucket_config(config)
         self._a2_v24_force_boundary_config = V24P2ForceBoundaryConfig.from_mapping(config)
         self._a2_v24_force_boundary_runtime = None
         self._a2_v24_force_boundary_last = None
@@ -6732,6 +6734,7 @@ class DoorPregrasp(
             self._init_a2_v24_f3_runtime()
             self._init_a2_v24_force_boundary_runtime()
             self._init_a2_v24_f3_evidence_runtime()
+            self._init_a2_v27_runtime()
             return
 
         # finger primitive related
@@ -6891,6 +6894,118 @@ class DoorPregrasp(
         )
         env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
         self._a2_v24_friction_backend.apply(env_ids)
+
+    @staticmethod
+    def _parse_a2_v27_recovery_config(config: Mapping[str, Any]) -> dict[str, Any] | None:
+        keys = tuple(key for key in config if key.startswith("a2_v27_recovery_") or key == "a2_v27_perturb_prob" or key == "a2_v27_perturb_steps")
+        if not keys:
+            return None
+
+        def bool_value(key: str) -> bool:
+            value = config.get(key)
+            if not isinstance(value, bool):
+                raise TypeError(f"env.config.{key} must be bool")
+            return value
+
+        def positive_int(key: str) -> int:
+            value = config.get(key)
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ValueError(f"env.config.{key} must be a positive integer")
+            return value
+
+        def probability(key: str) -> float:
+            value = config.get(key)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise TypeError(f"env.config.{key} must be a finite probability")
+            value = float(value)
+            if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+                raise ValueError(f"env.config.{key} must be in [0, 1]")
+            return value
+
+        mode = config.get("a2_v27_recovery_eval_mode", "nominal")
+        if mode not in ("nominal", "injected", "sham"):
+            raise ValueError("env.config.a2_v27_recovery_eval_mode must be nominal, injected, or sham")
+        return {
+            "enabled": bool_value("a2_v27_recovery_enabled"),
+            "loss_steps": positive_int("a2_v27_recovery_loss_steps"),
+            "window_steps": positive_int("a2_v27_recovery_window_steps"),
+            "bank_reset_share": probability("a2_v27_recovery_bank_reset_share"),
+            "perturb_prob": probability("a2_v27_perturb_prob"),
+            "perturb_steps": positive_int("a2_v27_perturb_steps"),
+            "eval_mode": mode,
+        }
+
+    @staticmethod
+    def _parse_a2_v27_friction_bucket_config(config: Mapping[str, Any]) -> dict[str, Any] | None:
+        enabled = config.get("a2_v27_friction_bucket_enabled", False)
+        if not isinstance(enabled, bool):
+            raise TypeError("env.config.a2_v27_friction_bucket_enabled must be bool")
+        if not enabled:
+            return None
+        values = config.get("a2_v27_friction_bucket_static_efforts")
+        if not isinstance(values, (list, tuple)) or len(values) != 3:
+            raise ValueError("env.config.a2_v27_friction_bucket_static_efforts must be the three buckets [0, 2, 5]")
+        resolved = tuple(float(value) for value in values)
+        if resolved != (0.0, 2.0, 5.0):
+            raise ValueError("env.config.a2_v27_friction_bucket_static_efforts must equal [0, 2, 5]")
+        return {"static_efforts": resolved}
+
+    def _init_a2_v27_runtime(self) -> None:
+        config = self._a2_v27_recovery_config
+        if config is not None:
+            if not self.enable_staged_reset and config["bank_reset_share"] > 0.0:
+                raise RuntimeError("v27 recovery bank reset share requires enable_staged_reset=true")
+            self._a2_v27_loss_streak = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_v27_k5_ever = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_recovery_used = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_recovery_active = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_recovery_start_step = torch.full((self.num_envs,), -1, dtype=torch.long, device=self.device)
+            self._a2_v27_recovery_highwater = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_v27_loss_event = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_regrasp_success = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_recovered_complete = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_recovered_clean_complete = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_perturb_started = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_perturb_remaining = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_v27_perturb_applied_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_v27_perturb_command_applied = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_injection_status = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_v27_bank_reset_used = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_v27_bank_reset_slot = torch.full((self.num_envs,), -1, dtype=torch.long, device=self.device)
+            self._a2_v27_bank_reset_snapshot_count = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_v27_body_panel_force_max = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_v27_arm_j4_limit_residence_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_v27_integrity_violations = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_v27_bank = None
+            self._a2_v27_pending_bank_reset_mask = None
+        if self._a2_v27_friction_bucket_config is not None:
+            backend = self._a2_v24_friction_backend
+            if backend is None:
+                raise RuntimeError("v27 per-env friction bucket requires enabled v24 native friction")
+            self._a2_v27_friction_bucket_index = torch.full((self.num_envs,), -1, dtype=torch.long, device=self.device)
+            self._a2_v27_friction_static_readback = torch.full((self.num_envs,), float("nan"), dtype=backend.dtype, device=self.device)
+            self._a2_v27_friction_dynamic_readback = torch.full((self.num_envs,), float("nan"), dtype=backend.dtype, device=self.device)
+            self._a2_v27_friction_viscous_readback = torch.full((self.num_envs,), float("nan"), dtype=backend.dtype, device=self.device)
+
+    def _apply_a2_v27_friction_bucket(self, env_ids: torch.Tensor) -> None:
+        config = self._a2_v27_friction_bucket_config
+        if config is None:
+            return
+        backend = self._a2_v24_friction_backend
+        if backend is None:
+            raise RuntimeError("v27 per-env friction bucket runtime is unavailable")
+        bucket_index = torch.randint(0, 3, (env_ids.numel(),), device=self.device)
+        static = torch.tensor(config["static_efforts"], dtype=backend.dtype, device=self.device)[bucket_index, None]
+        dynamic = static * 0.75
+        viscous = torch.zeros_like(static)
+        backend.install_profile_rows(env_ids, static, dynamic, viscous)
+        backend.apply(env_ids)
+        self._a2_v27_friction_bucket_index[env_ids] = bucket_index
+        articulation = backend.articulation
+        hinge_id = backend.hinge_joint_id
+        self._a2_v27_friction_static_readback[env_ids] = articulation.data.joint_friction_coeff[env_ids, hinge_id]
+        self._a2_v27_friction_dynamic_readback[env_ids] = articulation.data.joint_dynamic_friction_coeff[env_ids, hinge_id]
+        self._a2_v27_friction_viscous_readback[env_ids] = articulation.data.joint_viscous_friction_coeff[env_ids, hinge_id]
 
     def _init_a2_v24_force_boundary_runtime(self) -> None:
         """Bind the additive, default-off P2 directional-capacity hook."""
@@ -8613,6 +8728,7 @@ class DoorPregrasp(
 
     @override
     def step(self, actor_state):
+        actor_state = self._a2_v27_prepare_actor_state(actor_state)
         if not self._a2_v26_4_side_canonicalization_enabled():
             return super().step(actor_state)
         if self._k != 0 or self._s != 0:
@@ -14128,6 +14244,7 @@ class DoorPregrasp(
             self._update_a2_stage4_release_and_root_latches(env_ids)
             self._update_a2_v20_state(env_ids)
             if env_ids is None and post_physics:
+                self._update_a2_v27_recovery_state()
                 self._update_a2_v14_root_height_telemetry()
                 self._update_a2_v20_r2_evidence_accumulators()
                 self._update_a2_v21b_arm_evidence_accumulators()
@@ -14149,6 +14266,203 @@ class DoorPregrasp(
         )
         self.relative_door_pos_buf[env_ids] = relative_door_pos
         self.relative_door_rot_buf[env_ids] = wxyz_to_xyzw(relative_door_rot)
+
+    def _a2_v27_prepare_actor_state(self, actor_state: Mapping[str, Any]) -> Mapping[str, Any]:
+        config = self._a2_v27_recovery_config
+        if config is None:
+            return actor_state
+        actions = actor_state.get("actions")
+        if (
+            not torch.is_tensor(actions)
+            or tuple(actions.shape) != (self.num_envs, self._a2_high_level_action_dim + self._a2_leg_action_dim)
+            or not actions.is_floating_point()
+            or actions.device != torch.device(self.device)
+        ):
+            raise RuntimeError("v27 perturbation requires a finite device-local A2 action tensor")
+        if not torch.all(torch.isfinite(actions)):
+            raise RuntimeError("v27 perturbation received non-finite actions")
+        opening = (self.stage_buf == self.STAGE_OPEN) | (self.stage_buf == self.STAGE_SWING)
+        # Keep the release predicate explicit; this branch is entered before the
+        # action reaches the A2 primitive decoder.
+        eligible = self._a2_v27_k5_ever & opening & ~self._a2_root_x_ever_crossed & ~self._a2_stage4_release_gate & ~self._a2_v27_perturb_started
+        first_eligible = eligible
+        self._a2_v27_perturb_started[first_eligible] = True
+        if self.is_evaluating:
+            if config["eval_mode"] in ("injected", "sham"):
+                self._a2_v27_injection_status[first_eligible] = 1
+                if config["eval_mode"] == "injected":
+                    self._a2_v27_perturb_remaining[first_eligible] = config["perturb_steps"]
+        else:
+            first_env_ids = first_eligible.nonzero(as_tuple=False).flatten()
+            if first_env_ids.numel() > 0:
+                selected = torch.rand(first_env_ids.numel(), device=self.device) < config["perturb_prob"]
+                selected_env_ids = first_env_ids[selected]
+                self._a2_v27_perturb_remaining[selected_env_ids] = config["perturb_steps"]
+        force_open = self._a2_v27_perturb_remaining > 0
+        self._a2_v27_perturb_command_applied[:] = force_open
+        if not torch.any(force_open):
+            return actor_state
+        prepared = dict(actor_state)
+        prepared_actions = actions.clone()
+        prepared_actions[force_open, 11] = 1.0
+        prepared["actions"] = prepared_actions
+        self._a2_v27_perturb_remaining[force_open] -= 1
+        self._a2_v27_perturb_applied_steps[force_open] += 1
+        return prepared
+
+    def _update_a2_v27_recovery_state(self) -> None:
+        config = self._a2_v27_recovery_config
+        if config is None:
+            return
+        opening = (self.stage_buf == self.STAGE_OPEN) | (self.stage_buf == self.STAGE_SWING)
+        hold_ok = self._get_a2_hold_streak_ok_mask()
+        self._a2_v27_k5_ever |= opening & hold_ok
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks("v27 recovery")
+        eligible = (
+            opening
+            & self._a2_v27_k5_ever
+            & ~self._a2_root_x_ever_crossed
+            & ~self._a2_stage4_release_gate
+        )
+        self._a2_v27_loss_streak[:] = torch.where(
+            eligible & ~contact_masks["both_contact"],
+            self._a2_v27_loss_streak + 1,
+            torch.zeros_like(self._a2_v27_loss_streak),
+        )
+        trigger = eligible & ~self._a2_v27_loss_event & (self._a2_v27_loss_streak >= config["loss_steps"])
+        if torch.any(trigger):
+            self._a2_v27_loss_event[trigger] = True
+            self._a2_v27_recovery_active[trigger] = True
+            self._a2_v27_recovery_start_step[trigger] = self.episode_length_buf[trigger]
+            self._a2_v27_recovery_highwater[trigger] = self.current_max_stage_buf[trigger]
+        if config["enabled"]:
+            if torch.any(trigger):
+                self._a2_v27_recovery_used[trigger] = True
+                self.stage_buf[trigger] = self.STAGE_GRASP
+                self.time_in_stage_buf[trigger] = 0
+                self.actual_time_in_stage_buf[trigger] = 0
+                self._a2_stage3_grasp_streak_highwater[trigger] = False
+                self._a2_stage3_stage4_both_contact_streak[trigger] = 0
+                self._a2_stage2_squeeze_streak[trigger] = 0
+                if (
+                    not self.is_evaluating
+                    and config["bank_reset_share"] > 0.0
+                    and self.enable_staged_reset
+                ):
+                    self._capture_a2_v27_recovery_bank(trigger.nonzero(as_tuple=False).flatten())
+        within_window = self._a2_v27_recovery_active & (
+            self.episode_length_buf - self._a2_v27_recovery_start_step <= config["window_steps"]
+        )
+        regrasped = within_window & (self.stage_buf == self.STAGE_OPEN) & hold_ok
+        self._a2_v27_regrasp_success |= regrasped
+        expired = self._a2_v27_recovery_active & ~within_window & ~self._a2_v27_regrasp_success
+        self._a2_v27_recovery_active[expired] = False
+        arm_j4 = self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx[3]]
+        self._a2_v27_arm_j4_limit_residence_steps += (torch.abs(1.745 - arm_j4) < 1.0e-3).to(torch.long)
+
+    def _capture_a2_v27_recovery_bank(self, env_ids: torch.Tensor) -> None:
+        if env_ids.numel() == 0:
+            return
+        if not self.enable_staged_reset:
+            raise RuntimeError("v27 recovery bank capture requires staged reset")
+        capacity = self.staged_reset_max_samples_per_stage
+        if self._a2_v27_bank is None:
+            cases: dict[str, dict[str, torch.Tensor]] = {}
+            for name, state_case in self.staged_reset_buf.items():
+                if state_case["type"] == "buffer":
+                    shape = state_case["data"].shape[2:]
+                    cases[name] = {"data": torch.zeros((capacity, *shape), dtype=state_case["data"].dtype, device=self.device)}
+                else:
+                    root_shape = state_case["root_state"].shape[2:]
+                    entry = {"root_state": torch.zeros((capacity, *root_shape), dtype=state_case["root_state"].dtype, device=self.device)}
+                    if state_case["type"] == "articulation":
+                        dof_shape = state_case["dof_state"].shape[2:]
+                        entry["dof_state"] = torch.zeros((capacity, *dof_shape), dtype=state_case["dof_state"].dtype, device=self.device)
+                    cases[name] = entry
+            self._a2_v27_bank = {
+                "count": torch.zeros(self.num_envs, dtype=torch.long, device=self.device),
+                "highwater": torch.zeros((capacity, self.num_envs), dtype=torch.long, device=self.device),
+                "recovery_used": torch.zeros((capacity, self.num_envs), dtype=torch.bool, device=self.device),
+                "capture_count_by_side": torch.zeros(2, dtype=torch.long, device=self.device),
+                "cases": cases,
+            }
+        bank = self._a2_v27_bank
+        left_env_ids = env_ids[self.door_open_lr[env_ids] == 1.0]
+        right_env_ids = env_ids[self.door_open_lr[env_ids] == -1.0]
+        left_count = int(bank["capture_count_by_side"][0].item())
+        right_count = int(bank["capture_count_by_side"][1].item())
+        if left_count == right_count:
+            pair_count = min(left_env_ids.numel(), right_env_ids.numel())
+            env_ids = torch.cat((left_env_ids[:pair_count], right_env_ids[:pair_count]))
+        elif left_count < right_count:
+            env_ids = left_env_ids[: min(right_count - left_count, left_env_ids.numel())]
+        else:
+            env_ids = right_env_ids[: min(left_count - right_count, right_env_ids.numel())]
+        if env_ids.numel() == 0:
+            return
+        slots = bank["count"][env_ids] % capacity
+        for name, state_case in self.staged_reset_buf.items():
+            entry = bank["cases"][name]
+            if state_case["type"] == "buffer":
+                entry["data"][slots, env_ids] = state_case["store_callback"](env_ids).clone()
+            else:
+                entry["root_state"][slots, env_ids] = state_case["obj"].data.root_state_w[env_ids].clone()
+                if state_case["type"] == "articulation":
+                    if name == "robot":
+                        entry["dof_state"][slots, env_ids, :, 0] = self.simulator.dof_pos[env_ids].clone()
+                        entry["dof_state"][slots, env_ids, :, 1] = self.simulator.dof_vel[env_ids].clone()
+                    else:
+                        entry["dof_state"][slots, env_ids, :, 0] = state_case["obj"].data.joint_pos[env_ids].clone()
+                        entry["dof_state"][slots, env_ids, :, 1] = state_case["obj"].data.joint_vel[env_ids].clone()
+        bank["highwater"][slots, env_ids] = self._a2_v27_recovery_highwater[env_ids]
+        bank["recovery_used"][slots, env_ids] = self._a2_v27_recovery_used[env_ids]
+        bank["capture_count_by_side"][0] += (self.door_open_lr[env_ids] == 1.0).sum()
+        bank["capture_count_by_side"][1] += (self.door_open_lr[env_ids] == -1.0).sum()
+        bank["count"][env_ids] += 1
+
+    def _restore_a2_v27_recovery_bank(self, env_ids: torch.Tensor) -> None:
+        bank = self._a2_v27_bank
+        if bank is None or env_ids.numel() == 0:
+            return
+        count = bank["count"][env_ids].clamp(max=self.staged_reset_max_samples_per_stage)
+        if torch.any(count <= 0):
+            raise RuntimeError("v27 recovery bank reset selected an empty bank entry")
+        slots = torch.floor(torch.rand(env_ids.numel(), device=self.device) * count.float()).to(torch.long)
+        self.set_to_stage(env_ids, torch.full_like(env_ids, self.STAGE_GRASP))
+        root_states = {}
+        dof_states = {}
+        for name, state_case in self.staged_reset_buf.items():
+            entry = bank["cases"][name]
+            if state_case["type"] == "buffer":
+                state_case["load_callback"](env_ids, entry["data"][slots, env_ids].clone())
+                continue
+            if name == "robot":
+                self.target_robot_root_states[env_ids] = entry["root_state"][slots, env_ids].clone()
+                self.target_robot_dof_state[env_ids] = entry["dof_state"][slots, env_ids].clone()
+                continue
+            root_state = torch.zeros(self.num_envs, 13, device=self.device, dtype=torch.float)
+            root_state[env_ids] = entry["root_state"][slots, env_ids].clone()
+            root_states[name] = root_state
+            if state_case["type"] == "articulation":
+                obj = state_case["obj"]
+                dof_pos = torch.zeros(self.num_envs, obj.num_joints, device=self.device, dtype=torch.float)
+                dof_vel = torch.zeros_like(dof_pos)
+                dof_pos[env_ids] = entry["dof_state"][slots, env_ids, :, 0].clone()
+                dof_vel[env_ids] = entry["dof_state"][slots, env_ids, :, 1].clone()
+                dof_states[name] = (dof_pos, dof_vel, torch.arange(obj.num_joints, dtype=torch.long, device=self.device))
+        self.current_max_stage_buf[env_ids] = bank["highwater"][slots, env_ids]
+        self._a2_v27_recovery_highwater[env_ids] = bank["highwater"][slots, env_ids]
+        self._a2_v27_recovery_used[env_ids] = bank["recovery_used"][slots, env_ids]
+        self._a2_v27_recovery_active[env_ids] = True
+        self._a2_v27_recovery_start_step[env_ids] = self.episode_length_buf[env_ids]
+        self._a2_v27_bank_reset_used[env_ids] = True
+        self._a2_v27_bank_reset_slot[env_ids] = slots
+        self._a2_v27_bank_reset_snapshot_count[env_ids] = count
+        if root_states:
+            self.simulator.set_task_root_state_tensor(env_ids, root_states)
+            self.simulator.set_task_dof_state_tensor(env_ids, dof_states)
+        self.need_to_refresh_envs[env_ids] = True
+        return slots
 
     def _initialize_a2_v26_3_natural_reset_state(self, env_ids: torch.Tensor) -> None:
         if not getattr(self, "_a2_v26_3_telemetry_enabled", False):
@@ -16905,6 +17219,37 @@ class DoorPregrasp(
 
     def _after_reward_components(self, raw_components, scaled_components):
         """Accumulate exact reward components for R2 without changing reward semantics."""
+        recovery_config = self._a2_v27_recovery_config
+        if recovery_config is not None:
+            # Stage advancement has now run, so include the first Stage3 step.
+            body_force = self._get_a2_door_body_panel_contact_forces()[1]
+            active_from_stage3 = self.current_max_stage_buf >= self.STAGE_OPEN
+            self._a2_v27_body_panel_force_max[active_from_stage3] = torch.maximum(
+                self._a2_v27_body_panel_force_max[active_from_stage3], body_force[active_from_stage3]
+            )
+        if recovery_config is not None and recovery_config["enabled"]:
+            if not isinstance(raw_components, dict) or not isinstance(scaled_components, dict):
+                raise RuntimeError("v27 high-water masking requires mutable reward component dictionaries")
+            highwater_mask = self._a2_v27_recovery_used & (
+                self.stage_buf <= self._a2_v27_recovery_highwater
+            )
+            for name in ("stage", "transition", "success_save_time"):
+                if name not in scaled_components:
+                    continue
+                scaled = scaled_components[name]
+                raw = raw_components[name]
+                if (
+                    not torch.is_tensor(raw)
+                    or not torch.is_tensor(scaled)
+                    or tuple(raw.shape) != (self.num_envs,)
+                    or tuple(scaled.shape) != (self.num_envs,)
+                ):
+                    raise RuntimeError(f"v27 high-water masking requires vector reward component {name!r}")
+                removed = torch.where(highwater_mask, scaled, torch.zeros_like(scaled))
+                self.rew_buf -= removed
+                self.episode_sums[name] -= removed
+                scaled_components[name] = scaled - removed
+                raw_components[name] = torch.where(highwater_mask, torch.zeros_like(raw), raw)
         stationary_rent_enabled = self.config.get(
             "a2_v23_stationary_rent_runtime_enabled", False
         )
@@ -19691,6 +20036,96 @@ class DoorPregrasp(
             )
         return records
 
+    def _get_a2_v27_terminal_diagnostic_fields(self, env_ids: torch.Tensor) -> list[dict[str, Any]]:
+        config = self._a2_v27_recovery_config
+        if config is None:
+            return [{} for _ in range(env_ids.numel())]
+        required = {
+            "body_panel_force_max_from_stage3_n": (self._a2_v27_body_panel_force_max, torch.float32),
+            "integrity_violations": (self._a2_v27_integrity_violations, torch.long),
+            "arm_j4_limit_residence_steps": (self._a2_v27_arm_j4_limit_residence_steps, torch.long),
+            "loss_event": (self._a2_v27_loss_event, torch.bool),
+            "regrasp_success": (self._a2_v27_regrasp_success, torch.bool),
+        }
+        for name, (value, dtype) in required.items():
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+                or value.dtype != dtype
+                or value.device != torch.device(self.device)
+                or (value.is_floating_point() and not torch.all(torch.isfinite(value)))
+            ):
+                raise RuntimeError(f"v27 terminal telemetry requires finite device-local {name}")
+        crossing_valid = self._a2_crossing_event_valid
+        if not torch.is_tensor(crossing_valid) or crossing_valid.dtype != torch.bool:
+            raise RuntimeError("v27 terminal telemetry requires crossing validity")
+        completed = self.current_completed_task_buf
+        recovered_complete = self._a2_v27_regrasp_success & completed
+        self._a2_v27_recovered_complete[env_ids] = recovered_complete[env_ids]
+        clean = (
+            recovered_complete
+            & crossing_valid
+            & (self._a2_hinge_at_crossing >= 1.0472)
+            & (self._a2_v27_body_panel_force_max <= 5.0)
+            & ~self._terminal_reason_bufs["low_height"]
+            & ~self._terminal_reason_bufs["upper_dof_overspeed"]
+        )
+        self._a2_v27_recovered_clean_complete[env_ids] = clean[env_ids]
+        friction_readback = None
+        backend = self._a2_v24_friction_backend
+        if backend is not None:
+            articulation_data = backend.articulation.data
+            friction_readback = (
+                articulation_data.joint_friction_coeff[:, backend.hinge_joint_id],
+                articulation_data.joint_dynamic_friction_coeff[:, backend.hinge_joint_id],
+                articulation_data.joint_viscous_friction_coeff[:, backend.hinge_joint_id],
+            )
+            if any(
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+                or value.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(value))
+                for value in friction_readback
+            ):
+                raise RuntimeError("v27 terminal friction telemetry requires native readback")
+        capture_counts = (
+            self._a2_v27_bank["capture_count_by_side"].detach().cpu().tolist()
+            if self._a2_v27_bank is not None
+            else None
+        )
+        records = []
+        for env_id in env_ids.tolist():
+            records.append(
+                {
+                    "a2_v27": {
+                        "body_panel_force_max_from_stage3_n": float(self._a2_v27_body_panel_force_max[env_id].item()),
+                        "integrity_violations": int(self._a2_v27_integrity_violations[env_id].item()),
+                        "arm_j4_limit_residence_steps": int(self._a2_v27_arm_j4_limit_residence_steps[env_id].item()),
+                        "first_episode_control_steps": int(self.episode_length_buf[env_id].item()),
+                        "first_crossing_hinge_rad": float(self._a2_hinge_at_crossing[env_id].item()) if bool(crossing_valid[env_id].item()) else None,
+                        "crossing_while_holding": bool(self._a2_crossing_while_holding[env_id].item()) if bool(crossing_valid[env_id].item()) else None,
+                        "recovery_itt": bool(self.is_evaluating and config["eval_mode"] == "injected"),
+                        "injection_status": "TRIGGERED" if bool(self._a2_v27_injection_status[env_id].item()) else "NOT_TRIGGERED",
+                        "loss_event": bool(self._a2_v27_loss_event[env_id].item()),
+                        "regrasp_success": bool(self._a2_v27_regrasp_success[env_id].item()),
+                        "recovered_complete": bool(self._a2_v27_recovered_complete[env_id].item()),
+                        "recovered_clean_complete": bool(self._a2_v27_recovered_clean_complete[env_id].item()),
+                        "injection_applied_steps": int(self._a2_v27_perturb_applied_steps[env_id].item()),
+                        "bank_reset_origin": "RECOVERY_BANK" if bool(self._a2_v27_bank_reset_used[env_id].item()) else "BASE_RESET",
+                        "bank_reset_side": "LEFT" if float(self.door_open_lr[env_id].item()) == 1.0 else "RIGHT",
+                        "bank_reset_snapshot_slot": int(self._a2_v27_bank_reset_slot[env_id].item()),
+                        "bank_reset_snapshot_count": int(self._a2_v27_bank_reset_snapshot_count[env_id].item()),
+                        "bank_capture_count_by_side": capture_counts,
+                        "friction_readback": None if friction_readback is None else {
+                            "static_effort": float(friction_readback[0][env_id].item()),
+                            "dynamic_effort": float(friction_readback[1][env_id].item()),
+                            "viscous_coefficient": float(friction_readback[2][env_id].item()),
+                        },
+                    }
+                }
+            )
+        return records
+
     def _get_a2_terminal_diagnostics(self, env_ids):
         env_ids = self._normalize_render_env_ids(env_ids)
         if not self._use_a2_base:
@@ -19967,6 +20402,7 @@ class DoorPregrasp(
         v20_telemetry_fields = self._get_a2_v20_diagnostic_fields(env_ids)
         v26_2_telemetry_fields = self._get_a2_v26_2_terminal_diagnostic_fields(env_ids)
         v26_3_telemetry_fields = self._get_a2_v26_3_terminal_diagnostic_fields(env_ids)
+        v27_telemetry_fields = self._get_a2_v27_terminal_diagnostic_fields(env_ids)
         control_dt, selected_reward_episode_sums = (
             self._get_a2_reward_episode_sums_for_diagnostics(env_ids)
         )
@@ -20210,6 +20646,7 @@ class DoorPregrasp(
                     **v20_telemetry_fields[idx],
                     **v26_2_telemetry_fields[idx],
                     **v26_3_telemetry_fields[idx],
+                    **v27_telemetry_fields[idx],
                     "stage_buf": int(selected_stage_buf[idx]),
                     "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
                     "episode_length_buf": int(selected_episode_length_buf[idx]),
@@ -26985,6 +27422,19 @@ class DoorPregrasp(
         arm_pos = ordered_joint_pos[:, arm_indices]
         arm_vel = ordered_joint_vel[:, arm_indices]
         arm_target = ordered_joint_target[:, arm_indices]
+        applied_torque = robot_data.applied_torque
+        if (
+            not torch.is_tensor(applied_torque)
+            or tuple(applied_torque.shape) != (self.num_envs, articulation_joint_count)
+            or applied_torque.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(applied_torque))
+        ):
+            shape = None if not torch.is_tensor(applied_torque) else tuple(applied_torque.shape)
+            raise RuntimeError(
+                "A2 expanded eval diagnostics require finite Articulation.data.applied_torque "
+                f"shape ({self.num_envs}, {articulation_joint_count}); got {shape}."
+            )
+        arm_implicit_applied_effort = applied_torque[:, ordered_joint_ids][:, arm_indices]
         arm_soft_limits = ordered_soft_limits[:, arm_indices, :]
         arm_soft_span = arm_soft_limits[:, :, 1] - arm_soft_limits[:, :, 0]
         if torch.any(arm_soft_span <= 0.0) or not torch.all(torch.isfinite(arm_soft_span)):
@@ -27023,6 +27473,24 @@ class DoorPregrasp(
                 raise RuntimeError(
                     f"A2 expanded eval diagnostics require Articulation.data.{field_name} "
                     f"finite shape {expected_shape}; got {shape}."
+                )
+
+        imu_fields = {
+            "projected_gravity": self.projected_gravity,
+            "base_lin_vel": self.base_lin_vel,
+            "base_ang_vel": self.base_ang_vel,
+        }
+        for field_name, field_value in imu_fields.items():
+            if (
+                not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs, 3)
+                or not torch.all(torch.isfinite(field_value))
+                or field_value.device != torch.device(self.device)
+            ):
+                shape = None if not torch.is_tensor(field_value) else tuple(field_value.shape)
+                raise RuntimeError(
+                    f"A2 expanded eval diagnostics require finite {field_name} shape "
+                    f"({self.num_envs}, 3); got {shape}."
                 )
 
         physical_base_command = self.get_physical_base_command()
@@ -27170,10 +27638,19 @@ class DoorPregrasp(
                     .detach()
                     .cpu()
                     .tolist(),
+                    "base_projected_gravity": self.projected_gravity[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "base_lin_vel": self.base_lin_vel[env_id].detach().cpu().tolist(),
+                    "base_ang_vel": self.base_ang_vel[env_id].detach().cpu().tolist(),
                     "arm_joint_names": arm_joint_names,
                     "arm_joint_pos": arm_pos[env_id].detach().cpu().tolist(),
                     "arm_joint_vel": arm_vel[env_id].detach().cpu().tolist(),
                     "arm_joint_pos_target": arm_target[env_id].detach().cpu().tolist(),
+                    "arm_implicit_applied_effort_estimate": arm_implicit_applied_effort[
+                        env_id
+                    ].detach().cpu().tolist(),
                     "arm_soft_joint_pos_limits": arm_soft_limits[env_id]
                     .detach()
                     .cpu()
@@ -27217,6 +27694,27 @@ class DoorPregrasp(
                 )
             record.update(detailed)
             record.update(oracle)
+        if self._a2_v27_recovery_config is not None:
+            for record, env_id in zip(records, env_ids.tolist(), strict=True):
+                record.update(
+                    {
+                        "a2_v27_perturb_command_applied": bool(
+                            self._a2_v27_perturb_command_applied[env_id].item()
+                        ),
+                        "a2_v27_perturb_applied_steps": int(
+                            self._a2_v27_perturb_applied_steps[env_id].item()
+                        ),
+                        "a2_v27_perturb_remaining_steps": int(
+                            self._a2_v27_perturb_remaining[env_id].item()
+                        ),
+                        "a2_v27_bank_reset_used": bool(
+                            self._a2_v27_bank_reset_used[env_id].item()
+                        ),
+                        "a2_v27_bank_reset_slot": int(
+                            self._a2_v27_bank_reset_slot[env_id].item()
+                        ),
+                    }
+                )
         return records
 
     def _capture_a2_eval_stage2_step_trace(self):
@@ -27946,6 +28444,28 @@ class DoorPregrasp(
             ]
             self._finish_a2_static_clamp(affected)
         if self._use_a2_base:
+            if self._a2_v27_recovery_config is not None:
+                self._a2_v27_loss_streak[env_ids] = 0
+                self._a2_v27_k5_ever[env_ids] = False
+                self._a2_v27_recovery_used[env_ids] = False
+                self._a2_v27_recovery_active[env_ids] = False
+                self._a2_v27_recovery_start_step[env_ids] = -1
+                self._a2_v27_recovery_highwater[env_ids] = 0
+                self._a2_v27_loss_event[env_ids] = False
+                self._a2_v27_regrasp_success[env_ids] = False
+                self._a2_v27_recovered_complete[env_ids] = False
+                self._a2_v27_recovered_clean_complete[env_ids] = False
+                self._a2_v27_perturb_started[env_ids] = False
+                self._a2_v27_perturb_remaining[env_ids] = 0
+                self._a2_v27_perturb_applied_steps[env_ids] = 0
+                self._a2_v27_perturb_command_applied[env_ids] = False
+                self._a2_v27_injection_status[env_ids] = 0
+                self._a2_v27_bank_reset_used[env_ids] = False
+                self._a2_v27_bank_reset_slot[env_ids] = -1
+                self._a2_v27_bank_reset_snapshot_count[env_ids] = 0
+                self._a2_v27_body_panel_force_max[env_ids] = 0.0
+                self._a2_v27_arm_j4_limit_residence_steps[env_ids] = 0
+                self._a2_v27_integrity_violations[env_ids] = 0
             self._a2_stage3_grasp_streak_highwater[env_ids] = False
             self._a2_stage5_hold_continuation[env_ids] = False
             self._a2_door_body_contact_event_active[env_ids] = False
@@ -28299,7 +28819,26 @@ class DoorPregrasp(
         if self._a2_p0_h_reset_audit_enabled and env_ids.numel() > 0:
             sentinel_receipt = self._a2_p0_h_write_sentinel(env_ids)
 
+        recovery_config = self._a2_v27_recovery_config
+        bank_env_ids = torch.empty(0, dtype=torch.long, device=self.device)
+        if (
+            recovery_config is not None
+            and recovery_config["enabled"]
+            and recovery_config["bank_reset_share"] > 0.0
+            and not self.is_evaluating
+            and self._a2_v27_bank is not None
+            and env_ids.numel() > 0
+        ):
+            bank_valid = self._a2_v27_bank["count"][env_ids] > 0
+            choose_bank = bank_valid & (
+                torch.rand(env_ids.numel(), device=self.device)
+                < recovery_config["bank_reset_share"]
+            )
+            bank_env_ids = env_ids[choose_bank]
+
         result = super().reset_envs_idx(env_ids, target_states, target_buf)
+        if bank_env_ids.numel() > 0:
+            self._restore_a2_v27_recovery_bank(bank_env_ids)
         self._record_a2_v26_reset_origins(env_ids)
         if getattr(self, "_a2_v26_3_telemetry_enabled", False):
             self._initialize_a2_v26_3_natural_reset_state(env_ids)
@@ -28312,6 +28851,8 @@ class DoorPregrasp(
                 raise RuntimeError(
                     "v26-3 nonzero staged reset did not restore initialized creation state."
                 )
+        if self._a2_v27_friction_bucket_config is not None and env_ids.numel() > 0:
+            self._apply_a2_v27_friction_bucket(env_ids)
         backend = self._a2_v24_friction_backend
         if backend is not None and env_ids.numel() > 0:
             receipt = backend.apply(env_ids)

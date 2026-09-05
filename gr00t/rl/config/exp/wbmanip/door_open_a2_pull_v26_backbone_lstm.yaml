@@ -1,0 +1,24 @@
+# @package _global_
+# Native bilateral pull backbone: the source-resolved shared 133/138-D schema.
+# The migration plan's 135/140 dimension count is inconsistent with this list.
+defaults:
+  - /exp/wbmanip/door_open_a2_pull_lstm
+  - _self_
+
+experiment_name: pull_v26_8_backbone
+project_name: a2_piper_pull_v26_8_backbone
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentActor
+      # This actor updates RMS natively; freeze_running_mean_std is not an
+      # accepted constructor argument in the pull source.
+      running_mean_std: true
+
+env:
+  config:
+    obs:
+      obs_dict:
+        actor_obs: [dof_pos, relative_to_door, dof_vel, actions, projected_gravity, door_dof_pos, base_lin_vel, base_ang_vel, hand_force, stage, privileged_door_info, delta_actions, gripper_handle_transform, a2_base_command_raw, a2_base_command]
+        critic_obs: [dof_pos, relative_to_door, dof_vel, actions, projected_gravity, door_dof_pos, base_lin_vel, base_ang_vel, hand_force, stage, privileged_door_info, delta_actions, gripper_handle_transform, a2_base_command_raw, transition, complete, time_in_stage, actual_time_in_stage, total_time, a2_base_command]

@@ -1,0 +1,60 @@
+# @package _global_
+# Preserve the current full-pull plant, rewards, and Stage3+ event contract.
+# Override only the migration axes; the historical configs remain read-only.
+defaults:
+  - /ablation/wbmanip/pull_lr_full_gate_a
+  - _self_
+
+checkpoint: null
+checkpoint_load_mode: full
+auto_load_latest: false
+project_name: a2_piper_pull_v26_8_backbone
+experiment_name: pull_v26_8_backbone
+num_envs: 2048
+headless: true
+use_wandb: false
+
+algo:
+  config:
+    load_optimizer: false
+    actor:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentActor
+      running_mean_std: true
+  trl:
+    num_total_batches: 4000
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    completion_stage: 5
+    enable_staged_reset: true
+    staged_reset_ratios: [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
+    a2_door_open_lr_distribution: bilateral
+    a2_door_open_lr_permutation_seed: ${seed}
+    a2_v26_6_side_mirrored_handle_offset_enabled: true
+    a2_stage2_squeeze_force_min: 0.5
+    a2_stage2_squeeze_force_max: 30.0
+    a2_stage2_over_force_threshold: 55.0
+    # E2 proof can form after Stage3 entry; the plan's zero-income exception
+    # does not apply. Preserve the existing live-proof income masks.
+    a2_pull_stage2_to3_gate_mode: grasp_completion
+    # Current full-pull source already uses 0.25; retain it under source authority.
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.25
+    a2_pull_v6_stage4_bank_enabled: false
+    a2_pull_v61_late_state_bank_enabled: false
+    obs:
+      obs_dict:
+        actor_obs: ${obs.obs_dict.actor_obs}
+        critic_obs: ${obs.obs_dict.critic_obs}
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+    sim:
+      physx:
+        num_velocity_iterations: 2

@@ -1,5 +1,7 @@
 # TODO
 
-- 当前任务已按Owner要求停止，Stage5/E7未完成。若后续恢复，先读本entry与`scriptsFORhuman/pull_lr_full/PULL_LR_FULL_HANDOFF_20260901.md`，不要恢复任何旧tmux或把screen外推为goal。
-- 最小下一步：B0 Gate-A seam control；随后用bilateral Stage0–2 winner重建同一raw-absolute head并做RIGHT16×2 admission。若仍0 E4，关闭one-shot BC，转exact recurrent teacher shadow carrier与最多两轮sequence DAgger；RIGHT E4≥8/E5≥5前禁止mirror/PPO。
-- 在同一accepted checkpoint上分别核对raw LEFT/RIGHT Stage5/E7与mixed bilateral贡献；当前没有accepted checkpoint，也没有hardware证据。
+- 当前`pull_v26_8_backbone_20260905`已按G1硬停止规则closure；不恢复旧tmux或启动矩阵。先读本轮closure：current pull v6要求enable_staged_reset=true，plan natural eval要求false，第一份G1 eval在构造阶段失败。
+- Owner裁决natural eval合同后，才可在新root重新准入G1；不要静默把flag改true或修改pull guard。G0已冻结1024 env×6000 batches（每750 milestone），P0确认actual plain schema133/138、gate grasp_completion、threshold .25。
+- 通过G0/G1后，GPU1–3运行P_S0/P_S1/P_S2完整预算，GPU0逐milestone做LEFT/RIGHT exact64 natural，报告D/S3+/S4+/open_hold/S5+/complete和K5/E2–E7。
+- 首次≥2seed bilateral-unlatch-supported时冻结endpoint但不停训练；Wave1结束按§7判Wave2。若进入W分支，先解决当前source已`.25`与plan假定`.1→.25`的冲突。
+- 本轮closure已记录typed outcomes、opening/E7 NOT_RUN、证据和changed paths，并按closure commit点本地保存、不push。当前无活跃GPU/tmux/lease；仍无bilateral Stage5/E7 winner或hardware证据。

@@ -1,12 +1,17 @@
 ---
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
-status: stopped_by_owner
-last_updated: 2026-09-01 00:38 HKT
+status: blocked_on_g1_source_contract
+last_updated: 2026-09-05 17:07 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
 source_of_truth:
+  - scriptsFORhuman/pull_v26_8/a2_piper_pull_v26_8_backbone_closure_20260905.md
+  - logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/g1_wiring.json
+  - scriptsFORhuman/pull_v26_8/CONTRACT.md
+  - logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/P0/source_trace.json
+  - logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/frozen_wave1_contract.json
   - logs_eval/a2_piper_pull_lr_full_stage/r1g_zero_r6an_summary.json
   - logs_eval/a2_piper_pull_lr_full_stage/r1g_zero_winner_summary.json
   - gr00t/rl/config/ablation/wbmanip/pull_lr_full_base.yaml
@@ -102,9 +107,24 @@ related_entries:
 
 # Pull LR full stage
 
-本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
+本 entry 记录当前 handle 左右镜像 randomization 下的 full pull goal qualification。2026-09-05新backbone迁移在G1因source/eval reset合同冲突停止，尚无bilateral full-goal或hardware通过结论。
 
-## Current evidence (2026-09-01 00:38 HKT)
+## Current evidence
+
+### 2026-09-05 P0/G0：新 backbone 迁移（优先于下方历史后继建议）
+
+- Owner 已授权按 `scriptsFORhuman/pull_task/a2_piper_pull_v26_8_backbone_migration_plan_20260905.md` 从零迁入主线 bilateral backbone；历史 H18 Teacher/head 后继建议不是当前路线。P0为`STATIC_PASS`、G0为`RUNTIME_PASS`；G1为`NOT_ADMITTED`，新policy能力仍`UNRESOLVED`。
+- 主线 `A2_Piper` reference `cb15678` 与 pull 的同一 plain 观测列表实际解析为 **133/138-D**；旧 grasp winner 的 LSTM input weight 实际为 `(1024,135)`，包含额外2维 release-mode。迁移 plan 的135/140与137/142计数错误，按 Owner 的source/resolved优先合同使用真实主线133/138，不补维度、不加override。
+- plain `RecurrentActor` 不接受 `freeze_running_mean_std` 构造参数；保留其native RMS更新语义。三格完整 reward config 与当前 `pull_lr_full_gate_a` resolved baseline逐项相同，固定reset ratios `[.5,.1,.1,.1,.1,.1]`，没有` schedule_dict`课程。
+- P0确认E2 proof可在Stage3通过hold-contact streak继续形成，因此§2.7“Stage3完全无handle收入”例外不成立；新gate为`grasp_completion`，handle/hinge live-proof mask原样保留。
+- 当前full-pull near-closed hinge threshold已为`.25`，与plan Wave2 W假定`.1→.25`冲突；Wave1保留`.25`，若触发W不得把`.25→.25`当作干预。
+- 镜像按主线通用公式`(w,x,y,z)→(w,-x,y,-z)`移植到逐env USD `doorOpenLR` offsets；7项CPU测试通过，含pull常量180°与all-RIGHT no-op。runtime接线仍需G1；这些静态证据不证明bilateral unlatch/opening/E7。
+- G0正式显存分支：2048 env完成场景/actor构造但首轮rollout分配LSTM hidden-state buffer OOM，无训练读数；1024 env×5 batches完成327680 transitions、checkpoint与child/wrapper exit0，峰值16062MiB、余量8514MiB。冻结三格1024 env×6000 batches，milestones每750。smoke checkpoint证明actor/critic input133/138、plain actor20 tensors、RMS count2031041；仅属runtime接线证据。
+- headless启动应显式unset DISPLAY/XAUTHORITY。历史成功运行也出现`Skipping NVIDIA GPU due CUDA being in bad state`/GPUFoundation警告，不能据此判驱动失败或hang。首次2048探针在策略读数前被Main主动中断诊断；新root `_r2`保留原合同重启后才得到上述真实OOM/1024通过结论。
+- G1的64-env×5短训练通过，但首份old/bilateral eval在构造时触发`_register_a2_pull_staged_reset_buffers`的`enable_staged_reset=true`要求；plan要求natural eval置false。child exit0、wrapper因缺metrics/trace返回1，eval未加载actor、无几何比较读数。按§6.3硬停止，fixed/all-RIGHT、Wave1/2、opening/E7全部NOT_RUN，不判镜像公式失败。
+- 继续前必须裁决natural eval合同：历史pull runner保留enable_staged_reset=true并用ratios `[1,0,0,0,0,0]`实现natural起点，而当前plan要求flag=false。本轮没有改guard、没有静默替换协议。closure已记录真实证据；本轮GPU/tmux/writer均结束、leases释放。
+
+### 历史证据（截至 2026-09-01）
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -167,4 +187,4 @@ related_entries:
 
 ## Evidence boundary
 
-以上是 `INSPECTED`/`RUNTIME_PASS` 的实现与运行事实；训练结果仅按已生成 artifact 记录，未将 infrastructure failure 推断为 policy 失败。当前 completion 为 `NOT_SUPPORTED`：bilateral Stage5/E7 goal未完成，hardware未运行。entry因Owner终止当前任务而停止，不代表科学目标已通过或不可继续。
+历史full-stage的completion为`NOT_SUPPORTED`：bilateral Stage5/E7目标未完成。2026-09-05新backbone只通过P0/G0，G1为`NOT_ADMITTED`，科学能力`UNRESOLVED`；构造失败不证明新policy失败。hardware未运行。继续需要先解决明确的source/plan合同冲突。

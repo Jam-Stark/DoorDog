@@ -1,0 +1,6 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/pull_v26_8_backbone_common
+  - _self_
+seed: 1
+experiment_name: P_S1

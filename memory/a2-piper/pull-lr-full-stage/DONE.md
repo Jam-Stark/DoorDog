@@ -1,5 +1,11 @@
 # DONE
 
+- 2026-09-05 17:07 HKT — G1短训练64×5通过，old/bilateral natural eval因pull staged-buffer注册强制enable_staged_reset=true而构造失败；wrapper正确拒绝Isaac异常exit0。按plan硬停止并closure，Wave1/2、opening/E7均NOT_RUN；等待natural协议裁决，不作mirror/policy否定。
+
+- 2026-09-05 16:55 HKT — G0 memory smoke：2048-env首轮rollout LSTM buffer OOM；1024-env×5完成327680 transitions并exit0，峰值16062MiB/余量8514MiB。冻结Wave1三格1024×6000、每750 milestone；checkpoint实际plain133/138、20 actor tensors且RMS更新。G1与policy结论仍未通过。
+
+- 2026-09-05 16:40 HKT — pull-v26.8迁移P0完成：当前source与远程主线cb15678同plain名单实际133/138，旧winner input135；确认gate默认grasp_completion（E2可在Stage3形成）、现有threshold .25与Wave2 W假设冲突。三格resolved完整reward config保持source baseline，7项镜像CPU测试PASS；G0/G1及policy evidence尚未通过。
+
 - 2026-08-30 14:23 HKT — 建立 full-stage 独立 memory route，固定当前 evidence boundary、status 与后续 n1024→screen→held-out→Stage5/E7 路由。
 - 2026-08-30 14:23 HKT — 记录 r1g fixed-side16 seed0 gate-A/banks-off 的 r6an 与 bilateral winner funnel；结论为 LEFT Stage3 press/unlatch 不对称，尚无 full-goal。
 - 2026-08-30 14:23 HKT — 记录 full config/source 已落地、4096-env staged-reset OOM 的实际边界，以及 n1024 为当前注册 retry；未将 OOM 写成 policy verdict。

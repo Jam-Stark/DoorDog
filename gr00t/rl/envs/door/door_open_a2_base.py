@@ -44,6 +44,9 @@ from gr00t.rl.envs.base_task.a2_base import A2Base
 from gr00t.rl.envs.base_task.finger_primitive_base import FingerPrimitiveBase
 from gr00t.rl.envs.base_task.staged_task_base import StagedTaskBase
 from gr00t.rl.envs.base_task.warped_action_base import WarpedActionBase
+from gr00t.rl.envs.door.a2_v26_6_handle_offset_mirror import (
+    a2_v26_6_mirror_quat_wxyz,
+)
 from gr00t.rl.envs.door.a2_v20_r2_evidence import (
     a2_v20_r2_append_record_set_staging,
     a2_v20_r2_canonical_json_bytes,
@@ -5095,6 +5098,61 @@ def a2_hold_summarize_outcomes(outcome_names):
 class OrderedTargetFrameTransformer(FrameTransformer):
     """FrameTransformer variant that preserves cfg.target_frames order for duplicate target bodies."""
 
+    def __init__(
+        self,
+        cfg: FrameTransformerCfg,
+        *,
+        a2_v26_6_side_mirrored_handle_offset_enabled: bool = False,
+    ):
+        if not isinstance(a2_v26_6_side_mirrored_handle_offset_enabled, bool):
+            raise TypeError("a2_v26_6_side_mirrored_handle_offset_enabled must be bool.")
+        self._a2_v26_6_side_mirrored_handle_offset_enabled = (
+            a2_v26_6_side_mirrored_handle_offset_enabled
+        )
+        super().__init__(cfg)
+
+    def _a2_v26_6_side_mirrored_offset_quaternions(self) -> torch.Tensor:
+        """Mirror authored handle/pregrasp offsets for LEFT-hinged door clones."""
+        if tuple(self._target_frame_names) != ("handle", "pregrasp"):
+            raise RuntimeError(
+                "v26-6 side-mirrored handle offset requires ordered handle/pregrasp "
+                f"target frames; got {self._target_frame_names!r}."
+            )
+        stage = omni.usd.get_context().get_stage()
+        quat = self._target_frame_offset_quat.clone()
+        num_frames = len(self._target_frame_names)
+        if quat.shape != (self._num_envs * num_frames, 4):
+            raise RuntimeError(
+                "v26-6 side-mirrored handle offset requires target offset quaternions "
+                f"with shape ({self._num_envs * num_frames}, 4); got {tuple(quat.shape)}."
+            )
+        for env_id in range(self._num_envs):
+            door_prim = stage.GetPrimAtPath(f"/World/envs/env_{env_id}/door")
+            if not door_prim.IsValid():
+                raise RuntimeError(
+                    f"v26-6 side-mirrored handle offset requires door prim in env_{env_id}."
+                )
+            metadata = door_prim.GetPrim().GetMetadata("customData")
+            if metadata is None or "doorOpenLR" not in metadata:
+                raise RuntimeError(
+                    "v26-6 side-mirrored handle offset requires doorOpenLR customData "
+                    f"in env_{env_id}."
+                )
+            open_lr = float(metadata["doorOpenLR"])
+            if open_lr not in (1.0, -1.0):
+                raise RuntimeError(
+                    f"A2 door metadata requires doorOpenLR in {{-1, +1}}; got {open_lr!r} "
+                    f"in env_{env_id}."
+                )
+            if open_lr != 1.0:
+                continue
+            for frame_index in range(num_frames):
+                row = env_id * num_frames + frame_index
+                quat[row] = quat.new_tensor(
+                    a2_v26_6_mirror_quat_wxyz(quat[row].tolist())
+                )
+        return quat
+
     def _initialize_impl(self):
         super(FrameTransformer, self)._initialize_impl()
 
@@ -5261,6 +5319,22 @@ class OrderedTargetFrameTransformer(FrameTransformer):
             )
             self._target_frame_offset_quat = torch.stack(target_frame_offset_quat).repeat(
                 self._num_envs, 1
+            )
+            if self._a2_v26_6_side_mirrored_handle_offset_enabled:
+                mirrored_quat = self._a2_v26_6_side_mirrored_offset_quaternions()
+                if (
+                    mirrored_quat.shape != self._target_frame_offset_quat.shape
+                    or mirrored_quat.dtype != self._target_frame_offset_quat.dtype
+                    or mirrored_quat.device != self._target_frame_offset_quat.device
+                ):
+                    raise RuntimeError(
+                        "v26-6 side-mirrored handle offset does not match FrameTransformer "
+                        "env-major target offset storage."
+                    )
+                self._target_frame_offset_quat = mirrored_quat
+        elif self._a2_v26_6_side_mirrored_handle_offset_enabled:
+            raise RuntimeError(
+                "v26-6 side-mirrored handle offset requires target-frame offsets."
             )
 
         self._data.target_frame_names = self._target_frame_names
@@ -5545,6 +5619,14 @@ class DoorPregrasp(
         """Return the legacy push target orientation used by the high-level transformer."""
 
         return (0.5, 0.5, 0.5, 0.5)
+
+    def _a2_v26_6_side_mirrored_handle_offset_enabled(self) -> bool:
+        enabled = self.config.get("a2_v26_6_side_mirrored_handle_offset_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "env.config.a2_v26_6_side_mirrored_handle_offset_enabled must be bool."
+            )
+        return enabled
 
     def _get_a2_grasp_gate_mode(self) -> str:
         key = self.A2_GRASP_GATE_MODE_CONFIG_KEY
@@ -25394,7 +25476,12 @@ class DoorPregrasp(
                 )
             )
             simulator.scene.sensors[self.A2_GRIPPER_HANDLE_FRAME_TRANSFORMER] = (
-                OrderedTargetFrameTransformer(piper_gripper_handle_frame_transformer_config)
+                OrderedTargetFrameTransformer(
+                    piper_gripper_handle_frame_transformer_config,
+                    a2_v26_6_side_mirrored_handle_offset_enabled=(
+                        self._a2_v26_6_side_mirrored_handle_offset_enabled()
+                    ),
+                )
             )
             target_contact_sub_prim = simulator.task_config.get(
                 "target_obj_contact_sub_prim_path", None

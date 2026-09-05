@@ -1,0 +1,2 @@
+# Local run receipts, logs and immutable source snapshots stay on the training machine.
+runtime_logs/

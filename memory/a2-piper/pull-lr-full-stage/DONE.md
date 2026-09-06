@@ -1,5 +1,19 @@
 # DONE
 
+- 2026-09-07 02:00 HKT — Wave1 step4500首次PULL_BILATERAL_UNLATCH_SUPPORTED@4500并冻结endpoint：P_S1 D=63/64、P_S2=63/41；P_S0=62/0。OPENING_EMERGED成立，E6/E7仍0。六侧exact64/integrity0/receipt PASS，P_S2 RIGHT arm_j4限位0.097995%，其余0。继续原6000预算，Wave2只能从最终6000两个最佳seed续3000，不按中途E7挑源。
+
+- 2026-09-06 19:56 HKT — Wave1 step3750：三seed LEFT/RIGHT D依次9/0、64/64、4/48；仍仅P_S1双侧支持，E4=64/64、E5=63/64、E6/E7均0。P_S2 LEFT E3=51但D=4，事件发生不能替代持续解锁判据。六侧exact64/integrity0/receipt PASS；P_S2 RIGHT arm_j4限位占比0.01334%，其余0。继续预算，未准入Wave2。
+
+- 2026-09-06 15:55 HKT — Wave1 step3000：P_S1双侧D/K5/E2–E5/open_hold均64/64，E6/E7与S5+仍0；P_S0 D=2/0，P_S2 D=0/0、K5=64/28。OPENING_EMERGED保留，但仍仅一个seed支持unlatch，未满足总体两seed门。六侧exact64、arm_j4限位0、integrity0，全部stage_overtime，receipt PASS，训练继续。
+
+- 2026-09-06 09:52 HKT — Wave1 step2250首次PULL_OPENING_EMERGED：P_S1 LEFT/RIGHT D=62/64、E4/E5=63/64、open_hold=63/64，单seed BILATERAL_UNLATCH_SUPPORTED；E6/E7与S5+均0。P_S0双侧K5/D均0；P_S2 K5=62/8、E2=62/4、D/E3均0。尚无两seed unlatch支持，因此未冻结总体endpoint、未准入Wave2。六侧exact64/integrity0/arm_j4限位0，receipt PASS，继续预算。
+
+- 2026-09-06 05:50 HKT — Wave1 step1500：P_S1 LEFT/RIGHT D=27/5、K5=29/6、E2/E3=29/6，typed为LEFT_RECOVERED_RIGHT_REGRESSED；P_S0与P_S2双侧D=0。所有E4–E7=0，六侧exact64、arm_j4限位占比0、integrity0，eval receipt PASS。LEFT已出现durable反向读数，但尚未满足双侧支持门，继续训练。
+
+- 2026-09-06 01:49 HKT — Wave1 step750六侧exact64通过resolved+natural出生trace硬门，D/E3–E7均0；K5与S3+按P_S0 L/R=2/1、P_S1=0/1、P_S2=0/7，只有P_S1 RIGHT E2=1。arm_j4限位占比与integrity均0，全部stage_overtime；尚无unlatch/opening支持，按原预算继续。
+
+- 2026-09-05 19:03 HKT — G0/G1准入点本地提交fd38b36（未push）。Wave1三seed1024×6000已在GPU1/2/3独立tmux启动，另有watcher负责GPU0八次milestone eval/reduce；当前仅launch证据，尚无matrix policy结果。
+
 - 2026-09-05 19:00 HKT — 新root `_natural1_r2` G1完整PASS：LEFT179.99458–179.99902°，RIGHT/all-RIGHT bit-identical，integrity0；四份resolved natural config与256个首episode Stage0出生row通过硬门。三seed Wave1已准入，将按原预算直接启动。
 
 - 2026-09-05 18:58 HKT — 方案1首轮eval在reset采样前因整数ratios被构造成Long tensor失败，无eval策略/几何读数。按既有harness预授权在新root `_natural1_r2` 重启，参数改为数值相同的浮点表示；不改core。配对bilateral old/fixed均已child/wrapper0并落盘64个Stage0出生row，完整G1仍待all-RIGHT与reducer。

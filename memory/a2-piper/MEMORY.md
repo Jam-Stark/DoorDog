@@ -19,7 +19,7 @@
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
 - [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-29 HKT — pull-v6.1 quality→population stage closed `QUALITY_PASS__POPULATION_INCONCLUSIVE`. r6an remains the sole strict-natural E7 winner; formal 64-episode baseline is E5/clean/frame/E6/E7=`41/5/3/2/1`. Integrated, grouped-output, and one B-focus P revision increased E5 at best to `47/64` but produced no E6/E7, so no population checkpoint was promoted and hardware is `NOT_RUN`.
 - [pull-lr-bilateral-grasp/description.md](pull-lr-bilateral-grasp/description.md): 2026-08-30 HKT — pull Stage0–2 exact LEFT/RIGHT asset mirroring and bilateral acquisition closed with winner `pull_lr_grasp_h450_xseg_resume_seed2/model_step_000250.pt`; two independent fixed-side64 evals give strict K5 LEFT/RIGHT=`125/128` each, and both raw sides have verified five-view successful renders. Full Stage3–5 bilateral pull remains `NOT_RUN`.
-- [pull-lr-full-stage/description.md](pull-lr-full-stage/description.md): 2026-09-05 18:47 HKT — Owner采纳natural方案1，新root G1运行中；通过后自主Wave1三seed×1024×6000。W轴删除，仅opening→E7 continuation；出生trace与resolved config硬门待runtime证明。
+- [pull-lr-full-stage/description.md](pull-lr-full-stage/description.md): 2026-09-07 02:00 HKT — step4500首次BILATERAL_UNLATCH_SUPPORTED（P_S1 D=63/64、P_S2=63/41）已冻结，opening出现但E6/E7为0；继续6000后按条件续E7。
 
 ## Update Rules
 

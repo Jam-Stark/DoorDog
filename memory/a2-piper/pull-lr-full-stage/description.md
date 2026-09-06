@@ -1,8 +1,8 @@
 ---
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
-status: wave1_admitted
-last_updated: 2026-09-05 19:00 HKT
+status: wave1_running
+last_updated: 2026-09-07 02:00 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -112,10 +112,46 @@ related_entries:
 
 ## Current evidence
 
+### 2026-09-07 02:00 HKT：首次总体unlatch endpoint
+
+- Wave1 step4500首次PULL_BILATERAL_UNLATCH_SUPPORTED@4500并冻结endpoint：P_S1 D=63/64、P_S2=63/41；P_S0=62/0。OPENING_EMERGED成立，E6/E7仍0。六侧exact64/integrity0/receipt PASS，P_S2 RIGHT arm_j4限位0.097995%，其余0。继续原6000预算，Wave2只能从最终6000两个最佳seed续3000，不按中途E7挑源。
+- canonical freeze：`scriptsFORhuman/pull_v26_8/WAVE1_ENDPOINT.json`；原始reducer位于当前run的`milestones/step4500/reducer.json`。
+
+
+### 2026-09-06 19:56 HKT：Wave1 step3750
+
+- Wave1 step3750：三seed LEFT/RIGHT D依次9/0、64/64、4/48；仍仅P_S1双侧支持，E4=64/64、E5=63/64、E6/E7均0。P_S2 LEFT E3=51但D=4，事件发生不能替代持续解锁判据。六侧exact64/integrity0/receipt PASS；P_S2 RIGHT arm_j4限位占比0.01334%，其余0。继续预算，未准入Wave2。
+- artifact：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step3750/reducer.json`。
+
+
+### 2026-09-06 15:55 HKT：Wave1 step3000
+
+- Wave1 step3000：P_S1双侧D/K5/E2–E5/open_hold均64/64，E6/E7与S5+仍0；P_S0 D=2/0，P_S2 D=0/0、K5=64/28。OPENING_EMERGED保留，但仍仅一个seed支持unlatch，未满足总体两seed门。六侧exact64、arm_j4限位0、integrity0，全部stage_overtime，receipt PASS，训练继续。
+- artifact：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step3000/reducer.json`。
+
+
+### 2026-09-06 09:52 HKT：Wave1 step2250
+
+- Wave1 step2250首次PULL_OPENING_EMERGED：P_S1 LEFT/RIGHT D=62/64、E4/E5=63/64、open_hold=63/64，单seed BILATERAL_UNLATCH_SUPPORTED；E6/E7与S5+均0。P_S0双侧K5/D均0；P_S2 K5=62/8、E2=62/4、D/E3均0。尚无两seed unlatch支持，因此未冻结总体endpoint、未准入Wave2。六侧exact64/integrity0/arm_j4限位0，receipt PASS，继续预算。
+- artifact：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step2250/reducer.json`。
+
+
+### 2026-09-06 05:50 HKT：Wave1 step1500
+
+- Wave1 step1500：P_S1 LEFT/RIGHT D=27/5、K5=29/6、E2/E3=29/6，typed为LEFT_RECOVERED_RIGHT_REGRESSED；P_S0与P_S2双侧D=0。所有E4–E7=0，六侧exact64、arm_j4限位占比0、integrity0，eval receipt PASS。LEFT已出现durable反向读数，但尚未满足双侧支持门，继续训练。
+- artifact：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step1500/reducer.json`。三格当前约1768–1776 batches，GPU1–3及watcher继续。
+
+
+### 2026-09-06 01:49 HKT：Wave1首个正式milestone
+
+- Wave1 step750六侧exact64通过resolved+natural出生trace硬门，D/E3–E7均0；K5与S3+按P_S0 L/R=2/1、P_S1=0/1、P_S2=0/7，只有P_S1 RIGHT E2=1。arm_j4限位占比与integrity均0，全部stage_overtime；尚无unlatch/opening支持，按原预算继续。
+- 证据：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step750/reducer.json`；eval receipt `pull_v26_8_eval_step750_natural1_r2`为PASS。GPU1–3三格训练与独立watcher继续运行，未到endpoint。
+
+
 ### 2026-09-05 18:47 HKT：Owner采纳方案1并授权继续
 
 - Planner机器tracked文档仍为fe33241、无本次修订；本地按Owner转述裁决更新plan/contract。保留pull初始化要求enable_staged_reset=true，以精确ratios `[1,0,0,0,0,0]`、两项v6 banks false定义natural。必须通过resolved runtime及每env首个出生row stage_buf/episode_index/a2_v26_episode_start_stage均0的双层硬门；缺一PULL_V26_8_INVALID。
-- 出生trace从真实reset_all后、policy动作前采样；reducer排除出生行后计算原有duration与force等指标，不改reset/reward/event/loader。G1使用新root `pull_v26_8_backbone_20260905_natural1_r2`，GPU0 tmux `pull_v26_8_g1_natural1_r2`；G0沿用原r2 1024-env PASS，矩阵仍三seed×6000、每750 milestone。G1现已RUNTIME_PASS：LEFT179.99458–179.99902°、RIGHT与all-RIGHT bit-identical、integrity0，四份resolved/出生trace全通过；Wave1准入。
+- 出生trace从真实reset_all后、policy动作前采样；reducer排除出生行后计算原有duration与force等指标，不改reset/reward/event/loader。G1使用新root `pull_v26_8_backbone_20260905_natural1_r2`，GPU0 tmux `pull_v26_8_g1_natural1_r2`；G0沿用原r2 1024-env PASS，矩阵仍三seed×6000、每750 milestone。Wave1已于19:02 HKT在GPU1/2/3各自独立tmux启动，watcher在独立tmux按750间隔自动串行eval；本地commit fd38b36，未push。G1现已RUNTIME_PASS：LEFT179.99458–179.99902°、RIGHT与all-RIGHT bit-identical、integrity0，四份resolved/出生trace全通过；Wave1准入。
 - W轴已删除；仅opening-emerged后按原预算continuation报告E7；unlatch支持但无opening则Wave2 NOT_RUN并交回Stage3→4收入几何。主线v26-7实际plain同为133/138，没有可确认的额外2维term；旧pull override的2维为z_a2_pull_v6_release_mode。
 
 

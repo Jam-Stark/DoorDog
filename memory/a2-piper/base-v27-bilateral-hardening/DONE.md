@@ -1,5 +1,12 @@
 # DONE
 
+- 2026-09-06 — Wave A六格各3000 batches全部PASS/0；六个milestones共4608 episodes，exact64/侧、integrity0。
+  endpoint `QUALITY_UNRESOLVED`，冻结 `RECIPE_A=C`、`CARRIER_A=C_S21 step3000`；没有中途checkpoint替换。
+  LEFT/RIGHT clean分别为C_S21 51/41、C_S22 0/39、Q1_S21 5/40、Q1_S22 17/20、Q2_S21 18/21、Q2_S22 16/39。
+  所有正式评估、训练及Wave A调度器receipt已封存PASS，未增加预算或更新binding。
+
+- 2026-09-05 — 首个预授权本地提交 `52933a3` 已完成，包含 G0、v27.0、Wave A 合同与启动设施；未 push。
+
 - 2026-09-05 20:15 HKT — G0 与 v27.0 完成。三候选 DEV 共 768 episodes、integrity0；
   最终 NO_QUALIFIED_CANDIDATE，CONF 未运行；18 QA 回合/54 videos 与候选 manifest v1 完整。
   Owner 批准 K 现有 artifact 的 CPU-only 重判，原 INVALID 保留，无训练/DEV 重跑。

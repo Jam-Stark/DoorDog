@@ -1,0 +1,7 @@
+{
+  "status": "REPORTED_TO_OWNER",
+  "reported_at": "2026-09-06T08:35:11.119903+00:00",
+  "readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/a2_piper_base_v27_wave_a_step3000_readout_20260906.md",
+  "policy_change": false,
+  "endpoint_decision": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_a_decision.json"
+}

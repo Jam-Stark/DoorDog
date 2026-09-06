@@ -1,0 +1,131 @@
+{
+  "reference": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_dev_cpu_adjudicated/reducer.json",
+  "reference_cell": "C_S2",
+  "reference_episodes_per_side": 128,
+  "current_episodes_per_side": 64,
+  "comparison": "Descriptive percentage-point differences; different N, not paired episode trajectories.",
+  "all_metric_deltas_pp": {
+    "C_S21/left": {
+      "D": -0.78125,
+      "S3+": 0.0,
+      "S4+": 0.0,
+      "open_hold": 0.0,
+      "S5+": 0.0,
+      "complete": 0.0,
+      "clean_complete": 10.15625
+    },
+    "C_S21/right": {
+      "D": -11.71875,
+      "S3+": -1.5625,
+      "S4+": -1.5625,
+      "open_hold": -1.5625,
+      "S5+": -1.5625,
+      "complete": -1.5625,
+      "clean_complete": 2.34375
+    },
+    "Q1_S21/left": {
+      "D": -14.84375,
+      "S3+": -1.5625,
+      "S4+": -1.5625,
+      "open_hold": -1.5625,
+      "S5+": -1.5625,
+      "complete": -1.5625,
+      "clean_complete": -2.34375
+    },
+    "Q1_S21/right": {
+      "D": 2.34375,
+      "S3+": 0.0,
+      "S4+": 0.0,
+      "open_hold": 0.0,
+      "S5+": 0.0,
+      "complete": 0.0,
+      "clean_complete": 5.46875
+    },
+    "Q2_S21/left": {
+      "D": -8.59375,
+      "S3+": -3.125,
+      "S4+": -3.125,
+      "open_hold": -3.125,
+      "S5+": -98.4375,
+      "complete": -98.4375,
+      "clean_complete": -58.59375
+    },
+    "Q2_S21/right": {
+      "D": -32.03125,
+      "S3+": -1.5625,
+      "S4+": -1.5625,
+      "open_hold": -3.125,
+      "S5+": -35.9375,
+      "complete": -70.3125,
+      "clean_complete": -44.53125
+    },
+    "C_S22/left": {
+      "D": 7.03125,
+      "S3+": -3.125,
+      "S4+": -3.125,
+      "open_hold": -3.125,
+      "S5+": -6.25,
+      "complete": -6.25,
+      "clean_complete": -17.96875
+    },
+    "C_S22/right": {
+      "D": 0.78125,
+      "S3+": -1.5625,
+      "S4+": -1.5625,
+      "open_hold": -1.5625,
+      "S5+": -1.5625,
+      "complete": -1.5625,
+      "clean_complete": 2.34375
+    },
+    "Q1_S22/left": {
+      "D": -11.71875,
+      "S3+": -1.5625,
+      "S4+": -1.5625,
+      "open_hold": -1.5625,
+      "S5+": -1.5625,
+      "complete": -1.5625,
+      "clean_complete": -2.34375
+    },
+    "Q1_S22/right": {
+      "D": -3.90625,
+      "S3+": 0.0,
+      "S4+": 0.0,
+      "open_hold": -1.5625,
+      "S5+": 0.0,
+      "complete": 0.0,
+      "clean_complete": 3.90625
+    },
+    "Q2_S22/left": {
+      "D": -42.96875,
+      "S3+": 0.0,
+      "S4+": 0.0,
+      "open_hold": 0.0,
+      "S5+": 0.0,
+      "complete": 0.0,
+      "clean_complete": -14.84375
+    },
+    "Q2_S22/right": {
+      "D": 2.34375,
+      "S3+": 0.0,
+      "S4+": 0.0,
+      "open_hold": 0.0,
+      "S5+": -1.5625,
+      "complete": -1.5625,
+      "clean_complete": 2.34375
+    }
+  },
+  "current_side_gates": {
+    "C_S21/left": false,
+    "C_S21/right": false,
+    "Q1_S21/left": false,
+    "Q1_S21/right": false,
+    "Q2_S21/left": false,
+    "Q2_S21/right": false,
+    "C_S22/left": false,
+    "C_S22/right": false,
+    "Q1_S22/left": false,
+    "Q1_S22/right": false,
+    "Q2_S22/left": false,
+    "Q2_S22/right": false
+  }
+}

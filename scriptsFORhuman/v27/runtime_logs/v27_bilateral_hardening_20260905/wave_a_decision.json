@@ -1,0 +1,15 @@
+{
+  "status": "FROZEN",
+  "outcome": "QUALITY_UNRESOLVED",
+  "RECIPE_A": "C",
+  "CARRIER_A": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/model_step_003000.pt",
+  "CARRIER_A_CELL": "C_S21",
+  "CARRIER_A_SHA256": "d2fb166d8d8ccd56d8a071f735622a1ee26b79cfbe679f36998f6dae1a32e7b6",
+  "labels": [],
+  "endpoint_step": 3000,
+  "endpoint_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_a_endpoint_lock.json",
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_a/step3000/reducer.json",
+  "route_authority": "v27 plan §4.2 / §9.4",
+  "selection_rule": "Fixed seed21 endpoint; no intermediate-best substitution",
+  "scope": "Research carrier for Wave B; no Teacher or G7 binding"
+}

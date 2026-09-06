@@ -1,0 +1,66 @@
+{
+  "status": "ENDPOINT_FROZEN",
+  "wave": "A",
+  "step": 3000,
+  "frozen_at": "2026-09-06T08:33:03.277359+00:00",
+  "git_head": "52933a3d4b2ddcc683f02e7a60103d9bd6d6e0fd",
+  "active_source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/source_lock_trace_contract.json",
+  "endpoints": {
+    "C_S21": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/model_step_003000.pt",
+      "checkpoint_sha256": "d2fb166d8d8ccd56d8a071f735622a1ee26b79cfbe679f36998f6dae1a32e7b6",
+      "config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/config.yaml",
+      "config_sha256": "2d06c9c2e833c1b14f2ab040e6eebe9d6caeb333cd9d89b24f18f49d041cd4f1",
+      "resolved_config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/resolved_config.yaml",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/v27_process_evidence.json",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_c_s21/RUN_RECEIPT.json"
+    },
+    "Q1_S21": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21/model_step_003000.pt",
+      "checkpoint_sha256": "79d53f74b3810623effd37cbf29da593c84807277c7b57e728dddfeb4047ffbd",
+      "config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21/config.yaml",
+      "config_sha256": "3e8dad5053f08a941cd27c27578afcdafd905fbe8d8b5c5d5392acd6d64d6e33",
+      "resolved_config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21/resolved_config.yaml",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21/v27_process_evidence.json",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q1_s21/RUN_RECEIPT.json"
+    },
+    "Q2_S21": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21/model_step_003000.pt",
+      "checkpoint_sha256": "3f247692c41d82d4387f617f8cf5bfd9470fb19c63104d70c68ee903611735e8",
+      "config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21/config.yaml",
+      "config_sha256": "a10dafb0c723f8fc92bfd5ef2df82e3d71218e0ffc22af81c631a15f076d3847",
+      "resolved_config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21/resolved_config.yaml",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21/v27_process_evidence.json",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q2_s21/RUN_RECEIPT.json"
+    },
+    "C_S22": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22/model_step_003000.pt",
+      "checkpoint_sha256": "439071e9c2b78e18ddcb684db0cd43b51b8a06574e76d65ec9d1ebea08ef49c2",
+      "config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22/config.yaml",
+      "config_sha256": "44d80dd07bd26aaca97c58e7df7f2b8342640f2ff4529e1d6a6561612c19df63",
+      "resolved_config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22/resolved_config.yaml",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22/v27_process_evidence.json",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_c_s22/RUN_RECEIPT.json"
+    },
+    "Q1_S22": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22/model_step_003000.pt",
+      "checkpoint_sha256": "5067640c670461a91516ed8e155fa1bdddc80c6eb129a2a9d83af1bef22f07a5",
+      "config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22/config.yaml",
+      "config_sha256": "ad723b7825a16e907af30e411dacaef20cebc81e1732a7ffd4b31631b6e4588c",
+      "resolved_config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22/resolved_config.yaml",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22/v27_process_evidence.json",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q1_s22/RUN_RECEIPT.json"
+    },
+    "Q2_S22": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22/model_step_003000.pt",
+      "checkpoint_sha256": "85742684ff1b92d7364ed7351d82ebec8b30f5acbcf77875e26cebd619474566",
+      "config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22/config.yaml",
+      "config_sha256": "6d875368dfe5ba1a152fa818eb3257a7d35ddf4807ac140d7600133ca4f16fbd",
+      "resolved_config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22/resolved_config.yaml",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22/v27_process_evidence.json",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q2_s22/RUN_RECEIPT.json"
+    }
+  },
+  "reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_a/step3000/reducer.json",
+  "evaluation_status": "V27_COMPLETE"
+}

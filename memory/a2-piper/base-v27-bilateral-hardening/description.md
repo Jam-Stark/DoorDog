@@ -2,7 +2,7 @@
 name: base-v27-bilateral-hardening
 status: active
 scope: v26 qualification, bilateral behavior quality, door domain, one-loss recovery pilot, scratch reliability
-last_verified: 2026-09-05 20:15 HKT
+last_verified: 2026-09-06
 read_when:
   - implementing or resuming base_v27
   - interpreting bilateral Teacher qualification or v27 recovery evidence
@@ -44,7 +44,16 @@ env107 在 Stage0 overtime，属于合法早期失败。Owner 明确授权后只
 
 G0 已有 STATIC/TEST/RUNTIME 证据：15 项组合 CPU 测试，64-env/5-batch Q2 smoke 与双侧 exact64。
 一次 inactive transition 诊断请求的 rollout 前失败按授权修复重启；旧失败保留。
-Wave A 六格已正常 strict actor/RMS 加载并训练，endpoint 尚未产生。恢复启用路径将在 Wave B 前接线。
+Wave A 六格均跑满3000 batches并正常退出；6个milestones共72 lanes、4608 episodes，全部exact64/侧、integrity0。
+2026-09-06 endpoint为 `QUALITY_UNRESOLVED`，按预注册默认分支冻结 `RECIPE_A=C`；
+`CARRIER_A` 固定为本轮 `C_S21/model_step_003000.pt`，不采用中途best或seed22替换。
+endpoint LEFT/RIGHT clean：C_S21=51/41、C_S22=0/39、Q1_S21=5/40、Q1_S22=17/20、
+Q2_S21=18/21、Q2_S22=16/39；没有单侧达到56/64 clean门。Q1/Q2 LEFT两seed clean均值
+相对C分别为−14.5/−8.5；endpoint无`Q_HARMFUL_RIGHT`标签。
+训练中曾出现正常退出但大量超速终止的milestone，已完整记录，未重跑或更改配方。
+权威决策与端点锁：runtime下 `wave_a_decision.json`、`wave_a_endpoint_lock.json`；
+完整读数见 `a2_piper_base_v27_wave_a_step3000_readout_20260906.md`。这是模拟实验结论，
+不构成Teacher/G7资格授予。恢复启用路径将在Wave B前接线。
 
 执行状态与 receipts 由
 `scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/` 路由，不将 heartbeat 写入 memory。

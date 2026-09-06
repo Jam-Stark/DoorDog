@@ -1,0 +1,131 @@
+{
+  "reference": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/q0_dev_cpu_adjudicated/reducer.json",
+  "reference_cell": "C_S2",
+  "reference_episodes_per_side": 128,
+  "current_episodes_per_side": 64,
+  "comparison": "Descriptive percentage-point differences; different N, not paired episode trajectories.",
+  "all_metric_deltas_pp": {
+    "C_S21/left": {
+      "D": -16.40625,
+      "S3+": 0.0,
+      "S4+": 0.0,
+      "open_hold": 0.0,
+      "S5+": 0.0,
+      "complete": 0.0,
+      "clean_complete": -47.65625
+    },
+    "C_S21/right": {
+      "D": -11.71875,
+      "S3+": -1.5625,
+      "S4+": -1.5625,
+      "open_hold": -1.5625,
+      "S5+": -10.9375,
+      "complete": -10.9375,
+      "clean_complete": -50.78125
+    },
+    "Q1_S21/left": {
+      "D": -10.15625,
+      "S3+": 0.0,
+      "S4+": -1.5625,
+      "open_hold": -1.5625,
+      "S5+": -1.5625,
+      "complete": -4.6875,
+      "clean_complete": -2.34375
+    },
+    "Q1_S21/right": {
+      "D": -44.53125,
+      "S3+": -1.5625,
+      "S4+": -1.5625,
+      "open_hold": -1.5625,
+      "S5+": -1.5625,
+      "complete": -1.5625,
+      "clean_complete": -0.78125
+    },
+    "Q2_S21/left": {
+      "D": -14.84375,
+      "S3+": -3.125,
+      "S4+": -3.125,
+      "open_hold": -3.125,
+      "S5+": -4.6875,
+      "complete": -9.375,
+      "clean_complete": 16.40625
+    },
+    "Q2_S21/right": {
+      "D": -39.84375,
+      "S3+": -4.6875,
+      "S4+": -4.6875,
+      "open_hold": -4.6875,
+      "S5+": -6.25,
+      "complete": -10.9375,
+      "clean_complete": -13.28125
+    },
+    "C_S22/left": {
+      "D": 7.03125,
+      "S3+": 0.0,
+      "S4+": -1.5625,
+      "open_hold": -3.125,
+      "S5+": -1.5625,
+      "complete": -1.5625,
+      "clean_complete": -38.28125
+    },
+    "C_S22/right": {
+      "D": -3.90625,
+      "S3+": -6.25,
+      "S4+": -6.25,
+      "open_hold": -6.25,
+      "S5+": -6.25,
+      "complete": -6.25,
+      "clean_complete": -8.59375
+    },
+    "Q1_S22/left": {
+      "D": 5.46875,
+      "S3+": 0.0,
+      "S4+": 0.0,
+      "open_hold": 0.0,
+      "S5+": 0.0,
+      "complete": 0.0,
+      "clean_complete": 22.65625
+    },
+    "Q1_S22/right": {
+      "D": -32.03125,
+      "S3+": -3.125,
+      "S4+": -3.125,
+      "open_hold": -3.125,
+      "S5+": -3.125,
+      "complete": -3.125,
+      "clean_complete": 36.71875
+    },
+    "Q2_S22/left": {
+      "D": -8.59375,
+      "S3+": 0.0,
+      "S4+": 0.0,
+      "open_hold": 0.0,
+      "S5+": 0.0,
+      "complete": -1.5625,
+      "clean_complete": 24.21875
+    },
+    "Q2_S22/right": {
+      "D": -16.40625,
+      "S3+": -4.6875,
+      "S4+": -4.6875,
+      "open_hold": -4.6875,
+      "S5+": -7.8125,
+      "complete": -9.375,
+      "clean_complete": -2.34375
+    }
+  },
+  "current_side_gates": {
+    "C_S21/left": false,
+    "C_S21/right": false,
+    "Q1_S21/left": false,
+    "Q1_S21/right": false,
+    "Q2_S21/left": false,
+    "Q2_S21/right": false,
+    "C_S22/left": false,
+    "C_S22/right": false,
+    "Q1_S22/left": false,
+    "Q1_S22/right": true,
+    "Q2_S22/left": false,
+    "Q2_S22/right": false
+  }
+}

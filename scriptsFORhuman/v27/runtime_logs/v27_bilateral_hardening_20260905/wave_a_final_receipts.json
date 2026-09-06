@@ -1,0 +1,362 @@
+{
+  "v27_train_q2_s22": {
+    "name": "v27_train_q2_s22",
+    "session": "v27_train_q2_s22",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_train_cell.sh --gpu 7 --cell Q2_S22 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_train_q2_s22.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22/model_step_003000.pt",
+    "eval_command": null,
+    "resources": [
+      "GPU7",
+      "IsaacSim_GPU7"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T10:44:03+00:00",
+    "launched_at": "2026-09-05T10:44:03+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T08:01:17+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_train_q1_s22": {
+    "name": "v27_train_q1_s22",
+    "session": "v27_train_q1_s22",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_train_cell.sh --gpu 6 --cell Q1_S22 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_train_q1_s22.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22/model_step_003000.pt",
+    "eval_command": null,
+    "resources": [
+      "GPU6",
+      "IsaacSim_GPU6"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T10:44:02+00:00",
+    "launched_at": "2026-09-05T10:44:02+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T08:01:17+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_train_q1_s21": {
+    "name": "v27_train_q1_s21",
+    "session": "v27_train_q1_s21",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_train_cell.sh --gpu 3 --cell Q1_S21 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_train_q1_s21.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21/model_step_003000.pt",
+    "eval_command": null,
+    "resources": [
+      "GPU3",
+      "IsaacSim_GPU3"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T10:43:57+00:00",
+    "launched_at": "2026-09-05T10:43:57+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T08:01:17+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step1500_gpu0": {
+    "name": "v27_eval_wave_a_step1500_gpu0",
+    "session": "v27_eval_wave_a_step1500_gpu0",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 0 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step1500.json --indices 0 2 4 6 8 10",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step1500_gpu0.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step1500_gpu0_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU0",
+      "IsaacSim_GPU0"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T21:13:50+00:00",
+    "launched_at": "2026-09-05T21:13:50+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-05T21:43:51+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_train_c_s21": {
+    "name": "v27_train_c_s21",
+    "session": "v27_train_c_s21",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_train_cell.sh --gpu 2 --cell C_S21 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_train_c_s21.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/model_step_003000.pt",
+    "eval_command": null,
+    "resources": [
+      "GPU2",
+      "IsaacSim_GPU2"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T10:43:55+00:00",
+    "launched_at": "2026-09-05T10:43:56+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T08:01:17+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step1500_gpu1": {
+    "name": "v27_eval_wave_a_step1500_gpu1",
+    "session": "v27_eval_wave_a_step1500_gpu1",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 1 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step1500.json --indices 1 3 5 7 9 11",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step1500_gpu1.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step1500_gpu1_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU1",
+      "IsaacSim_GPU1"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T21:13:51+00:00",
+    "launched_at": "2026-09-05T21:13:51+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-05T21:43:51+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step1000_gpu1": {
+    "name": "v27_eval_wave_a_step1000_gpu1",
+    "session": "v27_eval_wave_a_step1000_gpu1",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 1 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step1000.json --indices 1 3 5 7 9 11",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step1000_gpu1.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step1000_gpu1_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU1",
+      "IsaacSim_GPU1"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T17:42:29+00:00",
+    "launched_at": "2026-09-05T17:42:29+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-05T18:22:29+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step1000_gpu0": {
+    "name": "v27_eval_wave_a_step1000_gpu0",
+    "session": "v27_eval_wave_a_step1000_gpu0",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 0 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step1000.json --indices 0 2 4 6 8 10",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step1000_gpu0.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step1000_gpu0_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU0",
+      "IsaacSim_GPU0"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T17:42:27+00:00",
+    "launched_at": "2026-09-05T17:42:27+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-05T18:22:29+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step2000_gpu0": {
+    "name": "v27_eval_wave_a_step2000_gpu0",
+    "session": "v27_eval_wave_a_step2000_gpu0",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 0 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step2000.json --indices 0 2 4 6 8 10",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step2000_gpu0.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step2000_gpu0_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU0",
+      "IsaacSim_GPU0"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-06T00:44:56+00:00",
+    "launched_at": "2026-09-06T00:44:56+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T01:14:58+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_watch_a_r2": {
+    "name": "v27_watch_a_r2",
+    "session": "v27_watch_a_r2",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 /home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_watch_wave.py --wave A",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_watch_a_r2.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_a_watch_done.json",
+    "eval_command": null,
+    "resources": [
+      "CPU"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T11:01:06+00:00",
+    "launched_at": "2026-09-05T11:01:06+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T08:32:23+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step500_gpu0": {
+    "name": "v27_eval_wave_a_step500_gpu0",
+    "session": "v27_eval_wave_a_step500_gpu0",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 0 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step500.json --indices 0 2 4 6 8 10",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step500_gpu0.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step500_gpu0_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU0",
+      "IsaacSim_GPU0"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T14:21:07+00:00",
+    "launched_at": "2026-09-05T14:21:07+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-05T14:51:09+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step2500_gpu0": {
+    "name": "v27_eval_wave_a_step2500_gpu0",
+    "session": "v27_eval_wave_a_step2500_gpu0",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 0 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step2500.json --indices 0 2 4 6 8 10",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step2500_gpu0.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step2500_gpu0_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU0",
+      "IsaacSim_GPU0"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-06T04:16:00+00:00",
+    "launched_at": "2026-09-06T04:16:00+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T04:46:02+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step2000_gpu1": {
+    "name": "v27_eval_wave_a_step2000_gpu1",
+    "session": "v27_eval_wave_a_step2000_gpu1",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 1 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step2000.json --indices 1 3 5 7 9 11",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step2000_gpu1.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step2000_gpu1_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU1",
+      "IsaacSim_GPU1"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-06T00:44:58+00:00",
+    "launched_at": "2026-09-06T00:44:58+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T01:14:58+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step500_gpu1": {
+    "name": "v27_eval_wave_a_step500_gpu1",
+    "session": "v27_eval_wave_a_step500_gpu1",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 1 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step500.json --indices 1 3 5 7 9 11",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step500_gpu1.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step500_gpu1_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU1",
+      "IsaacSim_GPU1"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T14:21:09+00:00",
+    "launched_at": "2026-09-05T14:21:09+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-05T14:51:09+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step3000_gpu1": {
+    "name": "v27_eval_wave_a_step3000_gpu1",
+    "session": "v27_eval_wave_a_step3000_gpu1",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 1 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step3000.json --indices 1 3 5 7 9 11",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step3000_gpu1.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step3000_gpu1_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU1",
+      "IsaacSim_GPU1"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-06T07:46:55+00:00",
+    "launched_at": "2026-09-06T07:46:55+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T08:16:56+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_train_c_s22": {
+    "name": "v27_train_c_s22",
+    "session": "v27_train_c_s22",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_train_cell.sh --gpu 5 --cell C_S22 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_train_c_s22.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22/model_step_003000.pt",
+    "eval_command": null,
+    "resources": [
+      "GPU5",
+      "IsaacSim_GPU5"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T10:44:00+00:00",
+    "launched_at": "2026-09-05T10:44:00+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T08:01:17+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step2500_gpu1": {
+    "name": "v27_eval_wave_a_step2500_gpu1",
+    "session": "v27_eval_wave_a_step2500_gpu1",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 1 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step2500.json --indices 1 3 5 7 9 11",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step2500_gpu1.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step2500_gpu1_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU1",
+      "IsaacSim_GPU1"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-06T04:16:02+00:00",
+    "launched_at": "2026-09-06T04:16:02+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T04:46:02+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_eval_wave_a_step3000_gpu0": {
+    "name": "v27_eval_wave_a_step3000_gpu0",
+    "session": "v27_eval_wave_a_step3000_gpu0",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_eval_lane.sh --gpu 0 --manifest /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step3000.json --indices 0 2 4 6 8 10",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_eval_wave_a_step3000_gpu0.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_a/step3000_gpu0_result.json",
+    "eval_command": null,
+    "resources": [
+      "GPU0",
+      "IsaacSim_GPU0"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-06T07:46:53+00:00",
+    "launched_at": "2026-09-06T07:46:53+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T08:16:55+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  },
+  "v27_train_q2_s21": {
+    "name": "v27_train_q2_s21",
+    "session": "v27_train_q2_s21",
+    "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/v27_train_cell.sh --gpu 4 --cell Q2_S21 --output /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21",
+    "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/process_logs/v27_train_q2_s21.log",
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21/model_step_003000.pt",
+    "eval_command": null,
+    "resources": [
+      "GPU4",
+      "IsaacSim_GPU4"
+    ],
+    "state": "PASS",
+    "created_at": "2026-09-05T10:43:58+00:00",
+    "launched_at": "2026-09-05T10:43:59+00:00",
+    "process_returncode": 0,
+    "finalized_at": "2026-09-06T08:01:17+00:00",
+    "summary": "process completed and expected checkpoint condition satisfied"
+  }
+}

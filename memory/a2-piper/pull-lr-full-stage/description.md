@@ -1,12 +1,16 @@
 ---
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
-status: wave1_running
-last_updated: 2026-09-07 02:00 HKT
+status: closed_bilateral_unlatch_opening_full_chain_partial
+last_updated: 2026-09-08 07:23 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
 source_of_truth:
+  - scriptsFORhuman/pull_v26_8/a2_piper_pull_v26_8_backbone_closure_20260908.md
+  - scriptsFORhuman/pull_v26_8/SUMMARY.json
+  - scriptsFORhuman/pull_v26_8/WAVE1_ENDPOINT.json
+  - scriptsFORhuman/pull_v26_8/WAVE2_SELECTION.json
   - scriptsFORhuman/pull_v26_8/planner_evidence_20260905/README.md
   - scriptsFORhuman/pull_v26_8/a2_piper_pull_v26_8_backbone_closure_20260905.md
   - logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_r2/G1_wiring/g1_wiring.json
@@ -108,65 +112,22 @@ related_entries:
 
 # Pull LR full stage
 
-本 entry 记录当前 handle 左右镜像 randomization 下的 full pull goal qualification。2026-09-05 Owner已裁决natural方案1，新root重跑G1；通过后自主启动Wave1。尚无bilateral full-goal或hardware通过结论。
+本 entry 记录当前handle左右镜像下的full pull goal qualification。2026-09-08 backbone迁移阶段已完成：两个seed建立双侧unlatch/opening，E6/E7未观察到；无Teacher或hardware交付。
 
 ## Current evidence
 
-### 2026-09-07 02:00 HKT：首次总体unlatch endpoint
+### 2026-09-08 07:23 HKT：pull-v26.8阶段关闭
 
-- Wave1 step4500首次PULL_BILATERAL_UNLATCH_SUPPORTED@4500并冻结endpoint：P_S1 D=63/64、P_S2=63/41；P_S0=62/0。OPENING_EMERGED成立，E6/E7仍0。六侧exact64/integrity0/receipt PASS，P_S2 RIGHT arm_j4限位0.097995%，其余0。继续原6000预算，Wave2只能从最终6000两个最佳seed续3000，不按中途E7挑源。
-- canonical freeze：`scriptsFORhuman/pull_v26_8/WAVE1_ENDPOINT.json`；原始reducer位于当前run的`milestones/step4500/reducer.json`。
-
-
-### 2026-09-06 19:56 HKT：Wave1 step3750
-
-- Wave1 step3750：三seed LEFT/RIGHT D依次9/0、64/64、4/48；仍仅P_S1双侧支持，E4=64/64、E5=63/64、E6/E7均0。P_S2 LEFT E3=51但D=4，事件发生不能替代持续解锁判据。六侧exact64/integrity0/receipt PASS；P_S2 RIGHT arm_j4限位占比0.01334%，其余0。继续预算，未准入Wave2。
-- artifact：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step3750/reducer.json`。
-
-
-### 2026-09-06 15:55 HKT：Wave1 step3000
-
-- Wave1 step3000：P_S1双侧D/K5/E2–E5/open_hold均64/64，E6/E7与S5+仍0；P_S0 D=2/0，P_S2 D=0/0、K5=64/28。OPENING_EMERGED保留，但仍仅一个seed支持unlatch，未满足总体两seed门。六侧exact64、arm_j4限位0、integrity0，全部stage_overtime，receipt PASS，训练继续。
-- artifact：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step3000/reducer.json`。
-
-
-### 2026-09-06 09:52 HKT：Wave1 step2250
-
-- Wave1 step2250首次PULL_OPENING_EMERGED：P_S1 LEFT/RIGHT D=62/64、E4/E5=63/64、open_hold=63/64，单seed BILATERAL_UNLATCH_SUPPORTED；E6/E7与S5+均0。P_S0双侧K5/D均0；P_S2 K5=62/8、E2=62/4、D/E3均0。尚无两seed unlatch支持，因此未冻结总体endpoint、未准入Wave2。六侧exact64/integrity0/arm_j4限位0，receipt PASS，继续预算。
-- artifact：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step2250/reducer.json`。
-
-
-### 2026-09-06 05:50 HKT：Wave1 step1500
-
-- Wave1 step1500：P_S1 LEFT/RIGHT D=27/5、K5=29/6、E2/E3=29/6，typed为LEFT_RECOVERED_RIGHT_REGRESSED；P_S0与P_S2双侧D=0。所有E4–E7=0，六侧exact64、arm_j4限位占比0、integrity0，eval receipt PASS。LEFT已出现durable反向读数，但尚未满足双侧支持门，继续训练。
-- artifact：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step1500/reducer.json`。三格当前约1768–1776 batches，GPU1–3及watcher继续。
-
-
-### 2026-09-06 01:49 HKT：Wave1首个正式milestone
-
-- Wave1 step750六侧exact64通过resolved+natural出生trace硬门，D/E3–E7均0；K5与S3+按P_S0 L/R=2/1、P_S1=0/1、P_S2=0/7，只有P_S1 RIGHT E2=1。arm_j4限位占比与integrity均0，全部stage_overtime；尚无unlatch/opening支持，按原预算继续。
-- 证据：`logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step750/reducer.json`；eval receipt `pull_v26_8_eval_step750_natural1_r2`为PASS。GPU1–3三格训练与独立watcher继续运行，未到endpoint。
-
-
-### 2026-09-05 18:47 HKT：Owner采纳方案1并授权继续
-
-- Planner机器tracked文档仍为fe33241、无本次修订；本地按Owner转述裁决更新plan/contract。保留pull初始化要求enable_staged_reset=true，以精确ratios `[1,0,0,0,0,0]`、两项v6 banks false定义natural。必须通过resolved runtime及每env首个出生row stage_buf/episode_index/a2_v26_episode_start_stage均0的双层硬门；缺一PULL_V26_8_INVALID。
-- 出生trace从真实reset_all后、policy动作前采样；reducer排除出生行后计算原有duration与force等指标，不改reset/reward/event/loader。G1使用新root `pull_v26_8_backbone_20260905_natural1_r2`，GPU0 tmux `pull_v26_8_g1_natural1_r2`；G0沿用原r2 1024-env PASS，矩阵仍三seed×6000、每750 milestone。Wave1已于19:02 HKT在GPU1/2/3各自独立tmux启动，watcher在独立tmux按750间隔自动串行eval；本地commit fd38b36，未push。G1现已RUNTIME_PASS：LEFT179.99458–179.99902°、RIGHT与all-RIGHT bit-identical、integrity0，四份resolved/出生trace全通过；Wave1准入。
-- W轴已删除；仅opening-emerged后按原预算continuation报告E7；unlatch支持但无opening则Wave2 NOT_RUN并交回Stage3→4收入几何。主线v26-7实际plain同为133/138，没有可确认的额外2维term；旧pull override的2维为z_a2_pull_v6_release_mode。
-
-
-### 2026-09-05 P0/G0：新 backbone 迁移（优先于下方历史后继建议）
-
-- Owner 已授权按 `scriptsFORhuman/pull_task/a2_piper_pull_v26_8_backbone_migration_plan_20260905.md` 从零迁入主线 bilateral backbone；历史 H18 Teacher/head 后继建议不是当前路线。P0为`STATIC_PASS`、G0为`RUNTIME_PASS`；G1为`NOT_ADMITTED`，新policy能力仍`UNRESOLVED`。
-- 主线 `A2_Piper` reference `cb15678` 与 pull 的同一 plain 观测列表实际解析为 **133/138-D**；旧 grasp winner 的 LSTM input weight 实际为 `(1024,135)`，包含额外2维 release-mode。迁移 plan 的135/140与137/142计数错误，按 Owner 的source/resolved优先合同使用真实主线133/138，不补维度、不加override。
-- plain `RecurrentActor` 不接受 `freeze_running_mean_std` 构造参数；保留其native RMS更新语义。三格完整 reward config 与当前 `pull_lr_full_gate_a` resolved baseline逐项相同，固定reset ratios `[.5,.1,.1,.1,.1,.1]`，没有` schedule_dict`课程。
-- P0确认E2 proof可在Stage3通过hold-contact streak继续形成，因此§2.7“Stage3完全无handle收入”例外不成立；新gate为`grasp_completion`，handle/hinge live-proof mask原样保留。
-- 当前full-pull near-closed hinge threshold已为`.25`，与plan Wave2 W假定`.1→.25`冲突；Wave1保留`.25`，若触发W不得把`.25→.25`当作干预。
-- 镜像按主线通用公式`(w,x,y,z)→(w,-x,y,-z)`移植到逐env USD `doorOpenLR` offsets；7项CPU测试通过，含pull常量180°与all-RIGHT no-op。runtime接线仍需G1；这些静态证据不证明bilateral unlatch/opening/E7。
-- G0正式显存分支：2048 env完成场景/actor构造但首轮rollout分配LSTM hidden-state buffer OOM，无训练读数；1024 env×5 batches完成327680 transitions、checkpoint与child/wrapper exit0，峰值16062MiB、余量8514MiB。冻结三格1024 env×6000 batches，milestones每750。smoke checkpoint证明actor/critic input133/138、plain actor20 tensors、RMS count2031041；仅属runtime接线证据。
-- headless启动应显式unset DISPLAY/XAUTHORITY。历史成功运行也出现`Skipping NVIDIA GPU due CUDA being in bad state`/GPUFoundation警告，不能据此判驱动失败或hang。首次2048探针在策略读数前被Main主动中断诊断；新root `_r2`保留原合同重启后才得到上述真实OOM/1024通过结论。
-- G1的64-env×5短训练通过，但首份old/bilateral eval在构造时触发`_register_a2_pull_staged_reset_buffers`的`enable_staged_reset=true`要求；plan要求natural eval置false。child exit0、wrapper因缺metrics/trace返回1，eval未加载actor、无几何比较读数。按§6.3硬停止，fixed/all-RIGHT、Wave1/2、opening/E7全部NOT_RUN，不判镜像公式失败。
-- 继续前必须裁决natural eval合同：历史pull runner保留enable_staged_reset=true并用ratios `[1,0,0,0,0,0]`实现natural起点，而当前plan要求flag=false。本轮没有改guard、没有静默替换协议。closure已记录真实证据；本轮GPU/tmux/writer均结束、leases释放。
+- Owner方案1保留pull初始化，natural eval使用enable_staged_reset=true与精确Stage0-only浮点概率、两项v6 bank开关false。G1四份resolved config及256个真实出生row通过硬门；LEFT179.99458–179.99902°，RIGHT/all-RIGHT bit-identical，integrity0。所有正式eval继续执行同一natural双层证明。
+- G0实际2048-env OOM，1024-env×5 PASS后冻结规模。Wave1三seed从scratch执行1024×6000（每格393,216,000 transitions），8个milestone全部exact64/integrity0/receipt PASS；未早停。
+- 首次总体unlatch endpoint4500：P_S1 D(L/R)=63/64、P_S2=63/41，已冻结WAVE1_ENDPOINT。opening首次出现2250，首次两个seed双侧E4≥32为5250。最终6000三seed D=64/0、59/64、62/64；只有P_S1/P_S2支持双侧，P_S0仍RIGHT未学会。
+- 最终6000按事先说明的D-only排序选P_S2/P_S1；两格native full从6001继续至9000，各新增3000 batches（196,608,000 transitions），4次milestone全部PASS。最终P_S2双侧D/E2–E5均64，P_S1 LEFT64/RIGHT62；全部E6/E7/S5+/complete为0。按注册口径FULL_CHAIN_PARTIAL，不代表有E7成功样本。
+- 当前引用主线cb15678与pull plain名单均133/138，主线plan135/140计数没有额外term依据。旧pull override追加z_a2_pull_v6_release_mode两维，才是135/140。plain actor使用native updating RMS，不传不支持的freeze_running_mean_std参数。
+- Gate为grasp_completion，E2 proof可在Stage3形成；handle/hinge保留live-proof masks，完整reward仍等于原full-pull baseline。W阈值原已0.25，因此该轴删除；实际Wave2只有opening→E7 full continuation。
+- Native full恢复policy/critic/optimizer/scheduler/TrainerState，但环境只保存log_dict，online staged-reset样本不序列化，Wave2重新积累；没有修改loader或增加保存机制。
+- 最终四侧release_event/clean_release均0；E6需要clean release持续25步及frame/crossing等条件。一次step7500 P_S1 LEFT现有trace诊断中，64env的11259个E5后row没有release_ready、开夹爪命令或eval强制闭合。该有限证据不证明plain actor结构上不可能E7，不据此增加新轴。
+- 最终四侧arm_j4限位占比0、integrity0，均stage_overtime；其他force/p95与各milestone数据见SUMMARY及closure。三格Wave1与两格Wave2共1,572,864,000 transitions，全部child/wrapper0。所有本任务train/eval/watch进程、writer、GPU leases已结束，coordination已关闭。
+- 本轮授权提交点：fd38b36（G0/G1）、4f99358（首次unlatch endpoint）、closure提交；均未push。更早的G1阻塞/浮点序列化重启记录保留在历史closure与receipts。可选G2、W、Teacher、handoff、hardware未运行。
 
 ### 历史证据（截至 2026-09-01）
 

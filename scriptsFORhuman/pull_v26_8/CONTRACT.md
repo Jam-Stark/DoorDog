@@ -2,7 +2,7 @@
 
 Run: `pull_v26_8_backbone_20260905_natural1_r2`. Plan: `scriptsFORhuman/pull_task/a2_piper_pull_v26_8_backbone_migration_plan_20260905.md`.
 
-Status: `G1_PASS_WAVE1_ADMITTED`. Owner adopted planner option1 on 2026-09-05. Keep the pull initialization path unchanged; rerun G1 in a fresh root and launch Wave1 autonomously after G1 PASS. Original `_r2` G0 PASS fixes 1024 env, 6000 batches and milestones every750; the previous G1 hard-stop artifacts remain historical. Planner-machine inspection found no amended tracked plan/contract (HEAD `fe33241`, clean tracked files); this Owner decision is the amendment authority.
+Status: `CLOSED` (2026-09-08 07:23 HKT). Bilateral unlatch first supported at4500, bilateral opening at5250. Wave1 three cells completed6000; Wave2 P_S2/P_S1 completed full6000→9000. Final `PULL_FULL_CHAIN_PARTIAL`, E6/E7 all0/64; see `a2_piper_pull_v26_8_backbone_closure_20260908.md`. All task processes and leases are closed.
 
 Workflow: STANDARD implementation with authorized long GPU runs. Main owns integration, Git and GPUs0–3; focused agents independently trace source, port mirror wiring, and implement scripts/reducers. GPU0 evaluates; GPUs1–3 train. G0 memory smoke uses GPU1; the plan's G1 short training probe uses GPU0. All long jobs have their own tmux and receipt.
 

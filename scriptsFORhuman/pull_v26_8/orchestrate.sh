@@ -293,8 +293,8 @@ case ${1:-} in
       exec "$py" - "$eval_root/closure.json" <<'PY'
 import json,sys
 payload=json.load(open(sys.argv[1],encoding="utf-8"))
-if payload["status"] != "CLOSED_AT_G1_HARD_STOP":
-    raise SystemExit("unexpected pre-matrix closure status")
+if payload["status"] != "CLOSED":
+    raise SystemExit("unexpected closure status")
 print(json.dumps(payload,ensure_ascii=False,indent=2))
 PY
     fi

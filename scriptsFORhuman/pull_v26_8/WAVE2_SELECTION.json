@@ -1,0 +1,42 @@
+{
+  "schema": "a2_piper_pull_v26_8_wave2_selection_v1",
+  "frozen_at": "2026-09-07T11:20:00.448247+08:00",
+  "admission_endpoint": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/unlatch_endpoint.json",
+  "final_reducer": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step6000/reducer.json",
+  "rank_order": [
+    "P_S2",
+    "P_S1",
+    "P_S0"
+  ],
+  "ranking": "bilateral D pass; descending min(DL,DR); descending sum D; ascending seed. E7 excluded.",
+  "selected_cells": [
+    "P_S2",
+    "P_S1"
+  ],
+  "final_D": {
+    "P_S2": {
+      "left": 62,
+      "right": 64
+    },
+    "P_S1": {
+      "left": 59,
+      "right": 64
+    },
+    "P_S0": {
+      "left": 64,
+      "right": 0
+    }
+  },
+  "source_checkpoints": {
+    "P_S2": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S2/model_step_006000.pt",
+    "P_S1": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S1/model_step_006000.pt"
+  },
+  "continuation": {
+    "load_mode": "full",
+    "from_step": 6000,
+    "absolute_ceiling": 9000,
+    "new_batches": 3000,
+    "num_envs": 1024,
+    "online_staged_reset_buffers": "new process reaccumulates; not serialized"
+  }
+}

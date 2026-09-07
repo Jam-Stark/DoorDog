@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-09-08 07:23 HKT — Wave2完整9000 endpoint：P_S2双侧D/E2–E5=64，P_S1 LEFT64/RIGHT62，E6/E7全0；四侧exact64/integrity0/arm限位0，训练/eval/watch receipts全部PASS。阶段FULL_CHAIN_PARTIAL；已生成20260908 closure与SUMMARY，所有本任务进程/leases结束、coordination关闭。
+
+- 2026-09-08 03:10 HKT — Wave2 step8250：四侧D/K5/E2/E3均64；P_S2 RIGHT E4/E5/S4+/open_hold为63，其他三侧64；E6/E7/S5+/complete全0。四侧exact64/integrity0/arm_j4限位0、receipt PASS；继续最后9000 endpoint，不改预算。
+
+- 2026-09-07 22:00 HKT — Wave2 step7500：P_S2 LEFT/RIGHT D/E4/E5=64/63，P_S1双侧均64；四侧E6/E7/S5+/complete仍0，exact64/integrity0/arm_j4限位0，receipt PASS。两格继续9000预算，尚无全链路突破。
+
+- 2026-09-07 16:57 HKT — Wave2 step6750：P_S2与P_S1四侧D/K5/E2–E5/S3+/S4+/open_hold均64/64；E6/E7、S5+、complete均0。四侧exact64/natural硬门/integrity0/arm_j4限位0，receipt PASS。两格实际load6000并从iteration6001开始，当前约6905–6907；继续原9000预算，无新轴。
+
+- 2026-09-07 11:21 HKT — Wave1三格6000/6000自然exit0，八milestones全部PASS；final D(L/R)=64/0、59/64、62/64，E4=64/0、59/64、63/64，E5=62/0、59/64、63/64，E6/E7全0。D-only排序冻结最终P_S2、P_S1，已在原GPU3/2启动full6000→9000续训及独立watcher；GPU0评估四次，GPU1释放。Native full保留policy/critic/optimizer/LR状态，但online reset样本新进程重新积累，不改loader。
+
+- 2026-09-07 05:15 HKT — Wave1 step5250首次PULL_OPENING_BILATERAL：P_S1 E4=64/64，P_S2 E4=62/58。三seed D(L/R)=64/0、64/64、62/60；E5分别55/0、63/64、60/1；E6/E7与S5+均0。六侧exact64/integrity0/receipt PASS，P_S2 RIGHT arm_j4限位0.22566%，其余0。首次unlatch endpoint仍冻结4500，继续6000后按D-only最终排名续训。
+
 - 2026-09-07 02:00 HKT — Wave1 step4500首次PULL_BILATERAL_UNLATCH_SUPPORTED@4500并冻结endpoint：P_S1 D=63/64、P_S2=63/41；P_S0=62/0。OPENING_EMERGED成立，E6/E7仍0。六侧exact64/integrity0/receipt PASS，P_S2 RIGHT arm_j4限位0.097995%，其余0。继续原6000预算，Wave2只能从最终6000两个最佳seed续3000，不按中途E7挑源。
 
 - 2026-09-06 19:56 HKT — Wave1 step3750：三seed LEFT/RIGHT D依次9/0、64/64、4/48；仍仅P_S1双侧支持，E4=64/64、E5=63/64、E6/E7均0。P_S2 LEFT E3=51但D=4，事件发生不能替代持续解锁判据。六侧exact64/integrity0/receipt PASS；P_S2 RIGHT arm_j4限位占比0.01334%，其余0。继续预算，未准入Wave2。

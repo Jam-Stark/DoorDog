@@ -46,7 +46,7 @@ def read_config(path: Path):
     return OmegaConf.create(value, flags={"allow_objects": True})
 
 
-def validate_config(cfg: dict, cell: str, *, eval_side=None, smoke=False) -> dict:
+def validate_config(cfg: dict, cell: str, *, eval_side=None, smoke=False, continuation_from: Path | None = None) -> dict:
     require(cell in CELLS, f"unknown cell {cell}")
     seed = int(cell[-1])
     env, actor = cfg["env"]["config"], cfg["algo"]["config"]["actor"]
@@ -100,7 +100,12 @@ def validate_config(cfg: dict, cell: str, *, eval_side=None, smoke=False) -> dic
     require(cfg["simulator"]["config"]["sim"]["physx"]["num_velocity_iterations"] == 2, "PhysX velocity iterations")
     if eval_side is None:
         require(cfg["seed"] == seed and cfg["experiment_name"] == cell, "cell/seed identity")
-        require(cfg["checkpoint"] is None and cfg["checkpoint_load_mode"] == "full", "scratch/full load")
+        require(cfg["checkpoint_load_mode"] == "full", "full checkpoint load mode")
+        if continuation_from is None:
+            require(cfg["checkpoint"] is None, "scratch checkpoint")
+        else:
+            require(continuation_from.is_file() and continuation_from.name == "model_step_006000.pt", "final Wave1 continuation source")
+            require(Path(str(cfg["checkpoint"])).resolve() == continuation_from.resolve(), "continuation checkpoint lineage")
         require(env["a2_door_open_lr_distribution"] == "bilateral", "bilateral training selector")
         require(env["a2_door_open_lr_permutation_seed"] == seed, "side permutation seed")
         require(env["a2_v26_6_side_mirrored_handle_offset_enabled"] is True, "mirror switch")
@@ -108,6 +113,9 @@ def validate_config(cfg: dict, cell: str, *, eval_side=None, smoke=False) -> dic
         batches = cfg["algo"]["trl"]["num_total_batches"]
         if smoke:
             require(cfg["num_envs"] in (64, 1024, 2048) and 1 <= batches <= 5, "smoke budget")
+        elif continuation_from is not None:
+            require((cfg["num_envs"], batches) == (1024, 9000), "Wave2 full continuation: 6000 to 9000")
+            require(cfg["callbacks"]["model_save"]["save_frequency"] == 250, "continuation checkpoint cadence")
         else:
             require((cfg["num_envs"], batches) in ((2048, 4000), (1024, 6000)), "Wave1 budget")
             require(cfg["callbacks"]["model_save"]["save_frequency"] == 250, "checkpoint cadence")
@@ -169,11 +177,12 @@ def main() -> int:
     parser.add_argument("--cell", choices=CELLS)
     parser.add_argument("--eval-side", choices=("left", "right", "bilateral"))
     parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--continuation-from", type=Path)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.config:
         cfg = read_config(args.config)
-        payload = validate_config(cfg, args.cell, eval_side=args.eval_side, smoke=args.smoke)
+        payload = validate_config(cfg, args.cell, eval_side=args.eval_side, smoke=args.smoke, continuation_from=args.continuation_from)
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

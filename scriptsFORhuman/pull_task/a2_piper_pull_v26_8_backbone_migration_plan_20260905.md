@@ -1,7 +1,7 @@
 # `pull_v26_8_backbone`：pull 分支迁入主线 v26-7/v26-8 bilateral backbone 的预注册计划
 
 日期：2026-09-05 HKT
-状态：`G1_PASS_WAVE1_ADMITTED`；2026-09-05 Owner采纳planner方案1，G1通过后自主启动Wave1。
+状态：`CLOSED`（2026-09-08）；方案1 G1已通过，Wave1与条件Wave2预算全部完成。unlatch endpoint4500、bilateral opening5250；最终FULL_CHAIN_PARTIAL，E6/E7全0。closure见`../pull_v26_8/a2_piper_pull_v26_8_backbone_closure_20260908.md`。
 执行机：pull 训练机（4×RTX3090 24 GB），worktree `DoorDog-A2_Piper_pull_v0`，branch `codex/a2-piper-pull-v0-20260803`
 参考机：推门主线 `DoorDog-A2_Piper`，branch `codex/v26-5-bilateral-stage5`，commit `aa8a05f` 及其后的 v26-8 r3a 未提交改动
 run_id：`pull_v26_8_backbone_20260905_natural1_r2`（新G1/Wave1 root；沿用原`_r2` G0的1024-env PASS证据）

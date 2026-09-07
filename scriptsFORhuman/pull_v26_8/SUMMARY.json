@@ -1,0 +1,2605 @@
+{
+  "schema": "a2_piper_pull_v26_8_closure_v1",
+  "status": "CLOSED",
+  "closed_at": "2026-09-08 07:21 HKT",
+  "run_id": "pull_v26_8_backbone_20260905_natural1_r2",
+  "unlatch_outcome": "PULL_BILATERAL_UNLATCH_SUPPORTED@4500",
+  "opening_outcome": "PULL_OPENING_BILATERAL@5250",
+  "full_chain_outcome": "PULL_FULL_CHAIN_PARTIAL",
+  "evidence": {
+    "G1": "RUNTIME_PASS",
+    "bilateral_unlatch": "EXPERIMENT_PASS",
+    "bilateral_opening": "EXPERIMENT_PASS",
+    "E6_E7": "NOT_OBSERVED",
+    "hardware": "NOT_RUN"
+  },
+  "G1": {
+    "schema": "a2_piper_pull_v26_8_g1_wiring_v1",
+    "status": "G1_PASS",
+    "inputs": {
+      "old": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/G1_wiring/old/metrics_eval.json",
+      "fixed": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/G1_wiring/fixed/metrics_eval.json",
+      "right_old": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/G1_wiring/right_old/metrics_eval.json",
+      "right_fixed": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/G1_wiring/right_fixed/metrics_eval.json"
+    },
+    "contract": {
+      "episodes": 64,
+      "left_relative_rotation_degrees": 180.0,
+      "left_tolerance_degrees": 0.05,
+      "right": "bit-identical",
+      "integrity": "pull_v0_episode validated"
+    },
+    "bilateral_left_relative_rotation_degrees": {
+      "count": 32,
+      "min": 179.99457993815477,
+      "max": 179.99902337977932,
+      "values": [
+        179.99842103039433,
+        179.99902337977932,
+        179.9988976112768,
+        179.99893753148922,
+        179.99876601493054,
+        179.99884488308751,
+        179.99463458905254,
+        179.99875729042105,
+        179.99838395740008,
+        179.99878073746652,
+        179.99883069142507,
+        179.99886092478064,
+        179.9987737571784,
+        179.99457993815477,
+        179.99870466732352,
+        179.99852095030352,
+        179.99847890338916,
+        179.9988012671454,
+        179.99868132992123,
+        179.99861222429,
+        179.99839005582803,
+        179.99865920966624,
+        179.99844431189766,
+        179.99891692406808,
+        179.99865912959223,
+        179.9985129266474,
+        179.9988696374955,
+        179.9987042504238,
+        179.99845899189646,
+        179.998571967345,
+        179.99891018151246,
+        179.99842765280368
+      ]
+    },
+    "bilateral_right_target_quat_bit_identical": true,
+    "all_right_target_quat_bit_identical": true,
+    "integrity_violations": 0,
+    "failures": []
+  },
+  "wave1": [
+    {
+      "schema": "a2_piper_pull_v26_8_backbone_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 750,
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step750",
+      "resolved_contracts": {
+        "P_S0": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S0",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S1": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S1",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S2": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S2",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        }
+      },
+      "cells": {
+        "P_S0": {
+          "left": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 2,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 2,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.1279812604188919,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0004320027648176948,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 1,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 1,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.009730914607644081,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.006758501937150237,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 0,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 0,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.3294735848903656,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 4.453549478934711e-05,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 1,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 1,
+            "E2": 1,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.34470194578170776,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 8.98190146854089e-05,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 0,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 0,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.04536901041865349,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0006867837060565738,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 7,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 7,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.09130057692527771,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "per_seed_outcomes": {
+        "P_S0": "BILATERAL_UNLATCH_NOT_LEARNED",
+        "P_S1": "BILATERAL_UNLATCH_NOT_LEARNED",
+        "P_S2": "BILATERAL_UNLATCH_NOT_LEARNED"
+      },
+      "bilateral_supported_cells": [],
+      "opening_full_labels": [],
+      "wave2_decision": "NOT_RUN_UNLATCH_NOT_SUPPORTED",
+      "wave2_eligible": false,
+      "route": "PULL_V26_8_MILESTONE_REPORTED",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_backbone_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 1500,
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step1500",
+      "resolved_contracts": {
+        "P_S0": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S0",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S1": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S1",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S2": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S2",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        }
+      },
+      "cells": {
+        "P_S0": {
+          "left": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 0,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 0,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.06343833357095718,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.004393190554640308,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 0,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 0,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.006053050048649311,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.00033370875568347727,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 27,
+            "S3+": 29,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 29,
+            "E2": 29,
+            "E3": 29,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.0947408601641655,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 35.56571006774902,
+            "over_force_step_share": 7.718133755257979e-05,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 5,
+            "S3+": 6,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 6,
+            "E2": 6,
+            "E3": 6,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.2678021490573883,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 34.872697830200195,
+            "over_force_step_share": 0.00012768130745658836,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 4,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 4,
+            "E2": 4,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.12063956260681152,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.00020534724218653744,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 3,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 3,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.10317706316709518,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0023672079405290918,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "per_seed_outcomes": {
+        "P_S0": "BILATERAL_UNLATCH_NOT_LEARNED",
+        "P_S1": "LEFT_RECOVERED_RIGHT_REGRESSED",
+        "P_S2": "BILATERAL_UNLATCH_NOT_LEARNED"
+      },
+      "bilateral_supported_cells": [],
+      "opening_full_labels": [],
+      "wave2_decision": "NOT_RUN_UNLATCH_NOT_SUPPORTED",
+      "wave2_eligible": false,
+      "route": "PULL_V26_8_MILESTONE_REPORTED",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_backbone_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 2250,
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step2250",
+      "resolved_contracts": {
+        "P_S0": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S0",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S1": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S1",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S2": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S2",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        }
+      },
+      "cells": {
+        "P_S0": {
+          "left": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 0,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 0,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.08829829096794128,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 0,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 0,
+            "E2": 0,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.05175585299730301,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 62,
+            "S3+": 63,
+            "S4+": 63,
+            "open_hold": 63,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 63,
+            "E2": 63,
+            "E3": 63,
+            "E4": 63,
+            "E5": 63,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.1539587527513504,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 39.1026029586792,
+            "over_force_step_share": 0.0001550834127212708,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.185177206993103,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 50.34163951873779,
+            "over_force_step_share": 0.01136687181059594,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 62,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 62,
+            "E2": 62,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.8008614778518677,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.00039420518379816696,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 8,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 8,
+            "E2": 4,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.1976485699415207,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "per_seed_outcomes": {
+        "P_S0": "BILATERAL_UNLATCH_NOT_LEARNED",
+        "P_S1": "BILATERAL_UNLATCH_SUPPORTED",
+        "P_S2": "BILATERAL_UNLATCH_NOT_LEARNED"
+      },
+      "bilateral_supported_cells": [
+        "P_S1"
+      ],
+      "opening_full_labels": [
+        "PULL_OPENING_EMERGED"
+      ],
+      "wave2_decision": "NOT_RUN_UNLATCH_NOT_SUPPORTED",
+      "wave2_eligible": false,
+      "route": "PULL_V26_8_MILESTONE_REPORTED",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_backbone_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 3000,
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step3000",
+      "resolved_contracts": {
+        "P_S0": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S0",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S1": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S1",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S2": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S2",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        }
+      },
+      "cells": {
+        "P_S0": {
+          "left": {
+            "episodes": 64,
+            "D": 2,
+            "S3+": 2,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 2,
+            "E2": 2,
+            "E3": 2,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.028246993198990822,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 42.884243965148926,
+            "over_force_step_share": 0.000245740498034076,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 1,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 1,
+            "E2": 1,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.10497111827135086,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.31756168603897095,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 42.23307228088379,
+            "over_force_step_share": 0.0005472615034368023,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.0982598066329956,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 42.10318660736084,
+            "over_force_step_share": 0.0006578658830753037,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 64,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 63,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.6313077807426453,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0003249074013906037,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 28,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 28,
+            "E2": 28,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.3243391513824463,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 3.700140605343003e-05,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "per_seed_outcomes": {
+        "P_S0": "BILATERAL_UNLATCH_NOT_LEARNED",
+        "P_S1": "BILATERAL_UNLATCH_SUPPORTED",
+        "P_S2": "BILATERAL_UNLATCH_NOT_LEARNED"
+      },
+      "bilateral_supported_cells": [
+        "P_S1"
+      ],
+      "opening_full_labels": [
+        "PULL_OPENING_EMERGED"
+      ],
+      "wave2_decision": "NOT_RUN_UNLATCH_NOT_SUPPORTED",
+      "wave2_eligible": false,
+      "route": "PULL_V26_8_MILESTONE_REPORTED",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_backbone_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 3750,
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step3750",
+      "resolved_contracts": {
+        "P_S0": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S0",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S1": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S1",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S2": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S2",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        }
+      },
+      "cells": {
+        "P_S0": {
+          "left": {
+            "episodes": 64,
+            "D": 9,
+            "S3+": 9,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 9,
+            "E2": 9,
+            "E3": 9,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.18294218182563782,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 44.9433536529541,
+            "over_force_step_share": 0.00015871756209824618,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 5,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 5,
+            "E2": 5,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.1153850108385086,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 8.080155138978668e-05,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 63,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.3454086184501648,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 43.15599346160889,
+            "over_force_step_share": 0.0020968023763760267,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.1144977807998657,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 42.253929138183594,
+            "over_force_step_share": 0.001402463075776833,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 4,
+            "S3+": 64,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 51,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.5413981080055237,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 30.092471599578857,
+            "over_force_step_share": 6.477103439341926e-05,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 48,
+            "S3+": 57,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 57,
+            "E2": 57,
+            "E3": 56,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.43672776222229,
+            "arm_j4_limit_residence_step_share": 0.00013338668800853674,
+            "press_handle_contact_force_p50": 34.92672634124756,
+            "over_force_step_share": 0.00010004001600640257,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "per_seed_outcomes": {
+        "P_S0": "LEFT_RECOVERED_RIGHT_REGRESSED",
+        "P_S1": "BILATERAL_UNLATCH_SUPPORTED",
+        "P_S2": "BILATERAL_UNLATCH_NOT_LEARNED"
+      },
+      "bilateral_supported_cells": [
+        "P_S1"
+      ],
+      "opening_full_labels": [
+        "PULL_OPENING_EMERGED"
+      ],
+      "wave2_decision": "NOT_RUN_UNLATCH_NOT_SUPPORTED",
+      "wave2_eligible": false,
+      "route": "PULL_V26_8_MILESTONE_REPORTED",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_backbone_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 4500,
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step4500",
+      "resolved_contracts": {
+        "P_S0": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S0",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S1": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S1",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S2": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S2",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        }
+      },
+      "cells": {
+        "P_S0": {
+          "left": {
+            "episodes": 64,
+            "D": 62,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 18,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.546978771686554,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 36.66016674041748,
+            "over_force_step_share": 0.00017160753357072376,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 3,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 3,
+            "E2": 3,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.28849950432777405,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 63,
+            "S3+": 63,
+            "S4+": 63,
+            "open_hold": 63,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 63,
+            "E2": 63,
+            "E3": 63,
+            "E4": 63,
+            "E5": 60,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.3331931233406067,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 42.90366172790527,
+            "over_force_step_share": 0.0011130899376669634,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.0738521814346313,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 43.36261558532715,
+            "over_force_step_share": 0.0006793478260869565,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 63,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 63,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.555025577545166,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 34.724106788635254,
+            "over_force_step_share": 0.00012814762606522714,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 41,
+            "S3+": 42,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 42,
+            "E2": 42,
+            "E3": 42,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.539474368095398,
+            "arm_j4_limit_residence_step_share": 0.000979946102964337,
+            "press_handle_contact_force_p50": 34.18337535858154,
+            "over_force_step_share": 6.999615021173835e-05,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "per_seed_outcomes": {
+        "P_S0": "LEFT_RECOVERED_RIGHT_REGRESSED",
+        "P_S1": "BILATERAL_UNLATCH_SUPPORTED",
+        "P_S2": "BILATERAL_UNLATCH_SUPPORTED"
+      },
+      "bilateral_supported_cells": [
+        "P_S1",
+        "P_S2"
+      ],
+      "opening_full_labels": [
+        "PULL_OPENING_EMERGED"
+      ],
+      "wave2_decision": "OPENING_TO_E7_CONTINUATION",
+      "wave2_eligible": true,
+      "route": "PULL_BILATERAL_UNLATCH_SUPPORTED@4500",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_backbone_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 5250,
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step5250",
+      "resolved_contracts": {
+        "P_S0": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S0",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S1": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S1",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S2": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S2",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        }
+      },
+      "cells": {
+        "P_S0": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 55,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.033563256263733,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 39.26708221435547,
+            "over_force_step_share": 0.001070342937877296,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 23,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 24,
+            "E2": 23,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.5374521613121033,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 0.0006363228028147927,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 63,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.17038150131702423,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 39.429579734802246,
+            "over_force_step_share": 0.000655967114182009,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.1775447130203247,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 44.680959701538086,
+            "over_force_step_share": 0.0024864228227442255,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 62,
+            "S3+": 64,
+            "S4+": 62,
+            "open_hold": 62,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 63,
+            "E4": 62,
+            "E5": 60,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.7435038089752197,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 33.423526763916016,
+            "over_force_step_share": 0.0015135135135135136,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 60,
+            "S3+": 60,
+            "S4+": 58,
+            "open_hold": 58,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 60,
+            "E2": 60,
+            "E3": 60,
+            "E4": 58,
+            "E5": 1,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.543102741241455,
+            "arm_j4_limit_residence_step_share": 0.00225663024778247,
+            "press_handle_contact_force_p50": 43.50783443450928,
+            "over_force_step_share": 0.005183546707777554,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "per_seed_outcomes": {
+        "P_S0": "LEFT_RECOVERED_RIGHT_REGRESSED",
+        "P_S1": "BILATERAL_UNLATCH_SUPPORTED",
+        "P_S2": "BILATERAL_UNLATCH_SUPPORTED"
+      },
+      "bilateral_supported_cells": [
+        "P_S1",
+        "P_S2"
+      ],
+      "opening_full_labels": [
+        "PULL_OPENING_EMERGED",
+        "PULL_OPENING_BILATERAL"
+      ],
+      "wave2_decision": "OPENING_TO_E7_CONTINUATION",
+      "wave2_eligible": true,
+      "route": "PULL_BILATERAL_UNLATCH_SUPPORTED@5250",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_backbone_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 6000,
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step6000",
+      "resolved_contracts": {
+        "P_S0": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S0",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S1": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S1",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        },
+        "P_S2": {
+          "status": "CONFIG_PASS",
+          "cell": "P_S2",
+          "dimensions": {
+            "actor_obs": 133,
+            "critic_obs": 138
+          },
+          "freeze_running_mean_std": false,
+          "rms_contract": "native RecurrentActor updates RMS",
+          "gate": "grasp_completion",
+          "near_closed_hinge_threshold": 0.25
+        }
+      },
+      "cells": {
+        "P_S0": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 62,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.9461817145347595,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 36.53730010986328,
+            "over_force_step_share": 8.553222426549202e-05,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 0,
+            "S3+": 62,
+            "S4+": 0,
+            "open_hold": 0,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 62,
+            "E2": 62,
+            "E3": 0,
+            "E4": 0,
+            "E5": 0,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.596251368522644,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": null,
+            "over_force_step_share": 3.266052648768698e-05,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 59,
+            "S3+": 59,
+            "S4+": 59,
+            "open_hold": 59,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 59,
+            "E2": 59,
+            "E3": 59,
+            "E4": 59,
+            "E5": 59,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.20154708623886108,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 39.07612419128418,
+            "over_force_step_share": 0.0005882491352737711,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.1331439018249512,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 41.9670991897583,
+            "over_force_step_share": 0.0009189366590088611,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 62,
+            "S3+": 64,
+            "S4+": 63,
+            "open_hold": 63,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 63,
+            "E3": 64,
+            "E4": 63,
+            "E5": 63,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.6551976799964905,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 31.45322322845459,
+            "over_force_step_share": 0.001779166395452277,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.320618987083435,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 43.298635482788086,
+            "over_force_step_share": 0.0020500647388864914,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "per_seed_outcomes": {
+        "P_S0": "LEFT_RECOVERED_RIGHT_REGRESSED",
+        "P_S1": "BILATERAL_UNLATCH_SUPPORTED",
+        "P_S2": "BILATERAL_UNLATCH_SUPPORTED"
+      },
+      "bilateral_supported_cells": [
+        "P_S1",
+        "P_S2"
+      ],
+      "opening_full_labels": [
+        "PULL_OPENING_EMERGED",
+        "PULL_OPENING_BILATERAL"
+      ],
+      "wave2_decision": "OPENING_TO_E7_CONTINUATION",
+      "wave2_eligible": true,
+      "route": "PULL_BILATERAL_UNLATCH_SUPPORTED@6000",
+      "failures": []
+    }
+  ],
+  "wave2": [
+    {
+      "schema": "a2_piper_pull_v26_8_wave2_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 6750,
+      "wave1_train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/eval/milestones/step6750",
+      "selected_cells": [
+        "P_S2",
+        "P_S1"
+      ],
+      "continuation_contracts": {
+        "P_S2": {
+          "validation": {
+            "status": "CONFIG_PASS",
+            "cell": "P_S2",
+            "dimensions": {
+              "actor_obs": 133,
+              "critic_obs": 138
+            },
+            "freeze_running_mean_std": false,
+            "rms_contract": "native RecurrentActor updates RMS",
+            "gate": "grasp_completion",
+            "near_closed_hinge_threshold": 0.25
+          },
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S2/model_step_006000.pt",
+          "checkpoint_load_mode": "full",
+          "loaded_global_step": 6000,
+          "num_total_batches": 9000,
+          "new_batches": 3000,
+          "online_staged_reset_buffers": "fresh_process_reaccumulates; not serialized by current env state writer"
+        },
+        "P_S1": {
+          "validation": {
+            "status": "CONFIG_PASS",
+            "cell": "P_S1",
+            "dimensions": {
+              "actor_obs": 133,
+              "critic_obs": 138
+            },
+            "freeze_running_mean_std": false,
+            "rms_contract": "native RecurrentActor updates RMS",
+            "gate": "grasp_completion",
+            "near_closed_hinge_threshold": 0.25
+          },
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S1/model_step_006000.pt",
+          "checkpoint_load_mode": "full",
+          "loaded_global_step": 6000,
+          "num_total_batches": 9000,
+          "new_batches": 3000,
+          "online_staged_reset_buffers": "fresh_process_reaccumulates; not serialized by current env state writer"
+        }
+      },
+      "cells": {
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.0113451480865479,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 31.224220275878906,
+            "over_force_step_share": 0.0002798949317486974,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.3265384435653687,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 47.64642143249512,
+            "over_force_step_share": 0.0021529452290733725,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.12888526916503906,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 41.28511619567871,
+            "over_force_step_share": 0.0006068092668443751,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.2287174463272095,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 39.13424587249756,
+            "over_force_step_share": 0.002572880099426553,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "route": "PULL_WAVE2_MILESTONE_REPORTED",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_wave2_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 7500,
+      "wave1_train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/eval/milestones/step7500",
+      "selected_cells": [
+        "P_S2",
+        "P_S1"
+      ],
+      "continuation_contracts": {
+        "P_S2": {
+          "validation": {
+            "status": "CONFIG_PASS",
+            "cell": "P_S2",
+            "dimensions": {
+              "actor_obs": 133,
+              "critic_obs": 138
+            },
+            "freeze_running_mean_std": false,
+            "rms_contract": "native RecurrentActor updates RMS",
+            "gate": "grasp_completion",
+            "near_closed_hinge_threshold": 0.25
+          },
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S2/model_step_006000.pt",
+          "checkpoint_load_mode": "full",
+          "loaded_global_step": 6000,
+          "num_total_batches": 9000,
+          "new_batches": 3000,
+          "online_staged_reset_buffers": "fresh_process_reaccumulates; not serialized by current env state writer"
+        },
+        "P_S1": {
+          "validation": {
+            "status": "CONFIG_PASS",
+            "cell": "P_S1",
+            "dimensions": {
+              "actor_obs": 133,
+              "critic_obs": 138
+            },
+            "freeze_running_mean_std": false,
+            "rms_contract": "native RecurrentActor updates RMS",
+            "gate": "grasp_completion",
+            "near_closed_hinge_threshold": 0.25
+          },
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S1/model_step_006000.pt",
+          "checkpoint_load_mode": "full",
+          "loaded_global_step": 6000,
+          "num_total_batches": 9000,
+          "new_batches": 3000,
+          "online_staged_reset_buffers": "fresh_process_reaccumulates; not serialized by current env state writer"
+        }
+      },
+      "cells": {
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.9798417091369629,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 35.33272361755371,
+            "over_force_step_share": 0.00017207261464337952,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 63,
+            "S3+": 64,
+            "S4+": 63,
+            "open_hold": 63,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 63,
+            "E3": 63,
+            "E4": 63,
+            "E5": 63,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.4604090452194214,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 43.9582405090332,
+            "over_force_step_share": 0.0017580414116421408,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": -0.07201330363750458,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 38.97765827178955,
+            "over_force_step_share": 0.001019014374607029,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.1031633615493774,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 41.08545684814453,
+            "over_force_step_share": 0.0010022659926791006,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "route": "PULL_WAVE2_MILESTONE_REPORTED",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_wave2_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 8250,
+      "wave1_train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/eval/milestones/step8250",
+      "selected_cells": [
+        "P_S2",
+        "P_S1"
+      ],
+      "continuation_contracts": {
+        "P_S2": {
+          "validation": {
+            "status": "CONFIG_PASS",
+            "cell": "P_S2",
+            "dimensions": {
+              "actor_obs": 133,
+              "critic_obs": 138
+            },
+            "freeze_running_mean_std": false,
+            "rms_contract": "native RecurrentActor updates RMS",
+            "gate": "grasp_completion",
+            "near_closed_hinge_threshold": 0.25
+          },
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S2/model_step_006000.pt",
+          "checkpoint_load_mode": "full",
+          "loaded_global_step": 6000,
+          "num_total_batches": 9000,
+          "new_batches": 3000,
+          "online_staged_reset_buffers": "fresh_process_reaccumulates; not serialized by current env state writer"
+        },
+        "P_S1": {
+          "validation": {
+            "status": "CONFIG_PASS",
+            "cell": "P_S1",
+            "dimensions": {
+              "actor_obs": 133,
+              "critic_obs": 138
+            },
+            "freeze_running_mean_std": false,
+            "rms_contract": "native RecurrentActor updates RMS",
+            "gate": "grasp_completion",
+            "near_closed_hinge_threshold": 0.25
+          },
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S1/model_step_006000.pt",
+          "checkpoint_load_mode": "full",
+          "loaded_global_step": 6000,
+          "num_total_batches": 9000,
+          "new_batches": 3000,
+          "online_staged_reset_buffers": "fresh_process_reaccumulates; not serialized by current env state writer"
+        }
+      },
+      "cells": {
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.9370365142822266,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 36.996713638305664,
+            "over_force_step_share": 0.0021474895846755144,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 63,
+            "open_hold": 63,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 63,
+            "E5": 63,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.3982282876968384,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 41.59169673919678,
+            "over_force_step_share": 0.001582793087747447,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.1422411948442459,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 41.438472747802734,
+            "over_force_step_share": 0.0023689987176979416,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.1170226335525513,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 41.261728286743164,
+            "over_force_step_share": 0.0019752979226811958,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "route": "PULL_WAVE2_MILESTONE_REPORTED",
+      "failures": []
+    },
+    {
+      "schema": "a2_piper_pull_v26_8_wave2_reducer_v1",
+      "status": "EXPERIMENT_COMPLETE",
+      "step": 9000,
+      "wave1_train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train",
+      "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train",
+      "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/eval/milestones/step9000",
+      "selected_cells": [
+        "P_S2",
+        "P_S1"
+      ],
+      "continuation_contracts": {
+        "P_S2": {
+          "validation": {
+            "status": "CONFIG_PASS",
+            "cell": "P_S2",
+            "dimensions": {
+              "actor_obs": 133,
+              "critic_obs": 138
+            },
+            "freeze_running_mean_std": false,
+            "rms_contract": "native RecurrentActor updates RMS",
+            "gate": "grasp_completion",
+            "near_closed_hinge_threshold": 0.25
+          },
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S2/model_step_006000.pt",
+          "checkpoint_load_mode": "full",
+          "loaded_global_step": 6000,
+          "num_total_batches": 9000,
+          "new_batches": 3000,
+          "online_staged_reset_buffers": "fresh_process_reaccumulates; not serialized by current env state writer"
+        },
+        "P_S1": {
+          "validation": {
+            "status": "CONFIG_PASS",
+            "cell": "P_S1",
+            "dimensions": {
+              "actor_obs": 133,
+              "critic_obs": 138
+            },
+            "freeze_running_mean_std": false,
+            "rms_contract": "native RecurrentActor updates RMS",
+            "gate": "grasp_completion",
+            "near_closed_hinge_threshold": 0.25
+          },
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S1/model_step_006000.pt",
+          "checkpoint_load_mode": "full",
+          "loaded_global_step": 6000,
+          "num_total_batches": 9000,
+          "new_batches": 3000,
+          "online_staged_reset_buffers": "fresh_process_reaccumulates; not serialized by current env state writer"
+        }
+      },
+      "cells": {
+        "P_S2": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.0721306800842285,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 35.95527648925781,
+            "over_force_step_share": 0.00036565430611718144,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.402138590812683,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 41.86841297149658,
+            "over_force_step_share": 0.0007536119544387744,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        },
+        "P_S1": {
+          "left": {
+            "episodes": 64,
+            "D": 64,
+            "S3+": 64,
+            "S4+": 64,
+            "open_hold": 64,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 64,
+            "E2": 64,
+            "E3": 64,
+            "E4": 64,
+            "E5": 64,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 0.13639678061008453,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 40.95022392272949,
+            "over_force_step_share": 0.00021728738429446787,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          },
+          "right": {
+            "episodes": 64,
+            "D": 62,
+            "S3+": 62,
+            "S4+": 62,
+            "open_hold": 62,
+            "S5+": 0,
+            "complete": 0,
+            "K5": 62,
+            "E2": 62,
+            "E3": 62,
+            "E4": 62,
+            "E5": 62,
+            "E6": 0,
+            "E7": 0,
+            "arm_j4_p95": 1.1345504522323608,
+            "arm_j4_limit_residence_step_share": 0.0,
+            "press_handle_contact_force_p50": 40.9211311340332,
+            "over_force_step_share": 0.0016445515780936718,
+            "integrity_violations": 0,
+            "terminal_reasons": {
+              "stage_overtime": 64
+            }
+          }
+        }
+      },
+      "route": "PULL_FULL_CHAIN_PARTIAL",
+      "failures": []
+    }
+  ],
+  "runtimes": [
+    {
+      "phase": "wave1",
+      "cell": "P_S0",
+      "runtime_result": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S0/runtime_result.json",
+      "gpu": 1,
+      "peak_memory_mib": 16770,
+      "minimum_headroom_mib": 7806,
+      "started_at": "2026-09-05T11:02:50.046347+00:00",
+      "finished_at": "2026-09-06T23:54:44.781140+00:00",
+      "child_returncode": 0,
+      "wrapper_returncode": 0
+    },
+    {
+      "phase": "wave1",
+      "cell": "P_S1",
+      "runtime_result": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S1/runtime_result.json",
+      "gpu": 2,
+      "peak_memory_mib": 18632,
+      "minimum_headroom_mib": 5944,
+      "started_at": "2026-09-05T11:02:51.805483+00:00",
+      "finished_at": "2026-09-07T00:11:51.599982+00:00",
+      "child_returncode": 0,
+      "wrapper_returncode": 0
+    },
+    {
+      "phase": "wave1",
+      "cell": "P_S2",
+      "runtime_result": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S2/runtime_result.json",
+      "gpu": 3,
+      "peak_memory_mib": 16741,
+      "minimum_headroom_mib": 7835,
+      "started_at": "2026-09-05T11:02:53.486638+00:00",
+      "finished_at": "2026-09-06T23:59:09.396509+00:00",
+      "child_returncode": 0,
+      "wrapper_returncode": 0
+    },
+    {
+      "phase": "wave2",
+      "cell": "P_S2",
+      "runtime_result": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2/runtime_result.json",
+      "gpu": 3,
+      "peak_memory_mib": 16547,
+      "minimum_headroom_mib": 8029,
+      "started_at": "2026-09-07T03:20:58.519706+00:00",
+      "finished_at": "2026-09-07T21:43:17.687620+00:00",
+      "child_returncode": 0,
+      "wrapper_returncode": 0
+    },
+    {
+      "phase": "wave2",
+      "cell": "P_S1",
+      "runtime_result": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S1/runtime_result.json",
+      "gpu": 2,
+      "peak_memory_mib": 18551,
+      "minimum_headroom_mib": 6025,
+      "started_at": "2026-09-07T03:20:56.958890+00:00",
+      "finished_at": "2026-09-07T21:43:40.763614+00:00",
+      "child_returncode": 0,
+      "wrapper_returncode": 0
+    }
+  ],
+  "wave2_selection": {
+    "schema": "a2_piper_pull_v26_8_wave2_selection_v1",
+    "frozen_at": "2026-09-07T11:20:00.448247+08:00",
+    "admission_endpoint": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/unlatch_endpoint.json",
+    "final_reducer": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/milestones/step6000/reducer.json",
+    "rank_order": [
+      "P_S2",
+      "P_S1",
+      "P_S0"
+    ],
+    "ranking": "bilateral D pass; descending min(DL,DR); descending sum D; ascending seed. E7 excluded.",
+    "selected_cells": [
+      "P_S2",
+      "P_S1"
+    ],
+    "final_D": {
+      "P_S2": {
+        "left": 62,
+        "right": 64
+      },
+      "P_S1": {
+        "left": 59,
+        "right": 64
+      },
+      "P_S0": {
+        "left": 64,
+        "right": 0
+      }
+    },
+    "source_checkpoints": {
+      "P_S2": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S2/model_step_006000.pt",
+      "P_S1": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S1/model_step_006000.pt"
+    },
+    "continuation": {
+      "load_mode": "full",
+      "from_step": 6000,
+      "absolute_ceiling": 9000,
+      "new_batches": 3000,
+      "num_envs": 1024,
+      "online_staged_reset_buffers": "new process reaccumulates; not serialized"
+    }
+  },
+  "post_e5_diagnostic": {
+    "scope": "step7500 P_S1 LEFT only; existing first-episode trace, no intervention",
+    "trace": "logs_eval/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/eval/milestones/step7500/P_S1_STEP7500/left/stage2_5_step_trace.json",
+    "terminal_flags": {
+      "release_ready": 0,
+      "release_event": 0,
+      "clean_release": 0,
+      "release_side_qualified": 0,
+      "handle_crossed": 0,
+      "handoff_reached": 55
+    },
+    "terminal_subphases": {
+      "1": 64
+    },
+    "post_e5_rows": 11259,
+    "post_e5_env_count": 64,
+    "post_e5_ever_flags": {
+      "release_ready": 0,
+      "release_event": 0,
+      "clean_release": 0,
+      "release_side_qualified": 55,
+      "handle_crossed": 0,
+      "handoff_reached": 55
+    },
+    "raw_open_command_rows": 0,
+    "applied_open_command_rows": 0,
+    "eval_forced_close_rows": 0,
+    "raw_gripper_range": [
+      -2.481276512145996,
+      -1.6382794380187988
+    ],
+    "applied_gripper_range": [
+      -2.481276512145996,
+      -1.6382794380187988
+    ],
+    "gripper_source_contract": "a2_base.py:_step_a2_base maps primitive>0 to open target, else close target"
+  },
+  "final_release_diagnostic": {
+    "P_S2": {
+      "left": {
+        "release_ready": 0,
+        "release_event": 0,
+        "clean_release": 0,
+        "handle_crossed": 64,
+        "handoff_reached": 64,
+        "terminal_subphases": {
+          "1": 64
+        }
+      },
+      "right": {
+        "release_ready": 0,
+        "release_event": 0,
+        "clean_release": 0,
+        "handle_crossed": 0,
+        "handoff_reached": 34,
+        "terminal_subphases": {
+          "1": 64
+        }
+      }
+    },
+    "P_S1": {
+      "left": {
+        "release_ready": 0,
+        "release_event": 0,
+        "clean_release": 0,
+        "handle_crossed": 0,
+        "handoff_reached": 58,
+        "terminal_subphases": {
+          "1": 64
+        }
+      },
+      "right": {
+        "release_ready": 0,
+        "release_event": 0,
+        "clean_release": 0,
+        "handle_crossed": 0,
+        "handoff_reached": 21,
+        "terminal_subphases": {
+          "0": 2,
+          "1": 62
+        }
+      }
+    }
+  },
+  "not_run": [
+    "W axis removed by Owner",
+    "optional G2 old-winner vital eval",
+    "Teacher",
+    "handoff",
+    "hardware"
+  ],
+  "resource_state": "All task train/eval/watch processes have exited; leases released at closure",
+  "commits_before_closure": [
+    "fd38b36",
+    "4f99358"
+  ]
+}

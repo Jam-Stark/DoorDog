@@ -2,7 +2,7 @@
 name: base-v27-bilateral-hardening
 status: active
 scope: v26 qualification, bilateral behavior quality, door domain, one-loss recovery pilot, scratch reliability
-last_verified: 2026-09-06
+last_verified: 2026-09-07
 read_when:
   - implementing or resuming base_v27
   - interpreting bilateral Teacher qualification or v27 recovery evidence
@@ -53,7 +53,36 @@ Q2_S21=18/21、Q2_S22=16/39；没有单侧达到56/64 clean门。Q1/Q2 LEFT两se
 训练中曾出现正常退出但大量超速终止的milestone，已完整记录，未重跑或更改配方。
 权威决策与端点锁：runtime下 `wave_a_decision.json`、`wave_a_endpoint_lock.json`；
 完整读数见 `a2_piper_base_v27_wave_a_step3000_readout_20260906.md`。这是模拟实验结论，
-不构成Teacher/G7资格授予。恢复启用路径将在Wave B前接线。
+不构成Teacher/G7资格授予。第二个预授权本地提交为`1fa2b1e`。
+
+Wave B已启动：L0_S31/L1_S31/L1_S32在GPU2/3/4，各3000 batches，source为CARRIER_A；
+R0_S41/R1_S41/R2_S41在GPU5/6/7，各1500 batches，source为固定v26 C_S2。CPU、32-batch R2
+接线与双侧注入评估已完成；训练中实际发生bank capture、双侧promotion与两侧reset。
+P02/P05四个exact32 probe的native readback分别为(2,1.5,0)/(5,3.75,0)，integrity0。
+注入smoke LEFT64、RIGHT61集执行6步，RIGHT3集NOT_TRIGGERED；两侧loss_events=0，
+不能据此宣称恢复收益。训练bank指标复用现有Env日志，计数是PPO batch内累计快照的均值。
+
+L1首轮在actor加载前失败：parser误拒绝OmegaConf ListConfig。修复只接受实际框架列表类型，
+三桶值、source、seed、budget不变；两格各在`L1_S31_r1`/`L1_S32_r1`新root重启一次。
+`active_attempts.json`是实际root路由；`wave_b_l1_parser_r1_contract_diff.json`保留零实验合同差异。
+两格现已strict actor/RMS加载并产生训练读数，4096个env的native readback已观测到0/2/5三桶、
+dynamic范围0–3.75与viscous=0。其余四格继续运行，未重启。后续非零退出按policy读数后规则停格。
+R组step500出现读取器误判：R1 nominal LEFT的合法706502006-byte JSON（32774 rows）在旧自写
+分块reader的对象/逗号边界被判INVALID，自动停R1于训练644。Isaac进程正常退出，但wrapper因
+缺少后续checkpoint退出1；这是harness误停，不是策略崩溃。已移除自写reader，改用标准库json.load；
+10项reducer CPU测试通过。对原18条artifact仅做CPU重读后全部exact64、integrity0，原文件与原
+INVALID保留，未重跑policy或评估。修正结果位于`wave_b_r/step500_cpu_reader_corrected/reducer.json`。
+R1仍STOPPED，不擅自恢复或以step500替代1500 endpoint；其余五格继续，GPU6空闲。
+当前source锁为`source_lock_wave_b_stdlib_json.json`。
+2026-09-07 R0/R2完整1500 endpoint均PASS/0，Q_R冻结`UNRESOLVED`，原因是R1 endpoint缺失；
+不以中途结果补齐。可用R2 injected ITT重抓5/64、2/64，recovered_clean为0/64、1/64。
+权威结论为`wave_b_recovery_decision.json`；仅L三格继续训练，Q_R不阻塞下一阶段。
 
 执行状态与 receipts 由
 `scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/` 路由，不将 heartbeat 写入 memory。
+
+2026-09-07 Wave B两分支已关闭：L三格完成3000、R0/R2完成1500；R1维持STOP644。
+L endpoint为DOMAIN_NOT_CONVERGED，冻结RECIPE_B=current；L1_S32 LEFT三层过门，RIGHT均未过门。
+合并决策见wave_b_decision.json；Q_R=UNRESOLVED，不阻塞C。固定shadow estimator运行一次，
+heldout friction/mass R²=0.15557/0.33127，仅支持模拟数据离线可辨识性，不证明actor或硬件能力。
+Wave C将沿C+current执行六格scratch；全部checkpoint=null，终点6000。

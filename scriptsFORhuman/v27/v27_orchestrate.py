@@ -13,6 +13,8 @@ from v27_contract import (ROOT, HERE, RUNTIME, TRAIN, EVAL, PYTHON, RUN_ID, PROX
                          SEEDS, SIDES, cells, digest, input_checkpoint, train_checkpoint,
                          read_json, require, write_json, stratum_overlay)
 
+from v27_run_cell import SMOKE_BATCHES
+
 SUPERVISOR = ROOT / ".ai/scripts/run_supervisor.py"
 
 
@@ -61,8 +63,16 @@ def smoke_launch(wave):
     output = TRAIN.parent / "smoke" / f"wave_{wave.lower()}_{cell}"
     command = ["bash", str(HERE / "v27_train_cell.sh"), "--gpu", str(spec["gpu"]),
                "--cell", cell, "--output", str(output), "--smoke"]
-    receipt = launch(f"smoke_{wave.lower()}", spec["gpu"], command, output / "model_step_000005.pt")
+    receipt = launch(f"smoke_{wave.lower()}", spec["gpu"], command, output / f"model_step_{SMOKE_BATCHES[wave]:06d}.pt")
     write_json(RUNTIME / f"smoke_{wave.lower()}_launch.json", {"receipt": receipt, "output": str(output), "cell": cell})
+
+
+def stop_cell_training(cell, step):
+    process_path = train_checkpoint(cell, step).parent / "v27_process_evidence.json"
+    if process_path.is_file():
+        process = read_json(process_path)
+        if process["state"] == "RUNNING":
+            os.kill(process["pid"], signal.SIGINT)
 
 
 def eval_finalize(manifest_path):
@@ -77,10 +87,7 @@ def eval_finalize(manifest_path):
     require(result.returncode in (0, 2) and output.is_file(), "reducer failed before typed artifact")
     reduced = read_json(output)
     for cell in reduced["invalid_cells"]:
-        name = f"v27_train_{cell.lower()}"
-        receipt = ROOT / ".ai/runtime/runs" / name / "RUN_RECEIPT.json"
-        if receipt.exists() and not (receipt.parent / "exit_code.txt").exists():
-            subprocess.run(["tmux", "send-keys", "-t", name, "C-c"], check=True)
+        stop_cell_training(cell, manifest["step"])
     return result.returncode
 
 
@@ -157,10 +164,7 @@ def lane_run(args):
             write_json(stop_file,{"status":"PRE_POLICY_REPAIR_PENDING" if before_policy else "STOPPED",
                        "failed_lane":lane,"process_evidence":str(evidence_path)},replace=True)
             if not before_policy:
-                receipt = ROOT / ".ai/runtime/runs" / f"v27_train_{lane['cell'].lower()}" / "RUN_RECEIPT.json"
-                if receipt.is_file() and not (receipt.parent / "exit_code.txt").exists():
-                    process = read_json(train_checkpoint(lane["cell"],manifest["step"]).parent / "v27_process_evidence.json")
-                    os.kill(process["pid"],signal.SIGINT)
+                stop_cell_training(lane["cell"], manifest["step"])
         # A failed lane never discards another cell's authorized evaluation.
     path = args.manifest.with_name(f"{args.manifest.stem}_gpu{args.gpu}_result.json")
     write_json(path, {"status": "PASS" if all(row["returncode"] == 0 for row in results) else "FAIL",

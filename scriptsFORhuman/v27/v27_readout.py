@@ -4,12 +4,13 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from v27_contract import ROOT, HERE, RUNTIME, METRICS, read_json, require, write_json
+from v27_contract import ROOT, HERE, RUNTIME, TRAIN, METRICS, read_json, require, write_json, train_checkpoint
 
 
 def cell_pairs(cells):
@@ -42,6 +43,25 @@ def k_trace(path, step):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.trace_summary(path, step)
+
+
+def training_telemetry(path, step):
+    iteration_pattern = re.compile(r"Learning iteration\s+(\d+)")
+    metric_pattern = re.compile(r"Env/(a2_v27_[a-z0-9_]+):\s+([-+0-9.eE]+)")
+    iteration, recorded_iteration, values = 0, None, {}
+    with path.open() as stream:
+        for line in stream:
+            matched = iteration_pattern.search(line)
+            if matched:
+                iteration = int(matched.group(1))
+                if iteration > step:
+                    break
+            matched = metric_pattern.search(line)
+            if matched:
+                recorded_iteration = iteration
+                values[matched.group(1)] = float(matched.group(2))
+    return {"source":str(path.resolve()),"iteration":recorded_iteration,"metrics":values,
+            "aggregation":"Trainer means across the PPO batch; cumulative counters are batch-averaged snapshots, not exact end-of-batch totals."}
 
 
 def supplemental_quality(manifest):
@@ -86,11 +106,16 @@ def main():
         exit_path = path.parent / "exit_code.txt"
         receipts[row["name"]] = {"state": row["state"], "returncode": int(exit_path.read_text()) if exit_path.exists() else None,
                                   "path": str(path)}
-    traces = {}
+    traces, training = {}, {}
     if args.train_root:
         for cell in cells:
-            path = args.train_root / cell / "a2_v26_8_penalty_curriculum_trace.jsonl"
+            directory = args.train_root / cell
+            if args.train_root.resolve() == TRAIN.resolve():
+                directory = train_checkpoint(cell, step).parent
+            path = directory / "a2_v26_8_penalty_curriculum_trace.jsonl"
             if path.is_file(): traces[cell] = k_trace(path, step)
+            path = directory / "runtime.log"
+            if path.is_file(): training[cell] = training_telemetry(path, step)
     reversals = []
     for pair,strata in pairs.items():
         for stratum,sides in strata.items():
@@ -106,7 +131,7 @@ def main():
                         negative = {key:values[key]-previous[cell][stratum][side][key] for key in METRICS
                                     if values[key] < previous[cell][stratum][side][key]}
                         if negative: reversals.append({"reference":f"{cell}−previous","stratum":stratum,"side":side,"negative_deltas":negative})
-    supplement = {"paired_deltas":pairs,"negative_deltas":reversals,"k_trace":traces,
+    supplement = {"paired_deltas":pairs,"negative_deltas":reversals,"k_trace":traces,"training_telemetry":training,
                   "quality_failure_components":supplemental_quality(manifest),"receipts":receipts,"gpu":gpu,"processes":processes}
     write_json(args.output.with_suffix(".json"), supplement)
     lines = [f"# base_v27 {manifest['name']} readout", "", datetime.now(ZoneInfo("Asia/Hong_Kong")).strftime("%Y-%m-%d %H:%M HKT"), "",
@@ -124,7 +149,7 @@ def main():
     lines += ["", "## 配对差与反向读数", "", "L1_S32 对 L0_S31、SK 对相同序号 SC 使用预注册配对；PPO seed 数值不同，不宣称同随机轨迹的因果对照。", "",
               "```json",json.dumps({"paired_deltas":pairs,"negative_deltas":reversals},ensure_ascii=False,indent=2),"```", "",
               "## Typed outcomes", "", "```json",json.dumps(payload["typed_outcomes"],ensure_ascii=False,indent=2),"```", "",
-              "## 质量失败成分、K 与恢复 telemetry", "", "```json",json.dumps({"quality":supplement["quality_failure_components"],"k":traces,
+              "## 质量失败成分、K 与恢复 telemetry", "", "```json",json.dumps({"quality":supplement["quality_failure_components"],"k":traces,"training":training,
                   "recovery":{f"{cell}/{stratum}/{side}":row["recovery_itt"] for cell,strata in cells.items() for stratum,sides in strata.items() for side,row in sides.items() if "recovery_itt" in row}},ensure_ascii=False,indent=2),"```", "",
               "## Receipt 与资源", "", "```json",json.dumps({"invalid_cells":payload["invalid_cells"],"receipts":receipts,"gpu":gpu,"processes":processes},ensure_ascii=False,indent=2),"```", "",
               f"来源：[reducer]({args.reducer.resolve()})；[eval manifest]({args.manifest.resolve()})。", "",

@@ -1,0 +1,8 @@
+{
+  "receipts": {
+    "L1_S31": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_l1_s31_r1/RUN_RECEIPT.json",
+    "L1_S32": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_l1_s32_r1/RUN_RECEIPT.json"
+  },
+  "restart_index": 1,
+  "experimental_contract_diff": {}
+}

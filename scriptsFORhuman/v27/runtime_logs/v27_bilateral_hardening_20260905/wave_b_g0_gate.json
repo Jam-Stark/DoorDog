@@ -1,0 +1,32 @@
+{
+  "status": "G0_PASS",
+  "wave": "B",
+  "completed_at": "2026-09-06T09:22:05.066325+00:00",
+  "source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/source_lock_wave_b.json",
+  "cpu_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_cpu_evidence.json",
+  "resolved_contract": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_contract.json",
+  "smoke_training_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_smoke_b/RUN_RECEIPT.json",
+  "probe_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_probe/reducer.json",
+  "native_readback": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_probe_readback.json",
+  "injected_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_smoke_injected/reducer.json",
+  "coverage": {
+    "recovery_bank_capture_promotion_reset": "EXECUTED_IN_TRAINING",
+    "eval_six_step_injection": {
+      "left": {
+        "triggered": 64,
+        "not_triggered": 0,
+        "applied_steps_per_triggered_episode": 6,
+        "observed_loss_events": 0
+      },
+      "right": {
+        "triggered": 61,
+        "not_triggered": 3,
+        "applied_steps_per_triggered_episode": 6,
+        "observed_loss_events": 0
+      }
+    },
+    "eval_regrasp_after_loss": "NOT_OBSERVED: zero loss_events in this wiring sample",
+    "L1_per_env_training_readback": "PENDING_FORMAL_STARTUP; CPU bucket contract and fixed native probe passed"
+  },
+  "claim_boundary": "Wiring evidence only; no pilot or domain outcome from smoke/probe."
+}

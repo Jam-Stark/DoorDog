@@ -1,0 +1,19 @@
+# @package _global_
+defaults:
+- /ablation/wbmanip/base_v27_common
+- _self_
+v26_cell: V27_R2_S41
+seed: 41
+checkpoint: /home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt
+algo:
+  trl:
+    num_total_batches: 1500
+env:
+  config:
+    a2_v26_side_permutation_seed: 41
+    a2_v27_recovery_enabled: true
+    a2_v27_recovery_loss_steps: 10
+    a2_v27_recovery_window_steps: 300
+    a2_v27_recovery_bank_reset_share: 0.2
+    a2_v27_perturb_prob: 0.2
+    a2_v27_perturb_steps: 4

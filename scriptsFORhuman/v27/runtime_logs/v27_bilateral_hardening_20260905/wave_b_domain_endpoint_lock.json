@@ -1,0 +1,28 @@
+{
+  "status": "ENDPOINT_FROZEN",
+  "step": 3000,
+  "endpoints": {
+    "L0_S31": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L0_S31/model_step_003000.pt",
+      "checkpoint_sha256": "7008890dff0ca6c83db70258cf627a15c772a479c6e9d35616ead429d5bf08a8",
+      "config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L0_S31/config.yaml",
+      "config_sha256": "6ed157998c3bd86b370dec910673ca1af8000e001ea42d373490101da10a4319",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L0_S31/v27_process_evidence.json"
+    },
+    "L1_S31": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S31_r1/model_step_003000.pt",
+      "checkpoint_sha256": "570c44f9c5f6900f7ce439374f15765a3b945c1aa6b6d3258a2487513b1a83ba",
+      "config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S31_r1/config.yaml",
+      "config_sha256": "78b3e3dd2d163afa67045e29059cb694a5055fdaf306f5bf194c644870ae5f9d",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S31_r1/v27_process_evidence.json"
+    },
+    "L1_S32": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S32_r1/model_step_003000.pt",
+      "checkpoint_sha256": "b45e4a5273d1c35efecc009c106206283f4308c84fb8dfba1d13b8cdbfe479a3",
+      "config": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S32_r1/config.yaml",
+      "config_sha256": "d11e74ba72219f77fead1263c4b28a88cea6f2a65ad1e80a7c2c14f5460de75e",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S32_r1/v27_process_evidence.json"
+    }
+  },
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step3000/reducer.json"
+}

@@ -1,0 +1,77 @@
+{
+  "status": "PASS",
+  "lanes": [
+    {
+      "index": 0,
+      "cell": "L0_S31",
+      "stratum": "nominal",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step1000/L0_S31/nominal/left"
+    },
+    {
+      "index": 2,
+      "cell": "L0_S31",
+      "stratum": "P02",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step1000/L0_S31/P02/left"
+    },
+    {
+      "index": 4,
+      "cell": "L0_S31",
+      "stratum": "P05",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step1000/L0_S31/P05/left"
+    },
+    {
+      "index": 6,
+      "cell": "L1_S31",
+      "stratum": "nominal",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step1000/L1_S31/nominal/left"
+    },
+    {
+      "index": 8,
+      "cell": "L1_S31",
+      "stratum": "P02",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step1000/L1_S31/P02/left"
+    },
+    {
+      "index": 10,
+      "cell": "L1_S31",
+      "stratum": "P05",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step1000/L1_S31/P05/left"
+    },
+    {
+      "index": 12,
+      "cell": "L1_S32",
+      "stratum": "nominal",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step1000/L1_S32/nominal/left"
+    },
+    {
+      "index": 14,
+      "cell": "L1_S32",
+      "stratum": "P02",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step1000/L1_S32/P02/left"
+    },
+    {
+      "index": 16,
+      "cell": "L1_S32",
+      "stratum": "P05",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step1000/L1_S32/P05/left"
+    }
+  ]
+}

@@ -195,3 +195,15 @@ def test_missing_trace_still_invalid_after_stage2_entry(tmp_path):
     (artifact / "stage2_5_step_trace.json").write_text("[]")
     with pytest.raises(MODULE.ReducerError, match="missing trace"):
         MODULE.summary_for_lane(_lane("SC_S201", "nominal", "left", artifact, 1), 1)
+
+
+def test_stdlib_reader_accepts_comma_at_exact_one_mib_boundary(tmp_path: Path):
+    boundary = 1 << 20
+    empty_object = json.dumps({"padding": ""}, separators=(",", ":"))
+    padding = "x" * (boundary - 1 - len(empty_object))
+    first = json.dumps({"padding": padding}, separators=(",", ":"))
+    assert len("[" + first) == boundary
+    trace = tmp_path / "trace.json"
+    trace.write_text("[" + first + "," + json.dumps({"after": 1}) + "]", encoding="utf-8")
+
+    assert list(MODULE.iter_json_array(trace)) == [{"padding": padding}, {"after": 1}]

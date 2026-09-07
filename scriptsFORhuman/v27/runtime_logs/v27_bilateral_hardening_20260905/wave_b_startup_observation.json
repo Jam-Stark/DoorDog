@@ -1,0 +1,71 @@
+{
+  "observed_at": "2026-09-06T09:29:07.390502+00:00",
+  "cells": {
+    "L0_S31": {
+      "state": "RUNNING",
+      "last_iteration": null,
+      "pid": 2254466,
+      "gpu": 2,
+      "policy_load_observed": null,
+      "policy_readout_observed": false,
+      "wrapper_returncode": null
+    },
+    "L1_S31": {
+      "state": "FAIL",
+      "last_iteration": 0,
+      "pid": 2254492,
+      "gpu": 3,
+      "policy_load_observed": false,
+      "policy_readout_observed": false,
+      "wrapper_returncode": 1,
+      "native_readback_training_metrics": {
+        "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S31/runtime.log",
+        "iteration": null,
+        "metrics": {},
+        "aggregation": "Trainer means across the PPO batch; cumulative counters are batch-averaged snapshots, not exact end-of-batch totals."
+      }
+    },
+    "L1_S32": {
+      "state": "FAIL",
+      "last_iteration": 0,
+      "pid": 2254523,
+      "gpu": 4,
+      "policy_load_observed": false,
+      "policy_readout_observed": false,
+      "wrapper_returncode": 1,
+      "native_readback_training_metrics": {
+        "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S32/runtime.log",
+        "iteration": null,
+        "metrics": {},
+        "aggregation": "Trainer means across the PPO batch; cumulative counters are batch-averaged snapshots, not exact end-of-batch totals."
+      }
+    },
+    "R0_S41": {
+      "state": "RUNNING",
+      "last_iteration": null,
+      "pid": 2254584,
+      "gpu": 5,
+      "policy_load_observed": null,
+      "policy_readout_observed": false,
+      "wrapper_returncode": null
+    },
+    "R1_S41": {
+      "state": "RUNNING",
+      "last_iteration": null,
+      "pid": 2254636,
+      "gpu": 6,
+      "policy_load_observed": null,
+      "policy_readout_observed": false,
+      "wrapper_returncode": null
+    },
+    "R2_S41": {
+      "state": "RUNNING",
+      "last_iteration": null,
+      "pid": 2254791,
+      "gpu": 7,
+      "policy_load_observed": null,
+      "policy_readout_observed": false,
+      "wrapper_returncode": null
+    }
+  }
+}

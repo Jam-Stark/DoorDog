@@ -1,0 +1,25 @@
+{
+  "status": "CPU_READER_CORRECTION",
+  "from": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/source_lock_wave_b_l1_parser_r1.json",
+  "to": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/source_lock_wave_b_stdlib_json.json",
+  "source_changes": {
+    "gr00t/rl/tests/test_a2_v27_reduce.py": {
+      "before": "87bb4ac12da4f5fffd02e746ae51c9364e478f33775eac41e8a6258f7c3ef74e",
+      "after": "6f13aa0a1721a2ea2a2a59753d4567caabf6cad9a4fd0f77f5234bf5fd6cecf6"
+    },
+    "scriptsFORhuman/v27/v27_reduce.py": {
+      "before": "6de23582438ee29dbec54549b76d8cf8282f7564a5f43cf6ad745db61359fe68",
+      "after": "b87a4488743cb71b62da2304b623cce119e9572670585f2d668c7493de754151"
+    }
+  },
+  "experimental_contract_diff": {},
+  "test": "10 passed in 0.08s, including reproduced object/comma chunk boundary",
+  "original_artifacts_preserved": true,
+  "policy_or_eval_reruns": false,
+  "R1_training_status": "STOPPED at644; not resumed",
+  "source_trace_syntax_validation": {
+    "bytes": 706502006,
+    "rows": 32774,
+    "standard_library": "PASS"
+  }
+}

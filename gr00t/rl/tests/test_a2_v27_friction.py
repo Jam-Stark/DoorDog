@@ -2,8 +2,10 @@
 
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, Mapping
 
 import torch
+from omegaconf import ListConfig, OmegaConf
 
 from gr00t.rl.envs.door.a2_v24_friction import A2V24DoorFrictionBackend, V24FrictionConfig
 
@@ -65,3 +67,17 @@ def test_v27_bucket_contract_is_exact_and_legacy_path_has_no_selector():
     assert "backend.apply(env_ids)" in apply
     assert "_a2_v27_friction_static_readback" in apply
     assert "joint_dynamic_friction_coeff" in apply
+
+
+def test_v27_bucket_parser_accepts_runtime_omegaconf_list():
+    import ast
+
+    tree = ast.parse(SOURCE.read_text())
+    node = next(node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+                and node.name == "_parse_a2_v27_friction_bucket_config")
+    node.decorator_list = []
+    namespace = {"ListConfig": ListConfig, "Any": Any, "Mapping": Mapping}
+    exec(compile(ast.Module(body=[node], type_ignores=[]), str(SOURCE), "exec"), namespace)
+    config = OmegaConf.create({"a2_v27_friction_bucket_enabled": True,
+                              "a2_v27_friction_bucket_static_efforts": [0.0, 2.0, 5.0]})
+    assert namespace[node.name](config) == {"static_efforts": (0.0, 2.0, 5.0)}

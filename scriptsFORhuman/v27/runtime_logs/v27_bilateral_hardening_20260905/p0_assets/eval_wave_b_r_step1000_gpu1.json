@@ -1,0 +1,45 @@
+{
+  "schema": "a2_piper_base_v26_8_p0_assets_v1",
+  "status": "P0_ASSETS_PASS",
+  "checked_at": "2026-09-06T17:27:47+00:00",
+  "proxy_environment": {
+    "http_proxy": "http://127.0.0.1:18889",
+    "https_proxy": "http://127.0.0.1:18889",
+    "HTTP_PROXY": "http://127.0.0.1:18889",
+    "HTTPS_PROXY": "http://127.0.0.1:18889",
+    "no_proxy": "localhost,127.0.0.1",
+    "NO_PROXY": "localhost,127.0.0.1"
+  },
+  "assets": [
+    {
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd",
+      "command": [
+        "curl",
+        "-sI",
+        "--max-time",
+        "20",
+        "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd"
+      ],
+      "curl_returncode": 0,
+      "http_status": 200,
+      "headers": "HTTP/1.1 200 Connection established\n\nHTTP/1.1 200 OK\nx-amz-id-2: 7OvHK4Kgkw3HNEnN5lvosYsaGWWxkOcpCsjIc4wwmeOnIMYEmN0NYEREaUumfS3Ou9RuUbg7vH8jnNORm2Eh1V243SK+c9B0\nx-amz-request-id: MGS1CB6KXN3VF7VD\nServer: AmazonS3\nDate: Sun, 06 Sep 2026 17:27:47 GMT\nLast-Modified: Tue, 14 Oct 2025 19:37:45 GMT\nETag: \"4fe2f36b4ffefb09bacff13b00e41d9c\"\nx-amz-server-side-encryption: AES256\nAccept-Ranges: bytes\nContent-Length: 13622\nContent-Type: binary/octet-stream\n\n",
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/NVIDIA/Materials/Base/Wood/Ash.mdl",
+      "command": [
+        "curl",
+        "-sI",
+        "--max-time",
+        "20",
+        "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/NVIDIA/Materials/Base/Wood/Ash.mdl"
+      ],
+      "curl_returncode": 0,
+      "http_status": 200,
+      "headers": "HTTP/1.1 200 Connection established\n\nHTTP/1.1 200 OK\nx-amz-id-2: e6n6faPl89Va3/VomgkO/H1GQrVxmaDfT/YBxlMMaWT742pkaG6AVWJ7cFYhiLePr1lbYKqEW1AXivmL7IJ1o0PDiz4GUYUU\nx-amz-request-id: S2E4R0V2V9EAJM14\nServer: AmazonS3\nDate: Sun, 06 Sep 2026 17:27:48 GMT\nLast-Modified: Fri, 10 Oct 2025 23:31:49 GMT\nETag: \"0166049edf1df7b26eea4c05cc2b424d\"\nx-amz-server-side-encryption: AES256\nAccept-Ranges: bytes\nContent-Length: 1488\nContent-Type: binary/octet-stream\n\n",
+      "stderr": "",
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "source_manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_b_r/step500.json",
+  "all_mode_terminal_telemetry": {
+    "R0_S41/nominal/left": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 1,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R0_S41/nominal/right": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R0_S41/injected/left": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 11,
+        "TRIGGERED": 53
+      },
+      "applied_steps_observed": [
+        0,
+        6
+      ],
+      "loss_event": 12,
+      "regrasp_success": 7,
+      "recovered_complete": 3,
+      "recovered_clean_complete": 0
+    },
+    "R0_S41/injected/right": {
+      "episodes": 64,
+      "injection_status": {
+        "TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        6
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R0_S41/sham/left": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 10,
+        "TRIGGERED": 54
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 1,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R0_S41/sham/right": {
+      "episodes": 64,
+      "injection_status": {
+        "TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R1_S41/nominal/left": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R1_S41/nominal/right": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R1_S41/injected/left": {
+      "episodes": 64,
+      "injection_status": {
+        "TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        6
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R1_S41/injected/right": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 1,
+        "TRIGGERED": 63
+      },
+      "applied_steps_observed": [
+        0,
+        6
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R1_S41/sham/left": {
+      "episodes": 64,
+      "injection_status": {
+        "TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R1_S41/sham/right": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 1,
+        "TRIGGERED": 63
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R2_S41/nominal/left": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R2_S41/nominal/right": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 4,
+      "regrasp_success": 2,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R2_S41/injected/left": {
+      "episodes": 64,
+      "injection_status": {
+        "TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        6
+      ],
+      "loss_event": 6,
+      "regrasp_success": 4,
+      "recovered_complete": 3,
+      "recovered_clean_complete": 0
+    },
+    "R2_S41/injected/right": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 3,
+        "TRIGGERED": 61
+      },
+      "applied_steps_observed": [
+        0,
+        6
+      ],
+      "loss_event": 1,
+      "regrasp_success": 1,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R2_S41/sham/left": {
+      "episodes": 64,
+      "injection_status": {
+        "TRIGGERED": 64
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 0,
+      "regrasp_success": 0,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    },
+    "R2_S41/sham/right": {
+      "episodes": 64,
+      "injection_status": {
+        "NOT_TRIGGERED": 3,
+        "TRIGGERED": 61
+      },
+      "applied_steps_observed": [
+        0
+      ],
+      "loss_event": 4,
+      "regrasp_success": 2,
+      "recovered_complete": 0,
+      "recovered_clean_complete": 0
+    }
+  }
+}

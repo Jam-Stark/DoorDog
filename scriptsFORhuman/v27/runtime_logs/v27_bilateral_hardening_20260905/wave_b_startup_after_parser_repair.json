@@ -1,0 +1,99 @@
+{
+  "observed_at": "2026-09-06T09:47:29.469350+00:00",
+  "cells": {
+    "L0_S31": {
+      "state": "RUNNING",
+      "last_iteration": 40,
+      "pid": 2254466,
+      "gpu": 2,
+      "policy_load_observed": true,
+      "policy_readout_observed": true,
+      "wrapper_returncode": null,
+      "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L0_S31"
+    },
+    "L1_S31": {
+      "state": "RUNNING",
+      "last_iteration": 8,
+      "pid": 2272794,
+      "gpu": 3,
+      "policy_load_observed": true,
+      "policy_readout_observed": true,
+      "wrapper_returncode": null,
+      "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S31_r1",
+      "native_readback_training_metrics": {
+        "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S31_r1/runtime.log",
+        "iteration": 8,
+        "metrics": {
+          "a2_v27_friction_initialized_env_count": 4096.0,
+          "a2_v27_friction_static_readback_min": 0.0,
+          "a2_v27_friction_static_readback_max": 5.0,
+          "a2_v27_friction_dynamic_readback_min": 0.0,
+          "a2_v27_friction_dynamic_readback_max": 3.75,
+          "a2_v27_friction_viscous_readback_min": 0.0,
+          "a2_v27_friction_viscous_readback_max": 0.0,
+          "a2_v27_friction_static_0_env_count": 1361.5312,
+          "a2_v27_friction_static_2_env_count": 1335.5469,
+          "a2_v27_friction_static_5_env_count": 1398.9219
+        },
+        "aggregation": "Trainer means across the PPO batch; cumulative counters are batch-averaged snapshots, not exact end-of-batch totals."
+      }
+    },
+    "L1_S32": {
+      "state": "RUNNING",
+      "last_iteration": 8,
+      "pid": 2272829,
+      "gpu": 4,
+      "policy_load_observed": true,
+      "policy_readout_observed": true,
+      "wrapper_returncode": null,
+      "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S32_r1",
+      "native_readback_training_metrics": {
+        "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S32_r1/runtime.log",
+        "iteration": 8,
+        "metrics": {
+          "a2_v27_friction_initialized_env_count": 4096.0,
+          "a2_v27_friction_static_readback_min": 0.0,
+          "a2_v27_friction_static_readback_max": 5.0,
+          "a2_v27_friction_dynamic_readback_min": 0.0,
+          "a2_v27_friction_dynamic_readback_max": 3.75,
+          "a2_v27_friction_viscous_readback_min": 0.0,
+          "a2_v27_friction_viscous_readback_max": 0.0,
+          "a2_v27_friction_static_0_env_count": 1295.8281,
+          "a2_v27_friction_static_2_env_count": 1410.0156,
+          "a2_v27_friction_static_5_env_count": 1390.1562
+        },
+        "aggregation": "Trainer means across the PPO batch; cumulative counters are batch-averaged snapshots, not exact end-of-batch totals."
+      }
+    },
+    "R0_S41": {
+      "state": "RUNNING",
+      "last_iteration": 37,
+      "pid": 2254584,
+      "gpu": 5,
+      "policy_load_observed": true,
+      "policy_readout_observed": true,
+      "wrapper_returncode": null,
+      "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R0_S41"
+    },
+    "R1_S41": {
+      "state": "RUNNING",
+      "last_iteration": 38,
+      "pid": 2254636,
+      "gpu": 6,
+      "policy_load_observed": true,
+      "policy_readout_observed": true,
+      "wrapper_returncode": null,
+      "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R1_S41"
+    },
+    "R2_S41": {
+      "state": "RUNNING",
+      "last_iteration": 39,
+      "pid": 2254791,
+      "gpu": 7,
+      "policy_load_observed": true,
+      "policy_readout_observed": true,
+      "wrapper_returncode": null,
+      "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R2_S41"
+    }
+  }
+}

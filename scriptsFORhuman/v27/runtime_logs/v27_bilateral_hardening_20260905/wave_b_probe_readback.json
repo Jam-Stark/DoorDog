@@ -1,0 +1,67 @@
+{
+  "status": "NATIVE_READBACK_PASS",
+  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_b_probe.json",
+  "lanes": [
+    {
+      "stratum": "P02",
+      "side": "left",
+      "status": "PASS",
+      "native_readback_triplet": [
+        2.0,
+        1.5,
+        0.0
+      ],
+      "door_weight_observed_range": [
+        82.40281677246094,
+        159.83316040039062
+      ],
+      "artifact": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_probe/C_S21/P02/left"
+    },
+    {
+      "stratum": "P02",
+      "side": "right",
+      "status": "PASS",
+      "native_readback_triplet": [
+        2.0,
+        1.5,
+        0.0
+      ],
+      "door_weight_observed_range": [
+        82.40281677246094,
+        159.83316040039062
+      ],
+      "artifact": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_probe/C_S21/P02/right"
+    },
+    {
+      "stratum": "P05",
+      "side": "left",
+      "status": "PASS",
+      "native_readback_triplet": [
+        5.0,
+        3.75,
+        0.0
+      ],
+      "door_weight_observed_range": [
+        82.40281677246094,
+        159.83316040039062
+      ],
+      "artifact": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_probe/C_S21/P05/left"
+    },
+    {
+      "stratum": "P05",
+      "side": "right",
+      "status": "PASS",
+      "native_readback_triplet": [
+        5.0,
+        3.75,
+        0.0
+      ],
+      "door_weight_observed_range": [
+        82.40281677246094,
+        159.83316040039062
+      ],
+      "artifact": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_probe/C_S21/P05/right"
+    }
+  ],
+  "scope": "Fixed P02/P05 eval readback; does not substitute for L1 per-env training readback."
+}

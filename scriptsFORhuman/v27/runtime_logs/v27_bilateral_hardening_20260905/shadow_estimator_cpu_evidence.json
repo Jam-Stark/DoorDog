@@ -1,0 +1,59 @@
+{
+  "schema": "a2_piper_base_v27_shadow_estimator_cpu_evidence_v1",
+  "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/v27/v27_shadow_estimator.py --manifest scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_b_l/step3000.json --output logs_eval/base_v27/v27_bilateral_hardening_20260905/shadow_estimator/endpoint_result.json",
+  "source_manifest": "scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_b_l/step3000.json",
+  "result_path": "logs_eval/base_v27/v27_bilateral_hardening_20260905/shadow_estimator/endpoint_result.json",
+  "observed_execution": {
+    "output_written": true,
+    "exit_code": null,
+    "exact_duration_seconds": null,
+    "duration_observed_seconds_range": [
+      80,
+      110
+    ],
+    "duration_note": "The executor detached before returning the child exit status; process was observed active at 79 seconds and absent by 109 seconds. The completed output is the only supported completion evidence.",
+    "output_mtime": "2026-09-07 15:25:48.001246687 +0800"
+  },
+  "result_summary": {
+    "status": "SHADOW_ESTIMATOR_REPORTED",
+    "model": "ridge_linear_history_summary",
+    "ridge": 1.0,
+    "window_control_steps": 64,
+    "split_seed": 270202,
+    "train_windows": 3397,
+    "heldout_windows": 1171,
+    "heldout_episode_count": 279,
+    "excluded_episode_count": 51,
+    "heldout_window_metrics": {
+      "static_friction_nm": {
+        "r2": 0.15556850910400788,
+        "rmse": 1.9194809245182802
+      },
+      "mass_kg": {
+        "r2": 0.33126633080281476,
+        "rmse": 19.156472122387
+      }
+    },
+    "heldout_train_mean_baseline": {
+      "static_friction_nm": {
+        "r2": -0.0005101146061987638,
+        "rmse": 2.089355457536915
+      },
+      "mass_kg": {
+        "r2": -0.0016322838180058419,
+        "rmse": 23.444614399739546
+      }
+    },
+    "heldout_equal_episode_metrics": {
+      "static_friction_nm": {
+        "r2": 0.21428001313140055,
+        "rmse": 1.8415074635798516
+      },
+      "mass_kg": {
+        "r2": 0.4336463300461525,
+        "rmse": 17.41115085270054
+      }
+    },
+    "claim_boundary": "Offline identifiability in observed simulations only; no actor change, no real-time adaptation claim, no hardware evidence. Contact and effort inputs are simulator estimates; deployable sensor contract is not established."
+  }
+}

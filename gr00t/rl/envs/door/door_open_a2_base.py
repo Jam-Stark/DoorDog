@@ -13,6 +13,7 @@ import omni.usd
 import torch
 import torch.nn.functional as F
 from loguru import logger
+from omegaconf import ListConfig
 from tensordict import TensorDict
 from isaacsim.core.simulation_manager import SimulationManager
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
@@ -6695,6 +6696,7 @@ class DoorPregrasp(
         self._a2_v24_f3_assignment_runtime = None
         self._a2_v24_f3_last_global_batch = None
         self._a2_v24_f3_last_phase = None
+        self._a2_v27_training_metrics_ready = False
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
         route_a_unsafe_contact_enabled = config.get(
             self.A2_V23_ROUTE_A_UNSAFE_CONTACT_ENABLED_CONFIG_KEY,
@@ -6943,7 +6945,7 @@ class DoorPregrasp(
         if not enabled:
             return None
         values = config.get("a2_v27_friction_bucket_static_efforts")
-        if not isinstance(values, (list, tuple)) or len(values) != 3:
+        if not isinstance(values, (list, tuple, ListConfig)) or len(values) != 3:
             raise ValueError("env.config.a2_v27_friction_bucket_static_efforts must be the three buckets [0, 2, 5]")
         resolved = tuple(float(value) for value in values)
         if resolved != (0.0, 2.0, 5.0):
@@ -6986,6 +6988,9 @@ class DoorPregrasp(
             self._a2_v27_friction_static_readback = torch.full((self.num_envs,), float("nan"), dtype=backend.dtype, device=self.device)
             self._a2_v27_friction_dynamic_readback = torch.full((self.num_envs,), float("nan"), dtype=backend.dtype, device=self.device)
             self._a2_v27_friction_viscous_readback = torch.full((self.num_envs,), float("nan"), dtype=backend.dtype, device=self.device)
+        self._a2_v27_training_metrics_ready = (
+            config is not None or self._a2_v27_friction_bucket_config is not None
+        )
 
     def _apply_a2_v27_friction_bucket(self, env_ids: torch.Tensor) -> None:
         config = self._a2_v27_friction_bucket_config
@@ -8378,6 +8383,42 @@ class DoorPregrasp(
                     self.log_dict[
                         f"a2_v26_{side_name}_stage{stage}_snapshot_sample_count"
                     ] = counts.clamp(max=self.staged_reset_max_samples_per_stage).sum().float()
+        self._log_a2_v27_training_metrics()
+
+    def _log_a2_v27_training_metrics(self) -> None:
+        if not self._a2_v27_training_metrics_ready or self.is_evaluating:
+            return
+        if self._a2_v27_recovery_config is not None:
+            bank = self._a2_v27_bank
+            zero = self._a2_v27_recovery_used.new_zeros((), dtype=torch.float32)
+            for index, (side, sign) in enumerate((("left", 1.0), ("right", -1.0))):
+                for label, key in (
+                    ("raw_capture", "raw_capture_count_by_side"),
+                    ("promotion", "promotion_count_by_side"),
+                    ("eligible_reset", "eligible_reset_count_by_side"),
+                    ("reset", "reset_count_by_side"),
+                ):
+                    self.log_dict[f"a2_v27_bank_{label}_{side}"] = (
+                        zero if bank is None else bank[key][index].float()
+                    )
+                self.log_dict[f"a2_v27_bank_available_{side}"] = (
+                    zero if bank is None else bank["available"][:, self.door_open_lr == sign].sum().float()
+                )
+        if self._a2_v27_friction_bucket_config is not None:
+            initialized = self._a2_v27_friction_bucket_index >= 0
+            self.log_dict["a2_v27_friction_initialized_env_count"] = initialized.sum().float()
+            if initialized.any():
+                for label, values in (
+                    ("static", self._a2_v27_friction_static_readback),
+                    ("dynamic", self._a2_v27_friction_dynamic_readback),
+                    ("viscous", self._a2_v27_friction_viscous_readback),
+                ):
+                    self.log_dict[f"a2_v27_friction_{label}_readback_min"] = values[initialized].min()
+                    self.log_dict[f"a2_v27_friction_{label}_readback_max"] = values[initialized].max()
+                for static in (0, 2, 5):
+                    self.log_dict[f"a2_v27_friction_static_{static}_env_count"] = (
+                        self._a2_v27_friction_static_readback[initialized] == static
+                    ).sum().float()
 
     def _register_a2_v20_staged_reset_buffers(self) -> None:
         """Register all v20 event/reference state that affects reward or termination."""
@@ -14282,9 +14323,10 @@ class DoorPregrasp(
         if not torch.all(torch.isfinite(actions)):
             raise RuntimeError("v27 perturbation received non-finite actions")
         opening = (self.stage_buf == self.STAGE_OPEN) | (self.stage_buf == self.STAGE_SWING)
-        # Keep the release predicate explicit; this branch is entered before the
-        # action reaches the A2 primitive decoder.
-        eligible = self._a2_v27_k5_ever & opening & ~self._a2_root_x_ever_crossed & ~self._a2_stage4_release_gate & ~self._a2_v27_perturb_started
+        # Perturbation follows the pilot trigger condition before the action
+        # reaches the A2 primitive decoder; release-latch exclusion belongs
+        # only to the actual recovery transition.
+        eligible = self._a2_v27_k5_ever & opening & ~self._a2_root_x_ever_crossed & ~self._a2_v27_perturb_started
         first_eligible = eligible
         self._a2_v27_perturb_started[first_eligible] = True
         if self.is_evaluating:
@@ -14353,7 +14395,13 @@ class DoorPregrasp(
         within_window = self._a2_v27_recovery_active & (
             self.episode_length_buf - self._a2_v27_recovery_start_step <= config["window_steps"]
         )
-        regrasped = within_window & (self.stage_buf == self.STAGE_OPEN) & hold_ok
+        stage2_k5 = self._get_a2_stage2_grasp_completion_masks()["completion"]
+        stage34_k5 = opening & hold_ok
+        regrasped = (
+            within_window
+            & self._a2_v27_loss_event
+            & (stage2_k5 | stage34_k5)
+        )
         self._a2_v27_regrasp_success |= regrasped
         expired = self._a2_v27_recovery_active & ~within_window & ~self._a2_v27_regrasp_success
         self._a2_v27_recovery_active[expired] = False
@@ -14383,24 +14431,18 @@ class DoorPregrasp(
                 "count": torch.zeros(self.num_envs, dtype=torch.long, device=self.device),
                 "highwater": torch.zeros((capacity, self.num_envs), dtype=torch.long, device=self.device),
                 "recovery_used": torch.zeros((capacity, self.num_envs), dtype=torch.bool, device=self.device),
-                "capture_count_by_side": torch.zeros(2, dtype=torch.long, device=self.device),
+                "pending": torch.zeros((capacity, self.num_envs), dtype=torch.bool, device=self.device),
+                "available": torch.zeros((capacity, self.num_envs), dtype=torch.bool, device=self.device),
+                "raw_capture_count_by_side": torch.zeros(2, dtype=torch.long, device=self.device),
+                "promotion_count_by_side": torch.zeros(2, dtype=torch.long, device=self.device),
+                "eligible_reset_count_by_side": torch.zeros(2, dtype=torch.long, device=self.device),
+                "reset_count_by_side": torch.zeros(2, dtype=torch.long, device=self.device),
                 "cases": cases,
             }
         bank = self._a2_v27_bank
-        left_env_ids = env_ids[self.door_open_lr[env_ids] == 1.0]
-        right_env_ids = env_ids[self.door_open_lr[env_ids] == -1.0]
-        left_count = int(bank["capture_count_by_side"][0].item())
-        right_count = int(bank["capture_count_by_side"][1].item())
-        if left_count == right_count:
-            pair_count = min(left_env_ids.numel(), right_env_ids.numel())
-            env_ids = torch.cat((left_env_ids[:pair_count], right_env_ids[:pair_count]))
-        elif left_count < right_count:
-            env_ids = left_env_ids[: min(right_count - left_count, left_env_ids.numel())]
-        else:
-            env_ids = right_env_ids[: min(left_count - right_count, right_env_ids.numel())]
-        if env_ids.numel() == 0:
-            return
         slots = bank["count"][env_ids] % capacity
+        bank["available"][slots, env_ids] = False
+        bank["pending"][slots, env_ids] = True
         for name, state_case in self.staged_reset_buf.items():
             entry = bank["cases"][name]
             if state_case["type"] == "buffer":
@@ -14416,18 +14458,37 @@ class DoorPregrasp(
                         entry["dof_state"][slots, env_ids, :, 1] = state_case["obj"].data.joint_vel[env_ids].clone()
         bank["highwater"][slots, env_ids] = self._a2_v27_recovery_highwater[env_ids]
         bank["recovery_used"][slots, env_ids] = self._a2_v27_recovery_used[env_ids]
-        bank["capture_count_by_side"][0] += (self.door_open_lr[env_ids] == 1.0).sum()
-        bank["capture_count_by_side"][1] += (self.door_open_lr[env_ids] == -1.0).sum()
+        bank["raw_capture_count_by_side"][0] += (self.door_open_lr[env_ids] == 1.0).sum()
+        bank["raw_capture_count_by_side"][1] += (self.door_open_lr[env_ids] == -1.0).sum()
         bank["count"][env_ids] += 1
+        left_pending = bank["pending"][:, self.door_open_lr == 1.0].nonzero(as_tuple=False)
+        right_pending = bank["pending"][:, self.door_open_lr == -1.0].nonzero(as_tuple=False)
+        promote_count = min(left_pending.shape[0], right_pending.shape[0])
+        if promote_count > 0:
+            left_env_ids = (self.door_open_lr == 1.0).nonzero(as_tuple=False).flatten()
+            right_env_ids = (self.door_open_lr == -1.0).nonzero(as_tuple=False).flatten()
+            left_slots = left_pending[:promote_count, 0]
+            right_slots = right_pending[:promote_count, 0]
+            left_selected_env_ids = left_env_ids[left_pending[:promote_count, 1]]
+            right_selected_env_ids = right_env_ids[right_pending[:promote_count, 1]]
+            bank["pending"][left_slots, left_selected_env_ids] = False
+            bank["pending"][right_slots, right_selected_env_ids] = False
+            bank["available"][left_slots, left_selected_env_ids] = True
+            bank["available"][right_slots, right_selected_env_ids] = True
+            bank["promotion_count_by_side"] += promote_count
 
     def _restore_a2_v27_recovery_bank(self, env_ids: torch.Tensor) -> None:
         bank = self._a2_v27_bank
         if bank is None or env_ids.numel() == 0:
             return
-        count = bank["count"][env_ids].clamp(max=self.staged_reset_max_samples_per_stage)
+        available = bank["available"][:, env_ids].T
+        count = available.sum(dim=1, dtype=torch.long)
         if torch.any(count <= 0):
             raise RuntimeError("v27 recovery bank reset selected an empty bank entry")
-        slots = torch.floor(torch.rand(env_ids.numel(), device=self.device) * count.float()).to(torch.long)
+        ranks = torch.floor(torch.rand(env_ids.numel(), device=self.device) * count.float()).to(torch.long)
+        slots = torch.argmax(
+            (available.cumsum(dim=1) > ranks[:, None]).to(torch.long), dim=1
+        )
         self.set_to_stage(env_ids, torch.full_like(env_ids, self.STAGE_GRASP))
         root_states = {}
         dof_states = {}
@@ -14456,6 +14517,8 @@ class DoorPregrasp(
         self._a2_v27_recovery_active[env_ids] = True
         self._a2_v27_recovery_start_step[env_ids] = self.episode_length_buf[env_ids]
         self._a2_v27_bank_reset_used[env_ids] = True
+        for side_index, side_sign in enumerate((1.0, -1.0)):
+            bank["reset_count_by_side"][side_index] += (self.door_open_lr[env_ids] == side_sign).sum()
         self._a2_v27_bank_reset_slot[env_ids] = slots
         self._a2_v27_bank_reset_snapshot_count[env_ids] = count
         if root_states:
@@ -20088,11 +20151,18 @@ class DoorPregrasp(
                 for value in friction_readback
             ):
                 raise RuntimeError("v27 terminal friction telemetry requires native readback")
-        capture_counts = (
-            self._a2_v27_bank["capture_count_by_side"].detach().cpu().tolist()
-            if self._a2_v27_bank is not None
-            else None
-        )
+        bank_counts = None
+        if self._a2_v27_bank is not None:
+            bank_counts = {
+                "raw_capture_by_side": self._a2_v27_bank["raw_capture_count_by_side"].detach().cpu().tolist(),
+                "promotion_by_side": self._a2_v27_bank["promotion_count_by_side"].detach().cpu().tolist(),
+                "eligible_reset_by_side": self._a2_v27_bank["eligible_reset_count_by_side"].detach().cpu().tolist(),
+                "reset_by_side": self._a2_v27_bank["reset_count_by_side"].detach().cpu().tolist(),
+                "active_available_by_side": [
+                    int(self._a2_v27_bank["available"][:, self.door_open_lr == 1.0].sum().item()),
+                    int(self._a2_v27_bank["available"][:, self.door_open_lr == -1.0].sum().item()),
+                ],
+            }
         records = []
         for env_id in env_ids.tolist():
             records.append(
@@ -20115,7 +20185,7 @@ class DoorPregrasp(
                         "bank_reset_side": "LEFT" if float(self.door_open_lr[env_id].item()) == 1.0 else "RIGHT",
                         "bank_reset_snapshot_slot": int(self._a2_v27_bank_reset_slot[env_id].item()),
                         "bank_reset_snapshot_count": int(self._a2_v27_bank_reset_snapshot_count[env_id].item()),
-                        "bank_capture_count_by_side": capture_counts,
+                        "bank_counts": bank_counts,
                         "friction_readback": None if friction_readback is None else {
                             "static_effort": float(friction_readback[0][env_id].item()),
                             "dynamic_effort": float(friction_readback[1][env_id].item()),
@@ -28829,7 +28899,11 @@ class DoorPregrasp(
             and self._a2_v27_bank is not None
             and env_ids.numel() > 0
         ):
-            bank_valid = self._a2_v27_bank["count"][env_ids] > 0
+            bank_valid = self._a2_v27_bank["available"][:, env_ids].any(dim=0)
+            for side_index, side_sign in enumerate((1.0, -1.0)):
+                self._a2_v27_bank["eligible_reset_count_by_side"][side_index] += (
+                    bank_valid & (self.door_open_lr[env_ids] == side_sign)
+                ).sum()
             choose_bank = bank_valid & (
                 torch.rand(env_ids.numel(), device=self.device)
                 < recovery_config["bank_reset_share"]

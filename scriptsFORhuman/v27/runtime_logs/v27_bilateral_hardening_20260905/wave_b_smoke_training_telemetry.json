@@ -1,0 +1,17 @@
+{
+  "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/smoke/wave_b_R2_S41/runtime.log",
+  "iteration": 32,
+  "metrics": {
+    "a2_v27_bank_raw_capture_left": 5.0,
+    "a2_v27_bank_promotion_left": 5.0,
+    "a2_v27_bank_eligible_reset_left": 9.9062,
+    "a2_v27_bank_reset_left": 1.0,
+    "a2_v27_bank_available_left": 5.0,
+    "a2_v27_bank_raw_capture_right": 13.5312,
+    "a2_v27_bank_promotion_right": 5.0,
+    "a2_v27_bank_eligible_reset_right": 9.0,
+    "a2_v27_bank_reset_right": 2.0,
+    "a2_v27_bank_available_right": 5.0
+  },
+  "aggregation": "Trainer means across the PPO batch; cumulative counters are batch-averaged snapshots, not exact end-of-batch totals."
+}

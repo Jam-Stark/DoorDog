@@ -1,0 +1,24 @@
+{
+  "status": "FROZEN",
+  "outcome": "UNRESOLVED",
+  "endpoint_step": 1500,
+  "available_endpoints": {
+    "R0_S41": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R0_S41/model_step_001500.pt",
+      "checkpoint_sha256": "4fcabe3ed52ecf23da2e34efeffc5757110cfbbae4c8089485d80e31e666833c",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R0_S41/v27_process_evidence.json"
+    },
+    "R2_S41": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R2_S41/model_step_001500.pt",
+      "checkpoint_sha256": "6ad826fad4e1bc0d1d63549c159391cf995c56a398d4288e8d2ddc60aa244011",
+      "process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R2_S41/v27_process_evidence.json"
+    }
+  },
+  "missing_endpoints": {
+    "R1_S41": "STOPPED644 after reader false INVALID; no restart"
+  },
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_r/step1500/reducer.json",
+  "frozen_at": "2026-09-06T20:38:02.792070+00:00",
+  "claim": "Registered Q_R unresolved without R1 endpoint; available R2 injected ITT regrasp5/2 and recovered_clean0/1 do not meet its pilot acceptance counts.",
+  "wave_c_blocked": false
+}

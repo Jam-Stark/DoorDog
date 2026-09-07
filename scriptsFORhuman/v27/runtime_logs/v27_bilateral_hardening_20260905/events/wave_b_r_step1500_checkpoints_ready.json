@@ -1,0 +1,9 @@
+{
+  "created_at": "2026-09-06T19:39:13.880372+00:00",
+  "kind": "CHECKPOINTS_READY",
+  "cells": [
+    "R0_S41",
+    "R2_S41"
+  ],
+  "step": 1500
+}

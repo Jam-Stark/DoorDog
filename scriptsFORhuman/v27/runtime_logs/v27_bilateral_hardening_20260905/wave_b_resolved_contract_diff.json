@@ -1,0 +1,310 @@
+{
+  "reference": "Wave A C_S21 resolved config",
+  "differences": {
+    "L0_S31": {
+      "checkpoint": {
+        "wave_a_control": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+        "wave_b": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/model_step_003000.pt"
+      },
+      "env.config.a2_v26_side_permutation_seed": {
+        "wave_a_control": 21,
+        "wave_b": 31
+      },
+      "env.config.experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_L0_S31"
+      },
+      "experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_L0_S31"
+      },
+      "seed": {
+        "wave_a_control": 21,
+        "wave_b": 31
+      },
+      "v26_cell": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_L0_S31"
+      }
+    },
+    "L1_S31": {
+      "checkpoint": {
+        "wave_a_control": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+        "wave_b": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/model_step_003000.pt"
+      },
+      "env.config.a2_v24_friction_dynamic_effort": {
+        "wave_a_control": null,
+        "wave_b": 0.0
+      },
+      "env.config.a2_v24_friction_enabled": {
+        "wave_a_control": false,
+        "wave_b": true
+      },
+      "env.config.a2_v24_friction_static_effort": {
+        "wave_a_control": null,
+        "wave_b": 0.0
+      },
+      "env.config.a2_v24_friction_viscous_coefficient": {
+        "wave_a_control": null,
+        "wave_b": 0.0
+      },
+      "env.config.a2_v26_door_weight_range": {
+        "wave_a_control": [
+          80.0,
+          120.0
+        ],
+        "wave_b": [
+          80.0,
+          160.0
+        ]
+      },
+      "env.config.a2_v26_side_permutation_seed": {
+        "wave_a_control": 21,
+        "wave_b": 31
+      },
+      "env.config.a2_v27_friction_bucket_enabled": {
+        "wave_a_control": null,
+        "wave_b": true
+      },
+      "env.config.a2_v27_friction_bucket_static_efforts": {
+        "wave_a_control": null,
+        "wave_b": [
+          0.0,
+          2.0,
+          5.0
+        ]
+      },
+      "env.config.experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_L1_S31"
+      },
+      "experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_L1_S31"
+      },
+      "seed": {
+        "wave_a_control": 21,
+        "wave_b": 31
+      },
+      "v26_cell": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_L1_S31"
+      }
+    },
+    "L1_S32": {
+      "checkpoint": {
+        "wave_a_control": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/inputs/C_S2/model_step_003000.pt",
+        "wave_b": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/model_step_003000.pt"
+      },
+      "env.config.a2_v24_friction_dynamic_effort": {
+        "wave_a_control": null,
+        "wave_b": 0.0
+      },
+      "env.config.a2_v24_friction_enabled": {
+        "wave_a_control": false,
+        "wave_b": true
+      },
+      "env.config.a2_v24_friction_static_effort": {
+        "wave_a_control": null,
+        "wave_b": 0.0
+      },
+      "env.config.a2_v24_friction_viscous_coefficient": {
+        "wave_a_control": null,
+        "wave_b": 0.0
+      },
+      "env.config.a2_v26_door_weight_range": {
+        "wave_a_control": [
+          80.0,
+          120.0
+        ],
+        "wave_b": [
+          80.0,
+          160.0
+        ]
+      },
+      "env.config.a2_v26_side_permutation_seed": {
+        "wave_a_control": 21,
+        "wave_b": 32
+      },
+      "env.config.a2_v27_friction_bucket_enabled": {
+        "wave_a_control": null,
+        "wave_b": true
+      },
+      "env.config.a2_v27_friction_bucket_static_efforts": {
+        "wave_a_control": null,
+        "wave_b": [
+          0.0,
+          2.0,
+          5.0
+        ]
+      },
+      "env.config.experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_L1_S32"
+      },
+      "experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_L1_S32"
+      },
+      "seed": {
+        "wave_a_control": 21,
+        "wave_b": 32
+      },
+      "v26_cell": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_L1_S32"
+      }
+    },
+    "R0_S41": {
+      "algo.trl.num_total_batches": {
+        "wave_a_control": 3000,
+        "wave_b": 1500
+      },
+      "env.config.a2_v26_side_permutation_seed": {
+        "wave_a_control": 21,
+        "wave_b": 41
+      },
+      "env.config.a2_v27_perturb_prob": {
+        "wave_a_control": null,
+        "wave_b": 0.2
+      },
+      "env.config.a2_v27_perturb_steps": {
+        "wave_a_control": null,
+        "wave_b": 4
+      },
+      "env.config.a2_v27_recovery_bank_reset_share": {
+        "wave_a_control": null,
+        "wave_b": 0.0
+      },
+      "env.config.a2_v27_recovery_enabled": {
+        "wave_a_control": null,
+        "wave_b": false
+      },
+      "env.config.a2_v27_recovery_loss_steps": {
+        "wave_a_control": null,
+        "wave_b": 10
+      },
+      "env.config.a2_v27_recovery_window_steps": {
+        "wave_a_control": null,
+        "wave_b": 300
+      },
+      "env.config.experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_R0_S41"
+      },
+      "experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_R0_S41"
+      },
+      "seed": {
+        "wave_a_control": 21,
+        "wave_b": 41
+      },
+      "v26_cell": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_R0_S41"
+      }
+    },
+    "R1_S41": {
+      "algo.trl.num_total_batches": {
+        "wave_a_control": 3000,
+        "wave_b": 1500
+      },
+      "env.config.a2_v26_side_permutation_seed": {
+        "wave_a_control": 21,
+        "wave_b": 41
+      },
+      "env.config.a2_v27_perturb_prob": {
+        "wave_a_control": null,
+        "wave_b": 0.2
+      },
+      "env.config.a2_v27_perturb_steps": {
+        "wave_a_control": null,
+        "wave_b": 4
+      },
+      "env.config.a2_v27_recovery_bank_reset_share": {
+        "wave_a_control": null,
+        "wave_b": 0.0
+      },
+      "env.config.a2_v27_recovery_enabled": {
+        "wave_a_control": null,
+        "wave_b": true
+      },
+      "env.config.a2_v27_recovery_loss_steps": {
+        "wave_a_control": null,
+        "wave_b": 10
+      },
+      "env.config.a2_v27_recovery_window_steps": {
+        "wave_a_control": null,
+        "wave_b": 300
+      },
+      "env.config.experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_R1_S41"
+      },
+      "experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_R1_S41"
+      },
+      "seed": {
+        "wave_a_control": 21,
+        "wave_b": 41
+      },
+      "v26_cell": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_R1_S41"
+      }
+    },
+    "R2_S41": {
+      "algo.trl.num_total_batches": {
+        "wave_a_control": 3000,
+        "wave_b": 1500
+      },
+      "env.config.a2_v26_side_permutation_seed": {
+        "wave_a_control": 21,
+        "wave_b": 41
+      },
+      "env.config.a2_v27_perturb_prob": {
+        "wave_a_control": null,
+        "wave_b": 0.2
+      },
+      "env.config.a2_v27_perturb_steps": {
+        "wave_a_control": null,
+        "wave_b": 4
+      },
+      "env.config.a2_v27_recovery_bank_reset_share": {
+        "wave_a_control": null,
+        "wave_b": 0.2
+      },
+      "env.config.a2_v27_recovery_enabled": {
+        "wave_a_control": null,
+        "wave_b": true
+      },
+      "env.config.a2_v27_recovery_loss_steps": {
+        "wave_a_control": null,
+        "wave_b": 10
+      },
+      "env.config.a2_v27_recovery_window_steps": {
+        "wave_a_control": null,
+        "wave_b": 300
+      },
+      "env.config.experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_R2_S41"
+      },
+      "experiment_name": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_R2_S41"
+      },
+      "seed": {
+        "wave_a_control": 21,
+        "wave_b": 41
+      },
+      "v26_cell": {
+        "wave_a_control": "V27_C_S21",
+        "wave_b": "V27_R2_S41"
+      }
+    }
+  },
+  "assessment": "STATIC_PASS: only registered source/seed/metadata, L1 domain, R recovery/perturbation and budget changes."
+}

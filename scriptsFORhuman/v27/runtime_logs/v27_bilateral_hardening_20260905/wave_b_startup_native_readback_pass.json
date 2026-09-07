@@ -1,0 +1,7 @@
+{
+  "status": "STARTUP_PASS",
+  "source_observation": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_startup_after_parser_repair.json",
+  "all_six_policy_loaded": true,
+  "L1_native_buckets_observed": true,
+  "first_attempts_preserved": true
+}

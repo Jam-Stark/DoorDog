@@ -1,0 +1,21 @@
+{
+  "status": "FROZEN",
+  "Q_B": "DOMAIN_NOT_CONVERGED",
+  "RECIPE_B": "current",
+  "RECIPE_A": "C",
+  "CARRIER_A": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21/model_step_003000.pt",
+  "Q_R": "UNRESOLVED",
+  "domain_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step3000/reducer.json",
+  "recovery_decision": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_recovery_decision.json",
+  "endpoint_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_domain_endpoint_lock.json",
+  "frozen_at": "2026-09-07T07:24:28.476809+00:00",
+  "route_authority": "plan §5.1 / §9.4",
+  "RECIPE_C": {
+    "base": "base_v26_7_common",
+    "quality_overlay": "C",
+    "domain": "current",
+    "checkpoint": null,
+    "recovery": false
+  },
+  "binding_changed": false
+}

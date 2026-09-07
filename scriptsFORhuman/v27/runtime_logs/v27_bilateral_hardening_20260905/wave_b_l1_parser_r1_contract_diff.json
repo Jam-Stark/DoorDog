@@ -1,0 +1,49 @@
+{
+  "status": "PRE_POLICY_REPAIR",
+  "from": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/source_lock_wave_b.json",
+  "to": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/source_lock_wave_b_l1_parser_r1.json",
+  "source_changes": {
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "before": "49788f16ecd613316f41cb556a12cd9567008042e741e208019a7f52d7677aa4",
+      "after": "d9f0db87a9d500938623e24d94627636d35711c09dddbe20df985bb5ec199466"
+    },
+    "gr00t/rl/tests/test_a2_v27_friction.py": {
+      "before": "b1a60a9f54fea91149b8496ee5fd0f039873197284129c23ad9cdb57b746dd4c",
+      "after": "0491a8f8abb91f8d46c40bf2e1cf3056feb2f4c18e158f304843dc09be96ec53"
+    },
+    "scriptsFORhuman/v27/v27_orchestrate.py": {
+      "before": "a927917fe40424712be8856ef902ee2859c68877e591567c69532a9f1ecc5166",
+      "after": "bf52917d648e264a59bbf184459f4d1b3b354481d6c6ef0531310e7f2ed80aa3"
+    },
+    "scriptsFORhuman/v27/v27_readout.py": {
+      "before": "40bb756f641df60aca3b245b3ab7a4c3d62f1180e370c58ee0bdf971e53b4cf7",
+      "after": "ec072b3ccc9ed93622eb6b679c6b6b625264aba02b1640ba819055415e0a7e20"
+    }
+  },
+  "experimental_contract_diff": {},
+  "resolved_wave_b_contract_unchanged": true,
+  "restarts": {
+    "L1_S31": {
+      "first_process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S31/v27_process_evidence.json",
+      "first_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_l1_s31/RUN_RECEIPT.json",
+      "new_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S31_r1",
+      "restart_index": 1,
+      "pre_policy": true
+    },
+    "L1_S32": {
+      "first_process_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S32/v27_process_evidence.json",
+      "first_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_l1_s32/RUN_RECEIPT.json",
+      "new_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S32_r1",
+      "restart_index": 1,
+      "pre_policy": true
+    }
+  },
+  "test": "3 passed; includes actual OmegaConf ListConfig reproduction",
+  "unaffected_running_cells": [
+    "L0_S31",
+    "R0_S41",
+    "R1_S41",
+    "R2_S41"
+  ],
+  "reason": "L1 type parser rejected OmegaConf ListConfig before actor load; values/seeds/checkpoints/budgets unchanged. Readout and stop handling now use the registered active root."
+}

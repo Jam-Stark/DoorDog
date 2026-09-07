@@ -1,5 +1,10 @@
 # DONE
 
+- 2026-09-06 — Wave A归档提交1fa2b1e；Wave B接线通过并已启动六格。
+  R2 32-batch smoke实际走过bank capture/promotion/reset；P02/P05 native readback均匹配。
+  L1首轮ListConfig解析失败在actor加载前，保持实验合同不变于新root各重启一次，原失败保留。
+  两个L1训练root均已观测到4096 env和0/2/5 native摩擦桶；六格均已strict actor/RMS加载。
+
 - 2026-09-06 — Wave A六格各3000 batches全部PASS/0；六个milestones共4608 episodes，exact64/侧、integrity0。
   endpoint `QUALITY_UNRESOLVED`，冻结 `RECIPE_A=C`、`CARRIER_A=C_S21 step3000`；没有中途checkpoint替换。
   LEFT/RIGHT clean分别为C_S21 51/41、C_S22 0/39、Q1_S21 5/40、Q1_S22 17/20、Q2_S21 18/21、Q2_S22 16/39。
@@ -16,3 +21,5 @@
   三个历史候选已复制至新 v27 inputs，原 checkpoint/config 与副本摘要一致。
   Wave A 六格实际 CPU resolved config 为 STATIC_PASS；C 相对历史 source 的行为参数无漂移，
   Q1/Q2 的差异限定于登记的 G5 overlay。尚未运行正式训练或评估。
+
+- 2026-09-07：Wave B两endpoint冻结；Q_B=DOMAIN_NOT_CONVERGED、RECIPE_B=current、Q_R=UNRESOLVED。固定shadow estimator已完成一次，输出与证据路径见runtime shadow_estimator_cpu_evidence.json。

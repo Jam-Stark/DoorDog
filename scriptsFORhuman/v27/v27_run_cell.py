@@ -15,6 +15,7 @@ from v27_contract import (ROOT, PYTHON, PLAN, RUNTIME, PROXY_KEYS, cell_contract
 
 LOAD_LINE = "Loaded policy-only checkpoint actor from key 'policy_state_dict'; actor_rms_loaded=True"
 ITERATION = re.compile(r"Learning iteration\s+(\d+)")
+SMOKE_BATCHES = {"A": 5, "B": 32, "C": 5}
 WORKFLOW_KEYS = {"timestamp", "experiment_dir", "save_dir", "output_dir",
                  "callbacks.model_save.save_dir", "callbacks.autoresume.save_dir", "wandb.wandb_dir"}
 
@@ -87,7 +88,8 @@ def train_command(cell, output, smoke=False):
               f"output_dir={output}/output", "project_name=base_v27_bilateral_hardening",
               f"experiment_name=V27_{cell}"]
     if smoke:
-        common += ["num_envs=64", "algo.trl.num_total_batches=5", "callbacks.model_save.save_frequency=5"]
+        batches = SMOKE_BATCHES[cell_contract(cell)["wave"]]
+        common += ["num_envs=64", f"algo.trl.num_total_batches={batches}", f"callbacks.model_save.save_frequency={batches}"]
     return [PYTHON, "-B", "-m", "gr00t.rl.train_agent_trl", *common]
 
 
@@ -107,11 +109,12 @@ def train(args):
     compared = {key: value for key, value in expected["resolved_contract"].items()
                 if key not in WORKFLOW_KEYS}
     if args.smoke:
-        compared.update({"num_envs": 64, "algo.trl.num_total_batches": 5,
+        smoke_batches = SMOKE_BATCHES[contract["wave"]]
+        compared.update({"num_envs": 64, "algo.trl.num_total_batches": smoke_batches,
                          "env.config.num_envs": 64,
                          "env.config.simulator.config.scene.num_envs": 64,
                          "simulator.config.scene.num_envs": 64,
-                         "callbacks.model_save.save_frequency": 5})
+                         "callbacks.model_save.save_frequency": smoke_batches})
     differences = {key: {"expected": value, "actual": flat.get(key)} for key, value in compared.items()
                    if flat.get(key) != value}
     write_json(args.output / "resolved_contract_check.json", {"status": "PASS" if not differences else "V27_INVALID",
@@ -121,8 +124,8 @@ def train(args):
     if source:
         source = str((ROOT / source).resolve())
         require(digest(source) == expected["checkpoint_sha256"], "source checkpoint lock mismatch")
-    budget = 5 if args.smoke else contract["batches"]
-    steps = [5] if args.smoke else range(250, budget + 1, 250)
+    budget = SMOKE_BATCHES[contract["wave"]] if args.smoke else contract["batches"]
+    steps = [budget] if args.smoke else range(250, budget + 1, 250)
     expected_files = [args.output / f"model_step_{step:06d}.pt" for step in steps]
     expected_files.append(args.output / "config.yaml")
     return capture(command, args.output, args.gpu, mode="train", expected_files=expected_files, source=source)

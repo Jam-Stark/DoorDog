@@ -64,7 +64,7 @@ never select GPU4–7.
 
 ## Memory routing
 
-### Verified base_v27 entrypoints (2026-09-05)
+### Verified base_v27 entrypoints (2026-09-06)
 
 `bash scriptsFORhuman/v27/v27_orchestrate.sh` 的 `smoke-launch --wave A`、
 `train-launch --wave A`、`q0-dev-launch`、`q0-render-launch` 与 `eval-finalize --manifest ...`
@@ -72,7 +72,11 @@ never select GPU4–7.
 每个 Isaac 进程只暴露其物理 GPU，并使用进程内 `cuda:0`。GPU2–7 训练、GPU0/1 评估；
 当前六项 proxy env 显式进入 receipt command。具体 paths/合同从 `v27_contract.py` 与对应 runtime
 source/config lock 读取。v27.0 终态是 NO_QUALIFIED_CANDIDATE，不能据此更新 Teacher/G7。
-这记录已验证命令，不向其他任务授予 GPU 或实验预算。Wave B/C 启用路径尚未完成 runtime 证明。
+Wave A endpoint已冻结QUALITY_UNRESOLVED与RECIPE_A=C。`smoke-launch --wave B` 的64-env/32-batch
+R2路径、P02/P05固定摩擦probe与注入评估已完成runtime证明；`train-launch --wave B` 六格均已进入训练。
+L1首次ListConfig解析失败发生于actor加载前，按新root修复；实际root由runtime `active_attempts.json`
+路由。L1原生0/2/5摩擦桶已在训练日志中观测到。Wave C尚未启动。
+这记录已验证命令，不向其他任务授予GPU或实验预算。
 
 For non-trivial implementation、debugging、review 或 stage planning, read only the minimum relevant route:
 

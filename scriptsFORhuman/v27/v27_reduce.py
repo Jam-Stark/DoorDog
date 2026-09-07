@@ -41,50 +41,12 @@ def load_json(path: Path) -> Any:
 
 
 def iter_json_array(path: Path):
-    """Yield a JSON array without materializing an exact-N step trace."""
-    decoder = json.JSONDecoder()
-    buffer = ""
-    started = False
-    finished = False
+    """Yield rows from one valid JSON array using the standard decoder."""
+    require(path.is_file(), f"trace array: {path}")
     with path.open(encoding="utf-8") as handle:
-        while not finished:
-            chunk = handle.read(1 << 20)
-            if chunk:
-                buffer += chunk
-            elif not buffer.strip():
-                break
-            while True:
-                buffer = buffer.lstrip()
-                if not started:
-                    if not buffer:
-                        break
-                    require(buffer.startswith("["), f"trace array: {path}")
-                    started = True
-                    buffer = buffer[1:]
-                    continue
-                if not buffer:
-                    break
-                if buffer.startswith("]"):
-                    finished = True
-                    buffer = buffer[1:].strip()
-                    require(not buffer or not chunk, f"trailing trace payload: {path}")
-                    break
-                try:
-                    value, offset = decoder.raw_decode(buffer)
-                except json.JSONDecodeError:
-                    require(bool(chunk), f"invalid trace JSON: {path}")
-                    break
-                yield value
-                buffer = buffer[offset:].lstrip()
-                if buffer.startswith(","):
-                    buffer = buffer[1:]
-                elif buffer.startswith("]"):
-                    continue
-                elif buffer:
-                    raise ReducerError(f"trace delimiter: {path}")
-            if not chunk:
-                break
-    require(started and finished, f"incomplete trace array: {path}")
+        rows = json.load(handle)
+    require(isinstance(rows, list), f"trace array: {path}")
+    yield from rows
 
 
 def trace_reach_counts(path: Path, expected_n: int) -> dict[str, Any]:

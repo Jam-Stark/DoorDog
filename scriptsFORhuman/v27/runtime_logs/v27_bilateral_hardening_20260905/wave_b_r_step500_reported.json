@@ -1,0 +1,8 @@
+{
+  "status": "REPORTED_TO_OWNER",
+  "reported_at": "2026-09-06T14:21:37.521051+00:00",
+  "readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/a2_piper_base_v27_wave_b_r_step500_readout_20260906.md",
+  "corrected_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_r/step500_cpu_reader_corrected/reducer.json",
+  "R1_status": "STOPPED644",
+  "policy_or_eval_rerun": false
+}

@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "lanes": [
+    {
+      "index": 1,
+      "cell": "R2_S41",
+      "stratum": "injected",
+      "side": "right",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_smoke_injected/R2_S41/injected/right"
+    }
+  ]
+}

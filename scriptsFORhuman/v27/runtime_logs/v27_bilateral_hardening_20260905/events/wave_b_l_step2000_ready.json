@@ -1,0 +1,7 @@
+{
+  "created_at": "2026-09-07T00:02:23.290714+00:00",
+  "kind": "MILESTONE_REDUCED",
+  "reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_l/step2000/reducer.json",
+  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_b_l/step2000.json",
+  "returncode": 0
+}

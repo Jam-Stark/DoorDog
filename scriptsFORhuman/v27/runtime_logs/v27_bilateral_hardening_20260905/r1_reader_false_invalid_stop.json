@@ -1,0 +1,23 @@
+{
+  "status": "STOPPED",
+  "cell": "R1_S41",
+  "stopped_at_iteration": 644,
+  "reason": "Reducer false INVALID from valid trace split exactly between object and comma at 1MiB chunk boundary",
+  "source_reducer": "logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_b_r/step500/reducer.json",
+  "training_isaac_process_returncode": 0,
+  "training_wrapper_returncode": 1,
+  "missing_endpoints": [
+    750,
+    1000,
+    1250,
+    1500
+  ],
+  "standard_library_trace_validation": {
+    "status": "PASS",
+    "bytes": 706502006,
+    "rows": 32774,
+    "boundary_chunk_index": 311
+  },
+  "policy_restart_authorized": false,
+  "recorded_at": "2026-09-06T14:04:24.487323+00:00"
+}

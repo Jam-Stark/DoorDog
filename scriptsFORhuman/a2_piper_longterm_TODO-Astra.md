@@ -12,7 +12,7 @@
 4. 后续方向：action-conditioned history 估计有效交互状态，调整开门/持门/恢复策略。保持 force-aware 的物理问题意识，放弃用未经校准的容量代理证明“可行/不可行”。
 5. coupling critic、branch PPO、body-assist 均有前置证据条件，不在 v27 主实现。
 
-路线依据及一手文献：[Astra novelty 判断](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/a2_piper_novelty_route_20260905-Astra.md)。推拉合一、门属性估计、retry 本身已有先例，不能单独列成原创贡献。
+路线依据及一手文献：[Astra novelty 判断](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/novelty/documents/a2_piper_novelty_route_20260905-Astra.md)。推拉合一、门属性估计、retry 本身已有先例，不能单独列成原创贡献。
 
 ## B. worktree 分工
 

@@ -8,7 +8,7 @@
 
 本阶段不修改 v26-7/v26-8 脚本、artifact、奖励函数、历史裁定。以下新门槛和 v27 overlay 是前瞻性设计；不追溯改变 K_REGRESSED，不把 v26 未准入 Wave 2 改称已授权补跑。Git commit/push、Teacher/G7 更新和硬件均需单独授权。
 
-科学路线与文献边界见[novelty 判断](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/a2_piper_novelty_route_20260905-Astra.md)，长期队列见[TODO-Astra](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/a2_piper_longterm_TODO-Astra.md)。
+科学路线与文献边界见[novelty 判断](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/novelty/documents/a2_piper_novelty_route_20260905-Astra.md)，长期队列见[TODO-Astra](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/a2_piper_longterm_TODO-Astra.md)。
 
 ## 1. 固定事实与研究输入
 

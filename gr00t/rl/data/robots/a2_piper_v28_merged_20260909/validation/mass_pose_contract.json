@@ -1,0 +1,36 @@
+{
+  "evidence": "COMPUTED: aggregate at zero joint coordinates, plus unchanged retained joint definitions",
+  "total_mass_kg": 45.64480826480732,
+  "mass_difference_kg": 0.0,
+  "com_difference_max_m": 1.734723475976807e-18,
+  "inertia_difference_max_kgm2": 2.7755575615628914e-17,
+  "aggregate_com_trunk_m": [
+    0.01431854016554229,
+    0.00020288964973764283,
+    0.009192786250532077
+  ],
+  "aggregate_inertia_kgm2": [
+    [
+      1.4987348589884946,
+      -0.004081417891905352,
+      -0.13373490436869756
+    ],
+    [
+      -0.004081417891905352,
+      2.8410373630503782,
+      -0.00807042853685434
+    ],
+    [
+      -0.13373490436869756,
+      -0.00807042853685434,
+      2.5049091257730494
+    ]
+  ],
+  "retained_joint_changes": [],
+  "removed_fixed_joints": [
+    "trunk_to_vpiper",
+    "vpiper_to_plate",
+    "vpiper_to_support"
+  ],
+  "mesh_references_relative": true
+}

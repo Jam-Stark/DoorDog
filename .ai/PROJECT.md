@@ -111,3 +111,10 @@ Owner chooses whether a stage uses local Claude planner、cloud GPT Pro、both i
 - Pro review document root: `scriptsFORhuman/pro_reviews`
 - Placement rule: `scriptsFORhuman/pro_reviews/<stage-or-release>/<commit-short>/`
 - Cloud conclusions do not replace local source、resolved config、IsaacLab/GPU runtime、logs or hardware evidence
+
+### Verified v28 G0 entrypoint (2026-09-12)
+
+`python3 scriptsFORhuman/v28/v28_run_cell.py contact --gpu 4 --output <fresh-output>`
+已在MERGED/H140/38.76°/j5=-0.415运行，process receipt PASS，R1/R2/R3/R5全部通过。
+证据：`scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/contact_merged_h140_r1/`。
+D37之后G0 launch门已通过；seed282冻结harness数值复现不构成随机分布校准（X24 OPEN）。追加已验证入口：`v28_run_cell.py smoke --gpu 4 --cell A_S281 --output <fresh-output>`，以及该step5完整checkpoint的LEFT/RIGHT exact64 eval；均2026-09-12 exit0。原始证据见`resume_20260911/ppo_smoke_d37_r1/`和`telemetry_eval_d37/`，只证明接线，不是Teacher质量或硬件验收。

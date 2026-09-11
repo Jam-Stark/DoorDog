@@ -1,0 +1,32 @@
+{
+  "status": "RUNTIME_STARTED",
+  "source_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/v27_frozen_eval_20260910",
+  "baseline_revision": "bbd98db",
+  "frozen_overlay_source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/source_snapshot_wave_c_ready_eval_20260909.json",
+  "code_isolation": "independent gr00t tree; evaluator cwd and PYTHONPATH both point here",
+  "training": "existing live GPU4/5 processes unchanged",
+  "eval_gpu_pool": [
+    6,
+    7
+  ],
+  "resume_manifest": "eval_manifests/wave_c/step2000/part2.json",
+  "experimental_contract_diff": {},
+  "resource_observation": "GPU0-3 reoccupied at launch, about41GB each; use currently free6/7",
+  "dependency_source": "bbd98db scriptsFORhuman copied independently",
+  "evidence": {
+    "left": {
+      "state": "RUNNING",
+      "gpu": 6,
+      "execution_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/v27_frozen_eval_20260910",
+      "policy_execution_started": true,
+      "path": "logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part2_r1/SC_S201/nominal/left/v27_process_evidence.json"
+    },
+    "right": {
+      "state": "RUNNING",
+      "gpu": 7,
+      "execution_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/v27_frozen_eval_20260910",
+      "policy_execution_started": true,
+      "path": "logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part2_r1/SC_S201/nominal/right/v27_process_evidence.json"
+    }
+  }
+}

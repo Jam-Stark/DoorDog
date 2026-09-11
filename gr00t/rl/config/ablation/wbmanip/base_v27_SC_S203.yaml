@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+- /ablation/wbmanip/base_v27_common
+- _self_
+v26_cell: V27_SC_S203
+seed: 203
+checkpoint: null
+algo:
+  trl:
+    num_total_batches: 6000
+env:
+  config:
+    a2_v26_side_permutation_seed: 203
+checkpoint_load_mode: full
+policy_only_load_actor_rms: false

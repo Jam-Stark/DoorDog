@@ -1,0 +1,45 @@
+{
+  "schema": "a2_piper_base_v26_8_p0_assets_v1",
+  "status": "P0_ASSETS_PASS",
+  "checked_at": "2026-09-07T07:45:51+00:00",
+  "proxy_environment": {
+    "http_proxy": "http://127.0.0.1:18889",
+    "https_proxy": "http://127.0.0.1:18889",
+    "HTTP_PROXY": "http://127.0.0.1:18889",
+    "HTTPS_PROXY": "http://127.0.0.1:18889",
+    "no_proxy": "localhost,127.0.0.1",
+    "NO_PROXY": "localhost,127.0.0.1"
+  },
+  "assets": [
+    {
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd",
+      "command": [
+        "curl",
+        "-sI",
+        "--max-time",
+        "20",
+        "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd"
+      ],
+      "curl_returncode": 0,
+      "http_status": 200,
+      "headers": "HTTP/1.1 200 Connection established\n\nHTTP/1.1 200 OK\nx-amz-id-2: LGXiEj7ykUHEMLwnQX7mbulQYtZAQ3cnAWQ6oZ2iRcnq9yY2/QQVaZdzQykjKqPfjxBUlNLCV7Y=\nx-amz-request-id: JKNJ5GX4SE03Y1K1\nDate: Mon, 07 Sep 2026 07:45:49 GMT\nLast-Modified: Tue, 14 Oct 2025 19:37:45 GMT\nETag: \"4fe2f36b4ffefb09bacff13b00e41d9c\"\nx-amz-server-side-encryption: AES256\nAccept-Ranges: bytes\nContent-Type: binary/octet-stream\nContent-Length: 13622\nServer: AmazonS3\n\n",
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/NVIDIA/Materials/Base/Wood/Ash.mdl",
+      "command": [
+        "curl",
+        "-sI",
+        "--max-time",
+        "20",
+        "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/NVIDIA/Materials/Base/Wood/Ash.mdl"
+      ],
+      "curl_returncode": 0,
+      "http_status": 200,
+      "headers": "HTTP/1.1 200 Connection established\n\nHTTP/1.1 200 OK\nx-amz-id-2: U/Py9T3ijAbxoPOXqJa+qCZuTTHkxE5OUdy472cY1e6bBVZstw0JTMEF540+6DTH7EMq4c+Xi7c=\nx-amz-request-id: KR1XBNNGAVRGAVNY\nDate: Mon, 07 Sep 2026 07:45:52 GMT\nLast-Modified: Fri, 10 Oct 2025 23:31:49 GMT\nETag: \"0166049edf1df7b26eea4c05cc2b424d\"\nx-amz-server-side-encryption: AES256\nAccept-Ranges: bytes\nContent-Type: binary/octet-stream\nContent-Length: 1488\nServer: AmazonS3\n\n",
+      "stderr": "",
+      "passed": true
+    }
+  ]
+}

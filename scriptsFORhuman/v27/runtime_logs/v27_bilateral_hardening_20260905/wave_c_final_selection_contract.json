@@ -1,0 +1,32 @@
+{
+  "status": "FROZEN_BEFORE_WAVE_C_POLICY_DATA",
+  "source_revision": "bbd98db",
+  "RECIPE_A": "C",
+  "RECIPE_B": "current",
+  "selection": "earliest registered milestone at which an SC seed passes every required stratum and both sides; tie smallest seed",
+  "milestones": [
+    1000,
+    2000,
+    3000,
+    4000,
+    5000,
+    6000
+  ],
+  "seeds": [
+    201,
+    202,
+    203
+  ],
+  "confirmation_checkpoint_step": 6000,
+  "confirmation_episodes_per_side": 128,
+  "confirmation_seed": 270303,
+  "strata": [
+    "nominal"
+  ],
+  "no_passing_seed": "NOT_RUN",
+  "missing_selected_endpoint": "NOT_RUN; no substitution",
+  "q0_final": "NOT_RUN: NO_QUALIFIED_CANDIDATE",
+  "existing_source_lock": "source_lock_wave_b_stdlib_json.json",
+  "source_changes_for_C": false,
+  "config_provenance": "wave_c_declaration.json and wave_c_contract.json exact resolved values"
+}

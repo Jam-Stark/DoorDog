@@ -1,0 +1,45 @@
+{
+  "schema": "a2_piper_base_v26_8_p0_assets_v1",
+  "status": "P0_ASSETS_PASS",
+  "checked_at": "2026-09-07T07:33:01+00:00",
+  "proxy_environment": {
+    "http_proxy": "http://127.0.0.1:18889",
+    "https_proxy": "http://127.0.0.1:18889",
+    "HTTP_PROXY": "http://127.0.0.1:18889",
+    "HTTPS_PROXY": "http://127.0.0.1:18889",
+    "no_proxy": "localhost,127.0.0.1",
+    "NO_PROXY": "localhost,127.0.0.1"
+  },
+  "assets": [
+    {
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd",
+      "command": [
+        "curl",
+        "-sI",
+        "--max-time",
+        "20",
+        "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd"
+      ],
+      "curl_returncode": 0,
+      "http_status": 200,
+      "headers": "HTTP/1.1 200 Connection established\n\nHTTP/1.1 200 OK\nx-amz-id-2: Q0s2a9mxfkyE7zLkVnH88DwQhd+M27m8CH0G9bW8QSdCawbygbdT8FMgb8iN9eJLxWnixIwP7DdplFdyUQa/jUfR4pyTBbbi\nx-amz-request-id: 5S448XGEBX0YZQBN\nServer: AmazonS3\nDate: Mon, 07 Sep 2026 07:33:01 GMT\nLast-Modified: Tue, 14 Oct 2025 19:37:45 GMT\nETag: \"4fe2f36b4ffefb09bacff13b00e41d9c\"\nx-amz-server-side-encryption: AES256\nAccept-Ranges: bytes\nContent-Length: 13622\nContent-Type: binary/octet-stream\n\n",
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/NVIDIA/Materials/Base/Wood/Ash.mdl",
+      "command": [
+        "curl",
+        "-sI",
+        "--max-time",
+        "20",
+        "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/NVIDIA/Materials/Base/Wood/Ash.mdl"
+      ],
+      "curl_returncode": 0,
+      "http_status": 200,
+      "headers": "HTTP/1.1 200 Connection established\n\nHTTP/1.1 200 OK\nx-amz-id-2: /17LZWNoj/3z4BElQsmjreIFSezD8E2NjweQRpLCEn+0Cu/1ey0MJyy2y1PevMhbdoyOq0ezbhuh6Hw15v3m44QRf1Qw39K2hU4ybkb0knc=\nx-amz-request-id: Q21BHBNB5C70XR18\nServer: AmazonS3\nDate: Mon, 07 Sep 2026 07:33:02 GMT\nLast-Modified: Fri, 10 Oct 2025 23:31:49 GMT\nETag: \"0166049edf1df7b26eea4c05cc2b424d\"\nx-amz-server-side-encryption: AES256\nAccept-Ranges: bytes\nContent-Length: 1488\nContent-Type: binary/octet-stream\n\n",
+      "stderr": "",
+      "passed": true
+    }
+  ]
+}

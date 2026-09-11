@@ -1,0 +1,568 @@
+{
+  "status": "CLEANED",
+  "removed_isolation_roots": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/v27_recovery_candidate",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/v27_json_reader_candidate",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/v27_reducer_candidate",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/v27_frozen_eval_20260910"
+  ],
+  "removed_tmux_sessions": [],
+  "v27_active_processes": [],
+  "receipts": {
+    "v27_eval_q0_render_gpu1": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_render_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_train_sc_s201_r1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sc_s201_r1/RUN_RECEIPT.json"
+    },
+    "v27_smoke_b": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_smoke_b/RUN_RECEIPT.json"
+    },
+    "v27_train_l1_s32_r1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_l1_s32_r1/RUN_RECEIPT.json"
+    },
+    "v27_watch_a": {
+      "state": "FAIL",
+      "returncode": 143,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_a/RUN_RECEIPT.json"
+    },
+    "v27_train_q2_s22": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q2_s22/RUN_RECEIPT.json"
+    },
+    "v27_train_q1_s22": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q1_s22/RUN_RECEIPT.json"
+    },
+    "v27_watch_c_isolated_r1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_c_isolated_r1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step3000_part1_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step3000_part1_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step5000_part2_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step5000_part2_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_train_q1_s21": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q1_s21/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step5000_part3_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step5000_part3_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step3000_part1_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step3000_part1_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step3000_part2_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step3000_part2_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step1500_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step1500_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_train_c_s21": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_c_s21/RUN_RECEIPT.json"
+    },
+    "v27_train_sc_s201": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sc_s201/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step1500_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step1500_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_l_step3000_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_l_step3000_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step5000_part3_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step5000_part3_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_train_l1_s32": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_l1_s32/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step4000_part2_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step4000_part2_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step1000_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step1000_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_probe_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_probe_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step6000_part3_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step6000_part3_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_train_sk_s211_r1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sk_s211_r1/RUN_RECEIPT.json"
+    },
+    "v27_train_r2_s41": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_r2_s41/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_l_step2000_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_l_step2000_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_q0_render_gpu0": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_render_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_watch_c_isolated": {
+      "state": "FAIL",
+      "returncode": 143,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_c_isolated/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_smoke_injected_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_smoke_injected_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step2000_part1_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step2000_part1_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step1000_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step1000_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step5000_part1_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step5000_part1_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_smoke_c": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_smoke_c/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step6000_part1_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step6000_part1_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_r_step1500_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_r_step1500_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step2000_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step2000_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step4000_part2_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step4000_part2_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_r_step1500_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_r_step1500_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_q0_dev_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_dev_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_r_step500_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_r_step500_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_train_sk_s213_r1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sk_s213_r1/RUN_RECEIPT.json"
+    },
+    "v27_watch_a_r2": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_a_r2/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step1000_part1_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step1000_part1_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step6000_part2_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step6000_part2_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_train_sc_s203_r1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sc_s203_r1/RUN_RECEIPT.json"
+    },
+    "v27_watch_b": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_b/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_r_step500_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_r_step500_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_watch_c": {
+      "state": "FAIL",
+      "returncode": 143,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_c/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step3000_part2_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step3000_part2_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_train_sk_s211": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sk_s211/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step2000_part1_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step2000_part1_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step1000_part2_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step1000_part2_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step5000_part2_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step5000_part2_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step500_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step500_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_train_l0_s31": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_l0_s31/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step1000_part3_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step1000_part3_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step1000_part3_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step1000_part3_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_gpu0": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_smoke_a": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_smoke_a/RUN_RECEIPT.json"
+    },
+    "v27_eval_q0_render_k_after_cpu_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_render_k_after_cpu_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_train_r1_s41": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_r1_s41/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_l_step2000_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_l_step2000_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step2500_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step2500_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step4000_part1_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step4000_part1_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_train_sk_s213": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sk_s213/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step1000_part2_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step1000_part2_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_train_l1_s31_r1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_l1_s31_r1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_l_step1000_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_l_step1000_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step2000_part3_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step2000_part3_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_eval_q0_dev_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_dev_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step2000_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step2000_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step2000_part2_gpu6": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step2000_part2_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step500_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step500_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step6000_part1_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step6000_part1_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step4000_part1_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step4000_part1_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step2000_part2_gpu7": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step2000_part2_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_train_sk_s212": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sk_s212/RUN_RECEIPT.json"
+    },
+    "v27_train_r0_s41": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_r0_s41/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step3000_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step3000_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_train_sc_s202": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sc_s202/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_smoke_injected_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_smoke_injected_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step2000_part2_r1_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step2000_part2_r1_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_train_c_s22": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_c_s22/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_probe_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_probe_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_watch_c_ready": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_watch_c_ready/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_r_step1000_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_r_step1000_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step2500_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step2500_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_gpu1": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_l_step1000_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_l_step1000_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step1000_part1_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step1000_part1_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step6000_part2_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step6000_part2_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_l_step3000_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_l_step3000_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_train_sk_s212_r1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sk_s212_r1/RUN_RECEIPT.json"
+    },
+    "v27_eval_q0_render_k_after_cpu_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_q0_render_k_after_cpu_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_b_r_step1000_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_b_r_step1000_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_r2_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_r2_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_train_l1_s31": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_l1_s31/RUN_RECEIPT.json"
+    },
+    "v27_train_sc_s203": {
+      "state": "FAIL",
+      "returncode": 1,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sc_s203/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step6000_part3_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step6000_part3_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_g0_runtime_eval_r2_gpu1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_g0_runtime_eval_r2_gpu1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_a_step3000_gpu0": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_a_step3000_gpu0/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step2000_part3_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step2000_part3_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step2000_part2_r1_gpu7": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step2000_part2_r1_gpu7/RUN_RECEIPT.json"
+    },
+    "v27_train_sc_s202_r1": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sc_s202_r1/RUN_RECEIPT.json"
+    },
+    "v27_eval_wave_c_step5000_part1_gpu6": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_eval_wave_c_step5000_part1_gpu6/RUN_RECEIPT.json"
+    },
+    "v27_train_q2_s21": {
+      "state": "PASS",
+      "returncode": 0,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_q2_s21/RUN_RECEIPT.json"
+    }
+  },
+  "retired_active_source_pointer": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/source_snapshot_wave_c_isolated_eval_20260910.json"
+  },
+  "retained": [
+    "logs_rl/base_v27 checkpoints",
+    "logs_eval/base_v27 evidence and videos",
+    "historical source snapshots",
+    "run receipts",
+    "failure archives",
+    "reports"
+  ],
+  "other_tasks_and_v28_untouched": true,
+  "v27_active_leases": [],
+  "v27_active_writers": [],
+  "shared_team_state": "retained active for v28 tasks; only v27 tasks completed and leases released"
+}

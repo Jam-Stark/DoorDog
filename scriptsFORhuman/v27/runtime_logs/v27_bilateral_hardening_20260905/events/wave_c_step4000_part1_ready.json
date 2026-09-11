@@ -1,0 +1,6 @@
+{
+  "created_at": "2026-09-09T09:22:40.950133+00:00",
+  "kind": "PARTIAL_MILESTONE_REDUCED",
+  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_c/step4000/part1.json",
+  "reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step4000/part1/reducer.json"
+}

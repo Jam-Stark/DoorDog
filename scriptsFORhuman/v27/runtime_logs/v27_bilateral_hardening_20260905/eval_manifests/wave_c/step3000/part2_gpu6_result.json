@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "lanes": [
+    {
+      "index": 0,
+      "cell": "SC_S201",
+      "stratum": "nominal",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step3000/part2/SC_S201/nominal/left"
+    },
+    {
+      "index": 2,
+      "cell": "SC_S202",
+      "stratum": "nominal",
+      "side": "left",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step3000/part2/SC_S202/nominal/left"
+    }
+  ]
+}

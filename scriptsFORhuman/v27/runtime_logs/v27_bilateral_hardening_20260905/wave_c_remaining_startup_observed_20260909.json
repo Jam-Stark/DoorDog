@@ -1,0 +1,20 @@
+{
+  "SC_S201": {
+    "gpu": 4,
+    "state": "RUNNING",
+    "source": null,
+    "last_iteration": 3,
+    "policy_readout_observed": true,
+    "policy_load_observed": false,
+    "resolved_contract": "PASS"
+  },
+  "SC_S202": {
+    "gpu": 5,
+    "state": "RUNNING",
+    "source": null,
+    "last_iteration": 3,
+    "policy_readout_observed": true,
+    "policy_load_observed": false,
+    "resolved_contract": "PASS"
+  }
+}

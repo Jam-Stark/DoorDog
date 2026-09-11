@@ -1,0 +1,10 @@
+{
+  "failure": "ModuleNotFoundError scriptsFORhuman",
+  "policy_execution_started": false,
+  "archive": "scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/repair_state_history/wave_c_step2000_part2_initial",
+  "new_manifest": "scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_c/step2000/part2.json",
+  "new_eval_root": "wave_c/step2000/part2_r1",
+  "repair": "copy scriptsFORhuman from bbd98db into isolated source root",
+  "experimental_contract_diff": {},
+  "training_not_restarted": true
+}

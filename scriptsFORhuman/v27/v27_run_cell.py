@@ -32,8 +32,9 @@ def override(key, value):
     return f"++{key}=" + json.dumps(value, separators=(",", ":"))
 
 
-def capture(command, output, gpu, *, mode, expected_files, source=None):
-    process = subprocess.Popen(command, cwd=ROOT, env=runtime_env(gpu), stdout=subprocess.PIPE,
+def capture(command, output, gpu, *, mode, expected_files, source=None, execution_root=ROOT):
+    process = subprocess.Popen(command, cwd=execution_root,
+                               env={**runtime_env(gpu), "PYTHONPATH": str(execution_root)}, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, text=True, bufsize=1)
     loaded = False
     policy_execution_started = False
@@ -43,7 +44,7 @@ def capture(command, output, gpu, *, mode, expected_files, source=None):
     base = {"command": command, "pid": process.pid, "gpu": gpu,
             "proxy_environment": {key: os.environ.get(key, "") for key in PROXY_KEYS},
             "plan_sha256": digest(PLAN), "source_lock": read_json(RUNTIME / "active_source_lock.json")["path"],
-            "mode": mode, "source": source}
+            "mode": mode, "source": source, "execution_root": str(execution_root)}
     write_json(evidence, {**base, "state": "RUNNING", "policy_readout_observed": False})
     with (output / "runtime.log").open("x") as log:
         for line in process.stdout:
@@ -132,7 +133,7 @@ def train(args):
 
 
 def evaluate(args):
-    require(args.gpu in (0, 1), "eval GPU must be 0 or 1")
+    require(args.gpu in (6, 7), "eval GPU outside allocated pool")
     lane = read_json(args.manifest)["lanes"][args.lane]
     output = Path(lane["artifact_path"])
     require(not output.exists(), "fresh eval output required")
@@ -165,7 +166,9 @@ def evaluate(args):
     write_json(output / "v27_eval_contract.json", {"lane": lane, "overrides": values})
     expected = [output / name for name in ("metrics_eval.json", "a2_v14_per_env_records.json",
                 "stage2_5_step_trace.json", "a2_eval_diagnostic_metadata.json", ".hydra/runtime_config.yaml")]
-    return capture(command, output, args.gpu, mode="eval", expected_files=expected, source=str(checkpoint))
+    execution_root = Path(read_json(read_json(RUNTIME / "active_source_lock.json")["path"])["eval_source_root"])
+    return capture(command, output, args.gpu, mode="eval", expected_files=expected,
+                   source=str(checkpoint), execution_root=execution_root)
 
 
 def main():

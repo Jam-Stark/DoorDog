@@ -20,9 +20,9 @@ SUPERVISOR = ROOT / ".ai/scripts/run_supervisor.py"
 
 def source_check():
     lock = read_json(read_json(RUNTIME / "active_source_lock.json")["path"])
-    differences = {name: {"frozen": value, "current": digest(ROOT / name)}
-                   for name,value in lock["source_lock"].items() if digest(ROOT / name) != value}
-    require(not differences, f"source changed after G0 freeze: {differences}")
+    differences = [name for name, value in lock["source_text"].items()
+                   if ((Path(lock["eval_source_root"]) if name.startswith("gr00t/") else ROOT) / name).read_text() != value]
+    require(not differences, f"source changed after freeze: {differences}")
 
 
 def launch(name, gpu, command, expected):
@@ -127,11 +127,11 @@ def eval_manifest(name, checkpoint_cells, strata, episodes, seed, *, recovery=Fa
 def eval_launch(manifest_path):
     source_check()
     manifest = read_json(manifest_path)
-    queues = {0: [], 1: []}
-    # Both sides of one cell run in separate GPU queues, preserving one process per GPU.
+    queues = {gpu: [] for gpu in (6, 7)}
+    # Assign ready lanes across the allocated GPUs, one process per GPU.
     for index,lane in enumerate(manifest["lanes"]):
         require(Path(lane["checkpoint"]).is_file(), f"missing endpoint: {lane['checkpoint']}")
-        queues[SIDES.index(lane["side"])].append(index)
+        queues[list(queues)[index % len(queues)]].append(index)
     receipts = {}
     for gpu,indices in queues.items():
         if not indices: continue

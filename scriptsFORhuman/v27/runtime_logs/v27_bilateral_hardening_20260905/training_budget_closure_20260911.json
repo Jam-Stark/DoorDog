@@ -1,0 +1,108 @@
+{
+  "cells": {
+    "A": {
+      "C_S21": {
+        "recorded_iteration": 3000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S21"
+      },
+      "Q1_S21": {
+        "recorded_iteration": 3000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S21"
+      },
+      "Q2_S21": {
+        "recorded_iteration": 3000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S21"
+      },
+      "C_S22": {
+        "recorded_iteration": 3000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/C_S22"
+      },
+      "Q1_S22": {
+        "recorded_iteration": 3000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q1_S22"
+      },
+      "Q2_S22": {
+        "recorded_iteration": 3000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/Q2_S22"
+      }
+    },
+    "B": {
+      "L0_S31": {
+        "recorded_iteration": 3000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L0_S31"
+      },
+      "L1_S31": {
+        "recorded_iteration": 3000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S31_r1"
+      },
+      "L1_S32": {
+        "recorded_iteration": 3000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/L1_S32_r1"
+      },
+      "R0_S41": {
+        "recorded_iteration": 1500,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R0_S41"
+      },
+      "R1_S41": {
+        "recorded_iteration": 644,
+        "state": "FAIL",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R1_S41"
+      },
+      "R2_S41": {
+        "recorded_iteration": 1500,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/R2_S41"
+      }
+    },
+    "C": {
+      "SC_S201": {
+        "recorded_iteration": 6000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S201_r1"
+      },
+      "SC_S202": {
+        "recorded_iteration": 6000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S202_r1"
+      },
+      "SC_S203": {
+        "recorded_iteration": 6000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S203_r1"
+      },
+      "SK_S211": {
+        "recorded_iteration": 6000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S211_r1"
+      },
+      "SK_S212": {
+        "recorded_iteration": 6000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S212_r1"
+      },
+      "SK_S213": {
+        "recorded_iteration": 6000,
+        "state": "PASS",
+        "root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S213_r1"
+      }
+    }
+  },
+  "recorded_total": 66644,
+  "formal_cap": 67500,
+  "smoke_batches": {
+    "A": 5,
+    "B": 32,
+    "C": 5
+  },
+  "note": "recorded PPO iteration census; no extra seeds or training resumes after policy failures"
+}

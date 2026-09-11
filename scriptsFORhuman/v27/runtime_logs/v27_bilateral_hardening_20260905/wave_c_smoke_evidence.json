@@ -1,0 +1,17 @@
+{
+  "status": "RUNTIME_PASS",
+  "wave": "C",
+  "cell": "SK_S211",
+  "smoke_batches": 5,
+  "num_envs": 64,
+  "source": null,
+  "policy_load_observed": false,
+  "policy_readout_observed": true,
+  "last_iteration": 5,
+  "isaac_process_returncode": 0,
+  "wrapper_returncode": 0,
+  "resolved_contract": "PASS",
+  "receipt": ".ai/runtime/runs/v27_smoke_c/RUN_RECEIPT.json",
+  "claim": "scratch SK wiring only; no policy quality claim",
+  "source_unchanged_from_wave_b": true
+}

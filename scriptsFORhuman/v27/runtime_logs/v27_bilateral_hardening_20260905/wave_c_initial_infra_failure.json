@@ -1,0 +1,74 @@
+{
+  "SC_S201": {
+    "state": "FAIL",
+    "last_iteration": 0,
+    "policy_readout_observed": false,
+    "policy_execution_started": false,
+    "policy_load_observed": false,
+    "isaac_process_returncode": 0,
+    "wrapper_returncode": 1,
+    "failure": [
+      "FileNotFoundError: Unable to open the usd file at path: https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd"
+    ]
+  },
+  "SC_S202": {
+    "state": "FAIL",
+    "last_iteration": 0,
+    "policy_readout_observed": false,
+    "policy_execution_started": false,
+    "policy_load_observed": false,
+    "isaac_process_returncode": 0,
+    "wrapper_returncode": 1,
+    "failure": [
+      "FileNotFoundError: Unable to open the usd file at path: https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd"
+    ]
+  },
+  "SC_S203": {
+    "state": "FAIL",
+    "last_iteration": 0,
+    "policy_readout_observed": false,
+    "policy_execution_started": false,
+    "policy_load_observed": false,
+    "isaac_process_returncode": 0,
+    "wrapper_returncode": 1,
+    "failure": [
+      "FileNotFoundError: Unable to open the usd file at path: https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd"
+    ]
+  },
+  "SK_S211": {
+    "state": "FAIL",
+    "last_iteration": 0,
+    "policy_readout_observed": false,
+    "policy_execution_started": false,
+    "policy_load_observed": false,
+    "isaac_process_returncode": 0,
+    "wrapper_returncode": 1,
+    "failure": [
+      "FileNotFoundError: Unable to open the usd file at path: https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd"
+    ]
+  },
+  "SK_S212": {
+    "state": "FAIL",
+    "last_iteration": 0,
+    "policy_readout_observed": false,
+    "policy_execution_started": false,
+    "policy_load_observed": false,
+    "isaac_process_returncode": 0,
+    "wrapper_returncode": 1,
+    "failure": [
+      "FileNotFoundError: Unable to open the usd file at path: https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd"
+    ]
+  },
+  "SK_S213": {
+    "state": "FAIL",
+    "last_iteration": 0,
+    "policy_readout_observed": false,
+    "policy_execution_started": false,
+    "policy_load_observed": false,
+    "isaac_process_returncode": 0,
+    "wrapper_returncode": 1,
+    "failure": [
+      "FileNotFoundError: Unable to open the usd file at path: https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Environments/Grid/default_environment.usd"
+    ]
+  }
+}

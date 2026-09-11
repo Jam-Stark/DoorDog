@@ -1,8 +1,8 @@
 ---
 name: base-v27-bilateral-hardening
-status: active
+status: closed
 scope: v26 qualification, bilateral behavior quality, door domain, one-loss recovery pilot, scratch reliability
-last_verified: 2026-09-07
+last_verified: 2026-09-11
 read_when:
   - implementing or resuming base_v27
   - interpreting bilateral Teacher qualification or v27 recovery evidence
@@ -14,6 +14,10 @@ related_entries:
 ---
 
 # base_v27 bilateral hardening
+
+**当前终态（2026-09-11）：V27_COMPLETED_SCIENTIFIC_NO_RELEASE。** 六格Wave C均6000 PASS/0，72/72 lanes exact64、integrity0。Q_C=SCRATCH_NOT_ESTABLISHED（SC0/3）；K_SCRATCH_SUPERIOR（SK1/3，仅SK213），不等于三seed可靠性或Teacher资格。v27.0无合格候选；所有SC seed在全部milestone均未双侧过门，v27.5确认按冻结规则NOT_RUN。A=QUALITY_UNRESOLVED/C；B=DOMAIN_NOT_CONVERGED/current；R=UNRESOLVED（R1误停644），不得补齐或外推。
+
+Closure：`scriptsFORhuman/v27/a2_piper_base_v27_execution_closure_20260911.md`；候选manifest v2同目录。临时隔离目录/候选副本已删除，历史source快照、checkpoint、原始eval、receipt与失败记录保留，active source指针已撤销。v27无活跃进程/tmux/lease。建议保留现有Teacher/G7，等待Owner绑定裁决；无push、hardware或binding更新。后文为历史执行记录。
 
 v26 已由 Owner 裁定 `V26_SCOPED_TARGET_ACHIEVED` 并收尾。v27.0 在本轮完成资格认定；
 旧 v26 artifact 保持不可变。当前 authority 为 source/resolved config → runtime artifact →
@@ -86,3 +90,24 @@ L endpoint为DOMAIN_NOT_CONVERGED，冻结RECIPE_B=current；L1_S32 LEFT三层�
 合并决策见wave_b_decision.json；Q_R=UNRESOLVED，不阻塞C。固定shadow estimator运行一次，
 heldout friction/mass R²=0.15557/0.33127，仅支持模拟数据离线可辨识性，不证明actor或硬件能力。
 Wave C将沿C+current执行六格scratch；全部checkpoint=null，终点6000。
+
+Wave B第三个预授权本地commit为bbd98db。Wave C的SK_S211五batch/64env smoke为RUNTIME_PASS，
+source=null、未加载policy、exit0；六格正式4096env/6000 batches与v27_watch_c已启动。
+最终确认选种规则在policy数据前记录于wave_c_final_selection_contract.json：首个milestone过门，
+并列最小seed，固定6000 endpoint确认；无合格seed或该endpoint缺失则NOT_RUN，无替换。
+
+Wave C首轮六格均在policy执行前因远程default_environment.usd读取失败退出；失败记录保留。
+同URL代理HTTP200后GPU4–7四格在*_r1新root重试一次，合同不变；GPU2/3两格暂候资源安排。
+另一用户进程占用GPU0–3，未擅自停止。真实进程状态从active_attempts与receipts读取。
+
+2026-09-09：SC203与SK211/212/213的*_r1已全部6000 PASS/0。Owner授权把剩余GPU0–3工作转到4–7并留两卡评估；SC201/202在GPU4/5的*_r1补跑，双侧eval队列改为6/7。配方、seed、预算无变化。GPU重分配与source逐字快照见wave_c_gpu_remap_20260909.json、source_snapshot_wave_c_gpu_remap_20260909.json，历史source lock不改写。
+
+2026-09-09 Owner授权对已active格先评：以v27_watch_c_ready.py替换原Wave C全格等待watcher，
+按完整cell和固定milestone就绪分批执行，GPU6/7双侧队列；part reducer仅为局部结果，
+全milestone在其余格补齐后合并，endpoint使用完整历史重新结算typed outcomes。
+首次step1000 part1为SC203/SK211/212/213，exact64/侧，未重跑训练或改变选种规则。
+原watcher主动SIGTERM退出143是调度替换，不是实验失败；新tmux为v27_watch_c_ready。
+
+2026-09-09晚：四格6000训练和六milestone评估均完成；SC201/202仍训练中，六格1000完整评估已合并。当前52/72 lanes exact64、integrity0；待评20 lanes取决于SC201/202后续checkpoint，未积压已有checkpoint。SC203 endpoint clean L/R=0/0，SK211=64/34、SK212=0/0、SK213=62/63；这些是四格局部结果，不提前结算Q_C。完整逐格读数见wave_c_step1000_full及step2000–6000_partial4_readout_20260909报告。
+
+2026-09-10：v28共享源码改动触发v27 source锁，ready watcher在step2000 part2启动前退出。Owner授权隔离；独立.ai/runtime/v27_frozen_eval_20260910由bbd98db gr00t+scriptsFORhuman及v27冻结overlay构建，py/yaml只读。eval子进程cwd/PYTHONPATH均为隔离根；新v27_watch_c_isolated_r1已恢复GPU6/7双侧评估。初次隔离缺scriptsFORhuman.v21B在policy前失败，原artifact/manifest/receipt保留，补齐同提交依赖后新part2_r1双侧已进入policy evaluation。训练GPU4/5未重启；实验合同零改动。路由与证据见wave_c_isolation_20260910.json及dependency_repair记录。

@@ -1,0 +1,12 @@
+{
+  "restart_index": 1,
+  "reason": "pre-policy remote ground USD read failure; same URL HTTP200 through registered proxy before restart",
+  "experimental_contract_diff": {},
+  "source_changes": false,
+  "receipts": {
+    "SC_S203": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sc_s203_r1/RUN_RECEIPT.json",
+    "SK_S211": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sk_s211_r1/RUN_RECEIPT.json",
+    "SK_S212": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sk_s212_r1/RUN_RECEIPT.json",
+    "SK_S213": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v27_train_sk_s213_r1/RUN_RECEIPT.json"
+  }
+}

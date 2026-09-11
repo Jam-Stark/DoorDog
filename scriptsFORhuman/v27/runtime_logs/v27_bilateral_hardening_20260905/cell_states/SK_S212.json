@@ -1,0 +1,6 @@
+{
+  "status": "REPAIRED",
+  "restart_index": 1,
+  "active_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S212_r1",
+  "initial_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S212/v27_process_evidence.json"
+}

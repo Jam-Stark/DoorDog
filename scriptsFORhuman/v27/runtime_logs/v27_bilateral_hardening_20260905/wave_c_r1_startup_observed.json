@@ -1,0 +1,47 @@
+{
+  "status": "FOUR_CELLS_RUNTIME_STARTED",
+  "cells": {
+    "SC_S203": {
+      "active_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S203_r1",
+      "resolved_contract": "PASS",
+      "state": "RUNNING",
+      "source": null,
+      "policy_load_observed": false,
+      "policy_readout_observed": true,
+      "last_iteration": 3
+    },
+    "SK_S211": {
+      "active_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S211_r1",
+      "resolved_contract": "PASS",
+      "state": "RUNNING",
+      "source": null,
+      "policy_load_observed": false,
+      "policy_readout_observed": true,
+      "last_iteration": 2
+    },
+    "SK_S212": {
+      "active_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S212_r1",
+      "resolved_contract": "PASS",
+      "state": "RUNNING",
+      "source": null,
+      "policy_load_observed": false,
+      "policy_readout_observed": true,
+      "last_iteration": 3
+    },
+    "SK_S213": {
+      "active_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S213_r1",
+      "resolved_contract": "PASS",
+      "state": "RUNNING",
+      "source": null,
+      "policy_load_observed": false,
+      "policy_readout_observed": true,
+      "last_iteration": 3
+    }
+  },
+  "pending_resource": [
+    "SC_S201",
+    "SC_S202"
+  ],
+  "restart_contract_diff": {},
+  "source_changes": false
+}

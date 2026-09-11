@@ -4,7 +4,7 @@
 
 ## Entries
 
-- [base-v27-bilateral-hardening/description.md](base-v27-bilateral-hardening/description.md): 2026-09-07 — v27.0 NO_QUALIFIED_CANDIDATE；A QUALITY_UNRESOLVED、RECIPE_A=C；B DOMAIN_NOT_CONVERGED、RECIPE_B=current、Q_R=UNRESOLVED（R1 STOP644）。固定shadow estimator已完成；C六格scratch与closure待执行。
+- [base-v27-bilateral-hardening/description.md](base-v27-bilateral-hardening/description.md): 2026-09-11 — closed，V27_COMPLETED_SCIENTIFIC_NO_RELEASE；A质量未决/C，B域未收敛/current，R未决（R1误停644），SC0/3、SK1/3/K_SCRATCH_SUPERIOR。C72/72 lanes integrity0，最终确认按规则NOT_RUN；closure/manifest v2齐全，隔离与资源已清理，绑定未变。
 
 - [worktree-routing/description.md](worktree-routing/description.md): A2_Piper active implementation worktree 与 doorman baseline/reference worktree 的使用约定。
 - [doorman-door-training-goal/description.md](doorman-door-training-goal/description.md): 长期目标：基于 Doorman door-opening workflow 替换为用户自己的 robot，并设计/适配 observation、action、reward、env config、training/eval workflow 以完成开门任务训练。

@@ -1,0 +1,43 @@
+{
+  "status": "FROZEN",
+  "wave_c": {
+    "sc_outcome": "SCRATCH_NOT_ESTABLISHED",
+    "sk_outcome": "K_SCRATCH_SUPERIOR",
+    "sc_passed_seeds": 0,
+    "sk_passed_seeds": 1
+  },
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step6000/reducer.json",
+  "first_pass_milestone": {
+    "SC_S201": null,
+    "SC_S202": null,
+    "SC_S203": null,
+    "SK_S211": null,
+    "SK_S212": null,
+    "SK_S213": 6000
+  },
+  "milestone_lanes": 72,
+  "episodes_per_lane": 64,
+  "integrity_violations": 0,
+  "invalid_cells": {},
+  "final_confirmation": {
+    "status": "NOT_RUN",
+    "sc_candidate": null,
+    "q0_candidate": null,
+    "sc_reason": "No SC seed passed both sides at any registered milestone",
+    "q0_reason": "NO_QUALIFIED_CANDIDATE",
+    "first_pass_milestone": {
+      "SC_S201": null,
+      "SC_S202": null,
+      "SC_S203": null,
+      "SK_S211": null,
+      "SK_S212": null,
+      "SK_S213": 6000
+    },
+    "selection_contract": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_c_final_selection_contract.json",
+    "endpoint_confirmation_step": 6000,
+    "episodes_per_side": 128,
+    "seed": 270303,
+    "SK_substitution": false
+  },
+  "binding_changed": false
+}

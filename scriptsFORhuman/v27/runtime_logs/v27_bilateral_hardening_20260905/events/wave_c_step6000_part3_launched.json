@@ -1,0 +1,8 @@
+{
+  "created_at": "2026-09-10T20:14:38.146898+00:00",
+  "kind": "READY_CELLS_EVAL_LAUNCHED",
+  "cells": [
+    "SC_S202"
+  ],
+  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/eval_manifests/wave_c/step6000/part3.json"
+}

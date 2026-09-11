@@ -1,0 +1,30 @@
+{
+  "status": "WATCH_COMPLETE",
+  "jobs": [
+    [
+      1000,
+      "all"
+    ],
+    [
+      2000,
+      "all"
+    ],
+    [
+      3000,
+      "all"
+    ],
+    [
+      4000,
+      "all"
+    ],
+    [
+      5000,
+      "all"
+    ],
+    [
+      6000,
+      "all"
+    ]
+  ],
+  "schedule": "ready_cells"
+}

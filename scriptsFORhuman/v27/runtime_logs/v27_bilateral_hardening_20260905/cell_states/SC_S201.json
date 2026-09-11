@@ -1,0 +1,6 @@
+{
+  "status": "REPAIRED",
+  "reason": "pre-policy eval isolation missing scriptsFORhuman dependency repaired",
+  "eval_restart_index": 1,
+  "active_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S201_r1"
+}

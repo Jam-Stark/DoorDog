@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "lanes": [
+    {
+      "index": 1,
+      "cell": "SC_S202",
+      "stratum": "nominal",
+      "side": "right",
+      "returncode": 0,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step1000/part3/SC_S202/nominal/right"
+    }
+  ]
+}

@@ -66,6 +66,10 @@ never select GPU4–7.
 
 ### Verified base_v27 entrypoints (2026-09-06)
 
+2026-09-11 当前状态：v27已关闭为V27_COMPLETED_SCIENTIFIC_NO_RELEASE；六格C均6000、72/72 eval lanes完成。
+临时隔离副本与active_source_lock指针已清理，以下是历史执行记录，不能直接视为可重启命令授权。
+结论、manifest及保留证据从base-v27-bilateral-hardening memory与execution_closure_20260911路由。
+
 `bash scriptsFORhuman/v27/v27_orchestrate.sh` 的 `smoke-launch --wave A`、
 `train-launch --wave A`、`q0-dev-launch`、`q0-render-launch` 与 `eval-finalize --manifest ...`
 已走通本机 runtime。Python 使用 `/home/baoquanc/anaconda3/envs/isaaclab/bin/python`；
@@ -76,6 +80,9 @@ Wave A endpoint已冻结QUALITY_UNRESOLVED与RECIPE_A=C。`smoke-launch --wave B
 R2路径、P02/P05固定摩擦probe与注入评估已完成runtime证明；`train-launch --wave B` 六格均已进入训练。
 L1首次ListConfig解析失败发生于actor加载前，按新root修复；实际root由runtime `active_attempts.json`
 路由。L1原生0/2/5摩擦桶已在训练日志中观测到。Wave C尚未启动。
+2026-09-09 Owner重新分配资源：Wave C剩余SC201/202使用GPU4/5，后续eval使用GPU6/7；
+此前SC203与SK211/212/213已完成6000。当前入口仍为上述v27脚本，source快照与GPU变更
+见runtime `source_snapshot_wave_c_gpu_remap_20260909.json`、`wave_c_gpu_remap_20260909.json`。
 这记录已验证命令，不向其他任务授予GPU或实验预算。
 
 For non-trivial implementation、debugging、review 或 stage planning, read only the minimum relevant route:

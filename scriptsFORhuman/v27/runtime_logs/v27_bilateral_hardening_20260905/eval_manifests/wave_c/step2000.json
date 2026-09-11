@@ -1,0 +1,1171 @@
+{
+  "schema": "a2_piper_base_v27_eval_manifest_v1",
+  "name": "wave_c/step2000",
+  "step": 2000,
+  "endpoint": false,
+  "episodes": 64,
+  "lanes": [
+    {
+      "cell": "SC_S203",
+      "stratum": "nominal",
+      "side": "left",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S203_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part1/SC_S203/nominal/left",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SC_S203",
+      "stratum": "nominal",
+      "side": "right",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S203_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part1/SC_S203/nominal/right",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SK_S211",
+      "stratum": "nominal",
+      "side": "left",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S211_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part1/SK_S211/nominal/left",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SK_S211",
+      "stratum": "nominal",
+      "side": "right",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S211_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part1/SK_S211/nominal/right",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SK_S212",
+      "stratum": "nominal",
+      "side": "left",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S212_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part1/SK_S212/nominal/left",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SK_S212",
+      "stratum": "nominal",
+      "side": "right",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S212_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part1/SK_S212/nominal/right",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SK_S213",
+      "stratum": "nominal",
+      "side": "left",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S213_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part1/SK_S213/nominal/left",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SK_S213",
+      "stratum": "nominal",
+      "side": "right",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S213_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part1/SK_S213/nominal/right",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SC_S201",
+      "stratum": "nominal",
+      "side": "left",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S201_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part2_r1/SC_S201/nominal/left",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SC_S201",
+      "stratum": "nominal",
+      "side": "right",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S201_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part2_r1/SC_S201/nominal/right",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SC_S202",
+      "stratum": "nominal",
+      "side": "left",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S202_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part3/SC_S202/nominal/left",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    },
+    {
+      "cell": "SC_S202",
+      "stratum": "nominal",
+      "side": "right",
+      "seed": 270001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S202_r1/model_step_002000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step2000/part3/SC_S202/nominal/right",
+      "overrides": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "expected_contract": {
+        "env.config.a2_v26_door_weight_range": [
+          80.0,
+          120.0
+        ],
+        "env.config.a2_v24_friction_enabled": false,
+        "env.config.a2_v27_recovery_enabled": false,
+        "env.config.a2_v27_recovery_loss_steps": 10,
+        "env.config.a2_v27_recovery_window_steps": 300,
+        "env.config.a2_v27_recovery_eval_mode": "nominal",
+        "env.config.a2_v27_perturb_prob": 0.0,
+        "env.config.a2_v27_perturb_steps": 6,
+        "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+        "env.config.a2_v27_friction_bucket_enabled": false
+      },
+      "recovery_itt": false
+    }
+  ],
+  "wave_c_history": [
+    {
+      "schema": "a2_piper_base_v27_reducer_v1",
+      "status": "V27_COMPLETE",
+      "expected_n": 64,
+      "step": 1000,
+      "endpoint": false,
+      "cells": {
+        "SC_S203": {
+          "nominal": {
+            "left": {
+              "episodes": 64,
+              "D": 0,
+              "S3+": 64,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 653.0,
+              "arm_j4_limit_residence_step_share": 0.0,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S203_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "left",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            },
+            "right": {
+              "episodes": 64,
+              "D": 63,
+              "S3+": 64,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 653.0,
+              "arm_j4_limit_residence_step_share": 0.0,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S203_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "right",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            }
+          }
+        },
+        "SK_S211": {
+          "nominal": {
+            "left": {
+              "episodes": 64,
+              "D": 0,
+              "S3+": 0,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 552.0,
+              "arm_j4_limit_residence_step_share": 0.0,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S211_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "left",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            },
+            "right": {
+              "episodes": 64,
+              "D": 0,
+              "S3+": 0,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 552.0,
+              "arm_j4_limit_residence_step_share": 0.0,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S211_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "right",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            }
+          }
+        },
+        "SK_S212": {
+          "nominal": {
+            "left": {
+              "episodes": 64,
+              "D": 0,
+              "S3+": 0,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 552.0,
+              "arm_j4_limit_residence_step_share": 0.7121829710144928,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S212_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "left",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            },
+            "right": {
+              "episodes": 64,
+              "D": 0,
+              "S3+": 0,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 552.0,
+              "arm_j4_limit_residence_step_share": 0.6930197010869565,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S212_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "right",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            }
+          }
+        },
+        "SK_S213": {
+          "nominal": {
+            "left": {
+              "episodes": 64,
+              "D": 45,
+              "S3+": 58,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 653.0,
+              "arm_j4_limit_residence_step_share": 0.0,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S213_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "left",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            },
+            "right": {
+              "episodes": 64,
+              "D": 5,
+              "S3+": 21,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 552.0,
+              "arm_j4_limit_residence_step_share": 0.0,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SK_S213_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "right",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            }
+          }
+        },
+        "SC_S201": {
+          "nominal": {
+            "left": {
+              "episodes": 64,
+              "D": 0,
+              "S3+": 0,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 552.0,
+              "arm_j4_limit_residence_step_share": 0.0,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S201_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "left",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            },
+            "right": {
+              "episodes": 64,
+              "D": 0,
+              "S3+": 0,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 552.0,
+              "arm_j4_limit_residence_step_share": 0.0,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S201_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "right",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            }
+          }
+        },
+        "SC_S202": {
+          "nominal": {
+            "left": {
+              "episodes": 64,
+              "D": 0,
+              "S3+": 0,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 552.0,
+              "arm_j4_limit_residence_step_share": 0.0,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S202_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "left",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            },
+            "right": {
+              "episodes": 64,
+              "D": 9,
+              "S3+": 9,
+              "S4+": 0,
+              "open_hold": 0,
+              "S5+": 0,
+              "complete": 0,
+              "clean_complete": 0,
+              "hold_through": 0,
+              "crossing_while_holding": 0,
+              "post_release_body_force_p95": null,
+              "first_crossing_hinge_p50": null,
+              "episode_length_p50": 552.0,
+              "arm_j4_limit_residence_step_share": 0.0018593034549743304,
+              "terminal_reasons": {
+                "stage_overtime": 64
+              },
+              "integrity_violations": 0,
+              "runtime_contract": {
+                "seed": 270001,
+                "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_20260905/train/SC_S202_r1/model_step_001000.pt",
+                "checkpoint_load_mode": "full",
+                "auto_load_latest": false,
+                "num_envs": 64,
+                "algo.config.eval.num_eval_episodes": 64,
+                "algo.config.eval.eval_num_envs_episodes": true,
+                "env.config.a2_v26_door_open_lr": "right",
+                "env.config.enable_staged_reset": false,
+                "rewards.reward_penalty_curriculum": false,
+                "env.config.a2_v26_8_penalty_driver": null,
+                "env.config.a2_v26_door_weight_range": [
+                  80.0,
+                  120.0
+                ],
+                "env.config.a2_v24_friction_enabled": false,
+                "env.config.a2_v27_recovery_enabled": false,
+                "env.config.a2_v27_recovery_loss_steps": 10,
+                "env.config.a2_v27_recovery_window_steps": 300,
+                "env.config.a2_v27_recovery_eval_mode": "nominal",
+                "env.config.a2_v27_perturb_prob": 0.0,
+                "env.config.a2_v27_perturb_steps": 6,
+                "env.config.a2_v27_recovery_bank_reset_share": 0.0,
+                "env.config.a2_v27_friction_bucket_enabled": false
+              },
+              "clean_complete_available": true
+            }
+          }
+        }
+      },
+      "lanes": [
+        {
+          "cell": "SC_S203",
+          "stratum": "nominal",
+          "side": "left",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SC_S203",
+          "stratum": "nominal",
+          "side": "right",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SK_S211",
+          "stratum": "nominal",
+          "side": "left",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SK_S211",
+          "stratum": "nominal",
+          "side": "right",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SK_S212",
+          "stratum": "nominal",
+          "side": "left",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SK_S212",
+          "stratum": "nominal",
+          "side": "right",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SK_S213",
+          "stratum": "nominal",
+          "side": "left",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SK_S213",
+          "stratum": "nominal",
+          "side": "right",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SC_S201",
+          "stratum": "nominal",
+          "side": "left",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SC_S201",
+          "stratum": "nominal",
+          "side": "right",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SC_S202",
+          "stratum": "nominal",
+          "side": "left",
+          "status": "COMPLETE"
+        },
+        {
+          "cell": "SC_S202",
+          "stratum": "nominal",
+          "side": "right",
+          "status": "COMPLETE"
+        }
+      ],
+      "invalid_cells": {},
+      "typed_outcomes": null,
+      "route": "V27_REDUCED",
+      "part_reducers": [
+        "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step1000/part1/reducer.json",
+        "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step1000/part2/reducer.json",
+        "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_c/step1000/part3/reducer.json"
+      ],
+      "not_run_cells": []
+    }
+  ]
+}

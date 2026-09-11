@@ -91,7 +91,7 @@ def cells(wave):
     if wave == "C":
         return {f"{arm}_S{seed}": {"arm": arm, "seed": seed, "gpu": gpu,
                 "batches": 6000, "milestones": [1000,2000,3000,4000,5000,6000]}
-                for arm, seed, gpu in (("SC",201,2),("SC",202,3),("SC",203,4),
+                for arm, seed, gpu in (("SC",201,4),("SC",202,5),("SC",203,4),
                                       ("SK",211,5),("SK",212,6),("SK",213,7))}
     raise ValueError(wave)
 

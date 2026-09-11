@@ -1,0 +1,20 @@
+{
+  "authorization": "Owner: 对已active的格先评",
+  "cell_atomic": true,
+  "milestones": [
+    1000,
+    2000,
+    3000,
+    4000,
+    5000,
+    6000
+  ],
+  "episodes_per_side": 64,
+  "eval_gpus": [
+    6,
+    7
+  ],
+  "aggregate": "only after all admitted cells have completed that milestone; full prior milestone history for outcome",
+  "old_watcher": "intentionally stopped for replacement",
+  "experimental_contract_diff": {}
+}

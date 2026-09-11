@@ -1,0 +1,17 @@
+{
+  "authorization": "Owner 2026-09-09: move remaining GPU0-3 work to GPU4-7, reserve two eval GPUs",
+  "training": {
+    "SC_S201": 4,
+    "SC_S202": 5
+  },
+  "eval": {
+    "left": 6,
+    "right": 7
+  },
+  "experimental_contract_diff": {},
+  "source_diff": {
+    "v27_contract.py": "--- v27_contract.py\n+++ v27_contract.py\n@@ -91,7 +91,7 @@\n     if wave == \"C\":\n         return {f\"{arm}_S{seed}\": {\"arm\": arm, \"seed\": seed, \"gpu\": gpu,\n                 \"batches\": 6000, \"milestones\": [1000,2000,3000,4000,5000,6000]}\n-                for arm, seed, gpu in ((\"SC\",201,2),(\"SC\",202,3),(\"SC\",203,4),\n+                for arm, seed, gpu in ((\"SC\",201,4),(\"SC\",202,5),(\"SC\",203,4),\n                                       (\"SK\",211,5),(\"SK\",212,6),(\"SK\",213,7))}\n     raise ValueError(wave)\n \n",
+    "v27_orchestrate.py": "--- v27_orchestrate.py\n+++ v27_orchestrate.py\n@@ -20,9 +20,9 @@\n \n def source_check():\n     lock = read_json(read_json(RUNTIME / \"active_source_lock.json\")[\"path\"])\n-    differences = {name: {\"frozen\": value, \"current\": digest(ROOT / name)}\n-                   for name,value in lock[\"source_lock\"].items() if digest(ROOT / name) != value}\n-    require(not differences, f\"source changed after G0 freeze: {differences}\")\n+    differences = [name for name, value in lock[\"source_text\"].items()\n+                   if (ROOT / name).read_text() != value]\n+    require(not differences, f\"source changed after freeze: {differences}\")\n \n \n def launch(name, gpu, command, expected):\n@@ -127,11 +127,11 @@\n def eval_launch(manifest_path):\n     source_check()\n     manifest = read_json(manifest_path)\n-    queues = {0: [], 1: []}\n+    queues = {6: [], 7: []}\n     # Both sides of one cell run in separate GPU queues, preserving one process per GPU.\n     for index,lane in enumerate(manifest[\"lanes\"]):\n         require(Path(lane[\"checkpoint\"]).is_file(), f\"missing endpoint: {lane['checkpoint']}\")\n-        queues[SIDES.index(lane[\"side\"])].append(index)\n+        queues[6 + SIDES.index(lane[\"side\"])].append(index)\n     receipts = {}\n     for gpu,indices in queues.items():\n         if not indices: continue\n",
+    "v27_run_cell.py": "--- v27_run_cell.py\n+++ v27_run_cell.py\n@@ -132,7 +132,7 @@\n \n \n def evaluate(args):\n-    require(args.gpu in (0, 1), \"eval GPU must be 0 or 1\")\n+    require(args.gpu in (6, 7), \"eval GPU must be 6 or 7\")\n     lane = read_json(args.manifest)[\"lanes\"][args.lane]\n     output = Path(lane[\"artifact_path\"])\n     require(not output.exists(), \"fresh eval output required\")\n"
+  }
+}

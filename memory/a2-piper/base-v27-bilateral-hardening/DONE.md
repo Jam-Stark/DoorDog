@@ -23,3 +23,13 @@
   Q1/Q2 的差异限定于登记的 G5 overlay。尚未运行正式训练或评估。
 
 - 2026-09-07：Wave B两endpoint冻结；Q_B=DOMAIN_NOT_CONVERGED、RECIPE_B=current、Q_R=UNRESOLVED。固定shadow estimator已完成一次，输出与证据路径见runtime shadow_estimator_cpu_evidence.json。
+
+- Wave C CPU六格resolved合同PASS、SK五batch scratch smoke PASS/0；六格训练及独立tmux watcher启动。Wave B第三个本地commit bbd98db。
+
+- 2026-09-09：四格C训练6000 PASS/0；剩余两格按Owner授权改用GPU4/5，eval固定GPU6/7。
+
+- 2026-09-09：按Owner要求改为ready-cell分批评估；step1000四格双侧eval已在GPU6/7启动，完整milestone待另两格补齐。
+
+- 2026-09-10：冻结v27独立eval代码与依赖，避免主工作区v28改动；GPU6/7双侧eval已恢复并进入policy。
+
+- 2026-09-11：全部C六格6000/72lanes完成，Q_C与K终态冻结；SC无任一双侧过门milestone，最终确认NOT_RUN。完整报告、候选manifest v2、closure与预算/资源证据已交付；4个临时隔离目录删除，v27 GPU leases释放。Teacher/G7未变、无push。

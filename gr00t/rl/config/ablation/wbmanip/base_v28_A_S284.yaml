@@ -1,0 +1,16 @@
+# @package _global_
+
+defaults:
+- /ablation/wbmanip/base_v28_common
+- _self_
+
+v26_cell: V28_A_S284
+seed: 284
+checkpoint: null
+checkpoint_load_mode: full
+policy_only_load_actor_rms: false
+
+env:
+  config:
+    a2_v26_side_permutation_seed: 284
+    a2_v26_8_penalty_driver_target_stage: 5

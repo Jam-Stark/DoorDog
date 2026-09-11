@@ -253,6 +253,17 @@ V23_D1_CLIPPED_UTILIZATION_MIN = 0.90
 A2_V20_R1_ENDPOINT_SCHEMA = "a2_piper_v20_R1_endpoint_record_v1"
 
 
+def a2_wrist_motion_raw_penalty(
+    dof_vel_wrist, last_dof_vel_wrist, stage_buf, vel_weights, reversal_weights
+):
+    if tuple(vel_weights.shape) != (6, 3) or tuple(reversal_weights.shape) != (6, 3):
+        raise ValueError("A2 wrist motion weights must each have shape (6, 3).")
+    return (
+        vel_weights[stage_buf] * dof_vel_wrist.square()
+        + reversal_weights[stage_buf] * torch.relu(-dof_vel_wrist * last_dof_vel_wrist)
+    ).sum(dim=-1)
+
+
 def a2_v20_r1_build_endpoint_record(
     telemetry: Mapping[str, Any],
     *,
@@ -8922,6 +8933,10 @@ class DoorPregrasp(
             self._a2_crossing_event_valid = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
+            if self.config.get("a2_v28_camera_telemetry_enabled", False):
+                self._a2_v28_crossing_yaw_rad = torch.full(
+                    (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+                )
             self._a2_crossing_while_holding = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
@@ -15789,6 +15804,14 @@ class DoorPregrasp(
             crossing_while_holding[first_crossing] = both_contact[first_crossing]
             hinge_at_crossing[first_crossing] = door_joint_pos[first_crossing, 0]
             crossing_event_valid[first_crossing] = True
+            if self.config.get("a2_v28_camera_telemetry_enabled", False):
+                forward = torch.zeros_like(root_states[:, :3])
+                forward[:, 0] = 1.0
+                forward_w = quat_apply(root_states[:, 3:7], forward)
+                door_quat = self.simulator.scene.articulations["door"].data.root_quat_w
+                forward_door = quat_apply_inverse(door_quat, forward_w)
+                yaw = torch.atan2(forward_door[:, 1], forward_door[:, 0])
+                self._a2_v28_crossing_yaw_rad[first_crossing] = yaw[first_crossing]
 
         updated_gate, updated_crossed = (
             a2_update_stage4_release_and_root_latches_through_stage5(
@@ -15915,7 +15938,32 @@ class DoorPregrasp(
                 "penalty_a2_stage4_arm_default_pose_l1 expects arm_j1..arm_j6 "
                 f"shape ({self.num_envs}, 6); got {tuple(arm_pos.shape)}."
             )
-        return torch.abs(arm_pos - target_pos).sum(dim=-1)
+        penalty = torch.abs(arm_pos - target_pos).sum(dim=-1)
+        if self.config.get("a2_stage4_arm_default_pose_release_gated", False):
+            masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+                "A2 stage4 post-release default pose"
+            )
+            penalty = penalty * (self._a2_stage4_release_gate & ~masks["both_contact"])
+        return penalty
+
+    def _reward_penalty_a2_wrist_motion_l2(self):
+        indices = self._upper_non_gripper_dof_idx[3:6]
+        if [self.config.robot.dof_names[index] for index in indices] != [
+            "arm_j4", "arm_j5", "arm_j6"
+        ]:
+            raise ValueError("A2 wrist motion requires arm_j4..arm_j6 in order.")
+        velocity = self.simulator.dof_vel[:, indices]
+        return a2_wrist_motion_raw_penalty(
+            velocity, self.last_dof_vel[:, indices], self.stage_buf,
+            torch.as_tensor(self.config.a2_wrist_motion_vel_weights,
+                            dtype=velocity.dtype, device=velocity.device),
+            torch.as_tensor(self.config.a2_wrist_motion_reversal_weights,
+                            dtype=velocity.dtype, device=velocity.device),
+        )
+
+    def _reward_penalty_a2_wrist_tower_contact(self):
+        index = list(self.config.robot.body_names).index("wrist_camera_tower")
+        return (self.simulator.contact_forces[:, index, :].norm(dim=-1) > 1.0).float()
 
     @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_GRASP, STAGE_THROUGH])
     def _reward_pregrasp_gripper_dof_pos_l1(self):
@@ -27787,6 +27835,59 @@ class DoorPregrasp(
                 )
         return records
 
+    def _get_a2_v28_camera_trace_fields(self, env_ids):
+        """Raw camera geometry and signed horizontal bearings; no reward shaping."""
+        robot = self.simulator._robot
+        flange = list(robot.body_names).index("arm_body6_to_gripper")
+        trunk = list(robot.body_names).index("trunk")
+        tower = list(self.simulator.body_names).index("wrist_camera_tower")
+        door = self.simulator.scene.articulations["door"]
+        panel = list(door.body_names).index("door_panel")
+        target = self._get_a2_gripper_handle_frame_transformer().data.target_pos_w[:, 0]
+        masks = self._get_a2_stage3_stage4_contact_squeeze_masks("v28 camera trace")
+        post_release = self._a2_stage4_release_gate & ~masks["both_contact"]
+        default = self._get_a2_arm_default_dof_pos().expand(self.num_envs, -1)
+        force = self.simulator.contact_forces[:, tower, :].norm(dim=-1)
+        trunk_pos = robot.data.body_pos_w[:, trunk]
+        trunk_heading = yaw_quat(robot.data.body_quat_w[:, trunk])
+        handle_local = quat_apply_inverse(trunk_heading, target - trunk_pos)
+        doorway_local = quat_apply_inverse(trunk_heading, door.data.root_pos_w - trunk_pos)
+        handle_bearing = torch.rad2deg(torch.atan2(handle_local[:, 1], handle_local[:, 0]))
+        doorway_bearing = torch.rad2deg(torch.atan2(doorway_local[:, 1], doorway_local[:, 0]))
+        forward = torch.zeros_like(trunk_pos)
+        forward[:, 0] = 1.0
+        root_forward_door = quat_apply_inverse(
+            door.data.root_quat_w, quat_apply(robot.data.root_quat_w, forward)
+        )
+        root_yaw = torch.rad2deg(torch.atan2(root_forward_door[:, 1], root_forward_door[:, 0]))
+        command = self.get_physical_base_command()
+        records = []
+        for index in env_ids.tolist():
+            records.append({
+                "v28_flange_pos_w": robot.data.body_pos_w[index, flange].detach().cpu().tolist(),
+                "v28_flange_quat_w": robot.data.body_quat_w[index, flange].detach().cpu().tolist(),
+                "v28_flange_ang_vel_w": robot.data.body_ang_vel_w[index, flange].detach().cpu().tolist(),
+                "v28_trunk_ang_vel_w": robot.data.body_ang_vel_w[index, trunk].detach().cpu().tolist(),
+                "v28_handle_target_pos_w": target[index].detach().cpu().tolist(),
+                "v28_door_panel_pos_w": door.data.body_pos_w[index, panel].detach().cpu().tolist(),
+                "v28_door_panel_quat_w": door.data.body_quat_w[index, panel].detach().cpu().tolist(),
+                "v28_door_width_m": float(self.door_width[index].item()),
+                "v28_door_height_m": float(self.door_height[index].item()),
+                "v28_tower_contact_force_N": float(force[index].item()),
+                "v28_post_release": bool(post_release[index].item()),
+                "v28_arm_default_pose_rad": default[index].detach().cpu().tolist(),
+                "v28_handle_bearing_deg": float(handle_bearing[index].item()),
+                "v28_doorway_bearing_deg": float(doorway_bearing[index].item()),
+                "v28_root_yaw_relative_door_deg": float(root_yaw[index].item()),
+                "v28_crossing_yaw_deg": (
+                    float(torch.rad2deg(self._a2_v28_crossing_yaw_rad[index]).item())
+                    if bool(self._a2_crossing_event_valid[index].item()) else None
+                ),
+                "v28_vy_cmd_m_s": float(command[index, 1].item()),
+                "v28_vy_cmd_at_clip": bool((command[index, 1].abs() == 0.5).item()),
+            })
+        return records
+
     def _capture_a2_eval_stage2_step_trace(self):
         if not self._use_a2_base:
             return
@@ -27823,6 +27924,8 @@ class DoorPregrasp(
             | (stage_buf == self.STAGE_SWING)
             | (stage_buf == self.STAGE_THROUGH)
         )
+        if self.config.get("a2_v28_camera_telemetry_enabled", False):
+            trace_stage_mask = torch.ones_like(stage_buf, dtype=torch.bool)
         if self._a2_eval_diagnostic_trace_enabled:
             first_episode_active_mask = self._a2_eval_first_episode_active_mask
             if (
@@ -27864,6 +27967,10 @@ class DoorPregrasp(
                     )
             else:
                 diagnostic_fields = [{} for _ in records]
+            if self.config.get("a2_v28_camera_telemetry_enabled", False):
+                camera_fields = self._get_a2_v28_camera_trace_fields(trace_env_ids)
+                for fields, camera in zip(diagnostic_fields, camera_fields, strict=True):
+                    fields.update(camera)
 
             hinge_threshold = self._get_a2_stage3_to4_door_hinge_threshold()
             for record, extra_fields in zip(records, diagnostic_fields):
@@ -28557,6 +28664,8 @@ class DoorPregrasp(
             self._a2_post_release_body_contact[env_ids] = False
             self._a2_post_release_body_force_max[env_ids] = 0.0
             self._a2_crossing_event_valid[env_ids] = False
+            if self.config.get("a2_v28_camera_telemetry_enabled", False):
+                self._a2_v28_crossing_yaw_rad[env_ids] = float("nan")
             self._a2_crossing_while_holding[env_ids] = False
             self._a2_hinge_at_crossing[env_ids] = float("nan")
             self._a2_stage0_to1_staging_valid[env_ids] = False

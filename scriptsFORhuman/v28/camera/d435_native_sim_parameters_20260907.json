@@ -1,0 +1,6307 @@
+{
+  "schema": "doordog.d435_native_sim_parameters.v1",
+  "created_utc": "2026-09-07T08:50:26.169876+00:00",
+  "cameras": {
+    "base_left": {
+      "serial": "262522072831",
+      "device": {
+        "name": "RealSense D435I",
+        "serial_number": "262522072831",
+        "firmware_version": "5.15.1.55",
+        "usb_type_descriptor": "3.2",
+        "physical_port": "/sys/devices/pci0000:00/0000:00:0d.0/usb2/2-1/2-1:1.0/video4linux/video0"
+      },
+      "profile": {
+        "description": "U3 base intended native profile; 30 fps is a request, not an inferred value from the old K JSON",
+        "streams": [
+          {
+            "key": "rgb",
+            "type": "color",
+            "index": 0,
+            "width": 1920,
+            "height": 1080,
+            "format": "rgb8",
+            "fps": 30
+          },
+          {
+            "key": "depth",
+            "type": "depth",
+            "index": 0,
+            "width": 848,
+            "height": 480,
+            "format": "z16",
+            "fps": 30
+          },
+          {
+            "key": "ir1",
+            "type": "infrared",
+            "index": 1,
+            "width": 848,
+            "height": 480,
+            "format": "y8",
+            "fps": 30
+          },
+          {
+            "key": "ir2",
+            "type": "infrared",
+            "index": 2,
+            "width": 848,
+            "height": 480,
+            "format": "y8",
+            "fps": 30
+          }
+        ]
+      },
+      "streams": {
+        "rgb": {
+          "type": "color",
+          "index": 0,
+          "width": 1920,
+          "height": 1080,
+          "format": "rgb8",
+          "fps": 30,
+          "K": [
+            [
+              1363.1871337890625,
+              0,
+              974.0809326171875
+            ],
+            [
+              0,
+              1362.7698974609375,
+              546.2550659179688
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 1363.1871337890625,
+          "fy": 1362.7698974609375,
+          "cx": 974.0809326171875,
+          "cy": 546.2550659179688,
+          "distortion_model": "distortion.inverse_brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            70.30473327636719,
+            43.231239318847656
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.714561402797699,
+              -0.40084174275398254,
+              1.0
+            ],
+            [
+              0.6931689977645874,
+              -0.40084174275398254,
+              1.0
+            ],
+            [
+              0.6931689977645874,
+              0.3909280300140381,
+              1.0
+            ],
+            [
+              -0.714561402797699,
+              0.3909280300140381,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "native_rgb"
+        },
+        "depth": {
+          "type": "depth",
+          "index": 0,
+          "width": 848,
+          "height": 480,
+          "format": "z16",
+          "fps": 30,
+          "K": [
+            [
+              429.2332458496094,
+              0,
+              425.34417724609375
+            ],
+            [
+              0,
+              429.2332458496094,
+              242.5771484375
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 429.2332458496094,
+          "fy": 429.2332458496094,
+          "cx": 425.34417724609375,
+          "cy": 242.5771484375,
+          "distortion_model": "distortion.brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            89.29663848876953,
+            58.4203987121582
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.9909394979476929,
+              -0.5651406049728394,
+              1.0
+            ],
+            [
+              0.9823465943336487,
+              -0.5651406049728394,
+              1.0
+            ],
+            [
+              0.9823465943336487,
+              0.5508027672767639,
+              1.0
+            ],
+            [
+              -0.9909394979476929,
+              0.5508027672767639,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "device_rectified_native"
+        },
+        "ir1": {
+          "type": "infrared",
+          "index": 1,
+          "width": 848,
+          "height": 480,
+          "format": "y8",
+          "fps": 30,
+          "K": [
+            [
+              429.2332458496094,
+              0,
+              425.34417724609375
+            ],
+            [
+              0,
+              429.2332458496094,
+              242.5771484375
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 429.2332458496094,
+          "fy": 429.2332458496094,
+          "cx": 425.34417724609375,
+          "cy": 242.5771484375,
+          "distortion_model": "distortion.brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            89.29663848876953,
+            58.4203987121582
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.9909394979476929,
+              -0.5651406049728394,
+              1.0
+            ],
+            [
+              0.9823465943336487,
+              -0.5651406049728394,
+              1.0
+            ],
+            [
+              0.9823465943336487,
+              0.5508027672767639,
+              1.0
+            ],
+            [
+              -0.9909394979476929,
+              0.5508027672767639,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "device_rectified_native"
+        },
+        "ir2": {
+          "type": "infrared",
+          "index": 2,
+          "width": 848,
+          "height": 480,
+          "format": "y8",
+          "fps": 30,
+          "K": [
+            [
+              429.2332458496094,
+              0,
+              425.34417724609375
+            ],
+            [
+              0,
+              429.2332458496094,
+              242.5771484375
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 429.2332458496094,
+          "fy": 429.2332458496094,
+          "cx": 425.34417724609375,
+          "cy": 242.5771484375,
+          "distortion_model": "distortion.brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            89.29663848876953,
+            58.4203987121582
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.9909394979476929,
+              -0.5651406049728394,
+              1.0
+            ],
+            [
+              0.9823465943336487,
+              -0.5651406049728394,
+              1.0
+            ],
+            [
+              0.9823465943336487,
+              0.5508027672767639,
+              1.0
+            ],
+            [
+              -0.9909394979476929,
+              0.5508027672767639,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "device_rectified_native"
+        }
+      },
+      "inter_stream_extrinsics": {
+        "rgb__to__depth": {
+          "source": "rgb",
+          "target": "depth",
+          "T_target_source": [
+            [
+              0.9999058842658997,
+              -0.01315523311495781,
+              -0.003887428669258952,
+              -0.014703504741191864
+            ],
+            [
+              0.013148236088454723,
+              0.999911904335022,
+              -0.0018199225887656212,
+              -0.0003173556469846517
+            ],
+            [
+              0.003911027684807777,
+              0.001768638496287167,
+              0.9999907612800598,
+              -0.000486078264657408
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_depth=R*p_rgb+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999058842658997,
+            0.013148236088454723,
+            0.003911027684807777,
+            -0.01315523311495781,
+            0.999911904335022,
+            0.001768638496287167,
+            -0.003887428669258952,
+            -0.0018199225887656212,
+            0.9999907612800598
+          ],
+          "raw_translation_m": [
+            -0.014703504741191864,
+            -0.0003173556469846517,
+            -0.000486078264657408
+          ],
+          "sdk_point_test_max_abs_error_m": 1.913518645757506e-07
+        },
+        "rgb__to__ir1": {
+          "source": "rgb",
+          "target": "ir1",
+          "T_target_source": [
+            [
+              0.9999058842658997,
+              -0.01315523311495781,
+              -0.003887428669258952,
+              -0.014703504741191864
+            ],
+            [
+              0.013148236088454723,
+              0.999911904335022,
+              -0.0018199225887656212,
+              -0.0003173556469846517
+            ],
+            [
+              0.003911027684807777,
+              0.001768638496287167,
+              0.9999907612800598,
+              -0.000486078264657408
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir1=R*p_rgb+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999058842658997,
+            0.013148236088454723,
+            0.003911027684807777,
+            -0.01315523311495781,
+            0.999911904335022,
+            0.001768638496287167,
+            -0.003887428669258952,
+            -0.0018199225887656212,
+            0.9999907612800598
+          ],
+          "raw_translation_m": [
+            -0.014703504741191864,
+            -0.0003173556469846517,
+            -0.000486078264657408
+          ],
+          "sdk_point_test_max_abs_error_m": 1.913518645757506e-07
+        },
+        "rgb__to__ir2": {
+          "source": "rgb",
+          "target": "ir2",
+          "T_target_source": [
+            [
+              0.9999058842658997,
+              -0.01315523311495781,
+              -0.003887428669258952,
+              -0.06492739915847778
+            ],
+            [
+              0.013148236088454723,
+              0.999911904335022,
+              -0.0018199225887656212,
+              -0.0003173556469846517
+            ],
+            [
+              0.003911027684807777,
+              0.001768638496287167,
+              0.9999907612800598,
+              -0.000486078264657408
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir2=R*p_rgb+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999058842658997,
+            0.013148236088454723,
+            0.003911027684807777,
+            -0.01315523311495781,
+            0.999911904335022,
+            0.001768638496287167,
+            -0.003887428669258952,
+            -0.0018199225887656212,
+            0.9999907612800598
+          ],
+          "raw_translation_m": [
+            -0.06492739915847778,
+            -0.0003173556469846517,
+            -0.000486078264657408
+          ],
+          "sdk_point_test_max_abs_error_m": 1.913518645757506e-07
+        },
+        "depth__to__rgb": {
+          "source": "depth",
+          "target": "rgb",
+          "T_target_source": [
+            [
+              0.9999058842658997,
+              0.013148236088454723,
+              0.003911027684807777,
+              0.014708193950355053
+            ],
+            [
+              -0.01315523311495781,
+              0.999911904335022,
+              0.001768638496287167,
+              0.00012475934636313468
+            ],
+            [
+              -0.003887428669258952,
+              -0.0018199225887656212,
+              0.9999907612800598,
+              0.00042833740008063614
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_rgb=R*p_depth+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999058842658997,
+            -0.01315523311495781,
+            -0.003887428669258952,
+            0.013148236088454723,
+            0.999911904335022,
+            -0.0018199225887656212,
+            0.003911027684807777,
+            0.001768638496287167,
+            0.9999907612800598
+          ],
+          "raw_translation_m": [
+            0.014708193950355053,
+            0.00012475934636313468,
+            0.00042833740008063614
+          ],
+          "sdk_point_test_max_abs_error_m": 5.872570918441511e-08
+        },
+        "depth__to__ir1": {
+          "source": "depth",
+          "target": "ir1",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir1=R*p_depth+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "depth__to__ir2": {
+          "source": "depth",
+          "target": "ir2",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              -0.05022389069199562
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir2=R*p_depth+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            -0.05022389069199562,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir1__to__rgb": {
+          "source": "ir1",
+          "target": "rgb",
+          "T_target_source": [
+            [
+              0.9999058842658997,
+              0.013148236088454723,
+              0.003911027684807777,
+              0.014708193950355053
+            ],
+            [
+              -0.01315523311495781,
+              0.999911904335022,
+              0.001768638496287167,
+              0.00012475934636313468
+            ],
+            [
+              -0.003887428669258952,
+              -0.0018199225887656212,
+              0.9999907612800598,
+              0.00042833740008063614
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_rgb=R*p_ir1+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999058842658997,
+            -0.01315523311495781,
+            -0.003887428669258952,
+            0.013148236088454723,
+            0.999911904335022,
+            -0.0018199225887656212,
+            0.003911027684807777,
+            0.001768638496287167,
+            0.9999907612800598
+          ],
+          "raw_translation_m": [
+            0.014708193950355053,
+            0.00012475934636313468,
+            0.00042833740008063614
+          ],
+          "sdk_point_test_max_abs_error_m": 5.872570918441511e-08
+        },
+        "ir1__to__depth": {
+          "source": "ir1",
+          "target": "depth",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_depth=R*p_ir1+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir1__to__ir2": {
+          "source": "ir1",
+          "target": "ir2",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              -0.05022389069199562
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir2=R*p_ir1+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            -0.05022389069199562,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir2__to__rgb": {
+          "source": "ir2",
+          "target": "rgb",
+          "T_target_source": [
+            [
+              0.9999058842658997,
+              0.013148236088454723,
+              0.003911027684807777,
+              0.0649273544549942
+            ],
+            [
+              -0.01315523311495781,
+              0.999911904335022,
+              0.001768638496287167,
+              -0.0005359476781450212
+            ],
+            [
+              -0.003887428669258952,
+              -0.0018199225887656212,
+              0.9999907612800598,
+              0.00023309560492634773
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_rgb=R*p_ir2+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999058842658997,
+            -0.01315523311495781,
+            -0.003887428669258952,
+            0.013148236088454723,
+            0.999911904335022,
+            -0.0018199225887656212,
+            0.003911027684807777,
+            0.001768638496287167,
+            0.9999907612800598
+          ],
+          "raw_translation_m": [
+            0.0649273544549942,
+            -0.0005359476781450212,
+            0.00023309560492634773
+          ],
+          "sdk_point_test_max_abs_error_m": 8.174683907569147e-08
+        },
+        "ir2__to__depth": {
+          "source": "ir2",
+          "target": "depth",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.05022389069199562
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_depth=R*p_ir2+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.05022389069199562,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 5.587935447692871e-08
+        },
+        "ir2__to__ir1": {
+          "source": "ir2",
+          "target": "ir1",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.05022389069199562
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir1=R*p_ir2+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.05022389069199562,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 5.587935447692871e-08
+        }
+      },
+      "depth_scale_m_per_unit": 0.0010000000474974513,
+      "depth_quantity": "distance_along_depth_optical_Z_m; zero_raw_value_means_missing",
+      "board_comparisons": {
+        "rgb": {
+          "status": "INDEPENDENT_INTRINSICS_CANDIDATE_ONLY",
+          "serial": "262522072831",
+          "reference_stream": "rgb",
+          "native_calibration_file": "runs/device_in_hand_02/base/calibration.json",
+          "board_file": "board/board.json",
+          "native_profile": {
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "format": "rgb8",
+            "type": "color",
+            "index": 0
+          },
+          "train_samples": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0031",
+            "0032",
+            "0033",
+            "0034",
+            "0036",
+            "0037",
+            "0038",
+            "0039"
+          ],
+          "heldout_samples": [
+            "0000",
+            "0005",
+            "0010",
+            "0015",
+            "0020",
+            "0025",
+            "0030",
+            "0035"
+          ],
+          "opencv_version": "4.14.0",
+          "model": "opencv_brown_conrady_5",
+          "K": [
+            [
+              1351.4270098961906,
+              0.0,
+              982.4784395930601
+            ],
+            [
+              0.0,
+              1353.8375980866083,
+              561.9567180225989
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "coeffs": [
+            0.04591036801704643,
+            0.387447446041307,
+            0.005774215277306564,
+            0.0012985150200680192,
+            -1.5775380039179545
+          ],
+          "training_rms_px": 0.49342567551264654,
+          "factory_current_stored_K": [
+            [
+              1363.1871337890625,
+              0.0,
+              974.0809326171875
+            ],
+            [
+              0.0,
+              1362.7698974609375,
+              546.2550659179688
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "factory_current_stored_D": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "heldout_device_parameters": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 1.1221639344503336
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 1.1621993786376068
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.4855774728424408
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.6159045000464505
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.7771709507109806
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 1.3020469075126013
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.9808930799962335
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.8393930384655759
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.9101430592309048,
+              "p95": 1.2531002724063531,
+              "max": 1.3020469075126013
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "heldout_independent_candidate": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.465480800872086
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.6497656786751788
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.2823119670903111
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.30509224578645305
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.40009528992441384
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.46755673503013595
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.5118900078179626
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.5013526800257108
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.46651876795111097,
+              "p95": 0.601509193875153,
+              "max": 0.6497656786751788
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "image_coverage_grid_4x3_cells": 9,
+          "selection": "NOT_APPLIED; a lower fit error alone does not authorize EEPROM/firmware/internal RGB-IR transform updates",
+          "no_hardware_write": true
+        },
+        "ir1": {
+          "status": "INDEPENDENT_INTRINSICS_CANDIDATE_ONLY",
+          "serial": "262522072831",
+          "reference_stream": "ir1",
+          "native_calibration_file": "runs/device_in_hand_02/base/calibration.json",
+          "board_file": "board/board.json",
+          "native_profile": {
+            "width": 848,
+            "height": 480,
+            "fps": 30,
+            "format": "y8",
+            "type": "infrared",
+            "index": 1
+          },
+          "train_samples": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0031",
+            "0032",
+            "0033",
+            "0034",
+            "0036",
+            "0037",
+            "0038",
+            "0039"
+          ],
+          "heldout_samples": [
+            "0000",
+            "0005",
+            "0010",
+            "0015",
+            "0020",
+            "0025",
+            "0030",
+            "0035"
+          ],
+          "opencv_version": "4.14.0",
+          "model": "opencv_brown_conrady_5",
+          "K": [
+            [
+              429.18325826318784,
+              0.0,
+              427.640817536415
+            ],
+            [
+              0.0,
+              430.2861981298884,
+              244.8645611754843
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "coeffs": [
+            0.006248498935608808,
+            -0.019061717413355883,
+            0.001376474999251816,
+            0.0016495125151319966,
+            0.013936581245807997
+          ],
+          "training_rms_px": 0.15785231696832888,
+          "factory_current_stored_K": [
+            [
+              429.2332458496094,
+              0.0,
+              425.34417724609375
+            ],
+            [
+              0.0,
+              429.2332458496094,
+              242.5771484375
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "factory_current_stored_D": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "heldout_device_parameters": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.34702505365641856
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.2858867770696649
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.21576306820685331
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.20509488036037468
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.15319904247445584
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.18079067863615803
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.10632876148157311
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.1670763626693598
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.19294277949826635,
+              "p95": 0.32562665685105474,
+              "max": 0.34702505365641856
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "heldout_independent_candidate": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.15891457630628225
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.2094104561752113
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.139105206165649
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.20356813822280245
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.14015652697800507
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.17205249931899397
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.12057198004973999
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.13084717871691282
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.14953555164214366,
+              "p95": 0.2073656448918682,
+              "max": 0.2094104561752113
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "image_coverage_grid_4x3_cells": 12,
+          "selection": "NOT_APPLIED; a lower fit error alone does not authorize EEPROM/firmware/internal RGB-IR transform updates",
+          "no_hardware_write": true
+        },
+        "ir2": {
+          "status": "INDEPENDENT_INTRINSICS_CANDIDATE_ONLY",
+          "serial": "262522072831",
+          "reference_stream": "ir2",
+          "native_calibration_file": "runs/device_in_hand_02/base/calibration.json",
+          "board_file": "board/board.json",
+          "native_profile": {
+            "width": 848,
+            "height": 480,
+            "fps": 30,
+            "format": "y8",
+            "type": "infrared",
+            "index": 2
+          },
+          "train_samples": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0031",
+            "0032",
+            "0033",
+            "0034",
+            "0036",
+            "0037",
+            "0038",
+            "0039"
+          ],
+          "heldout_samples": [
+            "0000",
+            "0005",
+            "0010",
+            "0015",
+            "0020",
+            "0025",
+            "0030",
+            "0035"
+          ],
+          "opencv_version": "4.14.0",
+          "model": "opencv_brown_conrady_5",
+          "K": [
+            [
+              429.9668380775448,
+              0.0,
+              427.69199671726363
+            ],
+            [
+              0.0,
+              431.1792639134812,
+              245.52571683292734
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "coeffs": [
+            0.004867900802660562,
+            -0.013724744821464798,
+            0.002185027501838771,
+            0.0018280429901520571,
+            0.008196807764965007
+          ],
+          "training_rms_px": 0.17181214218352867,
+          "factory_current_stored_K": [
+            [
+              429.2332458496094,
+              0.0,
+              425.34417724609375
+            ],
+            [
+              0.0,
+              429.2332458496094,
+              242.5771484375
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "factory_current_stored_D": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "heldout_device_parameters": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.14465894041634694
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.38139904155250887
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.15047048950472933
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.19159041029675766
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.15956487426972854
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.13356472887088477
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.161548439621883
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.41349890935673883
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.1605566569458058,
+              "p95": 0.40226395562525835,
+              "max": 0.41349890935673883
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "heldout_independent_candidate": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.13282032595264365
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.14946467928604523
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.1317938041796568
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.18770840483053935
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.13718746933008513
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.11860413748321857
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.17477913303053888
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.1791255408095701
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.14332607430806518,
+              "p95": 0.1847044024232001,
+              "max": 0.18770840483053935
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "image_coverage_grid_4x3_cells": 12,
+          "selection": "NOT_APPLIED; a lower fit error alone does not authorize EEPROM/firmware/internal RGB-IR transform updates",
+          "no_hardware_write": true
+        }
+      },
+      "intrinsics_selection": "SDK native K/D retained as a coherent set with device internal transforms; independent fits are diagnostic candidates, not applied",
+      "mount_status": "UNMEASURED_NOT_INCLUDED",
+      "sensor_options_at_readout": [
+        {
+          "name": "Stereo Module",
+          "values": {
+            "Exposure": {
+              "value": 8500.0,
+              "read_only": false,
+              "min": 1.0,
+              "max": 165000.0,
+              "step": 1.0,
+              "default": 8500.0
+            },
+            "Gain": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 16.0,
+              "max": 248.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Enable Auto Exposure": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Visual Preset": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 5.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Laser Power": {
+              "value": 150.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 360.0,
+              "step": 30.0,
+              "default": 150.0
+            },
+            "Emitter Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 2.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Frames Queue Size": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 32.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Asic Temperature": {
+              "value": 33.0,
+              "read_only": true,
+              "min": -40.0,
+              "max": 125.0,
+              "step": 0.0,
+              "default": 0.0
+            },
+            "Error Polling Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Projector Temperature": {
+              "value": 29.0,
+              "read_only": true,
+              "min": -40.0,
+              "max": 125.0,
+              "step": 0.0,
+              "default": 0.0
+            },
+            "Output Trigger Enabled": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Depth Units": {
+              "value": 0.0010000000474974513,
+              "read_only": false,
+              "min": 9.999999974752427e-07,
+              "max": 0.009999999776482582,
+              "step": 9.999999974752427e-07,
+              "default": 0.0010000000474974513
+            },
+            "Stereo Baseline": {
+              "value": 50.2238883972168,
+              "read_only": true,
+              "min": 50.2238883972168,
+              "max": 50.2238883972168,
+              "step": 0.0,
+              "default": 50.2238883972168
+            },
+            "Inter Cam Sync Mode": {
+              "value": 0.0,
+              "read_only": true,
+              "min": 0.0,
+              "max": 260.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Emitter On Off": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Global Time Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Emitter Always On": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Hdr Enabled": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Sequence Name": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 3.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Sequence Size": {
+              "value": 2.0,
+              "read_only": false,
+              "min": 2.0,
+              "max": 2.0,
+              "step": 1.0,
+              "default": 2.0
+            },
+            "Sequence Id": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 2.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Auto Exposure Limit": {
+              "value": 165000.0,
+              "read_only": true,
+              "min": 1.0,
+              "max": 165000.0,
+              "step": 1.0,
+              "default": 8500.0
+            },
+            "Auto Gain Limit": {
+              "value": 248.0,
+              "read_only": true,
+              "min": 16.0,
+              "max": 248.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Auto Exposure Limit Toggle": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Auto Gain Limit Toggle": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            }
+          }
+        },
+        {
+          "name": "RGB Camera",
+          "values": {
+            "Backlight Compensation": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Brightness": {
+              "value": 0.0,
+              "read_only": false,
+              "min": -64.0,
+              "max": 64.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Contrast": {
+              "value": 50.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 1.0,
+              "default": 50.0
+            },
+            "Exposure": {
+              "value": 166.0,
+              "read_only": false,
+              "min": 1.0,
+              "max": 10000.0,
+              "step": 1.0,
+              "default": 166.0
+            },
+            "Gain": {
+              "value": 64.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 128.0,
+              "step": 1.0,
+              "default": 64.0
+            },
+            "Gamma": {
+              "value": 300.0,
+              "read_only": false,
+              "min": 100.0,
+              "max": 500.0,
+              "step": 1.0,
+              "default": 300.0
+            },
+            "Hue": {
+              "value": 0.0,
+              "read_only": false,
+              "min": -180.0,
+              "max": 180.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Saturation": {
+              "value": 64.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 1.0,
+              "default": 64.0
+            },
+            "Sharpness": {
+              "value": 50.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 1.0,
+              "default": 50.0
+            },
+            "White Balance": {
+              "value": 4600.0,
+              "read_only": false,
+              "min": 2800.0,
+              "max": 6500.0,
+              "step": 10.0,
+              "default": 4600.0
+            },
+            "Enable Auto Exposure": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Enable Auto White Balance": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Frames Queue Size": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 32.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Power Line Frequency": {
+              "value": 3.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 3.0,
+              "step": 1.0,
+              "default": 3.0
+            },
+            "Auto Exposure Priority": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Global Time Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            }
+          }
+        },
+        {
+          "name": "Motion Module",
+          "values": {
+            "Frames Queue Size": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 32.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Enable Motion Correction": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Global Time Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            }
+          }
+        }
+      ]
+    },
+    "base_right": {
+      "serial": "344422070503",
+      "device": {
+        "name": "RealSense D435I",
+        "serial_number": "344422070503",
+        "firmware_version": "5.13.0.55",
+        "usb_type_descriptor": "3.2",
+        "physical_port": "/sys/devices/pci0000:00/0000:00:0d.0/usb2/2-1/2-1:1.0/video4linux/video0"
+      },
+      "profile": {
+        "description": "U3 base intended native profile; 30 fps is a request, not an inferred value from the old K JSON",
+        "streams": [
+          {
+            "key": "rgb",
+            "type": "color",
+            "index": 0,
+            "width": 1920,
+            "height": 1080,
+            "format": "rgb8",
+            "fps": 30
+          },
+          {
+            "key": "depth",
+            "type": "depth",
+            "index": 0,
+            "width": 848,
+            "height": 480,
+            "format": "z16",
+            "fps": 30
+          },
+          {
+            "key": "ir1",
+            "type": "infrared",
+            "index": 1,
+            "width": 848,
+            "height": 480,
+            "format": "y8",
+            "fps": 30
+          },
+          {
+            "key": "ir2",
+            "type": "infrared",
+            "index": 2,
+            "width": 848,
+            "height": 480,
+            "format": "y8",
+            "fps": 30
+          }
+        ]
+      },
+      "streams": {
+        "rgb": {
+          "type": "color",
+          "index": 0,
+          "width": 1920,
+          "height": 1080,
+          "format": "rgb8",
+          "fps": 30,
+          "K": [
+            [
+              1363.5411376953125,
+              0,
+              979.9849243164062
+            ],
+            [
+              0,
+              1363.862548828125,
+              574.9470825195312
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 1363.5411376953125,
+          "fy": 1363.862548828125,
+          "cx": 979.9849243164062,
+          "cy": 574.9470825195312,
+          "distortion_model": "distortion.inverse_brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            70.2867202758789,
+            43.177730560302734
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.7187057733535767,
+              -0.4215579330921173,
+              1.0
+            ],
+            [
+              0.688659131526947,
+              -0.4215579330921173,
+              1.0
+            ],
+            [
+              0.688659131526947,
+              0.3695774972438812,
+              1.0
+            ],
+            [
+              -0.7187057733535767,
+              0.3695774972438812,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "native_rgb"
+        },
+        "depth": {
+          "type": "depth",
+          "index": 0,
+          "width": 848,
+          "height": 480,
+          "format": "z16",
+          "fps": 30,
+          "K": [
+            [
+              430.18389892578125,
+              0,
+              428.2722473144531
+            ],
+            [
+              0,
+              430.18389892578125,
+              237.39437866210938
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 430.18389892578125,
+          "fy": 430.18389892578125,
+          "cx": 428.2722473144531,
+          "cy": 237.39437866210938,
+          "distortion_model": "distortion.brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            89.1668472290039,
+            58.31349182128906
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.9955561757087708,
+              -0.5518439412117004,
+              1.0
+            ],
+            [
+              0.9733691811561584,
+              -0.5518439412117004,
+              1.0
+            ],
+            [
+              0.9733691811561584,
+              0.5616333484649658,
+              1.0
+            ],
+            [
+              -0.9955561757087708,
+              0.5616333484649658,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "device_rectified_native"
+        },
+        "ir1": {
+          "type": "infrared",
+          "index": 1,
+          "width": 848,
+          "height": 480,
+          "format": "y8",
+          "fps": 30,
+          "K": [
+            [
+              430.18389892578125,
+              0,
+              428.2722473144531
+            ],
+            [
+              0,
+              430.18389892578125,
+              237.39437866210938
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 430.18389892578125,
+          "fy": 430.18389892578125,
+          "cx": 428.2722473144531,
+          "cy": 237.39437866210938,
+          "distortion_model": "distortion.brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            89.1668472290039,
+            58.31349182128906
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.9955561757087708,
+              -0.5518439412117004,
+              1.0
+            ],
+            [
+              0.9733691811561584,
+              -0.5518439412117004,
+              1.0
+            ],
+            [
+              0.9733691811561584,
+              0.5616333484649658,
+              1.0
+            ],
+            [
+              -0.9955561757087708,
+              0.5616333484649658,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "device_rectified_native"
+        },
+        "ir2": {
+          "type": "infrared",
+          "index": 2,
+          "width": 848,
+          "height": 480,
+          "format": "y8",
+          "fps": 30,
+          "K": [
+            [
+              430.18389892578125,
+              0,
+              428.2722473144531
+            ],
+            [
+              0,
+              430.18389892578125,
+              237.39437866210938
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 430.18389892578125,
+          "fy": 430.18389892578125,
+          "cx": 428.2722473144531,
+          "cy": 237.39437866210938,
+          "distortion_model": "distortion.brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            89.1668472290039,
+            58.31349182128906
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.9955561757087708,
+              -0.5518439412117004,
+              1.0
+            ],
+            [
+              0.9733691811561584,
+              -0.5518439412117004,
+              1.0
+            ],
+            [
+              0.9733691811561584,
+              0.5616333484649658,
+              1.0
+            ],
+            [
+              -0.9955561757087708,
+              0.5616333484649658,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "device_rectified_native"
+        }
+      },
+      "inter_stream_extrinsics": {
+        "rgb__to__depth": {
+          "source": "rgb",
+          "target": "depth",
+          "T_target_source": [
+            [
+              0.9999748468399048,
+              0.004336777608841658,
+              0.005611995700746775,
+              -0.014895830303430557
+            ],
+            [
+              -0.004352841526269913,
+              0.999986469745636,
+              0.002853380050510168,
+              -0.0002229920937679708
+            ],
+            [
+              -0.005599545314908028,
+              -0.0028777364641427994,
+              0.9999802112579346,
+              -0.00039700392517261207
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_depth=R*p_rgb+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999748468399048,
+            -0.004352841526269913,
+            -0.005599545314908028,
+            0.004336777608841658,
+            0.999986469745636,
+            -0.0028777364641427994,
+            0.005611995700746775,
+            0.002853380050510168,
+            0.9999802112579346
+          ],
+          "raw_translation_m": [
+            -0.014895830303430557,
+            -0.0002229920937679708,
+            -0.00039700392517261207
+          ],
+          "sdk_point_test_max_abs_error_m": 5.819019865960229e-08
+        },
+        "rgb__to__ir1": {
+          "source": "rgb",
+          "target": "ir1",
+          "T_target_source": [
+            [
+              0.9999748468399048,
+              0.004336777608841658,
+              0.005611995700746775,
+              -0.014895830303430557
+            ],
+            [
+              -0.004352841526269913,
+              0.999986469745636,
+              0.002853380050510168,
+              -0.0002229920937679708
+            ],
+            [
+              -0.005599545314908028,
+              -0.0028777364641427994,
+              0.9999802112579346,
+              -0.00039700392517261207
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir1=R*p_rgb+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999748468399048,
+            -0.004352841526269913,
+            -0.005599545314908028,
+            0.004336777608841658,
+            0.999986469745636,
+            -0.0028777364641427994,
+            0.005611995700746775,
+            0.002853380050510168,
+            0.9999802112579346
+          ],
+          "raw_translation_m": [
+            -0.014895830303430557,
+            -0.0002229920937679708,
+            -0.00039700392517261207
+          ],
+          "sdk_point_test_max_abs_error_m": 5.819019865960229e-08
+        },
+        "rgb__to__ir2": {
+          "source": "rgb",
+          "target": "ir2",
+          "T_target_source": [
+            [
+              0.9999748468399048,
+              0.004336777608841658,
+              0.005611995700746775,
+              -0.06490476429462433
+            ],
+            [
+              -0.004352841526269913,
+              0.999986469745636,
+              0.002853380050510168,
+              -0.0002229920937679708
+            ],
+            [
+              -0.005599545314908028,
+              -0.0028777364641427994,
+              0.9999802112579346,
+              -0.00039700392517261207
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir2=R*p_rgb+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999748468399048,
+            -0.004352841526269913,
+            -0.005599545314908028,
+            0.004336777608841658,
+            0.999986469745636,
+            -0.0028777364641427994,
+            0.005611995700746775,
+            0.002853380050510168,
+            0.9999802112579346
+          ],
+          "raw_translation_m": [
+            -0.06490476429462433,
+            -0.0002229920937679708,
+            -0.00039700392517261207
+          ],
+          "sdk_point_test_max_abs_error_m": 5.819019865960229e-08
+        },
+        "depth__to__rgb": {
+          "source": "depth",
+          "target": "rgb",
+          "T_target_source": [
+            [
+              0.9999748468399048,
+              -0.004352841526269913,
+              -0.005599545314908028,
+              0.014892262406647205
+            ],
+            [
+              0.004336777608841658,
+              0.999986469745636,
+              -0.0028777364641427994,
+              0.0002864465059246868
+            ],
+            [
+              0.005611995700746775,
+              0.002853380050510168,
+              0.9999802112579346,
+              0.0004812276747543365
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_rgb=R*p_depth+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999748468399048,
+            0.004336777608841658,
+            0.005611995700746775,
+            -0.004352841526269913,
+            0.999986469745636,
+            0.002853380050510168,
+            -0.005599545314908028,
+            -0.0028777364641427994,
+            0.9999802112579346
+          ],
+          "raw_translation_m": [
+            0.014892262406647205,
+            0.0002864465059246868,
+            0.0004812276747543365
+          ],
+          "sdk_point_test_max_abs_error_m": 1.1020456436305892e-07
+        },
+        "depth__to__ir1": {
+          "source": "depth",
+          "target": "ir1",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir1=R*p_depth+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "depth__to__ir2": {
+          "source": "depth",
+          "target": "ir2",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              -0.05000893026590347
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir2=R*p_depth+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            -0.05000893026590347,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir1__to__rgb": {
+          "source": "ir1",
+          "target": "rgb",
+          "T_target_source": [
+            [
+              0.9999748468399048,
+              -0.004352841526269913,
+              -0.005599545314908028,
+              0.014892262406647205
+            ],
+            [
+              0.004336777608841658,
+              0.999986469745636,
+              -0.0028777364641427994,
+              0.0002864465059246868
+            ],
+            [
+              0.005611995700746775,
+              0.002853380050510168,
+              0.9999802112579346,
+              0.0004812276747543365
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_rgb=R*p_ir1+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999748468399048,
+            0.004336777608841658,
+            0.005611995700746775,
+            -0.004352841526269913,
+            0.999986469745636,
+            0.002853380050510168,
+            -0.005599545314908028,
+            -0.0028777364641427994,
+            0.9999802112579346
+          ],
+          "raw_translation_m": [
+            0.014892262406647205,
+            0.0002864465059246868,
+            0.0004812276747543365
+          ],
+          "sdk_point_test_max_abs_error_m": 1.1020456436305892e-07
+        },
+        "ir1__to__depth": {
+          "source": "ir1",
+          "target": "depth",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_depth=R*p_ir1+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir1__to__ir2": {
+          "source": "ir1",
+          "target": "ir2",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              -0.05000893026590347
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir2=R*p_ir1+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            -0.05000893026590347,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir2__to__rgb": {
+          "source": "ir2",
+          "target": "rgb",
+          "T_target_source": [
+            [
+              0.9999748468399048,
+              -0.004352841526269913,
+              -0.005599545314908028,
+              0.06489993631839752
+            ],
+            [
+              0.004336777608841658,
+              0.999986469745636,
+              -0.0028777364641427994,
+              0.000503324088640511
+            ],
+            [
+              0.005611995700746775,
+              0.002853380050510168,
+              0.9999802112579346,
+              0.0007618775707669556
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_rgb=R*p_ir2+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999748468399048,
+            0.004336777608841658,
+            0.005611995700746775,
+            -0.004352841526269913,
+            0.999986469745636,
+            0.002853380050510168,
+            -0.005599545314908028,
+            -0.0028777364641427994,
+            0.9999802112579346
+          ],
+          "raw_translation_m": [
+            0.06489993631839752,
+            0.000503324088640511,
+            0.0007618775707669556
+          ],
+          "sdk_point_test_max_abs_error_m": 1.4143297444313419e-07
+        },
+        "ir2__to__depth": {
+          "source": "ir2",
+          "target": "depth",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.05000893026590347
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_depth=R*p_ir2+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.05000893026590347,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir2__to__ir1": {
+          "source": "ir2",
+          "target": "ir1",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.05000893026590347
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir1=R*p_ir2+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.05000893026590347,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        }
+      },
+      "depth_scale_m_per_unit": 0.0010000000474974513,
+      "depth_quantity": "distance_along_depth_optical_Z_m; zero_raw_value_means_missing",
+      "board_comparisons": {
+        "rgb": {
+          "status": "INDEPENDENT_INTRINSICS_CANDIDATE_ONLY",
+          "serial": "344422070503",
+          "reference_stream": "rgb",
+          "native_calibration_file": "runs/BASE_RIGHT_DEVICE_01/base/calibration.json",
+          "board_file": "board/board.json",
+          "native_profile": {
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "format": "rgb8",
+            "type": "color",
+            "index": 0
+          },
+          "train_samples": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0031",
+            "0032",
+            "0033",
+            "0034",
+            "0036",
+            "0037",
+            "0038",
+            "0039"
+          ],
+          "heldout_samples": [
+            "0000",
+            "0005",
+            "0010",
+            "0015",
+            "0020",
+            "0025",
+            "0030",
+            "0035"
+          ],
+          "opencv_version": "4.14.0",
+          "model": "opencv_brown_conrady_5",
+          "K": [
+            [
+              1357.2468403449911,
+              0.0,
+              986.5195376621098
+            ],
+            [
+              0.0,
+              1364.1046488550467,
+              595.947603804981
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "coeffs": [
+            0.08189942427020586,
+            -0.08054074338034203,
+            0.006729344566651978,
+            0.002894382237697127,
+            -0.21435444726558003
+          ],
+          "training_rms_px": 0.6508744643290604,
+          "factory_current_stored_K": [
+            [
+              1363.5411376953125,
+              0.0,
+              979.9849243164062
+            ],
+            [
+              0.0,
+              1363.862548828125,
+              574.9470825195312
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "factory_current_stored_D": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "heldout_device_parameters": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.8686282097834778
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.9136659592769026
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.8383618152148151
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 1.2982582952238633
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.48490804736088333
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 1.0019281108562756
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.6247245359623493
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.760111078209581
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.8534950124991465,
+              "p95": 1.1945427306952074,
+              "max": 1.2982582952238633
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "heldout_independent_candidate": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 1.678043997407523
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.7742459294987654
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.3278726740632636
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.36399410200131943
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.3531597227597234
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.4639010621157333
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.45256894018330185
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.7210533625418534
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.45823500114951754,
+              "p95": 1.3617146736394572,
+              "max": 1.678043997407523
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "image_coverage_grid_4x3_cells": 12,
+          "selection": "NOT_APPLIED; a lower fit error alone does not authorize EEPROM/firmware/internal RGB-IR transform updates",
+          "no_hardware_write": true
+        },
+        "ir1": {
+          "status": "INDEPENDENT_INTRINSICS_CANDIDATE_ONLY",
+          "serial": "344422070503",
+          "reference_stream": "ir1",
+          "native_calibration_file": "runs/BASE_RIGHT_DEVICE_01/base/calibration.json",
+          "board_file": "board/board.json",
+          "native_profile": {
+            "width": 848,
+            "height": 480,
+            "fps": 30,
+            "format": "y8",
+            "type": "infrared",
+            "index": 1
+          },
+          "train_samples": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0031",
+            "0032",
+            "0033",
+            "0034",
+            "0036",
+            "0037",
+            "0038",
+            "0039"
+          ],
+          "heldout_samples": [
+            "0000",
+            "0005",
+            "0010",
+            "0015",
+            "0020",
+            "0025",
+            "0030",
+            "0035"
+          ],
+          "opencv_version": "4.14.0",
+          "model": "opencv_brown_conrady_5",
+          "K": [
+            [
+              430.5166639891907,
+              0.0,
+              429.411256001921
+            ],
+            [
+              0.0,
+              431.5026686343322,
+              240.2898434712928
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "coeffs": [
+            0.004121458518841914,
+            -0.022980663121617267,
+            0.001246589182632865,
+            0.0017069088923826383,
+            0.02422673740299997
+          ],
+          "training_rms_px": 0.1273589804554339,
+          "factory_current_stored_K": [
+            [
+              430.18389892578125,
+              0.0,
+              428.2722473144531
+            ],
+            [
+              0.0,
+              430.18389892578125,
+              237.39437866210938
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "factory_current_stored_D": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "heldout_device_parameters": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.2013972348625435
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.3243196181588446
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 1.4454099820015527
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.1722027855489449
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.16142851906938016
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.11362857301187397
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.18416824595255926
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.11165126619348491
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.1781855157507521,
+              "p95": 1.0530283546566044,
+              "max": 1.4454099820015527
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "heldout_independent_candidate": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.21259207285577902
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.2691950331221506
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.37707046967316193
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.16965936211071295
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.1299339681866702
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.10900047776512331
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.1751375358599864
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.0877168521767523
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.17239844898534967,
+              "p95": 0.3393140668803079,
+              "max": 0.37707046967316193
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "image_coverage_grid_4x3_cells": 12,
+          "selection": "NOT_APPLIED; a lower fit error alone does not authorize EEPROM/firmware/internal RGB-IR transform updates",
+          "no_hardware_write": true
+        },
+        "ir2": {
+          "status": "INDEPENDENT_INTRINSICS_CANDIDATE_ONLY",
+          "serial": "344422070503",
+          "reference_stream": "ir2",
+          "native_calibration_file": "runs/BASE_RIGHT_DEVICE_01/base/calibration.json",
+          "board_file": "board/board.json",
+          "native_profile": {
+            "width": 848,
+            "height": 480,
+            "fps": 30,
+            "format": "y8",
+            "type": "infrared",
+            "index": 2
+          },
+          "train_samples": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0031",
+            "0032",
+            "0033",
+            "0034",
+            "0036",
+            "0037",
+            "0038",
+            "0039"
+          ],
+          "heldout_samples": [
+            "0000",
+            "0005",
+            "0010",
+            "0015",
+            "0020",
+            "0025",
+            "0030",
+            "0035"
+          ],
+          "opencv_version": "4.14.0",
+          "model": "opencv_brown_conrady_5",
+          "K": [
+            [
+              428.2317368974295,
+              0.0,
+              429.5769793307725
+            ],
+            [
+              0.0,
+              429.0997109416628,
+              240.3111718446138
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "coeffs": [
+            0.0010262551534108546,
+            -0.00747838413264776,
+            0.0016076590615040501,
+            0.0011827884547022927,
+            0.003470716776938372
+          ],
+          "training_rms_px": 0.11516813665189064,
+          "factory_current_stored_K": [
+            [
+              430.18389892578125,
+              0.0,
+              428.2722473144531
+            ],
+            [
+              0.0,
+              430.18389892578125,
+              237.39437866210938
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "factory_current_stored_D": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "heldout_device_parameters": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.17207855978683015
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.1472041178425757
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.22238764617904325
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.15169129980106022
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.15761640903560378
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.7528093440749184
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.06870507841714431
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.06677474838448397
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.15465385441833202,
+              "p95": 0.5671617498113618,
+              "max": 0.7528093440749184
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "heldout_independent_candidate": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.13936463105398617
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.1259973653750923
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.202492540827074
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.15021946345455658
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.10223687010566493
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.47747354855383717
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.06386505110376973
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.06141138476569539
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.13268099821453921,
+              "p95": 0.38123019584946993,
+              "max": 0.47747354855383717
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "image_coverage_grid_4x3_cells": 11,
+          "selection": "NOT_APPLIED; a lower fit error alone does not authorize EEPROM/firmware/internal RGB-IR transform updates",
+          "no_hardware_write": true
+        }
+      },
+      "intrinsics_selection": "SDK native K/D retained as a coherent set with device internal transforms; independent fits are diagnostic candidates, not applied",
+      "mount_status": "UNMEASURED_NOT_INCLUDED",
+      "sensor_options_at_readout": [
+        {
+          "name": "Stereo Module",
+          "values": {
+            "Exposure": {
+              "value": 8500.0,
+              "read_only": false,
+              "min": 1.0,
+              "max": 200000.0,
+              "step": 1.0,
+              "default": 8500.0
+            },
+            "Gain": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 16.0,
+              "max": 248.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Enable Auto Exposure": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Visual Preset": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 5.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Laser Power": {
+              "value": 150.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 360.0,
+              "step": 30.0,
+              "default": 150.0
+            },
+            "Emitter Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 2.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Frames Queue Size": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 32.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Asic Temperature": {
+              "value": 32.0,
+              "read_only": true,
+              "min": -40.0,
+              "max": 125.0,
+              "step": 0.0,
+              "default": 0.0
+            },
+            "Error Polling Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Projector Temperature": {
+              "value": 28.0,
+              "read_only": true,
+              "min": -40.0,
+              "max": 125.0,
+              "step": 0.0,
+              "default": 0.0
+            },
+            "Output Trigger Enabled": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Depth Units": {
+              "value": 0.0010000000474974513,
+              "read_only": false,
+              "min": 9.999999974752427e-07,
+              "max": 0.009999999776482582,
+              "step": 9.999999974752427e-07,
+              "default": 0.0010000000474974513
+            },
+            "Stereo Baseline": {
+              "value": 50.00892639160156,
+              "read_only": true,
+              "min": 50.00892639160156,
+              "max": 50.00892639160156,
+              "step": 0.0,
+              "default": 50.00892639160156
+            },
+            "Inter Cam Sync Mode": {
+              "value": 0.0,
+              "read_only": true,
+              "min": 0.0,
+              "max": 260.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Emitter On Off": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Global Time Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Emitter Always On": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Hdr Enabled": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Sequence Name": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 3.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Sequence Size": {
+              "value": 2.0,
+              "read_only": false,
+              "min": 2.0,
+              "max": 2.0,
+              "step": 1.0,
+              "default": 2.0
+            },
+            "Sequence Id": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 2.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Auto Exposure Limit": {
+              "value": 200000.0,
+              "read_only": true,
+              "min": 1.0,
+              "max": 200000.0,
+              "step": 1.0,
+              "default": 8500.0
+            },
+            "Auto Gain Limit": {
+              "value": 248.0,
+              "read_only": true,
+              "min": 16.0,
+              "max": 248.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Auto Exposure Limit Toggle": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Auto Gain Limit Toggle": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            }
+          }
+        },
+        {
+          "name": "RGB Camera",
+          "values": {
+            "Backlight Compensation": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Brightness": {
+              "value": 0.0,
+              "read_only": false,
+              "min": -64.0,
+              "max": 64.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Contrast": {
+              "value": 50.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 1.0,
+              "default": 50.0
+            },
+            "Exposure": {
+              "value": 166.0,
+              "read_only": false,
+              "min": 1.0,
+              "max": 10000.0,
+              "step": 1.0,
+              "default": 166.0
+            },
+            "Gain": {
+              "value": 64.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 128.0,
+              "step": 1.0,
+              "default": 64.0
+            },
+            "Gamma": {
+              "value": 300.0,
+              "read_only": false,
+              "min": 100.0,
+              "max": 500.0,
+              "step": 1.0,
+              "default": 300.0
+            },
+            "Hue": {
+              "value": 0.0,
+              "read_only": false,
+              "min": -180.0,
+              "max": 180.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Saturation": {
+              "value": 64.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 1.0,
+              "default": 64.0
+            },
+            "Sharpness": {
+              "value": 50.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 1.0,
+              "default": 50.0
+            },
+            "White Balance": {
+              "value": 4600.0,
+              "read_only": false,
+              "min": 2800.0,
+              "max": 6500.0,
+              "step": 10.0,
+              "default": 4600.0
+            },
+            "Enable Auto Exposure": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Enable Auto White Balance": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Frames Queue Size": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 32.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Power Line Frequency": {
+              "value": 3.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 3.0,
+              "step": 1.0,
+              "default": 3.0
+            },
+            "Auto Exposure Priority": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Global Time Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            }
+          }
+        },
+        {
+          "name": "Motion Module",
+          "values": {
+            "Frames Queue Size": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 32.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Enable Motion Correction": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Global Time Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            }
+          }
+        }
+      ]
+    },
+    "wrist": {
+      "serial": "405622072737",
+      "device": {
+        "name": "RealSense D435I",
+        "serial_number": "405622072737",
+        "firmware_version": "5.15.1.55",
+        "usb_type_descriptor": "3.2",
+        "physical_port": "/sys/devices/pci0000:00/0000:00:0d.0/usb2/2-1/2-1:1.0/video4linux/video0"
+      },
+      "profile": {
+        "description": "U3 wrist intended native profile, NOT resizing 848x480 to 424x240",
+        "streams": [
+          {
+            "key": "rgb",
+            "type": "color",
+            "index": 0,
+            "width": 1920,
+            "height": 1080,
+            "format": "rgb8",
+            "fps": 30
+          },
+          {
+            "key": "depth",
+            "type": "depth",
+            "index": 0,
+            "width": 424,
+            "height": 240,
+            "format": "z16",
+            "fps": 30
+          },
+          {
+            "key": "ir1",
+            "type": "infrared",
+            "index": 1,
+            "width": 424,
+            "height": 240,
+            "format": "y8",
+            "fps": 30
+          },
+          {
+            "key": "ir2",
+            "type": "infrared",
+            "index": 2,
+            "width": 424,
+            "height": 240,
+            "format": "y8",
+            "fps": 30
+          }
+        ]
+      },
+      "streams": {
+        "rgb": {
+          "type": "color",
+          "index": 0,
+          "width": 1920,
+          "height": 1080,
+          "format": "rgb8",
+          "fps": 30,
+          "K": [
+            [
+              1358.953369140625,
+              0,
+              982.9917602539062
+            ],
+            [
+              0,
+              1357.2066650390625,
+              545.7492065429688
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 1358.953369140625,
+          "fy": 1357.2066650390625,
+          "cx": 982.9917602539062,
+          "cy": 545.7492065429688,
+          "distortion_model": "distortion.inverse_brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            70.46599578857422,
+            43.392127990722656
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.7233447432518005,
+              -0.40211209654808044,
+              1.0
+            ],
+            [
+              0.6887714266777039,
+              -0.40211209654808044,
+              1.0
+            ],
+            [
+              0.6887714266777039,
+              0.3929031789302826,
+              1.0
+            ],
+            [
+              -0.7233447432518005,
+              0.3929031789302826,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "native_rgb"
+        },
+        "depth": {
+          "type": "depth",
+          "index": 0,
+          "width": 424,
+          "height": 240,
+          "format": "z16",
+          "fps": 30,
+          "K": [
+            [
+              215.4859161376953,
+              0,
+              209.4534149169922
+            ],
+            [
+              0,
+              215.4859161376953,
+              119.6130599975586
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 215.4859161376953,
+          "fy": 215.4859161376953,
+          "cx": 209.4534149169922,
+          "cy": 119.6130599975586,
+          "distortion_model": "distortion.brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            89.0629653930664,
+            58.22519302368164
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.9720051288604736,
+              -0.555085301399231,
+              1.0
+            ],
+            [
+              0.9910001754760742,
+              -0.555085301399231,
+              1.0
+            ],
+            [
+              0.9910001754760742,
+              0.5540359020233154,
+              1.0
+            ],
+            [
+              -0.9720051288604736,
+              0.5540359020233154,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "device_rectified_native"
+        },
+        "ir1": {
+          "type": "infrared",
+          "index": 1,
+          "width": 424,
+          "height": 240,
+          "format": "y8",
+          "fps": 30,
+          "K": [
+            [
+              215.4859161376953,
+              0,
+              209.4534149169922
+            ],
+            [
+              0,
+              215.4859161376953,
+              119.6130599975586
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 215.4859161376953,
+          "fy": 215.4859161376953,
+          "cx": 209.4534149169922,
+          "cy": 119.6130599975586,
+          "distortion_model": "distortion.brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            89.0629653930664,
+            58.22519302368164
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.9720051288604736,
+              -0.555085301399231,
+              1.0
+            ],
+            [
+              0.9910001754760742,
+              -0.555085301399231,
+              1.0
+            ],
+            [
+              0.9910001754760742,
+              0.5540359020233154,
+              1.0
+            ],
+            [
+              -0.9720051288604736,
+              0.5540359020233154,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "device_rectified_native"
+        },
+        "ir2": {
+          "type": "infrared",
+          "index": 2,
+          "width": 424,
+          "height": 240,
+          "format": "y8",
+          "fps": 30,
+          "K": [
+            [
+              215.4859161376953,
+              0,
+              209.4534149169922
+            ],
+            [
+              0,
+              215.4859161376953,
+              119.6130599975586
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "fx": 215.4859161376953,
+          "fy": 215.4859161376953,
+          "cx": 209.4534149169922,
+          "cy": 119.6130599975586,
+          "distortion_model": "distortion.brown_conrady",
+          "coeffs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_fov_deg": [
+            89.0629653930664,
+            58.22519302368164
+          ],
+          "domain": "native returned video profile, not raw photosite coordinates or aligned image",
+          "source": "DEVICE_STORED_CURRENT_CALIBRATION_READ_VIA_SDK",
+          "boundary_ray_points_at_optical_Z1_m": [
+            [
+              -0.9720051288604736,
+              -0.555085301399231,
+              1.0
+            ],
+            [
+              0.9910001754760742,
+              -0.555085301399231,
+              1.0
+            ],
+            [
+              0.9910001754760742,
+              0.5540359020233154,
+              1.0
+            ],
+            [
+              -0.9720051288604736,
+              0.5540359020233154,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "parameter_source": "DEVICE_STORED_NATIVE_PROFILE",
+          "image_domain": "device_rectified_native"
+        }
+      },
+      "inter_stream_extrinsics": {
+        "rgb__to__depth": {
+          "source": "rgb",
+          "target": "depth",
+          "T_target_source": [
+            [
+              0.9999890327453613,
+              0.0045075430534780025,
+              -0.0012805821606889367,
+              -0.01484617404639721
+            ],
+            [
+              -0.004508488811552525,
+              0.9999895691871643,
+              -0.0007366366917267442,
+              -4.532226375886239e-05
+            ],
+            [
+              0.0012772483751177788,
+              0.0007424021023325622,
+              0.999998927116394,
+              -1.600679570401553e-05
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_depth=R*p_rgb+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999890327453613,
+            -0.004508488811552525,
+            0.0012772483751177788,
+            0.0045075430534780025,
+            0.9999895691871643,
+            0.0007424021023325622,
+            -0.0012805821606889367,
+            -0.0007366366917267442,
+            0.999998927116394
+          ],
+          "raw_translation_m": [
+            -0.01484617404639721,
+            -4.532226375886239e-05,
+            -1.600679570401553e-05
+          ],
+          "sdk_point_test_max_abs_error_m": 6.386217132892114e-08
+        },
+        "rgb__to__ir1": {
+          "source": "rgb",
+          "target": "ir1",
+          "T_target_source": [
+            [
+              0.9999890327453613,
+              0.0045075430534780025,
+              -0.0012805821606889367,
+              -0.01484617404639721
+            ],
+            [
+              -0.004508488811552525,
+              0.9999895691871643,
+              -0.0007366366917267442,
+              -4.532226375886239e-05
+            ],
+            [
+              0.0012772483751177788,
+              0.0007424021023325622,
+              0.999998927116394,
+              -1.600679570401553e-05
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir1=R*p_rgb+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999890327453613,
+            -0.004508488811552525,
+            0.0012772483751177788,
+            0.0045075430534780025,
+            0.9999895691871643,
+            0.0007424021023325622,
+            -0.0012805821606889367,
+            -0.0007366366917267442,
+            0.999998927116394
+          ],
+          "raw_translation_m": [
+            -0.01484617404639721,
+            -4.532226375886239e-05,
+            -1.600679570401553e-05
+          ],
+          "sdk_point_test_max_abs_error_m": 6.386217132892114e-08
+        },
+        "rgb__to__ir2": {
+          "source": "rgb",
+          "target": "ir2",
+          "T_target_source": [
+            [
+              0.9999890327453613,
+              0.0045075430534780025,
+              -0.0012805821606889367,
+              -0.06468138843774796
+            ],
+            [
+              -0.004508488811552525,
+              0.9999895691871643,
+              -0.0007366366917267442,
+              -4.532226375886239e-05
+            ],
+            [
+              0.0012772483751177788,
+              0.0007424021023325622,
+              0.999998927116394,
+              -1.600679570401553e-05
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir2=R*p_rgb+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999890327453613,
+            -0.004508488811552525,
+            0.0012772483751177788,
+            0.0045075430534780025,
+            0.9999895691871643,
+            0.0007424021023325622,
+            -0.0012805821606889367,
+            -0.0007366366917267442,
+            0.999998927116394
+          ],
+          "raw_translation_m": [
+            -0.06468138843774796,
+            -4.532226375886239e-05,
+            -1.600679570401553e-05
+          ],
+          "sdk_point_test_max_abs_error_m": 6.386217132892114e-08
+        },
+        "depth__to__rgb": {
+          "source": "depth",
+          "target": "rgb",
+          "T_target_source": [
+            [
+              0.9999890327453613,
+              -0.004508488811552525,
+              0.0012772483751177788,
+              0.014845827594399452
+            ],
+            [
+              0.0045075430534780025,
+              0.9999895691871643,
+              0.0007424021023325622,
+              0.00011225343769183382
+            ],
+            [
+              -0.0012805821606889367,
+              -0.0007366366917267442,
+              0.999998927116394,
+              -3.0383525881916285e-06
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_rgb=R*p_depth+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999890327453613,
+            0.0045075430534780025,
+            -0.0012805821606889367,
+            -0.004508488811552525,
+            0.9999895691871643,
+            -0.0007366366917267442,
+            0.0012772483751177788,
+            0.0007424021023325622,
+            0.999998927116394
+          ],
+          "raw_translation_m": [
+            0.014845827594399452,
+            0.00011225343769183382,
+            -3.0383525881916285e-06
+          ],
+          "sdk_point_test_max_abs_error_m": 6.971997201787872e-08
+        },
+        "depth__to__ir1": {
+          "source": "depth",
+          "target": "ir1",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir1=R*p_depth+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "depth__to__ir2": {
+          "source": "depth",
+          "target": "ir2",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              -0.0498352125287056
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir2=R*p_depth+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            -0.0498352125287056,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir1__to__rgb": {
+          "source": "ir1",
+          "target": "rgb",
+          "T_target_source": [
+            [
+              0.9999890327453613,
+              -0.004508488811552525,
+              0.0012772483751177788,
+              0.014845827594399452
+            ],
+            [
+              0.0045075430534780025,
+              0.9999895691871643,
+              0.0007424021023325622,
+              0.00011225343769183382
+            ],
+            [
+              -0.0012805821606889367,
+              -0.0007366366917267442,
+              0.999998927116394,
+              -3.0383525881916285e-06
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_rgb=R*p_ir1+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999890327453613,
+            0.0045075430534780025,
+            -0.0012805821606889367,
+            -0.004508488811552525,
+            0.9999895691871643,
+            -0.0007366366917267442,
+            0.0012772483751177788,
+            0.0007424021023325622,
+            0.999998927116394
+          ],
+          "raw_translation_m": [
+            0.014845827594399452,
+            0.00011225343769183382,
+            -3.0383525881916285e-06
+          ],
+          "sdk_point_test_max_abs_error_m": 6.971997201787872e-08
+        },
+        "ir1__to__depth": {
+          "source": "ir1",
+          "target": "depth",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_depth=R*p_ir1+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir1__to__ir2": {
+          "source": "ir1",
+          "target": "ir2",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              -0.0498352125287056
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir2=R*p_ir1+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            -0.0498352125287056,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir2__to__rgb": {
+          "source": "ir2",
+          "target": "rgb",
+          "T_target_source": [
+            [
+              0.9999890327453613,
+              -0.004508488811552525,
+              0.0012772483751177788,
+              0.06468049436807632
+            ],
+            [
+              0.0045075430534780025,
+              0.9999895691871643,
+              0.0007424021023325622,
+              0.0003368878096807748
+            ],
+            [
+              -0.0012805821606889367,
+              -0.0007366366917267442,
+              0.999998927116394,
+              -6.685643893433735e-05
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_rgb=R*p_ir2+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            0.9999890327453613,
+            0.0045075430534780025,
+            -0.0012805821606889367,
+            -0.004508488811552525,
+            0.9999895691871643,
+            -0.0007366366917267442,
+            0.0012772483751177788,
+            0.0007424021023325622,
+            0.999998927116394
+          ],
+          "raw_translation_m": [
+            0.06468049436807632,
+            0.0003368878096807748,
+            -6.685643893433735e-05
+          ],
+          "sdk_point_test_max_abs_error_m": 1.4620163724110569e-07
+        },
+        "ir2__to__depth": {
+          "source": "ir2",
+          "target": "depth",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0498352125287056
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_depth=R*p_ir2+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.0498352125287056,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        },
+        "ir2__to__ir1": {
+          "source": "ir2",
+          "target": "ir1",
+          "T_target_source": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0498352125287056
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "mapping": "p_ir1=R*p_ir2+t",
+          "source_status": "device-stored inter-stream calibration; not camera-to-robot",
+          "raw_rotation_column_major": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "raw_translation_m": [
+            0.0498352125287056,
+            0.0,
+            0.0
+          ],
+          "sdk_point_test_max_abs_error_m": 4.768371586472142e-08
+        }
+      },
+      "depth_scale_m_per_unit": 0.0010000000474974513,
+      "depth_quantity": "distance_along_depth_optical_Z_m; zero_raw_value_means_missing",
+      "board_comparisons": {
+        "rgb": {
+          "status": "INDEPENDENT_INTRINSICS_CANDIDATE_ONLY",
+          "serial": "405622072737",
+          "reference_stream": "rgb",
+          "native_calibration_file": "runs/WRIST_DEVICE_01/wrist/calibration.json",
+          "board_file": "board/board.json",
+          "native_profile": {
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "format": "rgb8",
+            "type": "color",
+            "index": 0
+          },
+          "train_samples": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0031",
+            "0032",
+            "0033",
+            "0034",
+            "0036",
+            "0037",
+            "0038",
+            "0039"
+          ],
+          "heldout_samples": [
+            "0000",
+            "0005",
+            "0010",
+            "0015",
+            "0020",
+            "0025",
+            "0030",
+            "0035"
+          ],
+          "opencv_version": "4.14.0",
+          "model": "opencv_brown_conrady_5",
+          "K": [
+            [
+              1342.8016122052054,
+              0.0,
+              990.2878714805921
+            ],
+            [
+              0.0,
+              1346.5003300191443,
+              573.3727755952641
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "coeffs": [
+            0.10498428738822761,
+            -0.19336993276869627,
+            0.0037399573628107267,
+            0.004358776113218861,
+            -0.11117777526686745
+          ],
+          "training_rms_px": 0.6633560942489664,
+          "factory_current_stored_K": [
+            [
+              1358.953369140625,
+              0.0,
+              982.9917602539062
+            ],
+            [
+              0.0,
+              1357.2066650390625,
+              545.7492065429688
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "factory_current_stored_D": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "heldout_device_parameters": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 1.1348356072151464
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 1.0221403948687457
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 1.117894530026335
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 1.1037593345289463
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 1.6840660120807092
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.9709254426878554
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.8808032410751732
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.35760402859584245
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 1.062949864698846,
+              "p95": 1.4918353703777618,
+              "max": 1.6840660120807092
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "heldout_independent_candidate": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.7847010987675004
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 1.0501105085899978
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.617785557035816
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.6677582141558143
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.8030358556893813
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.6817890646812026
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.6542603118611126
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.36608395796962045
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.6747736394185084,
+              "p95": 0.9636343800747819,
+              "max": 1.0501105085899978
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "image_coverage_grid_4x3_cells": 12,
+          "selection": "NOT_APPLIED; a lower fit error alone does not authorize EEPROM/firmware/internal RGB-IR transform updates",
+          "no_hardware_write": true
+        },
+        "ir1": {
+          "status": "INDEPENDENT_INTRINSICS_CANDIDATE_ONLY",
+          "serial": "405622072737",
+          "reference_stream": "ir1",
+          "native_calibration_file": "runs/WRIST_DEVICE_01/wrist/calibration.json",
+          "board_file": "board/board.json",
+          "native_profile": {
+            "width": 424,
+            "height": 240,
+            "fps": 30,
+            "format": "y8",
+            "type": "infrared",
+            "index": 1
+          },
+          "train_samples": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0031",
+            "0032",
+            "0033",
+            "0034",
+            "0036",
+            "0037",
+            "0038",
+            "0039"
+          ],
+          "heldout_samples": [
+            "0000",
+            "0005",
+            "0010",
+            "0015",
+            "0020",
+            "0025",
+            "0030",
+            "0035"
+          ],
+          "opencv_version": "4.14.0",
+          "model": "opencv_brown_conrady_5",
+          "K": [
+            [
+              214.64757271295682,
+              0.0,
+              210.95076675449315
+            ],
+            [
+              0.0,
+              215.2665658630183,
+              121.2245605955207
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "coeffs": [
+            -0.00041844298862613033,
+            -0.006644979297452257,
+            0.0018046236034930914,
+            0.002190670640778269,
+            0.0049510586418834174
+          ],
+          "training_rms_px": 0.14688686055739292,
+          "factory_current_stored_K": [
+            [
+              215.4859161376953,
+              0.0,
+              209.4534149169922
+            ],
+            [
+              0.0,
+              215.4859161376953,
+              119.6130599975586
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "factory_current_stored_D": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "heldout_device_parameters": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.1138427225677312
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.3426661337717169
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.1151748819328741
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.12461241593797798
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.09039359919773104
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.14415563136122064
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.18835157819219928
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.2283959524660283
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.1343840236495993,
+              "p95": 0.3026715703147258,
+              "max": 0.3426661337717169
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "heldout_independent_candidate": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.06287542501729862
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.3693850085995195
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.0764265827251506
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.10501271678287569
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.09185962392731772
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.13332772620352018
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.10663068888985029
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.22842479634737647
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.105821702836363,
+              "p95": 0.32004893431126935,
+              "max": 0.3693850085995195
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "image_coverage_grid_4x3_cells": 12,
+          "selection": "NOT_APPLIED; a lower fit error alone does not authorize EEPROM/firmware/internal RGB-IR transform updates",
+          "no_hardware_write": true
+        },
+        "ir2": {
+          "status": "INDEPENDENT_INTRINSICS_CANDIDATE_ONLY",
+          "serial": "405622072737",
+          "reference_stream": "ir2",
+          "native_calibration_file": "runs/WRIST_DEVICE_01/wrist/calibration.json",
+          "board_file": "board/board.json",
+          "native_profile": {
+            "width": 424,
+            "height": 240,
+            "fps": 30,
+            "format": "y8",
+            "type": "infrared",
+            "index": 2
+          },
+          "train_samples": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0031",
+            "0032",
+            "0033",
+            "0034",
+            "0036",
+            "0037",
+            "0038",
+            "0039"
+          ],
+          "heldout_samples": [
+            "0000",
+            "0005",
+            "0010",
+            "0015",
+            "0020",
+            "0025",
+            "0030",
+            "0035"
+          ],
+          "opencv_version": "4.14.0",
+          "model": "opencv_brown_conrady_5",
+          "K": [
+            [
+              215.58440688662026,
+              0.0,
+              211.38657942082753
+            ],
+            [
+              0.0,
+              216.14618023781685,
+              121.12147923924373
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "coeffs": [
+            0.001863547653891594,
+            -0.006869875909243255,
+            0.0017897619362884343,
+            0.001975426202460218,
+            0.0005843582550872303
+          ],
+          "training_rms_px": 0.12836440170381466,
+          "factory_current_stored_K": [
+            [
+              215.4859161376953,
+              0.0,
+              209.4534149169922
+            ],
+            [
+              0.0,
+              215.4859161376953,
+              119.6130599975586
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "factory_current_stored_D": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "heldout_device_parameters": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.10619106187269776
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.07971730671367458
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.11921998289648607
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.5462449342106213
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.13660630510658686
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.3596604379397347
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.0612221953146398
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.12434923026777539
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.12178460658213072,
+              "p95": 0.48094036051581085,
+              "max": 0.5462449342106213
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "heldout_independent_candidate": {
+            "per_view": [
+              {
+                "sample_id": "0000",
+                "rms_px": 0.09668123805956408
+              },
+              {
+                "sample_id": "0005",
+                "rms_px": 0.0661269665935584
+              },
+              {
+                "sample_id": "0010",
+                "rms_px": 0.09644781154595242
+              },
+              {
+                "sample_id": "0015",
+                "rms_px": 0.17812575145733264
+              },
+              {
+                "sample_id": "0020",
+                "rms_px": 0.12926423270058507
+              },
+              {
+                "sample_id": "0025",
+                "rms_px": 0.35739768101483466
+              },
+              {
+                "sample_id": "0030",
+                "rms_px": 0.0514293825141769
+              },
+              {
+                "sample_id": "0035",
+                "rms_px": 0.09967389196933728
+              }
+            ],
+            "rms_px_summary": {
+              "n": 8,
+              "median": 0.09817756501445069,
+              "p95": 0.29465250566970885,
+              "max": 0.35739768101483466
+            },
+            "invalid_pose_views": 0,
+            "scope": "held-out views, board pose solved per view; NOT an independently surveyed pose-error measurement"
+          },
+          "image_coverage_grid_4x3_cells": 11,
+          "selection": "NOT_APPLIED; a lower fit error alone does not authorize EEPROM/firmware/internal RGB-IR transform updates",
+          "no_hardware_write": true
+        }
+      },
+      "intrinsics_selection": "SDK native K/D retained as a coherent set with device internal transforms; independent fits are diagnostic candidates, not applied",
+      "mount_status": "UNMEASURED_NOT_INCLUDED",
+      "sensor_options_at_readout": [
+        {
+          "name": "Stereo Module",
+          "values": {
+            "Exposure": {
+              "value": 8500.0,
+              "read_only": false,
+              "min": 1.0,
+              "max": 165000.0,
+              "step": 1.0,
+              "default": 8500.0
+            },
+            "Gain": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 16.0,
+              "max": 248.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Enable Auto Exposure": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Visual Preset": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 5.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Laser Power": {
+              "value": 150.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 360.0,
+              "step": 30.0,
+              "default": 150.0
+            },
+            "Emitter Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 2.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Frames Queue Size": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 32.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Asic Temperature": {
+              "value": 32.0,
+              "read_only": true,
+              "min": -40.0,
+              "max": 125.0,
+              "step": 0.0,
+              "default": 0.0
+            },
+            "Error Polling Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Projector Temperature": {
+              "value": 28.0,
+              "read_only": true,
+              "min": -40.0,
+              "max": 125.0,
+              "step": 0.0,
+              "default": 0.0
+            },
+            "Output Trigger Enabled": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Depth Units": {
+              "value": 0.0010000000474974513,
+              "read_only": false,
+              "min": 9.999999974752427e-07,
+              "max": 0.009999999776482582,
+              "step": 9.999999974752427e-07,
+              "default": 0.0010000000474974513
+            },
+            "Stereo Baseline": {
+              "value": 49.835208892822266,
+              "read_only": true,
+              "min": 49.835208892822266,
+              "max": 49.835208892822266,
+              "step": 0.0,
+              "default": 49.835208892822266
+            },
+            "Inter Cam Sync Mode": {
+              "value": 0.0,
+              "read_only": true,
+              "min": 0.0,
+              "max": 260.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Emitter On Off": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Global Time Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Emitter Always On": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Hdr Enabled": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Sequence Name": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 3.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Sequence Size": {
+              "value": 2.0,
+              "read_only": false,
+              "min": 2.0,
+              "max": 2.0,
+              "step": 1.0,
+              "default": 2.0
+            },
+            "Sequence Id": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 2.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Auto Exposure Limit": {
+              "value": 165000.0,
+              "read_only": true,
+              "min": 1.0,
+              "max": 165000.0,
+              "step": 1.0,
+              "default": 8500.0
+            },
+            "Auto Gain Limit": {
+              "value": 248.0,
+              "read_only": true,
+              "min": 16.0,
+              "max": 248.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Auto Exposure Limit Toggle": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Auto Gain Limit Toggle": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            }
+          }
+        },
+        {
+          "name": "RGB Camera",
+          "values": {
+            "Backlight Compensation": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Brightness": {
+              "value": 0.0,
+              "read_only": false,
+              "min": -64.0,
+              "max": 64.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Contrast": {
+              "value": 50.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 1.0,
+              "default": 50.0
+            },
+            "Exposure": {
+              "value": 166.0,
+              "read_only": false,
+              "min": 1.0,
+              "max": 10000.0,
+              "step": 1.0,
+              "default": 166.0
+            },
+            "Gain": {
+              "value": 64.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 128.0,
+              "step": 1.0,
+              "default": 64.0
+            },
+            "Gamma": {
+              "value": 300.0,
+              "read_only": false,
+              "min": 100.0,
+              "max": 500.0,
+              "step": 1.0,
+              "default": 300.0
+            },
+            "Hue": {
+              "value": 0.0,
+              "read_only": false,
+              "min": -180.0,
+              "max": 180.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Saturation": {
+              "value": 64.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 1.0,
+              "default": 64.0
+            },
+            "Sharpness": {
+              "value": 50.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 1.0,
+              "default": 50.0
+            },
+            "White Balance": {
+              "value": 4600.0,
+              "read_only": false,
+              "min": 2800.0,
+              "max": 6500.0,
+              "step": 10.0,
+              "default": 4600.0
+            },
+            "Enable Auto Exposure": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Enable Auto White Balance": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Frames Queue Size": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 32.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Power Line Frequency": {
+              "value": 3.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 3.0,
+              "step": 1.0,
+              "default": 3.0
+            },
+            "Auto Exposure Priority": {
+              "value": 0.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 0.0
+            },
+            "Global Time Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            }
+          }
+        },
+        {
+          "name": "Motion Module",
+          "values": {
+            "Frames Queue Size": {
+              "value": 16.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 32.0,
+              "step": 1.0,
+              "default": 16.0
+            },
+            "Enable Motion Correction": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            },
+            "Global Time Enabled": {
+              "value": 1.0,
+              "read_only": false,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 1.0,
+              "default": 1.0
+            }
+          }
+        }
+      ]
+    }
+  },
+  "board_definition": {
+    "board_id": "DD_CHARUCO_7x5_30mm_v1",
+    "dictionary": "DICT_5X5_100",
+    "squares_x": 7,
+    "squares_y": 5,
+    "square_length_m": 0.03,
+    "marker_length_m": 0.0225,
+    "legacy_pattern": false,
+    "opencv_generation_version": "4.13.0",
+    "printed_metrology": {
+      "verified_by_owner": true,
+      "square_length_x_mm": null,
+      "square_length_y_mm": null,
+      "flatness_mm": null,
+      "measurement_method": "Owner used a physical ruler to confirm the printed 100 mm scale is 100 mm. Printed on A4 at 100%.",
+      "note": "30 mm square geometry retained from design. X/Y square lengths and flatness were not independently measured; do not treat them as measured values.",
+      "printed_scale_bar_measured_mm": 100
+    },
+    "object_points_m": [
+      [
+        0.029999999329447746,
+        0.029999999329447746,
+        0.0
+      ],
+      [
+        0.05999999865889549,
+        0.029999999329447746,
+        0.0
+      ],
+      [
+        0.08999999612569809,
+        0.029999999329447746,
+        0.0
+      ],
+      [
+        0.11999999731779099,
+        0.029999999329447746,
+        0.0
+      ],
+      [
+        0.14999999105930328,
+        0.029999999329447746,
+        0.0
+      ],
+      [
+        0.17999999225139618,
+        0.029999999329447746,
+        0.0
+      ],
+      [
+        0.029999999329447746,
+        0.05999999865889549,
+        0.0
+      ],
+      [
+        0.05999999865889549,
+        0.05999999865889549,
+        0.0
+      ],
+      [
+        0.08999999612569809,
+        0.05999999865889549,
+        0.0
+      ],
+      [
+        0.11999999731779099,
+        0.05999999865889549,
+        0.0
+      ],
+      [
+        0.14999999105930328,
+        0.05999999865889549,
+        0.0
+      ],
+      [
+        0.17999999225139618,
+        0.05999999865889549,
+        0.0
+      ],
+      [
+        0.029999999329447746,
+        0.08999999612569809,
+        0.0
+      ],
+      [
+        0.05999999865889549,
+        0.08999999612569809,
+        0.0
+      ],
+      [
+        0.08999999612569809,
+        0.08999999612569809,
+        0.0
+      ],
+      [
+        0.11999999731779099,
+        0.08999999612569809,
+        0.0
+      ],
+      [
+        0.14999999105930328,
+        0.08999999612569809,
+        0.0
+      ],
+      [
+        0.17999999225139618,
+        0.08999999612569809,
+        0.0
+      ],
+      [
+        0.029999999329447746,
+        0.11999999731779099,
+        0.0
+      ],
+      [
+        0.05999999865889549,
+        0.11999999731779099,
+        0.0
+      ],
+      [
+        0.08999999612569809,
+        0.11999999731779099,
+        0.0
+      ],
+      [
+        0.11999999731779099,
+        0.11999999731779099,
+        0.0
+      ],
+      [
+        0.14999999105930328,
+        0.11999999731779099,
+        0.0
+      ],
+      [
+        0.17999999225139618,
+        0.11999999731779099,
+        0.0
+      ]
+    ],
+    "corner_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "marker_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "marker_object_points_m": [
+      [
+        [
+          0.03374999761581421,
+          0.0037499992176890373,
+          0.0
+        ],
+        [
+          0.05624999850988388,
+          0.0037499992176890373,
+          0.0
+        ],
+        [
+          0.05624999850988388,
+          0.026250001043081284,
+          0.0
+        ],
+        [
+          0.03374999761581421,
+          0.026250001043081284,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0937499925494194,
+          0.0037499992176890373,
+          0.0
+        ],
+        [
+          0.11624999344348907,
+          0.0037499992176890373,
+          0.0
+        ],
+        [
+          0.11624999344348907,
+          0.026250001043081284,
+          0.0
+        ],
+        [
+          0.0937499925494194,
+          0.026250001043081284,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.1537499874830246,
+          0.0037499992176890373,
+          0.0
+        ],
+        [
+          0.17624998092651367,
+          0.0037499992176890373,
+          0.0
+        ],
+        [
+          0.17624998092651367,
+          0.026250001043081284,
+          0.0
+        ],
+        [
+          0.1537499874830246,
+          0.026250001043081284,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0037499992176890373,
+          0.03374999761581421,
+          0.0
+        ],
+        [
+          0.026250001043081284,
+          0.03374999761581421,
+          0.0
+        ],
+        [
+          0.026250001043081284,
+          0.05624999850988388,
+          0.0
+        ],
+        [
+          0.0037499992176890373,
+          0.05624999850988388,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0637499988079071,
+          0.03374999761581421,
+          0.0
+        ],
+        [
+          0.08624999970197678,
+          0.03374999761581421,
+          0.0
+        ],
+        [
+          0.08624999970197678,
+          0.05624999850988388,
+          0.0
+        ],
+        [
+          0.0637499988079071,
+          0.05624999850988388,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.1237499937415123,
+          0.03374999761581421,
+          0.0
+        ],
+        [
+          0.14624999463558197,
+          0.03374999761581421,
+          0.0
+        ],
+        [
+          0.14624999463558197,
+          0.05624999850988388,
+          0.0
+        ],
+        [
+          0.1237499937415123,
+          0.05624999850988388,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.1837499886751175,
+          0.03374999761581421,
+          0.0
+        ],
+        [
+          0.20624998211860657,
+          0.03374999761581421,
+          0.0
+        ],
+        [
+          0.20624998211860657,
+          0.05624999850988388,
+          0.0
+        ],
+        [
+          0.1837499886751175,
+          0.05624999850988388,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.03374999761581421,
+          0.0637499988079071,
+          0.0
+        ],
+        [
+          0.05624999850988388,
+          0.0637499988079071,
+          0.0
+        ],
+        [
+          0.05624999850988388,
+          0.08624999970197678,
+          0.0
+        ],
+        [
+          0.03374999761581421,
+          0.08624999970197678,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0937499925494194,
+          0.0637499988079071,
+          0.0
+        ],
+        [
+          0.11624999344348907,
+          0.0637499988079071,
+          0.0
+        ],
+        [
+          0.11624999344348907,
+          0.08624999970197678,
+          0.0
+        ],
+        [
+          0.0937499925494194,
+          0.08624999970197678,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.1537499874830246,
+          0.0637499988079071,
+          0.0
+        ],
+        [
+          0.17624998092651367,
+          0.0637499988079071,
+          0.0
+        ],
+        [
+          0.17624998092651367,
+          0.08624999970197678,
+          0.0
+        ],
+        [
+          0.1537499874830246,
+          0.08624999970197678,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0037499992176890373,
+          0.0937499925494194,
+          0.0
+        ],
+        [
+          0.026250001043081284,
+          0.0937499925494194,
+          0.0
+        ],
+        [
+          0.026250001043081284,
+          0.11624999344348907,
+          0.0
+        ],
+        [
+          0.0037499992176890373,
+          0.11624999344348907,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0637499988079071,
+          0.0937499925494194,
+          0.0
+        ],
+        [
+          0.08624999970197678,
+          0.0937499925494194,
+          0.0
+        ],
+        [
+          0.08624999970197678,
+          0.11624999344348907,
+          0.0
+        ],
+        [
+          0.0637499988079071,
+          0.11624999344348907,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.1237499937415123,
+          0.0937499925494194,
+          0.0
+        ],
+        [
+          0.14624999463558197,
+          0.0937499925494194,
+          0.0
+        ],
+        [
+          0.14624999463558197,
+          0.11624999344348907,
+          0.0
+        ],
+        [
+          0.1237499937415123,
+          0.11624999344348907,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.1837499886751175,
+          0.0937499925494194,
+          0.0
+        ],
+        [
+          0.20624998211860657,
+          0.0937499925494194,
+          0.0
+        ],
+        [
+          0.20624998211860657,
+          0.11624999344348907,
+          0.0
+        ],
+        [
+          0.1837499886751175,
+          0.11624999344348907,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.03374999761581421,
+          0.1237499937415123,
+          0.0
+        ],
+        [
+          0.05624999850988388,
+          0.1237499937415123,
+          0.0
+        ],
+        [
+          0.05624999850988388,
+          0.14624999463558197,
+          0.0
+        ],
+        [
+          0.03374999761581421,
+          0.14624999463558197,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0937499925494194,
+          0.1237499937415123,
+          0.0
+        ],
+        [
+          0.11624999344348907,
+          0.1237499937415123,
+          0.0
+        ],
+        [
+          0.11624999344348907,
+          0.14624999463558197,
+          0.0
+        ],
+        [
+          0.0937499925494194,
+          0.14624999463558197,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.1537499874830246,
+          0.1237499937415123,
+          0.0
+        ],
+        [
+          0.17624998092651367,
+          0.1237499937415123,
+          0.0
+        ],
+        [
+          0.17624998092651367,
+          0.14624999463558197,
+          0.0
+        ],
+        [
+          0.1537499874830246,
+          0.14624999463558197,
+          0.0
+        ]
+      ]
+    ]
+  },
+  "sim_integration_status": "ARCHIVED_ONLY_NOT_CONNECTED_TO_STUDENT",
+  "transform_convention": "T_target_source maps p_source to p_target; translations in metres",
+  "optical_axes": "x right, y down, z forward",
+  "usd_camera_axes": "x right, y up, z backward; R_optical_usd = diag(1,-1,-1)",
+  "installation_extrinsics": "NOT_INCLUDED",
+  "rendering_notes": [
+    "Preserve full K, including off-centre principal point and unequal fx/fy.",
+    "Use native depth optical Z, not Euclidean range or RGB-aligned depth.",
+    "Renderer depth in metres is not raw Z16; use depth_scale only for raw sensor integers.",
+    "Independent IR fits must not silently replace the K of device-rectified depth.",
+    "Hardware depth noise, holes, minimum usable distance and exposure response are not calibrated by this bundle."
+  ]
+}

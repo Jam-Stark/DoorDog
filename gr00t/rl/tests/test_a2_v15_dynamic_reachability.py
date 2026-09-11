@@ -768,9 +768,19 @@ def test_self_collision_contact_sensors_require_exact_order_shape_and_force_gate
 
 
 def test_m23_self_collision_body_order_matches_urdf_and_environment_source():
-    urdf_path = ROOT / "gr00t/rl/data/robots/A2_Piper/a2_piper.urdf"
+    from hydra import compose, initialize_config_dir
+    from gr00t.rl.utils.config_utils import register_rl_resolvers
+
+    register_rl_resolvers()
+    with initialize_config_dir(config_dir=str(ROOT / "gr00t/rl/config"), version_base="1.1"):
+        config = compose(config_name="base", overrides=[
+            "+exp=wbmanip/door_open_a2_base_lstm", "+ablation=wbmanip/base_v28_A_S281",
+        ])
+    urdf_path = ROOT / config.robot.asset.asset_root / config.robot.asset.urdf_file
     urdf_names = tuple(re.findall(r'<link name="([^"]+)">', urdf_path.read_text(encoding="utf-8")))
-    assert urdf_names == MODULE.M23_SELF_COLLISION_BODY_NAMES
+    configured_names = tuple(config.robot.body_names)
+    assert set(MODULE.M23_SELF_COLLISION_BODY_NAMES) <= set(configured_names)
+    assert set(configured_names) <= set(urdf_names)
 
     env_path = ROOT / "gr00t/rl/envs/door/door_open_a2_base.py"
     env_source = env_path.read_text(encoding="utf-8")

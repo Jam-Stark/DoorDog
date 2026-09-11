@@ -1,0 +1,38 @@
+---
+name: novelty-research
+status: active
+scope: novelty选题、跨版本路线裁定、讨论来源与文档维护
+last_verified: 2026-09-10
+evidence: INSPECTED — 原会话、人类可读导出、现有plan与实验readout
+read_when:
+  - 讨论或裁定novelty、恢复图、交互历史适应、coupling critic或Teacher shaping
+  - 查找原始Owner想法、Claude与Codex独立判断
+  - 产生相关对话、方案、文献比较或方法结论
+source_of_truth:
+  - scriptsFORhuman/novelty/README.md
+  - scriptsFORhuman/novelty/conversations/
+  - scriptsFORhuman/novelty/documents/20260910_novelty_status.md
+  - scriptsFORhuman/a2_piper_longterm_TODO.md
+  - scriptsFORhuman/v28/a2_piper_base_v28_plan_20260909.md
+related_entries:
+  - base-v27-bilateral-hardening
+  - base-v28-camera-aware-rebaseline
+---
+
+# Novelty 讨论与路线
+
+2026-09-10 Owner建立并要求持续维护 [novelty讨论区](../../../scriptsFORhuman/novelty/README.md)。后续相关AI session须保存对话至`conversations/`、产出至`documents/`或按需新建主题目录，更新README索引，并同步本entry的description/TODO/DONE；跨阶段计划仍在原位维护。历史原话、提议、Owner决定和实验结论分别标明，不把归档变成新实验授权。
+
+## 已核对的讨论来源
+
+- Claude Code：`e09e9a1e-287d-44ec-8975-3e4afdc682c4`，原名Main，后为base_v26-7总结continuation的Branch标题；2026-09-05 03:19起提出三条想法，08:27给出裁定。`592fc504-dd4b-49f2-9996-843c39c4fc68`含同段分支记录，不重复归档。
+- Codex：[执行 base_v26-8 训练评估流程](codex://threads/01a06769-5a89-7780-8705-c7035834dd29)，2026-09-05 03:28–03:49，Owner要求独立比较并使用`-Astra`后缀。
+- 两份人类可读原文和2026-09-10回顾已存讨论区；每份注明来源与范围，不含内部推理、工具输出或系统指令。
+
+## 当前可复用结论
+
+近期方法切口为N-01恢复图＋失效边界采样；N-02交互历史状态估计为后续科学主线；N-06 coupling critic暂缓；N-07b Teacher shaping的配对蒸馏仍待研究。
+
+v27恢复pilot为UNRESOLVED（R1缺endpoint、可用R2注入loss稀少）；shadow estimator只支持有限的模拟数据离线可辨识性，不代表actor在线适应。详细证据与数字从[状态文档](../../../scriptsFORhuman/novelty/documents/20260910_novelty_status.md)路由。
+
+2026-09-09 v28 D-01已将N-01/N-02顺延v29；旧Astra/Claude文档的“v28方法实验”是历史排期。v28当前首先解决新基线；Teacher碰撞包络与Student光学分阶段冻结仍为PROPOSED。后续状态以当前source、正式decision/readout及Owner决定为准，不从历史建议推断新授权。

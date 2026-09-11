@@ -4,6 +4,10 @@
 
 ## Entries
 
+- [novelty-research/description.md](novelty-research/description.md): 2026-09-10 — novelty讨论、Claude/Codex原始裁定与跨版本路线入口；后续session维护scriptsFORhuman/novelty的对话、文档、README及相关memory。N-01/N-02已顺延v29，尚无方法有效性确认。
+
+- [base-v28-camera-aware-rebaseline/description.md](base-v28-camera-aware-rebaseline/description.md): 2026-09-12 — MERGED/140mm/38.76°、j5=-0.415与K已落地；R1/R2/R3/R5+A4通过。G0-L默认姿态stand微速度相对门失败，STOP待Owner；未PPO/G1/commit。
+
 - [base-v27-bilateral-hardening/description.md](base-v27-bilateral-hardening/description.md): 2026-09-11 — closed，V27_COMPLETED_SCIENTIFIC_NO_RELEASE；A质量未决/C，B域未收敛/current，R未决（R1误停644），SC0/3、SK1/3/K_SCRATCH_SUPERIOR。C72/72 lanes integrity0，最终确认按规则NOT_RUN；closure/manifest v2齐全，隔离与资源已清理，绑定未变。
 
 - [worktree-routing/description.md](worktree-routing/description.md): A2_Piper active implementation worktree 与 doorman baseline/reference worktree 的使用约定。

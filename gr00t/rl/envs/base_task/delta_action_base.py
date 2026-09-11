@@ -64,6 +64,21 @@ class DeltaActionBase(LeggedRobotBase):
         self._delta_actions = torch.clamp(
             self._delta_actions, -delta_actions_clip, delta_actions_clip
         )
+        if self.config.get("delta_action_clamp_to_dof_limits", False):
+            arm_indices = self._upper_non_gripper_dof_idx
+            arm_names = [self.config.robot.dof_names[index] for index in arm_indices]
+            if arm_names != [f"arm_j{index}" for index in range(1, 7)]:
+                raise ValueError("Delta action limit clamp requires arm_j1..arm_j6 in order.")
+            default = self.default_dof_pos[:, arm_indices]
+            if self._delta_actions.shape[1] != 6 or default.shape[-1] != 6:
+                raise ValueError("Delta action limit clamp requires six arm targets/defaults.")
+            limits = self.simulator.hard_dof_pos_limits[arm_indices]
+            scale = self.config.robot.control.action_scale
+            self._delta_actions = torch.clamp(
+                self._delta_actions,
+                (limits[:, 0] - default) / scale,
+                (limits[:, 1] - default) / scale,
+            )
         self._apply_delta_action_overrides()
 
         # Configration - 0

@@ -1,0 +1,176 @@
+{
+  "evidence": "STATIC_CPU: current H140 URDF vs current composed USD MassAPI readback; floating-point USD storage",
+  "max_mass_difference_kg": 2.203737210493273e-07,
+  "max_com_difference_m": 4.7926168311729356e-09,
+  "max_inertia_difference_kgm2": 2.2027162871474104e-08,
+  "body_differences": [
+    {
+      "body": "FL_hip",
+      "mass_abs_difference_kg": 4.76837147544984e-09,
+      "com_max_abs_difference_m": 3.5881995985587167e-10,
+      "inertia_max_abs_difference_kgm2": 5.5483692076516156e-11
+    },
+    {
+      "body": "FL_thigh",
+      "mass_abs_difference_kg": 3.814697446813398e-09,
+      "com_max_abs_difference_m": 1.2538433069586574e-09,
+      "inertia_max_abs_difference_kgm2": 1.2763968181006558e-09
+    },
+    {
+      "body": "FL_calf",
+      "mass_abs_difference_kg": 1.4305114870438729e-09,
+      "com_max_abs_difference_m": 3.5872459447361393e-09,
+      "inertia_max_abs_difference_kgm2": 3.0476747167607066e-10
+    },
+    {
+      "body": "FL_foot",
+      "mass_abs_difference_kg": 8.940696794024205e-11,
+      "com_max_abs_difference_m": 3.4558773030768375e-10,
+      "inertia_max_abs_difference_kgm2": 7.683516807012198e-13
+    },
+    {
+      "body": "RL_hip",
+      "mass_abs_difference_kg": 4.76837147544984e-09,
+      "com_max_abs_difference_m": 3.5881995985587167e-10,
+      "inertia_max_abs_difference_kgm2": 1.7587539757890625e-10
+    },
+    {
+      "body": "RL_thigh",
+      "mass_abs_difference_kg": 3.814697446813398e-09,
+      "com_max_abs_difference_m": 1.2538433069586574e-09,
+      "inertia_max_abs_difference_kgm2": 1.2763968181006558e-09
+    },
+    {
+      "body": "RL_calf",
+      "mass_abs_difference_kg": 1.4305114870438729e-09,
+      "com_max_abs_difference_m": 3.5872459447361393e-09,
+      "inertia_max_abs_difference_kgm2": 3.0476747167607066e-10
+    },
+    {
+      "body": "RL_foot",
+      "mass_abs_difference_kg": 8.940696794024205e-11,
+      "com_max_abs_difference_m": 3.4558773030768375e-10,
+      "inertia_max_abs_difference_kgm2": 7.683516807012198e-13
+    },
+    {
+      "body": "FR_hip",
+      "mass_abs_difference_kg": 4.76837147544984e-09,
+      "com_max_abs_difference_m": 3.5881995985587167e-10,
+      "inertia_max_abs_difference_kgm2": 1.0367847747862202e-10
+    },
+    {
+      "body": "FR_thigh",
+      "mass_abs_difference_kg": 9.727478023080494e-08,
+      "com_max_abs_difference_m": 8.306503263000309e-10,
+      "inertia_max_abs_difference_kgm2": 1.4329871698970376e-09
+    },
+    {
+      "body": "FR_calf",
+      "mass_abs_difference_kg": 1.4305114870438729e-09,
+      "com_max_abs_difference_m": 3.5872459447361393e-09,
+      "inertia_max_abs_difference_kgm2": 5.556135881240598e-10
+    },
+    {
+      "body": "FR_foot",
+      "mass_abs_difference_kg": 8.940696794024205e-11,
+      "com_max_abs_difference_m": 3.4558773030768375e-10,
+      "inertia_max_abs_difference_kgm2": 7.683516807012198e-13
+    },
+    {
+      "body": "RR_hip",
+      "mass_abs_difference_kg": 4.76837147544984e-09,
+      "com_max_abs_difference_m": 3.5881995985587167e-10,
+      "inertia_max_abs_difference_kgm2": 8.148792578210884e-11
+    },
+    {
+      "body": "RR_thigh",
+      "mass_abs_difference_kg": 9.727478023080494e-08,
+      "com_max_abs_difference_m": 8.306503263000309e-10,
+      "inertia_max_abs_difference_kgm2": 1.4329871698970376e-09
+    },
+    {
+      "body": "RR_calf",
+      "mass_abs_difference_kg": 1.4305114870438729e-09,
+      "com_max_abs_difference_m": 3.5872459447361393e-09,
+      "inertia_max_abs_difference_kgm2": 5.556135881240598e-10
+    },
+    {
+      "body": "RR_foot",
+      "mass_abs_difference_kg": 8.940696794024205e-11,
+      "com_max_abs_difference_m": 3.4558773030768375e-10,
+      "inertia_max_abs_difference_kgm2": 7.683516807012198e-13
+    },
+    {
+      "body": "arm_body0",
+      "mass_abs_difference_kg": 1.907348634588857e-08,
+      "com_max_abs_difference_m": 5.434832722750471e-10,
+      "inertia_max_abs_difference_kgm2": 3.593532199239191e-11
+    },
+    {
+      "body": "trunk",
+      "mass_abs_difference_kg": 2.203737210493273e-07,
+      "com_max_abs_difference_m": 8.027813101774139e-10,
+      "inertia_max_abs_difference_kgm2": 2.2027162871474104e-08
+    },
+    {
+      "body": "arm_body1",
+      "mass_abs_difference_kg": 2.1457672083613488e-08,
+      "com_max_abs_difference_m": 2.3126332879958023e-10,
+      "inertia_max_abs_difference_kgm2": 3.9920892112854656e-11
+    },
+    {
+      "body": "arm_body2",
+      "mass_abs_difference_kg": 4.2915344167226976e-08,
+      "com_max_abs_difference_m": 4.7926168311729356e-09,
+      "inertia_max_abs_difference_kgm2": 1.0191584520757857e-09
+    },
+    {
+      "body": "arm_body3",
+      "mass_abs_difference_kg": 0.0,
+      "com_max_abs_difference_m": 3.731345787905127e-09,
+      "inertia_max_abs_difference_kgm2": 1.0748062457405227e-09
+    },
+    {
+      "body": "arm_body4",
+      "mass_abs_difference_kg": 4.768371586472142e-09,
+      "com_max_abs_difference_m": 8.25138360416311e-11,
+      "inertia_max_abs_difference_kgm2": 2.5890620322568253e-11
+    },
+    {
+      "body": "arm_body5",
+      "mass_abs_difference_kg": 1.358985901589449e-08,
+      "com_max_abs_difference_m": 1.3338531182349733e-09,
+      "inertia_max_abs_difference_kgm2": 8.06123898102612e-11
+    },
+    {
+      "body": "arm_body6",
+      "mass_abs_difference_kg": 2.1606683716507424e-10,
+      "com_max_abs_difference_m": 9.499490256914545e-11,
+      "inertia_max_abs_difference_kgm2": 2.5046664935696595e-14
+    },
+    {
+      "body": "arm_body6_to_gripper",
+      "mass_abs_difference_kg": 1.1920928966180355e-08,
+      "com_max_abs_difference_m": 1.6506089758894227e-09,
+      "inertia_max_abs_difference_kgm2": 1.6820534331704606e-11
+    },
+    {
+      "body": "arm_body7",
+      "mass_abs_difference_kg": 3.725290284584126e-10,
+      "com_max_abs_difference_m": 4.692130572969688e-10,
+      "inertia_max_abs_difference_kgm2": 5.6585234544867524e-12
+    },
+    {
+      "body": "arm_body8",
+      "mass_abs_difference_kg": 3.725290284584126e-10,
+      "com_max_abs_difference_m": 4.692128560690456e-10,
+      "inertia_max_abs_difference_kgm2": 5.6585234544867524e-12
+    },
+    {
+      "body": "wrist_camera_tower",
+      "mass_abs_difference_kg": 1.1798888532865703e-09,
+      "com_max_abs_difference_m": 9.3797232481041e-10,
+      "inertia_max_abs_difference_kgm2": 5.147298779155547e-12
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+---
+name: base-v28-camera-aware-rebaseline
+status: active
+scope: v28 re-baseline — new robot asset (vpiper mount + wrist camera tower collision), new PiPER reset posture, three-camera geometry contract, camera-aware reward bundle, from-scratch bilateral Teacher rebuild and sim qualification
+last_verified: 2026-09-12
+read_when:
+  - implementing or resuming base_v28
+  - changing the robot asset, default posture, camera mounts or A2_Base contract
+  - interpreting v28 camera/telemetry metrics or the tower-clearance evidence
+source_of_truth:
+  - scriptsFORhuman/v28/a2_piper_base_v28_plan_20260909.md
+  - scriptsFORhuman/v28/a2_piper_base_v28_deferred_register.md
+  - gr00t/rl/config/robot/A2_Piper/a2_piper_vpiper.yaml
+  - gr00t/rl/data/robots/v28_asset_comparison_20260909.md
+  - gr00t/rl/envs/door/door_open_a2_base.py
+related_entries:
+  - base-v27-bilateral-hardening
+  - base-v26-scratch-bilateral-teacher
+---
+
+# base_v28 camera-aware re-baseline
+
+当前状态（2026-09-12）：`STOP_G0_L_FAILED`。MERGED/140mm/38.76°已绑定，R1/R2/R3/R5与A4通过；默认姿态新旧asset均0摔倒，但stand块三项极小残余速度p50比超过1.15门。按Owner规则停止，未PPO smoke、G1或commit。权威证据见v28的`a2_piper_base_v28_g0_resume_readout_20260912.md`与`g0_decision.json`。
+
+腕机局部绘图入口（2026-09-11）：[180mm/45°与140mm/38.76°四视图](../../../scriptsFORhuman/v28/camera/wrist_comparison_20260911/README.md)。沿原U3前/右/后/俯视方向、参考臂姿态`[0,0,0,0,0,1.57]`和统一比例绘制；140mm支架仅为保留原起端的连接包络，未验收间隙。该交付不代表选型、reset修改或恢复G0。
+
+规划期记录（2026-09-09 HKT，历史状态 `PLAN_FROZEN_NOT_IMPLEMENTED`）。v28 是 re-baseline：asset 换为
+`gr00t/rl/data/robots/a2_piper_vpiper_final_20260906`（+0.754 kg 安装件、convex 碰撞体、臂座下移 6.57 mm，
+27 共享 link bit-identical），并新增独立固定 link `wrist_camera_tower`；PiPER reset 姿态换为
+`[0,0.10,-0.10,0,-0.52,1.57]`（腕机 mount 倾角 θ=45° 时行走光轴 −15°；j2/j3 各离 0.95 软限位 0.02 rad）；base 相机对称上仰 15°；
+camera-aware bundle = `penalty_a2_wrist_motion_l2`（j4/j5/j6 逐 stage 权重，Stage3 j6=0）+
+`penalty_a2_wrist_tower_contact` + `penalty_a2_stage4_arm_default_pose_l1` 释放门控 −0.5。
+训练 from-scratch 3 seed × 6000 batches，沿 v27 质量门与 exact128 DEV/CONF 资格程序。
+
+规划期 COMPUTED 硬结论（证据 `scriptsFORhuman/v28/planner_evidence_20260909/`）：
+- 腕机塔架在 F+Y（手指开合轴）上，任何倾角都看不到 TCP/指垫，只能看到把手条伸出指宽的两端（24–52%）；
+  近场需求已改写为“把手条两端与上指尖外侧在 depth 可见”，抓握确认靠本体量 + base 相机。
+- v27 RIGHT 门抓握姿态（`arm_j5` 顶 1.22 rad 限位）会让 180 mm 塔架穿过门板（Stage4 帧 41–65%），与 θ 无关；
+  塔架碰撞体从 Wave A 起强制，Teacher 需学出新姿态。v26/v27 RIGHT 策略若上实机会撞相机。
+- 新 asset/新姿态的质量与 CoM 变化（≤2.2 mm）远在 LMP A2_Base 训练随机化内；A2_Base 保留，替换预注册 v29。
+- 加载器只读 USD 并按名称选择 27 个 body，30 体 USD 无需新的 body 顺序表；运行时自碰撞开启，
+  `arm_body0`–金属板为零间隙接触对，G0 R2 必须测接触力。
+
+共享层决定 D-17 `delta_action_clamp_to_dof_limits`（累积臂目标夹到物理限位；pull v7 posture trap 与主线 Stage5 j2/j3 钉限位同源）已于 2026-09-09 18:40 获 Owner 批准，两分支 v28 同时开启。
+pull 分支同步计划：`scriptsFORhuman/pull_v28_alignment/a2_piper_pull_v28_baseline_sync_plan_20260909.md`。
+
+规划期授权（当前受下文Owner暂停指示限制）：GPU0–7（受外部占用约束）；四个本地 commit 预授权；push、G7 binding、hardware 未授权。硬件按 `U3_F45_B15` 开印（Owner 2026-09-09）。
+执行状态与 receipts 由 `scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/` 路由，不写入 memory。
+
+## 2026-09-09 G0 执行决策（修改：-codex worker；Owner指示显式标注）
+
+- Owner确认先sim后硬件设计，腕机真实CAD不存在，G0-C1′记NOT_RUN。
+- Owner将细杆建议更新为与D435i等宽等厚的单长方体；当前截面90×25mm、长度114.700mm，独立`wrist_camera_tower`包含支架与外壳两盒。相机中心和θ45保持。总质量0.15kg（两盒各0.075kg）为估计，不是称重。
+- 当前宽支架安装端按原gripper collision表面留1mm静态间隙，物理probe观察tower接触力为0；不构成hardware证据。
+- 旧asset同姿态零指令flat-walk基线（64env）root z p50=0.4745m。Owner批准R3改为稳定1s后检查50控制步，root z∈[0.45,0.51]m、臂速度<0.5rad/s；R5预测修正为当前URDF FK的0.432637±0.01m，已与初始runtime读数吻合。
+- `v28_verify.py resolve` CPU compose通过36项明确差异；delta动作限位与camera reward六项CPU测试通过。完整G0 runtime尚未通过；所有运行状态只从runtime目录读取。
+- plan改动标注修改者`-codex worker`/`-owner`；worker按Owner指示修改时写明两者。
+
+## Owner暂停（2026-09-09 19:56 HKT）
+
+Owner明确保留独立安装件刚体，拒绝compound-trunk候选并暂停G0。当前G0未通过、没有本地commit、没有G1/正式训练。trunk↔vpiper_support接触未解决；plate4已清arm_body0，tower为0N。后续只按Owner明确恢复指示继续。修改：-codex worker；依据：-owner。
+
+## 两个asset候选与最终裁切规则（2026-09-09）
+
+Owner随后要求同时制作合并、裁切两个独立候选，放在robots目录后等待判断；该授权未恢复G0、未选择活动asset。修改：-codex worker；依据：-owner。
+
+- 合并版：`gr00t/rl/data/robots/a2_piper_v28_merged_20260909/`；main/support/plate全部形状并入trunk，28刚体/20活动关节。各组件原质量、质心、完整惯量经旋转和平行轴定理合成，不使用统一密度假设。
+- 裁切版：`gr00t/rl/data/robots/a2_piper_v28_cut_20260909/`；31刚体/20活动关节。Owner明确support也参与冲突时统一水平截去整个下部；因此main/support的全部visual/collision在trunk z=0.130m以下删除，距已定位冲突盒顶面1mm。早期局部分块/凹口裁切已被此规则取代。
+- 两版全机URDF质量均45.64480826480732kg，arm/camera安装位姿保留。裁切版保留原inertial参数，是删除几何后的仿真近似。
+- 已有CPU质量/几何计算与USD静态读回；两候选均未运行物理/G0。详细入口、对比图与证据见`gr00t/rl/data/robots/v28_asset_comparison_20260909.md`。当前候选状态`CANDIDATE_WAITING_OWNER_SELECTION`，G0仍`PAUSED_BY_OWNER`。
+
+2026-09-11 HKT — v27 closure 后的 v28 状态：G0 `PAUSED_BY_OWNER`（trunk↔vpiper_support 源几何干涉造成持续自接触，两候选 asset MERGED/CUT 待 Owner 选型）。
+Wave C 实际读数 `SCRATCH_NOT_ESTABLISHED` + `K_SCRATCH_SUPERIOR` 触发 §8.3：G1 warm probe 必做，K 块（16 项 + `penalty_a2_wrist_motion_l2`，
+排除塔架接触与 stage4 姿态项，seed 键不复制）进入配方，`K_REACH_WITHOUT_COMPLETE` 具名失败预注册。v27 全部 64 样本格里唯一过门的是
+SK_S213@6000（scratch + K）；所有 warm 血统格都未过质量门，失败分量集中在 crossing hinge。plan §1 新增 D-30…D-35 六条待 Owner 的建议
+（分期冻结、K driver 备选、选种门拆层、单中置 base 相机、MERGED asset、塔高 140 mm/38.76°）。通过性核算：板上相机对门口净宽代价 0 mm。
+证据：`scriptsFORhuman/v28/planner_evidence_20260911/`。G7 binding 建议维持 v23（§8.6）。
+
+2026-09-11 23:06 HKT — Owner 决定：asset = MERGED（`a2_piper_v28_merged_20260909`）；腕机塔 140 mm / θ 38.76°，reset j5 −0.415
+（行走光轴 −14.9°，法兰 z 0.4245）；合同分期冻结 D-30（base 相机单/双后移到蒸馏前，Teacher 用两布局并集包络）；K driver 备选 D-31；
+选种门拆层 D-32（Wave A reachability 门选种，Wave B 合取门资格）；G0 恢复，R2/R3/R5 复跑与候选物理验收已授权。
+
+
+## 2026-09-12 已验证执行事实
+
+D34/D35实施：新塔架实际静态间隙1mm，支架长76.227187mm，按旧D20单位长度质量估算支架0.049843403kg＋外壳0.075kg。MERGED复合mass差0、COM/I误差均≤1e-16。R2监测体全部0N，原trunk/support自接触已在该检查中消除。K完整配方及分层reducer已实现。G0-L失败集中在stand零指令残余微速度的相对门，绝对量和后续判据由Owner查看readout决定，不将它等同于行走能力崩溃。修改：-codex worker；停止依据：-owner。

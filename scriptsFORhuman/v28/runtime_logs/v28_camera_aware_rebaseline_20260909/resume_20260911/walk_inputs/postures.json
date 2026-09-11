@@ -1,0 +1,41 @@
+{
+  "postures": {
+    "default": [
+      0,
+      0.1,
+      -0.1,
+      0,
+      -0.415,
+      1.57
+    ],
+    "hold": [
+      0,
+      1.48,
+      -0.63,
+      -0.84,
+      0,
+      1.57
+    ],
+    "stage2": [
+      -0.2618607581,
+      2.0485494137,
+      -1.2558345795,
+      -0.270145148,
+      -0.7282580137,
+      1.5547202826
+    ]
+  },
+  "stage2_source": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_a/step3000/C_S21/nominal/right/stage2_5_step_trace.json",
+    "env_id": 39,
+    "step_index": 117,
+    "l_m": 0.599175296,
+    "pitch_rad": 0.348073617,
+    "yaw_rad": -0.200050005,
+    "root_z_m": 0.55,
+    "tcp_local_z_m": 0.105,
+    "sphere_center_world_z_m": 0.704
+  },
+  "evidence_level": "COMPUTED",
+  "decision": "D035 updated default; hold and Stage2 reference unchanged"
+}

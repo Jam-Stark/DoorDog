@@ -1,0 +1,370 @@
+{
+  "status": "D034_MERGED_GEOMETRY_READY",
+  "author": "-codex worker",
+  "source": "/tmp/v28_d35_independent.GGYoy1/a2_piper.urdf",
+  "candidate": "/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.urdf",
+  "persistent_independent_reference": "/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/source_inputs/a2_piper_independent_d35.urdf",
+  "rigid_links_before": 31,
+  "rigid_links_after": 28,
+  "total_mass_before_kg": 45.61965166732443,
+  "total_mass_after_kg": 45.61965166732444,
+  "trunk_mass_kg": 20.404808264807315,
+  "trunk_com_m": [
+    0.011600368924734128,
+    -0.0006864315300356598,
+    0.017416521104071412
+  ],
+  "trunk_inertia_kgm2": [
+    [
+      0.15449461940604992,
+      0.00033548657452330634,
+      -0.018259410257397954
+    ],
+    [
+      0.00033548657452330634,
+      0.4338302632075427,
+      -0.0004256372989897594
+    ],
+    [
+      -0.018259410257397954,
+      -0.0004256372989897594,
+      0.48902189794455075
+    ]
+  ],
+  "new_geometry_independent_reference": {
+    "mass_kg": 45.61965166732444,
+    "com_m": [
+      0.01420181821287105,
+      5.114468604710513e-05,
+      0.008996464622411614
+    ],
+    "inertia_kgm2": [
+      [
+        1.4939702467037173,
+        -0.0026568685539697266,
+        -0.13184030498904206
+      ],
+      [
+        -0.0026568685539697266,
+        2.8367046440905,
+        -0.005616939654094791
+      ],
+      [
+        -0.13184030498904206,
+        -0.005616939654094791,
+        2.502225915062736
+      ]
+    ]
+  },
+  "merged_aggregate": {
+    "mass_kg": 45.61965166732444,
+    "com_m": [
+      0.01420181821287105,
+      5.114468604710511e-05,
+      0.008996464622411614
+    ],
+    "inertia_kgm2": [
+      [
+        1.4939702467037173,
+        -0.0026568685539697266,
+        -0.13184030498904206
+      ],
+      [
+        -0.0026568685539697266,
+        2.8367046440905,
+        -0.005616939654094791
+      ],
+      [
+        -0.13184030498904206,
+        -0.005616939654094791,
+        2.502225915062736
+      ]
+    ]
+  },
+  "aggregate_difference": {
+    "mass_abs_kg": 0.0,
+    "com_max_abs_m": 4.599388903590851e-19,
+    "inertia_max_abs_kgm2": 5.377642775528102e-17
+  },
+  "equivalence_criterion": "same new-geometry independent input; mass difference 0 and COM/inertia comparison recorded without hashes",
+  "moved_geometry": [
+    {
+      "part": "vpiper_main",
+      "kind": "visual",
+      "new_name": "compound_vpiper_main_visual_0"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_0"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_1"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_2"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_3"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_4"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_5"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_6"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_7"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_8"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_9"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_10"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_11"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_12"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_13"
+    },
+    {
+      "part": "vpiper_main",
+      "kind": "collision",
+      "new_name": "compound_vpiper_main_collision_14"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "visual",
+      "new_name": "compound_vpiper_support_visual_0"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_0"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_1"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_2"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_3"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_4"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_5"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_6"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_7"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_8"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_9"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_10"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_11"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_12"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_13"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_14"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_15"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_16"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_17"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_18"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_19"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_20"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_21"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_22"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_23"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_24"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_25"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_26"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_27"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_28"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_29"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_30"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_31"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_32"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_33"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_34"
+    },
+    {
+      "part": "vpiper_support",
+      "kind": "collision",
+      "new_name": "compound_vpiper_support_collision_35"
+    },
+    {
+      "part": "metal_plate_5mm",
+      "kind": "visual",
+      "new_name": "compound_metal_plate_5mm_visual_0"
+    },
+    {
+      "part": "metal_plate_5mm",
+      "kind": "collision",
+      "new_name": "compound_metal_plate_5mm_collision_0"
+    }
+  ],
+  "geometry_removed": [],
+  "hardware_pose_changes": [],
+  "wrist_camera_tower": "retained as independent fixed link"
+}

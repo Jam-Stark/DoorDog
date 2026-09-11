@@ -1,0 +1,429 @@
+{
+  "schema": "a2_piper_v28_g0_resume_readout_v1",
+  "status": "STOP_G0_L_FAILED",
+  "date_hkt": "2026-09-12",
+  "decision_log_ids": [
+    "V28-D030",
+    "V28-D031",
+    "V28-D032",
+    "V28-D033",
+    "V28-D034",
+    "V28-D035"
+  ],
+  "g0_decision": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/g0_decision.json",
+  "current_evidence": {
+    "G0_A1": {
+      "level": "COMPUTED",
+      "aggregate_difference": {
+        "mass_abs_kg": 0.0,
+        "com_max_abs_m": 4.599388903590851e-19,
+        "inertia_max_abs_kgm2": 5.377642775528102e-17
+      },
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.proposal.json"
+    },
+    "G0_A2": {
+      "level": "STATIC_PASS",
+      "native_bodies": 28,
+      "active_joints": 20,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/usd_import_readback.json"
+    },
+    "G0_A3_A5_CPU": {
+      "level": "TEST_PASS",
+      "v28_tests_passed": 7,
+      "resolved_asset_body_subset_test": "PASS",
+      "logs": [
+        "resume_20260911/cpu_initial.log",
+        "resume_20260911/cpu_a5_pass.log"
+      ]
+    },
+    "config_compose": {
+      "level": "STATIC_PASS",
+      "registered_differences": 53,
+      "receipt": "resume_20260911/cpu_corrected/compose/A_S281/compose_receipt.json"
+    },
+    "R1_R2_R3_R5": {
+      "level": "RUNTIME_PASS",
+      "gates": {
+        "R1": true,
+        "R2": true,
+        "R3": true,
+        "R5_height": true
+      },
+      "R2_force_max_by_body_N": {
+        "trunk": 0.0,
+        "arm_body0": 0.0,
+        "arm_body1": 0.0,
+        "arm_body2": 0.0,
+        "arm_body3": 0.0,
+        "arm_body4": 0.0,
+        "arm_body5": 0.0,
+        "arm_body6": 0.0,
+        "wrist_camera_tower": 0.0
+      },
+      "R3_root_z_range_m": [
+        0.46586453914642334,
+        0.477995365858078
+      ],
+      "R3_arm_abs_dq_max_rad_s": 0.05095652490854263,
+      "R5_flange_height_m": {
+        "min": 0.42451322078704834,
+        "max": 0.4245135188102722
+      },
+      "scope": "zero high-level command and frozen A2_Base; no Teacher quality inference",
+      "receipt": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/contact_merged_h140_r1/data/contact_probe.json"
+    },
+    "G0_A4": {
+      "level": "COMPUTED_PASS",
+      "outcome": "A4_PASS",
+      "receipt": "resume_20260911/g0_a4.json"
+    },
+    "contact_camera_trace": {
+      "level": "RUNTIME_AND_COMPUTED",
+      "receipt": "resume_20260911/contact_camera_metrics_sdk.json",
+      "scope": "natural zero-command Stage0/1; unobserved crossing/release/Stage5 reported null, no quality claim"
+    },
+    "G0_C3": {
+      "level": "COMPUTED_ARCHIVED_TRAJECTORY",
+      "outcome": "C3_ARCHIVED_V27_TRACE_FAIL",
+      "receipt": "resume_20260911/g0_c3.json",
+      "interpretation": "Old v27 sweep complete; 20mm criterion NOT passed on archived trajectories. Plan \u00a73.2 already records old-policy C3 FAIL and requires v28 trajectory rerun after Wave A; no v28 policy claim."
+    },
+    "G0_L": {
+      "level": "RUNTIME_FAIL",
+      "posture": "default",
+      "baseline_and_candidate_zero_falls": true,
+      "tracking_failures": [
+        {
+          "block": "stand",
+          "axis": "vx_mps",
+          "baseline_p50": 0.0005730112316086888,
+          "candidate_p50": 0.0007280729478225112,
+          "limit": 0.0006589629163499921,
+          "ratio": 1.2706085110731555,
+          "pass": false
+        },
+        {
+          "block": "stand",
+          "axis": "vy_mps",
+          "baseline_p50": 0.0007474926533177495,
+          "candidate_p50": 0.0008962744614109397,
+          "limit": 0.0008596165513154118,
+          "ratio": 1.1990411643951568,
+          "pass": false
+        },
+        {
+          "block": "stand",
+          "axis": "yaw_radps",
+          "baseline_p50": 0.0009043331956490874,
+          "candidate_p50": 0.0011191212106496096,
+          "limit": 0.0010399831749964505,
+          "ratio": 1.2375098205328596,
+          "pass": false
+        }
+      ],
+      "vx050_slope": {
+        "baseline": 0.9409371018409729,
+        "candidate": 0.9319016337394714,
+        "limit": 0.8909371018409729,
+        "pass": true
+      },
+      "receipt": "resume_20260911/walk/default_comparison.json"
+    }
+  },
+  "not_run": [
+    "v28 hold/Stage2 flat-walk comparisons after default-posture failure",
+    "64-env x 5-batch PPO smoke",
+    "full PPO/eval telemetry wiring verification",
+    "G1 warm probe",
+    "Wave A/B",
+    "G2-C* deferred optical/hardware qualification"
+  ],
+  "commit_performed": false,
+  "scope": "Simulation/CPU evidence only; no hardware or Teacher quality acceptance",
+  "d36_revision": {
+    "status": "STOP_G0_L_D36_STAGE2_FAILED",
+    "date_hkt": "2026-09-12",
+    "decision_log_id": "V28-D036",
+    "prior_top_level_record": "Original pre-D36 FAIL evidence retained unchanged in the other top-level fields",
+    "g0_l": {
+      "schema": "a2_piper_v28_g0_l_all_postures_v1",
+      "criterion_version": "d36",
+      "evidence_level": "RUNTIME",
+      "status": "FAIL",
+      "decision_log_id": "V28-D036",
+      "owner_failure_route": "STOP; preserve data; no threshold or geometry repair",
+      "updated_at": "2026-09-11T16:36:02.641203+00:00",
+      "postures": {
+        "default": {
+          "status": "PASS",
+          "legacy_status": "FAIL",
+          "receipt": "resume_20260911/walk/default_comparison_d36.json",
+          "floor_applied_count": 7,
+          "pass_p50_count": 65,
+          "pass_p95_count": 65,
+          "comparison_count": 65,
+          "max_nonfloored_p50_ratio": 1.1070773435384789,
+          "max_p95_ratio": 1.0851115450749549,
+          "baseline_zero_falls": true,
+          "candidate_zero_falls": true,
+          "vx050_slope": {
+            "baseline": 0.9409371018409729,
+            "candidate": 0.9319016337394714,
+            "limit": 0.8909371018409729,
+            "pass": true
+          },
+          "tracking_failures": [],
+          "execution": "OFFLINE_REDUCTION_ONLY",
+          "criterion_registration": "POST_HOC_OWNER_AMENDMENT",
+          "legacy_receipt": "resume_20260911/walk/default_comparison.json"
+        },
+        "hold": {
+          "status": "PASS",
+          "legacy_status": "FAIL",
+          "receipt": "resume_20260911/walk/hold_comparison_d36.json",
+          "floor_applied_count": 7,
+          "pass_p50_count": 65,
+          "pass_p95_count": 65,
+          "comparison_count": 65,
+          "max_nonfloored_p50_ratio": 1.123854280515662,
+          "max_p95_ratio": 1.1053753041386527,
+          "baseline_zero_falls": true,
+          "candidate_zero_falls": true,
+          "vx050_slope": {
+            "baseline": 0.9141949415206909,
+            "candidate": 0.9085001349449158,
+            "limit": 0.8641949415206909,
+            "pass": true
+          },
+          "tracking_failures": [],
+          "execution": "ONE_NEW_MERGED_RUNTIME_PAIRED_WITH_EXISTING_OLD_ASSET_BASELINE",
+          "criterion_registration": "BEFORE_NEW_MERGED_RUNTIME",
+          "process_receipt": "resume_20260911/walk/v28_hold_d36/process_receipt.json"
+        },
+        "stage2": {
+          "status": "FAIL",
+          "legacy_status": "FAIL",
+          "receipt": "resume_20260911/walk/stage2_comparison_d36.json",
+          "floor_applied_count": 7,
+          "pass_p50_count": 62,
+          "pass_p95_count": 65,
+          "comparison_count": 65,
+          "max_nonfloored_p50_ratio": 1.2304907778969036,
+          "max_p95_ratio": 1.111611491799973,
+          "baseline_zero_falls": true,
+          "candidate_zero_falls": true,
+          "vx050_slope": {
+            "baseline": 0.9336504936218262,
+            "candidate": 0.9342458248138428,
+            "limit": 0.8836504936218261,
+            "pass": true
+          },
+          "tracking_failures": [
+            {
+              "block": "vx050",
+              "axis": "pitch_rad",
+              "baseline_p50": 0.005936859641224146,
+              "candidate_p50": 0.007173581980168819,
+              "limit_ratio": 0.006827388587407768,
+              "floor": null,
+              "floor_applied": false,
+              "limit": 0.006827388587407768,
+              "ratio": 1.2083125446249676,
+              "baseline_p95": 0.01693449728190899,
+              "candidate_p95": 0.01776234805583954,
+              "limit_p95": 0.019474671874195337,
+              "ratio_p95": 1.0488854649860162,
+              "pass_p50": false,
+              "pass_p95": true,
+              "pass": false
+            },
+            {
+              "block": "vy_pos",
+              "axis": "roll_rad",
+              "baseline_p50": 0.007263770326972008,
+              "candidate_p50": 0.008938002400100231,
+              "limit_ratio": 0.008353335876017809,
+              "floor": null,
+              "floor_applied": false,
+              "limit": 0.008353335876017809,
+              "ratio": 1.2304907778969036,
+              "baseline_p95": 0.03821535035967827,
+              "candidate_p95": 0.03836079686880112,
+              "limit_p95": 0.04394765291363001,
+              "ratio_p95": 1.003805970840354,
+              "pass_p50": false,
+              "pass_p95": true,
+              "pass": false
+            },
+            {
+              "block": "vy_pos",
+              "axis": "yaw_radps",
+              "baseline_p50": 0.03734438121318817,
+              "candidate_p50": 0.04348276928067207,
+              "limit_ratio": 0.04294603839516639,
+              "floor": 0.004,
+              "floor_applied": false,
+              "limit": 0.04294603839516639,
+              "ratio": 1.164372466970108,
+              "baseline_p95": 0.1092311441898346,
+              "candidate_p95": 0.11631973087787628,
+              "limit_p95": 0.12561581581830977,
+              "ratio_p95": 1.06489528916517,
+              "pass_p50": false,
+              "pass_p95": true,
+              "pass": false
+            }
+          ],
+          "execution": "ONE_NEW_MERGED_RUNTIME_PAIRED_WITH_EXISTING_OLD_ASSET_BASELINE",
+          "criterion_registration": "BEFORE_NEW_MERGED_RUNTIME",
+          "process_receipt": "resume_20260911/walk/v28_stage2_d36/process_receipt.json"
+        }
+      },
+      "limitation": "One run per asset/posture; no null-distribution estimate. X-24 tracks calibration before the next asset/locomotion change."
+    },
+    "not_run": [
+      "64-env x 5-batch PPO smoke: blocked by D36 Stage2 G0-L failure",
+      "full PPO/eval telemetry wiring verification",
+      "G1 warm probe",
+      "Wave A/B",
+      "G2-C* deferred optical/hardware qualification"
+    ],
+    "commit_performed": false
+  },
+  "d37_revision": {
+    "current_status": "G0_PASSED_PENDING_FIRST_LOCAL_COMMIT",
+    "outcome": "G0_PASSED",
+    "decision_log_id": "V28-D037",
+    "g0_decision": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/g0_decision.json",
+    "seed282_confirmation": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/d37/confirmation_decision.json",
+    "telemetry_validation": {
+      "schema": "a2_piper_v28_g0_telemetry_wiring_v1",
+      "status": "PASS",
+      "evidence_level": "RUNTIME_AND_COMPUTED",
+      "recorded_at": "2026-09-11T17:47:37.431316+00:00",
+      "expected_plan_fields": [
+        "arm_j6_abs_dev_from_1p57_p95",
+        "arm_j6_reversals_per_s",
+        "arm_posture_l1_p50_rad",
+        "arm_posture_l1_p95_rad",
+        "base_cam_ang_speed_p95_deg_s",
+        "crossing_yaw_deg_p50",
+        "crossing_yaw_deg_p95",
+        "doorway_bearing_deg_p95_stage5",
+        "handle_bearing_deg_p50_stage0_2",
+        "handle_bearing_deg_p95_stage0_2",
+        "handle_bearing_gt_30deg_share_stage0_2",
+        "handle_in_wrist_depth_share_stage2_4",
+        "handle_in_wrist_rgb_share_stage2_4",
+        "post_release_return_time_p50_s",
+        "post_release_return_time_p95_s",
+        "stage0_2_vy_cmd_at_clip_share",
+        "wrist_cam_ang_speed_p50_deg_s",
+        "wrist_cam_ang_speed_p95_deg_s",
+        "wrist_cam_axis_elev_p50_deg",
+        "wrist_cam_axis_elev_p5_deg",
+        "wrist_cam_axis_elev_p95_deg",
+        "wrist_cam_axis_sweep_p95_deg_s",
+        "wrist_cam_share_axis_sweep_gt_60",
+        "wrist_tower_contact_episodes_gt_5N",
+        "wrist_tower_contact_step_share",
+        "wrist_tower_panel_min_clearance_m"
+      ],
+      "field_count": 26,
+      "scope": "Full PPO checkpoint -> natural eval raw schema -> all 26 plan metric fields. Wiring and absent-event null semantics only; no Stage2-5 event or Teacher quality claim.",
+      "lanes": {
+        "left": {
+          "process_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/left/process_receipt.json",
+          "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/left/stage2_5_step_trace.json",
+          "camera_metrics": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/left/camera_metrics.json",
+          "episodes": 64,
+          "raw_rows_validated_by_camera_reducer": 22400,
+          "observed_stages": [
+            "0"
+          ],
+          "sample_counts": {
+            "all": 22400,
+            "crossing_episodes": 0,
+            "stage0_2": 22400,
+            "stage0_5": 22400,
+            "stage2_4": 0,
+            "stage5": 0
+          },
+          "nullable_unobserved_fields": [
+            "crossing_yaw_deg_p50",
+            "crossing_yaw_deg_p95",
+            "doorway_bearing_deg_p95_stage5",
+            "handle_in_wrist_depth_share_stage2_4",
+            "handle_in_wrist_rgb_share_stage2_4",
+            "post_release_return_time_p50_s",
+            "post_release_return_time_p95_s"
+          ],
+          "field_count": 26,
+          "raw_schema": "v28_camera_metrics.parse_rows validated every exported row, required scalar/vector shapes and finite values",
+          "new_rewards_in_diagnostics": [
+            "penalty_a2_wrist_motion_l2",
+            "penalty_a2_wrist_tower_contact"
+          ],
+          "returncode": 0
+        },
+        "right": {
+          "process_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/right/process_receipt.json",
+          "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/right/stage2_5_step_trace.json",
+          "camera_metrics": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/right/camera_metrics.json",
+          "episodes": 64,
+          "raw_rows_validated_by_camera_reducer": 22400,
+          "observed_stages": [
+            "0"
+          ],
+          "sample_counts": {
+            "all": 22400,
+            "crossing_episodes": 0,
+            "stage0_2": 22400,
+            "stage0_5": 22400,
+            "stage2_4": 0,
+            "stage5": 0
+          },
+          "nullable_unobserved_fields": [
+            "crossing_yaw_deg_p50",
+            "crossing_yaw_deg_p95",
+            "doorway_bearing_deg_p95_stage5",
+            "handle_in_wrist_depth_share_stage2_4",
+            "handle_in_wrist_rgb_share_stage2_4",
+            "post_release_return_time_p50_s",
+            "post_release_return_time_p95_s"
+          ],
+          "field_count": 26,
+          "raw_schema": "v28_camera_metrics.parse_rows validated every exported row, required scalar/vector shapes and finite values",
+          "new_rewards_in_diagnostics": [
+            "penalty_a2_wrist_motion_l2",
+            "penalty_a2_wrist_tower_contact"
+          ],
+          "returncode": 0
+        }
+      },
+      "ppo_reward_log_values": {
+        "penalty_a2_wrist_motion_l2": [
+          -0.0015,
+          -0.0024,
+          -0.005,
+          -0.0071,
+          -0.0413
+        ],
+        "penalty_a2_wrist_tower_contact": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "limitations": [
+      "X24 OPEN: seed282 deterministic replication; no stochastic calibration",
+      "X25 OPEN: extended-arm coupled residuals",
+      "C3 archived v27 replay FAIL retained; v28 trajectories must be assessed after Wave A",
+      "Only Stage0 observed in smoke-checkpoint eval; no later-stage event or Teacher qualification claim"
+    ],
+    "commit_performed": false
+  }
+}

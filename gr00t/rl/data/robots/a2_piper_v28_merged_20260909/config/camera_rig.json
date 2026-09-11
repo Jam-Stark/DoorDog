@@ -1,0 +1,1620 @@
+{
+  "plan_id": "U3_F39_H140",
+  "name_cn": "U3\u8155\u673a140mm/38.76\u5ea6\u8bad\u7ec3\u5305\u7edc",
+  "input_authority": "Derived ONLY from supplied U3_V geometry/config; U1/U2 dropped as selectable plans. Base cameras, tower position, stream K/profiles unchanged.",
+  "hardware_status": "SIMULATION_ENVELOPE; wrist bracket CAD not designed",
+  "simulation_scope": "camera-only integration, nominal pinhole RGB+left depth+right depth diagnostic, preserves policy and robot DOFs",
+  "housing_size_M_m": [
+    0.025,
+    0.09,
+    0.025
+  ],
+  "mechanical_axes": "M +X forward,+Y along90mm bar,+Z up; B +X robot forward,+Y left,+Z up; F is gripper-base frame",
+  "rotation_order": "Rz(yaw)Ry(pitch)Rx(roll)",
+  "cameras": [
+    {
+      "name": "base_left",
+      "label": "L",
+      "parent": "trunk",
+      "xyz_m": [
+        0.025,
+        0.155,
+        0.19
+      ],
+      "xyz_mm": [
+        25.0,
+        155.0,
+        190.0
+      ],
+      "rpy_deg": [
+        0.0,
+        -15.0,
+        0.0
+      ],
+      "rpy_rad": [
+        0.0,
+        -0.2617993877991494,
+        0.0
+      ],
+      "T_parent_M": [
+        [
+          0.9659258262890682,
+          -0.0,
+          -0.25881904510252074,
+          0.025
+        ],
+        [
+          0.0,
+          1.0,
+          -0.0,
+          0.155
+        ],
+        [
+          0.25881904510252074,
+          0.0,
+          0.9659258262890682,
+          0.19
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "quat_parent_M_wxyz": [
+        0.9914448613738104,
+        0.0,
+        -0.13052619222005157,
+        0.0
+      ],
+      "depth_resolution": [
+        848,
+        480
+      ],
+      "depth_min_z_m": 0.195,
+      "streams": {
+        "rgb": {
+          "offset_M_m": [
+            0.0083,
+            0.0325,
+            0
+          ],
+          "nominal_fov_deg": [
+            69.0,
+            42.0
+          ],
+          "width": 1920,
+          "height": 1080,
+          "K": [
+            [
+              1396.8086675255472,
+              0,
+              960.0
+            ],
+            [
+              0,
+              1406.748094934653,
+              540.0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "T_parent_optical": [
+            [
+              0.0,
+              0.25881904510252074,
+              0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              0.1875
+            ],
+            [
+              0.0,
+              -0.9659258262890682,
+              0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_parent_m": [
+            0.03301718435819927,
+            0.1875,
+            0.19214819807435093
+          ],
+          "quat_parent_ros_wxyz": [
+            -0.560985526796931,
+            0.43045933457687946,
+            -0.43045933457687946,
+            0.560985526796931
+          ],
+          "quat_parent_usd_wxyz": [
+            0.43045933457687935,
+            0.5609855267969309,
+            -0.5609855267969309,
+            -0.43045933457687935
+          ],
+          "T_parent_usd": [
+            [
+              0.0,
+              -0.25881904510252074,
+              -0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              0.1875
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              -0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "camera_frame": "ros: +x right,+y down,+z forward; usd: +x right,+y up,-z forward",
+          "near_clip_render_m": 0.001,
+          "far_clip_render_m": 20.0,
+          "min_z_mask_m": 0,
+          "calibration_status": "INHERITED_NOMINAL_OFFSETS_FOV__NOT_MEASURED_FACTORY_CALIBRATION"
+        },
+        "depth": {
+          "offset_M_m": [
+            0.0083,
+            0.0175,
+            0
+          ],
+          "nominal_fov_deg": [
+            87.0,
+            58.0
+          ],
+          "width": 848,
+          "height": 480,
+          "K": [
+            [
+              446.80277311912806,
+              0,
+              424.0
+            ],
+            [
+              0,
+              432.97146126514167,
+              240.0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "T_parent_optical": [
+            [
+              0.0,
+              0.25881904510252074,
+              0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              0.1725
+            ],
+            [
+              0.0,
+              -0.9659258262890682,
+              0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_parent_m": [
+            0.03301718435819927,
+            0.1725,
+            0.19214819807435093
+          ],
+          "quat_parent_ros_wxyz": [
+            -0.560985526796931,
+            0.43045933457687946,
+            -0.43045933457687946,
+            0.560985526796931
+          ],
+          "quat_parent_usd_wxyz": [
+            0.43045933457687935,
+            0.5609855267969309,
+            -0.5609855267969309,
+            -0.43045933457687935
+          ],
+          "T_parent_usd": [
+            [
+              0.0,
+              -0.25881904510252074,
+              -0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              0.1725
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              -0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "camera_frame": "ros: +x right,+y down,+z forward; usd: +x right,+y up,-z forward",
+          "near_clip_render_m": 0.001,
+          "far_clip_render_m": 20.0,
+          "min_z_mask_m": 0.195,
+          "calibration_status": "INHERITED_NOMINAL_OFFSETS_FOV__NOT_MEASURED_FACTORY_CALIBRATION"
+        },
+        "right_ir": {
+          "offset_M_m": [
+            0.0083,
+            -0.0325,
+            0
+          ],
+          "nominal_fov_deg": [
+            87.0,
+            58.0
+          ],
+          "width": 848,
+          "height": 480,
+          "K": [
+            [
+              446.80277311912806,
+              0,
+              424.0
+            ],
+            [
+              0,
+              432.97146126514167,
+              240.0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "T_parent_optical": [
+            [
+              0.0,
+              0.25881904510252074,
+              0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              0.1225
+            ],
+            [
+              0.0,
+              -0.9659258262890682,
+              0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_parent_m": [
+            0.03301718435819927,
+            0.1225,
+            0.19214819807435093
+          ],
+          "quat_parent_ros_wxyz": [
+            -0.560985526796931,
+            0.43045933457687946,
+            -0.43045933457687946,
+            0.560985526796931
+          ],
+          "quat_parent_usd_wxyz": [
+            0.43045933457687935,
+            0.5609855267969309,
+            -0.5609855267969309,
+            -0.43045933457687935
+          ],
+          "T_parent_usd": [
+            [
+              0.0,
+              -0.25881904510252074,
+              -0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              0.1225
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              -0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "camera_frame": "ros: +x right,+y down,+z forward; usd: +x right,+y up,-z forward",
+          "near_clip_render_m": 0.001,
+          "far_clip_render_m": 20.0,
+          "min_z_mask_m": 0.195,
+          "calibration_status": "INHERITED_NOMINAL_OFFSETS_FOV__NOT_MEASURED_FACTORY_CALIBRATION"
+        }
+      }
+    },
+    {
+      "name": "base_right",
+      "label": "R",
+      "parent": "trunk",
+      "xyz_m": [
+        0.025,
+        -0.155,
+        0.19
+      ],
+      "xyz_mm": [
+        25.0,
+        -155.0,
+        190.0
+      ],
+      "rpy_deg": [
+        0.0,
+        -15.0,
+        0.0
+      ],
+      "rpy_rad": [
+        0.0,
+        -0.2617993877991494,
+        0.0
+      ],
+      "T_parent_M": [
+        [
+          0.9659258262890682,
+          -0.0,
+          -0.25881904510252074,
+          0.025
+        ],
+        [
+          0.0,
+          1.0,
+          -0.0,
+          -0.155
+        ],
+        [
+          0.25881904510252074,
+          0.0,
+          0.9659258262890682,
+          0.19
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "quat_parent_M_wxyz": [
+        0.9914448613738104,
+        0.0,
+        -0.13052619222005157,
+        0.0
+      ],
+      "depth_resolution": [
+        848,
+        480
+      ],
+      "depth_min_z_m": 0.195,
+      "streams": {
+        "rgb": {
+          "offset_M_m": [
+            0.0083,
+            0.0325,
+            0
+          ],
+          "nominal_fov_deg": [
+            69.0,
+            42.0
+          ],
+          "width": 1920,
+          "height": 1080,
+          "K": [
+            [
+              1396.8086675255472,
+              0,
+              960.0
+            ],
+            [
+              0,
+              1406.748094934653,
+              540.0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "T_parent_optical": [
+            [
+              0.0,
+              0.25881904510252074,
+              0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              -0.1225
+            ],
+            [
+              0.0,
+              -0.9659258262890682,
+              0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_parent_m": [
+            0.03301718435819927,
+            -0.1225,
+            0.19214819807435093
+          ],
+          "quat_parent_ros_wxyz": [
+            -0.560985526796931,
+            0.43045933457687946,
+            -0.43045933457687946,
+            0.560985526796931
+          ],
+          "quat_parent_usd_wxyz": [
+            0.43045933457687935,
+            0.5609855267969309,
+            -0.5609855267969309,
+            -0.43045933457687935
+          ],
+          "T_parent_usd": [
+            [
+              0.0,
+              -0.25881904510252074,
+              -0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              -0.1225
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              -0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "camera_frame": "ros: +x right,+y down,+z forward; usd: +x right,+y up,-z forward",
+          "near_clip_render_m": 0.001,
+          "far_clip_render_m": 20.0,
+          "min_z_mask_m": 0,
+          "calibration_status": "INHERITED_NOMINAL_OFFSETS_FOV__NOT_MEASURED_FACTORY_CALIBRATION"
+        },
+        "depth": {
+          "offset_M_m": [
+            0.0083,
+            0.0175,
+            0
+          ],
+          "nominal_fov_deg": [
+            87.0,
+            58.0
+          ],
+          "width": 848,
+          "height": 480,
+          "K": [
+            [
+              446.80277311912806,
+              0,
+              424.0
+            ],
+            [
+              0,
+              432.97146126514167,
+              240.0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "T_parent_optical": [
+            [
+              0.0,
+              0.25881904510252074,
+              0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              -0.1375
+            ],
+            [
+              0.0,
+              -0.9659258262890682,
+              0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_parent_m": [
+            0.03301718435819927,
+            -0.1375,
+            0.19214819807435093
+          ],
+          "quat_parent_ros_wxyz": [
+            -0.560985526796931,
+            0.43045933457687946,
+            -0.43045933457687946,
+            0.560985526796931
+          ],
+          "quat_parent_usd_wxyz": [
+            0.43045933457687935,
+            0.5609855267969309,
+            -0.5609855267969309,
+            -0.43045933457687935
+          ],
+          "T_parent_usd": [
+            [
+              0.0,
+              -0.25881904510252074,
+              -0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              -0.1375
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              -0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "camera_frame": "ros: +x right,+y down,+z forward; usd: +x right,+y up,-z forward",
+          "near_clip_render_m": 0.001,
+          "far_clip_render_m": 20.0,
+          "min_z_mask_m": 0.195,
+          "calibration_status": "INHERITED_NOMINAL_OFFSETS_FOV__NOT_MEASURED_FACTORY_CALIBRATION"
+        },
+        "right_ir": {
+          "offset_M_m": [
+            0.0083,
+            -0.0325,
+            0
+          ],
+          "nominal_fov_deg": [
+            87.0,
+            58.0
+          ],
+          "width": 848,
+          "height": 480,
+          "K": [
+            [
+              446.80277311912806,
+              0,
+              424.0
+            ],
+            [
+              0,
+              432.97146126514167,
+              240.0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "T_parent_optical": [
+            [
+              0.0,
+              0.25881904510252074,
+              0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              -0.1875
+            ],
+            [
+              0.0,
+              -0.9659258262890682,
+              0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_parent_m": [
+            0.03301718435819927,
+            -0.1875,
+            0.19214819807435093
+          ],
+          "quat_parent_ros_wxyz": [
+            -0.560985526796931,
+            0.43045933457687946,
+            -0.43045933457687946,
+            0.560985526796931
+          ],
+          "quat_parent_usd_wxyz": [
+            0.43045933457687935,
+            0.5609855267969309,
+            -0.5609855267969309,
+            -0.43045933457687935
+          ],
+          "T_parent_usd": [
+            [
+              0.0,
+              -0.25881904510252074,
+              -0.9659258262890682,
+              0.03301718435819927
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0,
+              -0.1875
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              -0.25881904510252074,
+              0.19214819807435093
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "camera_frame": "ros: +x right,+y down,+z forward; usd: +x right,+y up,-z forward",
+          "near_clip_render_m": 0.001,
+          "far_clip_render_m": 20.0,
+          "min_z_mask_m": 0.195,
+          "calibration_status": "INHERITED_NOMINAL_OFFSETS_FOV__NOT_MEASURED_FACTORY_CALIBRATION"
+        }
+      }
+    },
+    {
+      "name": "wrist",
+      "label": "W",
+      "parent": "arm_body6_to_gripper",
+      "xyz_m": [
+        -0.0001115268320149064,
+        0.13946797900995225,
+        0.01219304689752591
+      ],
+      "xyz_mm": [
+        -0.1115268320149064,
+        139.46797900995224,
+        12.19304689752591
+      ],
+      "rpy_deg": [
+        -0.000843287495630104,
+        -46.24359756330001,
+        -89.95352283807927
+      ],
+      "rpy_rad": [
+        -1.4718143339642609e-05,
+        -0.8071030354468121,
+        -1.5699851472923974
+      ],
+      "T_parent_M": [
+        [
+          0.0005610066295785286,
+          0.9999996795090338,
+          -0.000571185951302131,
+          -0.0001115268320149064
+        ],
+        [
+          -0.691593543476254,
+          0.0008005486979806193,
+          0.7222864596153942,
+          0.13946797900995225
+        ],
+        [
+          0.7222866853912786,
+          -1.0178976254146335e-05,
+          0.6915937709398982,
+          0.01219304689752591
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "quat_parent_M_wxyz": [
+        0.6505680837290317,
+        -0.2775638156315137,
+        -0.27777948589146384,
+        -0.6500446553146059
+      ],
+      "depth_resolution": [
+        424,
+        240
+      ],
+      "depth_min_z_m": 0.105,
+      "streams": {
+        "rgb": {
+          "offset_M_m": [
+            0.0083,
+            0.0325,
+            0
+          ],
+          "nominal_fov_deg": [
+            69.0,
+            42.0
+          ],
+          "width": 1920,
+          "height": 1080,
+          "K": [
+            [
+              1396.8086675255472,
+              0,
+              960.0
+            ],
+            [
+              0,
+              1406.748094934653,
+              540.0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "T_parent_optical": [
+            [
+              -0.9999996795090338,
+              0.000571185951302131,
+              0.0005610066295785286,
+              0.03239311910705419
+            ],
+            [
+              -0.0008005486979806193,
+              -0.7222864596153942,
+              -0.691593543476254,
+              0.13375377043178371
+            ],
+            [
+              1.0178976254146335e-05,
+              -0.6915937709398982,
+              0.7222866853912786,
+              0.018187695569545262
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_parent_m": [
+            0.03239311910705419,
+            0.13375377043178371,
+            0.018187695569545262
+          ],
+          "quat_parent_ros_wxyz": [
+            -0.0003695493371879557,
+            0.00015387907723781396,
+            -0.37263471876033,
+            0.9279780202833076
+          ],
+          "quat_parent_usd_wxyz": [
+            -0.00015387907723781396,
+            -0.0003695493371879557,
+            0.9279780202833076,
+            0.37263471876033
+          ],
+          "T_parent_usd": [
+            [
+              -0.9999996795090338,
+              -0.000571185951302131,
+              -0.0005610066295785286,
+              0.03239311910705419
+            ],
+            [
+              -0.0008005486979806193,
+              0.7222864596153942,
+              0.691593543476254,
+              0.13375377043178371
+            ],
+            [
+              1.0178976254146335e-05,
+              0.6915937709398982,
+              -0.7222866853912786,
+              0.018187695569545262
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "camera_frame": "ros: +x right,+y down,+z forward; usd: +x right,+y up,-z forward",
+          "near_clip_render_m": 0.001,
+          "far_clip_render_m": 20.0,
+          "min_z_mask_m": 0,
+          "calibration_status": "INHERITED_NOMINAL_OFFSETS_FOV__NOT_MEASURED_FACTORY_CALIBRATION"
+        },
+        "depth": {
+          "offset_M_m": [
+            0.0083,
+            0.0175,
+            0
+          ],
+          "nominal_fov_deg": [
+            87.0,
+            58.0
+          ],
+          "width": 424,
+          "height": 240,
+          "K": [
+            [
+              223.40138655956403,
+              0,
+              212.0
+            ],
+            [
+              0,
+              216.48573063257084,
+              120.0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "T_parent_optical": [
+            [
+              -0.9999996795090338,
+              0.000571185951302131,
+              0.0005610066295785286,
+              0.01739312391441869
+            ],
+            [
+              -0.0008005486979806193,
+              -0.7222864596153942,
+              -0.691593543476254,
+              0.133741762201314
+            ],
+            [
+              1.0178976254146335e-05,
+              -0.6915937709398982,
+              0.7222866853912786,
+              0.018187848254189076
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_parent_m": [
+            0.01739312391441869,
+            0.133741762201314,
+            0.018187848254189076
+          ],
+          "quat_parent_ros_wxyz": [
+            -0.0003695493371879557,
+            0.00015387907723781396,
+            -0.37263471876033,
+            0.9279780202833076
+          ],
+          "quat_parent_usd_wxyz": [
+            -0.00015387907723781396,
+            -0.0003695493371879557,
+            0.9279780202833076,
+            0.37263471876033
+          ],
+          "T_parent_usd": [
+            [
+              -0.9999996795090338,
+              -0.000571185951302131,
+              -0.0005610066295785286,
+              0.01739312391441869
+            ],
+            [
+              -0.0008005486979806193,
+              0.7222864596153942,
+              0.691593543476254,
+              0.133741762201314
+            ],
+            [
+              1.0178976254146335e-05,
+              0.6915937709398982,
+              -0.7222866853912786,
+              0.018187848254189076
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "camera_frame": "ros: +x right,+y down,+z forward; usd: +x right,+y up,-z forward",
+          "near_clip_render_m": 0.001,
+          "far_clip_render_m": 20.0,
+          "min_z_mask_m": 0.105,
+          "calibration_status": "INHERITED_NOMINAL_OFFSETS_FOV__NOT_MEASURED_FACTORY_CALIBRATION"
+        },
+        "right_ir": {
+          "offset_M_m": [
+            0.0083,
+            -0.0325,
+            0
+          ],
+          "nominal_fov_deg": [
+            87.0,
+            58.0
+          ],
+          "width": 424,
+          "height": 240,
+          "K": [
+            [
+              223.40138655956403,
+              0,
+              212.0
+            ],
+            [
+              0,
+              216.48573063257084,
+              120.0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "T_parent_optical": [
+            [
+              -0.9999996795090338,
+              0.000571185951302131,
+              0.0005610066295785286,
+              -0.032606860061033006
+            ],
+            [
+              -0.0008005486979806193,
+              -0.7222864596153942,
+              -0.691593543476254,
+              0.13370173476641498
+            ],
+            [
+              1.0178976254146335e-05,
+              -0.6915937709398982,
+              0.7222866853912786,
+              0.018188357203001784
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_parent_m": [
+            -0.032606860061033006,
+            0.13370173476641498,
+            0.018188357203001784
+          ],
+          "quat_parent_ros_wxyz": [
+            -0.0003695493371879557,
+            0.00015387907723781396,
+            -0.37263471876033,
+            0.9279780202833076
+          ],
+          "quat_parent_usd_wxyz": [
+            -0.00015387907723781396,
+            -0.0003695493371879557,
+            0.9279780202833076,
+            0.37263471876033
+          ],
+          "T_parent_usd": [
+            [
+              -0.9999996795090338,
+              -0.000571185951302131,
+              -0.0005610066295785286,
+              -0.032606860061033006
+            ],
+            [
+              -0.0008005486979806193,
+              0.7222864596153942,
+              0.691593543476254,
+              0.13370173476641498
+            ],
+            [
+              1.0178976254146335e-05,
+              0.6915937709398982,
+              -0.7222866853912786,
+              0.018188357203001784
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "camera_frame": "ros: +x right,+y down,+z forward; usd: +x right,+y up,-z forward",
+          "near_clip_render_m": 0.001,
+          "far_clip_render_m": 20.0,
+          "min_z_mask_m": 0.105,
+          "calibration_status": "INHERITED_NOMINAL_OFFSETS_FOV__NOT_MEASURED_FACTORY_CALIBRATION"
+        }
+      }
+    }
+  ],
+  "brackets": [
+    {
+      "name": "base_foot",
+      "parent": "trunk",
+      "T_parent_item": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.045
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.149431554755
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.042,
+        0.09,
+        0.004
+      ],
+      "intentional_attachment_to": "metal_plate_5mm",
+      "status": "SIMULATION_ENVELOPE_NOT_MANUFACTURED_BRACKET"
+    },
+    {
+      "name": "base_crossbar",
+      "parent": "trunk",
+      "T_parent_item": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.045
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.155431554755
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.022,
+        0.33,
+        0.008
+      ],
+      "intentional_attachment_to": null,
+      "status": "SIMULATION_ENVELOPE_NOT_MANUFACTURED_BRACKET"
+    },
+    {
+      "name": "wrist_camera_support",
+      "parent": "arm_body6_to_gripper",
+      "T_parent_item": [
+        [
+          0.9989537255614271,
+          0.00010393955248041813,
+          0.045732301314436084,
+          -0.001847409350796595
+        ],
+        [
+          -0.0452513284469789,
+          -0.14242073382277357,
+          0.9887712838928759,
+          0.09275377146318296
+        ],
+        [
+          0.006616000357359494,
+          -0.9898062051603598,
+          -0.14226701924662408,
+          0.008970432104081754
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.09,
+        0.025,
+        0.07622718704613948
+      ],
+      "intentional_attachment_to": "arm_body6_to_gripper",
+      "status": "SIMULATION_ENVELOPE_NOT_MANUFACTURED_BRACKET"
+    },
+    {
+      "name": "base_left_crossbar_rail",
+      "parent": "trunk",
+      "T_parent_item": [
+        [
+          0.0,
+          0.0,
+          -1.0,
+          0.0371352571220958
+        ],
+        [
+          -0.0,
+          1.0,
+          0.0,
+          0.155
+        ],
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.155431554755
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.01,
+        0.01,
+        0.015729485755808403
+      ],
+      "intentional_attachment_to": null,
+      "status": "SIMULATION_ENVELOPE_NOT_MANUFACTURED_BRACKET"
+    },
+    {
+      "name": "base_left_post",
+      "parent": "trunk",
+      "T_parent_item": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.029270514244191595
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.155
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.1647468893106152
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.01,
+        0.01,
+        0.018630669111230375
+      ],
+      "intentional_attachment_to": null,
+      "status": "SIMULATION_ENVELOPE_NOT_MANUFACTURED_BRACKET"
+    },
+    {
+      "name": "base_left_saddle",
+      "parent": "trunk",
+      "T_parent_item": [
+        [
+          0.9659258262890682,
+          -0.0,
+          -0.25881904510252074,
+          0.028752876153986553
+        ],
+        [
+          0.0,
+          1.0,
+          -0.0,
+          0.155
+        ],
+        [
+          0.25881904510252074,
+          0.0,
+          0.9659258262890682,
+          0.17599407551880852
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.022,
+        0.08,
+        0.004
+      ],
+      "intentional_attachment_to": "base_left",
+      "status": "SIMULATION_ENVELOPE_NOT_MANUFACTURED_BRACKET"
+    },
+    {
+      "name": "base_right_crossbar_rail",
+      "parent": "trunk",
+      "T_parent_item": [
+        [
+          0.0,
+          0.0,
+          -1.0,
+          0.0371352571220958
+        ],
+        [
+          -0.0,
+          1.0,
+          0.0,
+          -0.155
+        ],
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.155431554755
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.01,
+        0.01,
+        0.015729485755808403
+      ],
+      "intentional_attachment_to": null,
+      "status": "SIMULATION_ENVELOPE_NOT_MANUFACTURED_BRACKET"
+    },
+    {
+      "name": "base_right_post",
+      "parent": "trunk",
+      "T_parent_item": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.029270514244191595
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -0.155
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.1647468893106152
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.01,
+        0.01,
+        0.018630669111230375
+      ],
+      "intentional_attachment_to": null,
+      "status": "SIMULATION_ENVELOPE_NOT_MANUFACTURED_BRACKET"
+    },
+    {
+      "name": "base_right_saddle",
+      "parent": "trunk",
+      "T_parent_item": [
+        [
+          0.9659258262890682,
+          -0.0,
+          -0.25881904510252074,
+          0.028752876153986553
+        ],
+        [
+          0.0,
+          1.0,
+          -0.0,
+          -0.155
+        ],
+        [
+          0.25881904510252074,
+          0.0,
+          0.9659258262890682,
+          0.17599407551880852
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.022,
+        0.08,
+        0.004
+      ],
+      "intentional_attachment_to": "base_right",
+      "status": "SIMULATION_ENVELOPE_NOT_MANUFACTURED_BRACKET"
+    }
+  ],
+  "support_version": "U3_FORWARD_TOWER_V1: inherited contact X/Z, Y corrected to actual gripper-body surface; upright and short head rebuilt; unqualified holes, cable and stiffness",
+  "mass_and_collision": "Teacher asset uses the two-base-camera mass estimate and the D-06/D-33 trunk collision union; the central housing is collision-only. Tower mass is recomputed by v28_build_asset.py.",
+  "assumptions_and_scope": {
+    "reference_q": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.57
+    ],
+    "fixed_in_F_after_reference": true,
+    "original_episode_csv_available_in_input_bundles": false,
+    "stage01_motion_validated": false,
+    "stage2345_motion_validated": false,
+    "world_heading_hold": false,
+    "all_profiles_and_optical_offsets": "inherited nominal, not measured factory extrinsics",
+    "effective_depth": "NOT tested. USD Z buffer is not RealSense stereo reconstruction",
+    "contact_center_requirement": "not fulfilled by forward variants at reference grasp transform; no claim posture alone fixes a point rigidly tied to F"
+  },
+  "design_revision": {
+    "predecessor": "U3_V",
+    "changed": [
+      "wrist orientation and dependent optical transforms",
+      "wrist saddle/top link geometry",
+      "old unsupported foot moved down to source gripper-body surface at the same local X/Z",
+      "phase-role contract: forward priority, no target-locking"
+    ],
+    "unchanged": [
+      "both base cameras in full",
+      "wrist mechanical centre F",
+      "all nine stream K/resolution/Min-Z",
+      "all robot joints, inertials and native collision elements"
+    ],
+    "reference_down_pitch_B_deg": 38.76,
+    "reference_forward_axis_B": [
+      0.7797752269605652,
+      0.0,
+      -0.6260595781701602
+    ],
+    "reference_bar_axis_B": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "reference_raise_B_mm": [
+      0,
+      0,
+      180
+    ],
+    "same_F_transform_all_stages": true,
+    "stages_do_not_drive_camera_joints": true,
+    "tilt_modes_are_separate_static_trials_not_stage_switching": true
+  },
+  "drawing": {
+    "base_far_z_m": 0.7,
+    "wrist_far_z_m": 0.8,
+    "far_planes_not_max_sensor_range": true
+  },
+  "wrist_support_anchor": {
+    "method": "downward F-Y ray at X=-4.75mm, Z=18mm hits actual gripper_base visual mesh; foot centre 2mm above first-hit surface",
+    "foot_center_F_m": [
+      -0.00475,
+      0.029997290806427795,
+      0.018
+    ],
+    "not_a_drill_or_clamp_drawing": true,
+    "old_F_Y_74p5mm_foot_at_Z18mm_was_not_on_the_actual_surface": true
+  },
+  "wrist_support_model": {
+    "status": "ESTIMATED_SIMULATION_GEOMETRY_NOT_HARDWARE_CAD",
+    "cross_section_m": [
+      0.09,
+      0.025
+    ],
+    "start_F_m": [
+      -0.0035904316939695605,
+      0.05506814466160608,
+      0.014392739447386324
+    ],
+    "end_F_m": [
+      -0.00010438700762362976,
+      0.13043939826475984,
+      0.0035481247607771823
+    ],
+    "d20_reference_f45_offset_m": 0.027158370732,
+    "mounting_end_offset_m": 0.025355564288307625,
+    "target_static_clearance_m": 0.001,
+    "actual_static_clearance_m": 0.0010000000000004693,
+    "collision_element": "arm_body6_to_gripper#0 (meshes/piper/gripper_base.STL convex hull)",
+    "clearance_solver": "mount_clearance_check.Hull + intersect_depth LP / distance SLSQP QP",
+    "clearance_status": "D20_1MM_STATIC_CONVEX_CLEARANCE_SOLVED_FOR_F39_H140",
+    "decision": "D-35: 140 mm / 38.76 deg tower with D-19 rectangular support"
+  },
+  "trunk_envelope_housings": [
+    {
+      "name": "base_center_housing",
+      "parent": "trunk",
+      "T_parent_item": [
+        [
+          0.9659258262890682,
+          -0.0,
+          -0.25881904510252074,
+          0.025
+        ],
+        [
+          0.0,
+          1.0,
+          -0.0,
+          0.0
+        ],
+        [
+          0.25881904510252074,
+          0.0,
+          0.9659258262890682,
+          0.19
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "size_m": [
+        0.025,
+        0.09,
+        0.025
+      ],
+      "status": "D06_D033_TEACHER_UNION_ENVELOPE_NOT_A_THIRD_CAMERA"
+    }
+  ],
+  "wrist_tower_contract": {
+    "centre_height_from_flange_m": 0.14,
+    "theta_deg": 38.76,
+    "support_cross_section_m": [
+      0.09,
+      0.025
+    ],
+    "collision_attachment": "D20 collision-surface attachment convention"
+  }
+}

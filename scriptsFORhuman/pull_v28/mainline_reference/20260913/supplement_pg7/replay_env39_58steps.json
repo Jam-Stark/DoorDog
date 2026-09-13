@@ -1,0 +1,872 @@
+[
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.04919090494513512,
+      0.008695699274539948,
+      -0.0021828170865774155,
+      -0.03466420993208885,
+      0.09540160000324249
+    ],
+    "step_index": 104
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.0486876405775547,
+      0.01170196570456028,
+      0.005821580067276955,
+      0.15893340110778809,
+      0.4000000059604645
+    ],
+    "step_index": 105
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.05872045084834099,
+      0.004103062208741903,
+      0.0097795519977808,
+      0.1964593231678009,
+      -0.043052662163972855
+    ],
+    "step_index": 106
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.0374869778752327,
+      0.008320286870002747,
+      0.023136073723435402,
+      -0.10134308785200119,
+      0.2188650369644165
+    ],
+    "step_index": 107
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.04603295773267746,
+      0.01638176292181015,
+      0.017283091321587563,
+      0.037097811698913574,
+      0.010116110555827618
+    ],
+    "step_index": 108
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.045377667993307114,
+      0.035178836435079575,
+      0.019891513511538506,
+      0.06922207772731781,
+      0.19177231192588806
+    ],
+    "step_index": 109
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.05828246474266052,
+      0.04939228668808937,
+      0.022364431992173195,
+      0.09532604366540909,
+      0.04585922881960869
+    ],
+    "step_index": 110
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.08736162632703781,
+      0.08739949762821198,
+      0.02721639908850193,
+      0.09561429172754288,
+      -0.027485085651278496
+    ],
+    "step_index": 111
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.18972545862197876,
+      0.15324519574642181,
+      0.04823997616767883,
+      0.1503804624080658,
+      -0.07494189590215683
+    ],
+    "step_index": 112
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.320468544960022,
+      0.2104538530111313,
+      0.05367550998926163,
+      0.1645972579717636,
+      -0.016146576032042503
+    ],
+    "step_index": 113
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.23874463140964508,
+      0.04279550164937973,
+      0.16549541056156158,
+      0.10161235183477402
+    ],
+    "step_index": 114
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.2355007380247116,
+      0.011059477925300598,
+      0.25631460547447205,
+      0.36770913004875183
+    ],
+    "step_index": 115
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.13321740925312042,
+      -0.09359496831893921,
+      0.2870079576969147,
+      0.38978222012519836
+    ],
+    "step_index": 116
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 2,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.0103900246322155,
+      -0.19764266908168793,
+      0.29971563816070557,
+      0.37966832518577576
+    ],
+    "step_index": 117
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.09507375955581665,
+      -0.29324331879615784,
+      0.29395216703414917,
+      0.3492587208747864
+    ],
+    "step_index": 118
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.20562896132469177,
+      -0.4200281500816345,
+      0.24978207051753998,
+      0.32035261392593384
+    ],
+    "step_index": 119
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.2787896692752838,
+      -0.477774977684021,
+      0.2892000079154968,
+      0.33159419894218445
+    ],
+    "step_index": 120
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.35950344800949097,
+      -0.5,
+      0.32384589314460754,
+      0.3681947886943817
+    ],
+    "step_index": 121
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.3409179449081421,
+      -0.48792409896850586,
+      0.27360841631889343,
+      0.37492790818214417
+    ],
+    "step_index": 122
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.22813531756401062,
+      -0.3620874881744385,
+      0.17818406224250793,
+      0.22018907964229584
+    ],
+    "step_index": 123
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.17351870238780975,
+      -0.25964462757110596,
+      0.274935245513916,
+      0.01731865294277668
+    ],
+    "step_index": 124
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.015194719657301903,
+      -0.07897111773490906,
+      0.19275052845478058,
+      -0.00290502468124032
+    ],
+    "step_index": 125
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.034147266298532486,
+      -0.05868975818157196,
+      0.4000000059604645,
+      0.18076321482658386
+    ],
+    "step_index": 126
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.10248029232025146,
+      -0.060446448624134064,
+      0.3823084235191345,
+      0.2558614909648895
+    ],
+    "step_index": 127
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.1344401240348816,
+      -0.07937704771757126,
+      0.0957145243883133,
+      0.12096229940652847
+    ],
+    "step_index": 128
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.04179035872220993,
+      0.01767539419233799,
+      -0.1127249225974083,
+      0.045219339430332184
+    ],
+    "step_index": 129
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.09492414444684982,
+      0.12329349666833878,
+      -0.160210981965065,
+      -0.14729127287864685
+    ],
+    "step_index": 130
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.17510494589805603,
+      0.19006071984767914,
+      -0.09899774938821793,
+      -0.03319902345538139
+    ],
+    "step_index": 131
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.25137558579444885,
+      0.25956568121910095,
+      -0.08165935426950455,
+      0.032874464988708496
+    ],
+    "step_index": 132
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.3105652332305908,
+      0.3070722818374634,
+      0.03329724073410034,
+      -0.04453355073928833
+    ],
+    "step_index": 133
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.3307618796825409,
+      0.3076481223106384,
+      0.16230079531669617,
+      -0.07096334546804428
+    ],
+    "step_index": 134
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.385135680437088,
+      0.3271677494049072,
+      0.221436008810997,
+      -0.023243732750415802
+    ],
+    "step_index": 135
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.41527485847473145,
+      0.3236534595489502,
+      0.3634527027606964,
+      -0.07221309840679169
+    ],
+    "step_index": 136
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.28932875394821167,
+      0.2524743378162384,
+      0.4000000059604645,
+      -0.1127140149474144
+    ],
+    "step_index": 137
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.24060294032096863,
+      0.17105697095394135,
+      0.4000000059604645,
+      -0.11235664039850235
+    ],
+    "step_index": 138
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.366344690322876,
+      0.16526830196380615,
+      0.3363862931728363,
+      -0.16290342807769775
+    ],
+    "step_index": 139
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.5,
+      0.20563064515590668,
+      0.06769160181283951,
+      -0.23914937674999237
+    ],
+    "step_index": 140
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.5,
+      0.2500165104866028,
+      -0.007464683149009943,
+      -0.24227486550807953
+    ],
+    "step_index": 141
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.5,
+      0.2714817523956299,
+      0.03738969564437866,
+      -0.17858652770519257
+    ],
+    "step_index": 142
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.4610576927661896,
+      0.24816404283046722,
+      0.058178044855594635,
+      -0.1150335818529129
+    ],
+    "step_index": 143
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.3717999756336212,
+      0.22344644367694855,
+      0.10068561881780624,
+      -0.09111432731151581
+    ],
+    "step_index": 144
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.26665377616882324,
+      0.16382859647274017,
+      0.2602041959762573,
+      -0.04276886582374573
+    ],
+    "step_index": 145
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.1758934110403061,
+      0.10322029888629913,
+      0.3196069896221161,
+      -0.06394337862730026
+    ],
+    "step_index": 146
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.09294312447309494,
+      0.011536912992596626,
+      0.3611017167568207,
+      -0.06176842376589775
+    ],
+    "step_index": 147
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      0.05023695528507233,
+      -0.04200652986764908,
+      0.3911886513233185,
+      -0.05360489711165428
+    ],
+    "step_index": 148
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.04357904940843582,
+      -0.11083929240703583,
+      0.4000000059604645,
+      -0.07569228857755661
+    ],
+    "step_index": 149
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.17771653831005096,
+      -0.19752773642539978,
+      0.4000000059604645,
+      -0.16543620824813843
+    ],
+    "step_index": 150
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.34526658058166504,
+      -0.30614933371543884,
+      0.4000000059604645,
+      -0.13741104304790497
+    ],
+    "step_index": 151
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.4298103451728821,
+      -0.4738733470439911,
+      0.4000000059604645,
+      -0.21385395526885986
+    ],
+    "step_index": 152
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.5,
+      -0.5,
+      0.4000000059604645,
+      -0.2262980192899704
+    ],
+    "step_index": 153
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.5,
+      -0.5,
+      0.13323603570461273,
+      -0.26721739768981934
+    ],
+    "step_index": 154
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.5,
+      -0.5,
+      -0.1445915549993515,
+      -0.3403834104537964
+    ],
+    "step_index": 155
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.42921507358551025,
+      -0.5,
+      -0.2438613921403885,
+      -0.4000000059604645
+    ],
+    "step_index": 156
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.31655362248420715,
+      -0.5,
+      -0.2728462517261505,
+      -0.4000000059604645
+    ],
+    "step_index": 157
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.2235850840806961,
+      -0.5,
+      -0.24946720898151398,
+      -0.4000000059604645
+    ],
+    "step_index": 158
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.18326707184314728,
+      -0.5,
+      -0.05358128622174263,
+      -0.25799378752708435
+    ],
+    "step_index": 159
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.13700371980667114,
+      -0.4932931065559387,
+      0.14547976851463318,
+      -0.1294221729040146
+    ],
+    "step_index": 160
+  },
+  {
+    "env_id": 39,
+    "stage_buf": 3,
+    "first_episode_active": true,
+    "episode_index": 0,
+    "control_dt": 0.02,
+    "physical_base_command": [
+      0.5,
+      -0.08778922259807587,
+      -0.5,
+      0.3563790023326874,
+      -0.08723670989274979
+    ],
+    "step_index": 161
+  }
+]

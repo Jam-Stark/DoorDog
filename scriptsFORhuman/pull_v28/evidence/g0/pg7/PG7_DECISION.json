@@ -1,0 +1,48 @@
+{
+  "schema": "pull_v28_pg7_v1",
+  "status": "PASS",
+  "criterion": "D37",
+  "host": "m5",
+  "results": [
+    {
+      "posture": "default",
+      "status": "PASS",
+      "comparison": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/eval/g0/walk_a1/default/comparison.json",
+      "tracking_failures": [],
+      "vx050_slope": {
+        "baseline": 0.9409371018409729,
+        "candidate": 0.9319016337394714,
+        "limit": 0.8909371018409729,
+        "pass": true
+      }
+    },
+    {
+      "posture": "hold",
+      "status": "PASS",
+      "comparison": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/eval/g0/walk_a1/hold/comparison.json",
+      "tracking_failures": [],
+      "vx050_slope": {
+        "baseline": 0.9141949415206909,
+        "candidate": 0.9085001349449158,
+        "limit": 0.8641949415206909,
+        "pass": true
+      }
+    },
+    {
+      "posture": "stage2",
+      "status": "PASS",
+      "comparison": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/eval/g0/walk_a1/stage2/comparison.json",
+      "tracking_failures": [],
+      "vx050_slope": {
+        "baseline": 0.9336504936218262,
+        "candidate": 0.9342458248138428,
+        "limit": 0.8836504936218261,
+        "pass": true
+      }
+    }
+  ],
+  "seed": 281,
+  "scope": "m5 matched deterministic engineering comparison; no stochastic calibration",
+  "X24": "OPEN_NO_STOCHASTIC_CALIBRATION",
+  "owner_gate": false
+}

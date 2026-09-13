@@ -1,0 +1,46 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/train_agent_trl.py", line 612, in <module>
+    main()
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+    raise ex
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+    _ = ret.return_value
+        ^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+    raise self._return_value
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/train_agent_trl.py", line 488, in main
+    ).to(device)
+      ^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1355, in to
+    return self._apply(convert)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/torch/nn/modules/module.py", line 915, in _apply
+    module._apply(fn)
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/torch/nn/modules/module.py", line 915, in _apply
+    module._apply(fn)
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/torch/nn/modules/rnn.py", line 290, in _apply
+    self._init_flat_weights()
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/torch/nn/modules/rnn.py", line 215, in _init_flat_weights
+    self.flatten_parameters()
+  File "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/torch/nn/modules/rnn.py", line 271, in flatten_parameters
+    torch._cudnn_rnn_flatten_weight(
+RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
+2026-09-13T15:02:46Z [81,691ms] [Warning] [omni.physx.plugin] USD stage detach not called, holding a loose ptr to a stage!
+2026-09-13T15:02:47Z [82,572ms] [Warning] [carb] Recursive unloadAllPlugins() detected!

@@ -1,0 +1,59 @@
+{
+  "schema": "pull_v28_g0_decision_v1",
+  "status": "BLOCKED_G0_INFRA_REPAIR_LIMIT",
+  "owner_action_required": true,
+  "gate_reason": "Two G0 harness repairs already used; PPO initialization now fails before batch1. No third automatic repair or PA launch.",
+  "gates": {
+    "PG1": "PASS_RUNTIME_AND_DIRECT_INPUT_BYTES",
+    "PG2": "PASS_SCOPED_RUNTIME",
+    "PG3": "PASS_COMPUTED_AND_ZERO_EVENT_RUNTIME_ONLY",
+    "PG4": "CPU_COMPOSE_COMPLETED_BUT_RUNTIME_ROBOT_ALIAS_DEFECT",
+    "PG5": "PASS_SAME_POSE_RUNTIME",
+    "PG6": "INCOMPLETE_PPO_INIT_FAILURE; ZERO_COMMAND_CONTACT_PASS",
+    "PG7": "PASS_M5_MATCHED_D37",
+    "PG8": "IMPLEMENTED_NOT_VALIDATED_END_TO_END"
+  },
+  "failure": {
+    "type": "PRE_TRAINING_CUDNN_INITIALIZATION",
+    "error": "CUDNN_STATUS_BAD_PARAM in RecurrentActor LSTM .to(cuda), _cudnn_rnn_flatten_weight",
+    "child_returncode": 0,
+    "wrapper_returncode": 1,
+    "checkpoint_present": false,
+    "scientific_gate_fail": false,
+    "root_cause": "Flat materializer duplicates root/env robot mapping instead of original env.config.robot=${robot}. pre_process_config updates only root robot dimensions to133/138; env robot retains0/0, yielding observed LSTM(0,256), then cuDNN flatten failure."
+  },
+  "budget": {
+    "g0_harness_repairs_used": 2,
+    "g0_harness_repairs_limit": 2,
+    "g0_ppo_batches_completed": 0,
+    "g0_ppo_batches_planned": 5,
+    "g0_ppo_ceiling": 32,
+    "pa_batches_completed": 0,
+    "pa_default_budget": 18000,
+    "overall_pa_warm_ceiling": 18500,
+    "warm": "NOT_RUN"
+  },
+  "pa_endpoint": {
+    "status": "NOT_ASSESSED_G0_INCOMPLETE",
+    "k": null,
+    "denominator": 3,
+    "valid_seed_endpoints": 0,
+    "PA_S1": "NOT_RUN",
+    "PA_S2": "NOT_RUN",
+    "PA_S3": "NOT_RUN"
+  },
+  "scope_limits": [
+    "No high-level learned-policy G0 evaluation/checkpoint",
+    "No late release/E6/E7 proof",
+    "No opening failure or geometry impossibility inference",
+    "No Teacher/hardware/P3-P5/push",
+    "X24 stochastic calibration remains open"
+  ],
+  "evidence": {
+    "contact": "evidence/g0/contact_a3_probe.json",
+    "pg7": "evidence/g0/pg7/PG7_DECISION.json",
+    "ppo": "evidence/g0/ppo_attempt1",
+    "input_application": "evidence/S1_S8_APPLICATION_RECEIPT.json"
+  },
+  "proposed_not_applied_fix": "Restore env[robot]=\"${robot}\" in config_materialize.py; one additional bounded G0 fix/run needs Owner repair-limit authorization."
+}

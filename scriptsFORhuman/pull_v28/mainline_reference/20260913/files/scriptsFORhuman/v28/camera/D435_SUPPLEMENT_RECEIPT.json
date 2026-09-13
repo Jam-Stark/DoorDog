@@ -1,0 +1,9 @@
+{
+  "source_host": "gpu1-codex",
+  "source_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/d435_native_sim_parameters_20260907.json",
+  "destination_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v28/mainline_reference/20260913/files/scriptsFORhuman/v28/camera/d435_native_sim_parameters_20260907.json",
+  "bytes": 164237,
+  "direct_content_comparison_equal": true,
+  "scope": "Required unchanged native-camera input for delivered camera metrics helper; nominal projection evidence only, not G2 optical acceptance",
+  "received_at": "2026-09-13T13:20:32.731563+00:00"
+}

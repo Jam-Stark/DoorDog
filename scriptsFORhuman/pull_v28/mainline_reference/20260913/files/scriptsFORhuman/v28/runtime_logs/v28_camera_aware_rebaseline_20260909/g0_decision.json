@@ -1,0 +1,200 @@
+{
+  "schema": "a2_piper_v28_g0_decision_v2",
+  "status": "G0_PASSED_FIRST_LOCAL_COMMIT_COMPLETED",
+  "outcome": "G0_PASSED",
+  "resumed_by_owner_at": "2026-09-11 23:06 HKT",
+  "route_authority": "Owner 2026-09-12 D37 explicit amendment and one seed282 pair confirmation",
+  "decision_log_id": "V28-D037",
+  "recipe_keys": {
+    "scratch": true,
+    "K": "K_SCRATCH_SUPERIOR_INCLUDED",
+    "mount_bodies": "MERGED",
+    "wrist_housing_height_m": 0.14,
+    "wrist_theta_deg": 38.76,
+    "wrist_support_cross_section_m": [
+      0.09,
+      0.025
+    ],
+    "arm_j5_rad": -0.415
+  },
+  "selected_asset": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909",
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/d37/source_inputs/v28_g0_walk_gate.py",
+  "endpoint_lock": null,
+  "selection_rule": "First local commit only after all current G0 gates pass; no push",
+  "prior_evidence": "resume_20260911/prior_g0_decision_20260909.json",
+  "current_evidence": {
+    "G0_A1": {
+      "level": "COMPUTED",
+      "aggregate_difference": {
+        "mass_abs_kg": 0.0,
+        "com_max_abs_m": 4.599388903590851e-19,
+        "inertia_max_abs_kgm2": 5.377642775528102e-17
+      },
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.proposal.json"
+    },
+    "G0_A2": {
+      "level": "STATIC_PASS",
+      "native_bodies": 28,
+      "active_joints": 20,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/usd_import_readback.json"
+    },
+    "G0_A3_A5_CPU": {
+      "level": "TEST_PASS",
+      "v28_tests_passed": 7,
+      "resolved_asset_body_subset_test": "PASS",
+      "logs": [
+        "resume_20260911/cpu_initial.log",
+        "resume_20260911/cpu_a5_pass.log"
+      ]
+    },
+    "config_compose": {
+      "level": "STATIC_PASS",
+      "registered_differences": 53,
+      "receipt": "resume_20260911/cpu_corrected/compose/A_S281/compose_receipt.json"
+    },
+    "R1_R2_R3_R5": {
+      "level": "RUNTIME_PASS",
+      "gates": {
+        "R1": true,
+        "R2": true,
+        "R3": true,
+        "R5_height": true
+      },
+      "R2_force_max_by_body_N": {
+        "trunk": 0.0,
+        "arm_body0": 0.0,
+        "arm_body1": 0.0,
+        "arm_body2": 0.0,
+        "arm_body3": 0.0,
+        "arm_body4": 0.0,
+        "arm_body5": 0.0,
+        "arm_body6": 0.0,
+        "wrist_camera_tower": 0.0
+      },
+      "R3_root_z_range_m": [
+        0.46586453914642334,
+        0.477995365858078
+      ],
+      "R3_arm_abs_dq_max_rad_s": 0.05095652490854263,
+      "R5_flange_height_m": {
+        "min": 0.42451322078704834,
+        "max": 0.4245135188102722
+      },
+      "scope": "zero high-level command and frozen A2_Base; no Teacher quality inference",
+      "receipt": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/contact_merged_h140_r1/data/contact_probe.json"
+    },
+    "G0_A4": {
+      "level": "COMPUTED_PASS",
+      "outcome": "A4_PASS",
+      "receipt": "resume_20260911/g0_a4.json"
+    },
+    "contact_camera_trace": {
+      "level": "RUNTIME_AND_COMPUTED",
+      "receipt": "resume_20260911/contact_camera_metrics_sdk.json",
+      "scope": "natural zero-command Stage0/1; unobserved crossing/release/Stage5 reported null, no quality claim"
+    },
+    "G0_C3": {
+      "level": "COMPUTED_ARCHIVED_TRAJECTORY",
+      "outcome": "C3_ARCHIVED_V27_TRACE_FAIL",
+      "receipt": "resume_20260911/g0_c3.json",
+      "interpretation": "Old v27 sweep complete; 20mm criterion NOT passed on archived trajectories. Plan \u00a73.2 already records old-policy C3 FAIL and requires v28 trajectory rerun after Wave A; no v28 policy claim."
+    },
+    "G0_L": {
+      "level": "RUNTIME_PASS",
+      "status": "PASS",
+      "criterion_version": "d37",
+      "seed281_postures": {
+        "default": {
+          "status": "PASS",
+          "receipt": "resume_20260911/walk/default_comparison_d37.json"
+        },
+        "hold": {
+          "status": "PASS",
+          "receipt": "resume_20260911/walk/hold_comparison_d37.json"
+        },
+        "stage2": {
+          "status": "PASS",
+          "receipt": "resume_20260911/walk/stage2_comparison_d37.json"
+        }
+      },
+      "seed282_preregistration": "resume_20260911/d37/preregistration.json",
+      "seed282_confirmation": "resume_20260911/d37/confirmation_decision.json",
+      "confirmation_scope": "PASS of the Owner-registered numeric branches using the frozen harness, with no new random realization; X24 remains OPEN.",
+      "X24_status": "OPEN_NO_STOCHASTIC_CALIBRATION"
+    },
+    "PPO_SMOKE": {
+      "level": "RUNTIME_PASS",
+      "num_envs": 64,
+      "batches": 5,
+      "process_returncode": 0,
+      "receipt": "resume_20260911/ppo_smoke_d37_r1/process_receipt.json",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/ppo_smoke_d37_r1/model_step_000005.pt",
+      "new_rewards_logged": [
+        "penalty_a2_wrist_motion_l2",
+        "penalty_a2_wrist_tower_contact"
+      ]
+    },
+    "TELEMETRY_WIRING": {
+      "level": "RUNTIME_PASS",
+      "status": "PASS",
+      "receipt": "resume_20260911/telemetry_validation.json",
+      "fields": 26,
+      "per_side_episodes": 64,
+      "per_side_trace_rows": 22400,
+      "observed_stages": [
+        0
+      ],
+      "not_observed": [
+        "Stage2-4 visibility population",
+        "post-release return",
+        "crossing yaw event",
+        "Stage5 doorway bearing"
+      ],
+      "scope": "Full PPO checkpoint -> natural eval raw schema -> all 26 plan metric fields. Wiring and absent-event null semantics only; no Stage2-5 event or Teacher quality claim."
+    }
+  },
+  "stop_rules": [
+    "MERGED R2 abnormal contact: preserve readings, STOP; no geometry repair",
+    "G0-L failure: STOP",
+    "G1 failure: STOP"
+  ],
+  "deferred_to_G2": [
+    "C1",
+    "C1_prime",
+    "C2",
+    "C4"
+  ],
+  "git_commit_performed": true,
+  "updated_at": "2026-09-11T17:52:56.131427+00:00",
+  "source_lock": "resume_20260911/source_lock_d37_ppo/source_lock.json",
+  "active_gate": null,
+  "stopped_at": null,
+  "stop_authority": null,
+  "not_run": [
+    "G1 warm probe (mandatory next training gate)",
+    "Wave A/B",
+    "G2-C* deferred optical/hardware qualification"
+  ],
+  "final_source_snapshot": "resume_20260911/source_lock_d36_stop/source_lock.json",
+  "runtime_source_snapshot": "resume_20260911/source_lock_g0/source_lock.json",
+  "prior_stop_evidence": "resume_20260911/prior_g0_decision_before_d36.json",
+  "source_lock_scope": "D36 stopping snapshot; unchanged contact/asset runtime remains tied to earlier runtime_source_snapshot",
+  "prior_d36_stop_evidence": "resume_20260911/prior_g0_decision_before_d37.json",
+  "passed_at": "2026-09-11T17:47:37.431316+00:00",
+  "launch_gate_acceptance": [
+    "A1/A2 asset structure and inertial equivalence",
+    "A3/A5 config and body contract",
+    "A4 static default clearance",
+    "R1/R2/R3/R5 native runtime",
+    "G0-L D37 three postures plus registered numeric seed282 confirmation",
+    "64-env x 5-batch PPO smoke",
+    "PPO/eval full telemetry schema and absent-event null export"
+  ],
+  "limitations": [
+    "X24 OPEN: seed282 deterministic replication; no stochastic calibration",
+    "X25 OPEN: extended-arm coupled residuals",
+    "C3 archived v27 replay FAIL retained; v28 trajectories must be assessed after Wave A",
+    "Only Stage0 observed in smoke-checkpoint eval; no later-stage event or Teacher qualification claim"
+  ],
+  "first_commit_receipt": "resume_20260911/first_commit_receipt.json"
+}

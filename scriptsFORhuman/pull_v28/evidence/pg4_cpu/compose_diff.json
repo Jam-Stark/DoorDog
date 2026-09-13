@@ -1,0 +1,624 @@
+{
+  "schema": "pull_v28_pg4_compose_diff_v1",
+  "source": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2/resolved_config.yaml",
+  "candidate": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v28/evidence/pg4_cpu/resolved_config_verified.yaml",
+  "candidate_uses_reference_S2_pending_active_copy": true,
+  "changes": [
+    {
+      "path": "algo.trl.num_total_batches",
+      "before": 9000,
+      "after": 5
+    },
+    {
+      "path": "algo.trl.output_dir",
+      "before": "./trl",
+      "after": "/tmp/pull_v28_pg4_cpu_compose_20260913_v2/train"
+    },
+    {
+      "path": "callbacks.autoresume.save_dir",
+      "before": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2",
+      "after": "/tmp/pull_v28_pg4_cpu_compose_20260913_v2/train"
+    },
+    {
+      "path": "callbacks.model_save.save_dir",
+      "before": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2",
+      "after": "/tmp/pull_v28_pg4_cpu_compose_20260913_v2/train"
+    },
+    {
+      "path": "checkpoint",
+      "before": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/train/P_S2/model_step_006000.pt",
+      "after": null
+    },
+    {
+      "path": "env.config.a2_door_open_lr_permutation_seed",
+      "before": 2,
+      "after": 0
+    },
+    {
+      "path": "env.config.a2_v28_camera_telemetry_enabled",
+      "before": "<absent>",
+      "after": true
+    },
+    {
+      "path": "env.config.a2_wrist_motion_reversal_weights",
+      "before": "<absent>",
+      "after": [
+        [
+          0.5,
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5,
+          0.25
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ]
+      ]
+    },
+    {
+      "path": "env.config.a2_wrist_motion_vel_weights",
+      "before": "<absent>",
+      "after": [
+        [
+          0.35,
+          0.35,
+          0.35
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ],
+        [
+          0.75,
+          0.75,
+          0.75
+        ],
+        [
+          0.5,
+          0.5,
+          0.0
+        ],
+        [
+          0.5,
+          0.5,
+          0.25
+        ],
+        [
+          1.25,
+          1.25,
+          1.25
+        ]
+      ]
+    },
+    {
+      "path": "env.config.curriculum",
+      "before": "<absent>",
+      "after": false
+    },
+    {
+      "path": "env.config.delta_action_clamp_to_dof_limits",
+      "before": "<absent>",
+      "after": true
+    },
+    {
+      "path": "env.config.driver",
+      "before": "<absent>",
+      "after": null
+    },
+    {
+      "path": "env.config.num_envs",
+      "before": 1024,
+      "after": 256
+    },
+    {
+      "path": "env.config.rewards.reward_scales.penalty_a2_stage4_arm_default_pose_l1",
+      "before": 0.0,
+      "after": -0.5
+    },
+    {
+      "path": "env.config.rewards.reward_scales.penalty_a2_wrist_motion_l2",
+      "before": "<absent>",
+      "after": -0.4
+    },
+    {
+      "path": "env.config.rewards.reward_scales.penalty_a2_wrist_tower_contact",
+      "before": "<absent>",
+      "after": -1.0
+    },
+    {
+      "path": "env.config.robot.asset.asset_root",
+      "before": "gr00t/rl/data/robots",
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot.asset.urdf_file",
+      "before": "A2_Piper/a2_piper.urdf",
+      "after": "a2_piper_v28_merged_20260909/a2_piper.urdf"
+    },
+    {
+      "path": "env.config.robot.asset.usd_file",
+      "before": "A2_Piper/a2_piper.usd",
+      "after": "a2_piper_v28_merged_20260909/a2_piper.usd"
+    },
+    {
+      "path": "env.config.robot.body_names",
+      "before": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot",
+        "arm_body0",
+        "arm_body1",
+        "arm_body2",
+        "arm_body3",
+        "arm_body4",
+        "arm_body5",
+        "arm_body6",
+        "arm_body6_to_gripper",
+        "arm_body7",
+        "arm_body8"
+      ],
+      "after": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot",
+        "arm_body0",
+        "arm_body1",
+        "arm_body2",
+        "arm_body3",
+        "arm_body4",
+        "arm_body5",
+        "arm_body6",
+        "arm_body6_to_gripper",
+        "arm_body7",
+        "arm_body8",
+        "wrist_camera_tower"
+      ]
+    },
+    {
+      "path": "env.config.robot.check_action_dim",
+      "before": true,
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot.contact_pairs_multiplier",
+      "before": 16,
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot.control.clamp_actions",
+      "before": 1.0,
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot.control.damping.arm_j7",
+      "before": 32.0,
+      "after": 3.0
+    },
+    {
+      "path": "env.config.robot.control.damping.arm_j8",
+      "before": 32.0,
+      "after": 3.0
+    },
+    {
+      "path": "env.config.robot.control.isaac_pd_scale",
+      "before": false,
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot.control.stiffness.arm_j7",
+      "before": 1300.0,
+      "after": 80.0
+    },
+    {
+      "path": "env.config.robot.control.stiffness.arm_j8",
+      "before": 1300.0,
+      "after": 80.0
+    },
+    {
+      "path": "env.config.robot.dof_effort_limit_list",
+      "before": [
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        45.0,
+        45.0
+      ],
+      "after": [
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        10.0,
+        10.0
+      ]
+    },
+    {
+      "path": "env.config.robot.init_state.default_joint_angles.arm_j2",
+      "before": 0.0,
+      "after": 0.1
+    },
+    {
+      "path": "env.config.robot.init_state.default_joint_angles.arm_j3",
+      "before": 0.0,
+      "after": -0.1
+    },
+    {
+      "path": "env.config.robot.init_state.default_joint_angles.arm_j4",
+      "before": 0.25,
+      "after": 0.0
+    },
+    {
+      "path": "env.config.robot.init_state.default_joint_angles.arm_j5",
+      "before": 0.5,
+      "after": -0.415
+    },
+    {
+      "path": "env.config.robot.mimic_small_marker_bodies",
+      "before": null,
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot.num_bodies",
+      "before": 27,
+      "after": 28
+    },
+    {
+      "path": "env.config.robot.num_key_bodies",
+      "before": 0,
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot.number_of_actions",
+      "before": "???",
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot.self_obs_max_coords",
+      "before": "???",
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot.use_primitive",
+      "before": false,
+      "after": "<absent>"
+    },
+    {
+      "path": "env.config.robot_name",
+      "before": "<absent>",
+      "after": "a2_piper_vpiper"
+    },
+    {
+      "path": "env.config.simulator.config.scene.num_envs",
+      "before": 1024,
+      "after": 256
+    },
+    {
+      "path": "experiment_dir",
+      "before": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2",
+      "after": "/tmp/pull_v28_pg4_cpu_compose_20260913_v2/train"
+    },
+    {
+      "path": "experiment_name",
+      "before": "P_S2",
+      "after": "G0"
+    },
+    {
+      "path": "num_envs",
+      "before": 1024,
+      "after": 256
+    },
+    {
+      "path": "output_dir",
+      "before": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2/output",
+      "after": "/tmp/pull_v28_pg4_cpu_compose_20260913_v2/train/output"
+    },
+    {
+      "path": "project_name",
+      "before": "a2_piper_pull_v26_8_backbone",
+      "after": "a2_piper_pull_v28"
+    },
+    {
+      "path": "robot.asset.asset_root",
+      "before": "gr00t/rl/data/robots",
+      "after": "<absent>"
+    },
+    {
+      "path": "robot.asset.urdf_file",
+      "before": "A2_Piper/a2_piper.urdf",
+      "after": "a2_piper_v28_merged_20260909/a2_piper.urdf"
+    },
+    {
+      "path": "robot.asset.usd_file",
+      "before": "A2_Piper/a2_piper.usd",
+      "after": "a2_piper_v28_merged_20260909/a2_piper.usd"
+    },
+    {
+      "path": "robot.body_names",
+      "before": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot",
+        "arm_body0",
+        "arm_body1",
+        "arm_body2",
+        "arm_body3",
+        "arm_body4",
+        "arm_body5",
+        "arm_body6",
+        "arm_body6_to_gripper",
+        "arm_body7",
+        "arm_body8"
+      ],
+      "after": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot",
+        "arm_body0",
+        "arm_body1",
+        "arm_body2",
+        "arm_body3",
+        "arm_body4",
+        "arm_body5",
+        "arm_body6",
+        "arm_body6_to_gripper",
+        "arm_body7",
+        "arm_body8",
+        "wrist_camera_tower"
+      ]
+    },
+    {
+      "path": "robot.check_action_dim",
+      "before": true,
+      "after": "<absent>"
+    },
+    {
+      "path": "robot.contact_pairs_multiplier",
+      "before": 16,
+      "after": "<absent>"
+    },
+    {
+      "path": "robot.control.clamp_actions",
+      "before": 1.0,
+      "after": "<absent>"
+    },
+    {
+      "path": "robot.control.damping.arm_j7",
+      "before": 32.0,
+      "after": 3.0
+    },
+    {
+      "path": "robot.control.damping.arm_j8",
+      "before": 32.0,
+      "after": 3.0
+    },
+    {
+      "path": "robot.control.isaac_pd_scale",
+      "before": false,
+      "after": "<absent>"
+    },
+    {
+      "path": "robot.control.stiffness.arm_j7",
+      "before": 1300.0,
+      "after": 80.0
+    },
+    {
+      "path": "robot.control.stiffness.arm_j8",
+      "before": 1300.0,
+      "after": 80.0
+    },
+    {
+      "path": "robot.dof_effort_limit_list",
+      "before": [
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        45.0,
+        45.0
+      ],
+      "after": [
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        120.0,
+        120.0,
+        180.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        10.0,
+        10.0
+      ]
+    },
+    {
+      "path": "robot.init_state.default_joint_angles.arm_j2",
+      "before": 0.0,
+      "after": 0.1
+    },
+    {
+      "path": "robot.init_state.default_joint_angles.arm_j3",
+      "before": 0.0,
+      "after": -0.1
+    },
+    {
+      "path": "robot.init_state.default_joint_angles.arm_j4",
+      "before": 0.25,
+      "after": 0.0
+    },
+    {
+      "path": "robot.init_state.default_joint_angles.arm_j5",
+      "before": 0.5,
+      "after": -0.415
+    },
+    {
+      "path": "robot.mimic_small_marker_bodies",
+      "before": null,
+      "after": "<absent>"
+    },
+    {
+      "path": "robot.num_bodies",
+      "before": 27,
+      "after": 28
+    },
+    {
+      "path": "robot.num_key_bodies",
+      "before": 0,
+      "after": "<absent>"
+    },
+    {
+      "path": "robot.number_of_actions",
+      "before": "???",
+      "after": "<absent>"
+    },
+    {
+      "path": "robot.self_obs_max_coords",
+      "before": "???",
+      "after": "<absent>"
+    },
+    {
+      "path": "robot.use_primitive",
+      "before": false,
+      "after": "<absent>"
+    },
+    {
+      "path": "seed",
+      "before": 2,
+      "after": 0
+    },
+    {
+      "path": "simulator.config.scene.num_envs",
+      "before": 1024,
+      "after": 256
+    }
+  ],
+  "status": "INSPECTED_PENDING_MAIN_DIFF_ASSESSMENT"
+}

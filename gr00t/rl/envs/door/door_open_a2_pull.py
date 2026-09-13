@@ -1279,6 +1279,10 @@ class DoorOpenA2Pull(DoorPregrasp):
                 "Pull clearance requires exactly one trunk articulation body; "
                 f"got ids={trunk_body_ids!r}, names={trunk_body_names!r}."
             )
+        if self.config.get("a2_v28_camera_telemetry_enabled", False):
+            self._a2_pull_v28_e6_yaw_rad = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
         self._a2_pull_door_panel_body_id = door_panel_body_ids[0]
         self._a2_pull_trunk_body_id = trunk_body_ids[0]
         self._a2_pull_event_reached = torch.zeros(
@@ -5155,6 +5159,8 @@ class DoorOpenA2Pull(DoorPregrasp):
     def _reset_buffers_callback(self, env_ids, target_buf=None):
         result = super()._reset_buffers_callback(env_ids, target_buf)
         self._a2_pull_event_reached[env_ids] = False
+        if self.config.get("a2_v28_camera_telemetry_enabled", False):
+            self._a2_pull_v28_e6_yaw_rad[env_ids] = float("nan")
         self._a2_pull_stable_unlatch_handle_ever[env_ids] = False
         self._a2_pull_stable_unlatch_latch_ever[env_ids] = False
         self._a2_pull_relock_handle_ever[env_ids] = False
@@ -6605,6 +6611,16 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
         newly_reached = updated_reached & ~old_reached
         self._a2_pull_event_reached[selected] = updated_reached
+        if self.config.get("a2_v28_camera_telemetry_enabled", False):
+            e6_ids = selected[newly_reached[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY]]
+            forward = torch.zeros_like(root_states[:, :3])
+            forward[:, 0] = 1.0
+            door_quat = self.simulator.scene.articulations["door"].data.root_quat_w
+            forward_door = quat_apply_inverse(
+                door_quat, quat_apply(root_states[:, 3:7], forward)
+            )
+            yaw = torch.atan2(forward_door[:, 1], forward_door[:, 0])
+            self._a2_pull_v28_e6_yaw_rad[e6_ids] = yaw[e6_ids]
         if self._is_a2_pull_v6():
             self._a2_pull_v61_e6_event_pulse[selected] = newly_reached[
                 :, A2PullEvent.E6_PATH_REVERSAL_ENTRY
@@ -8405,6 +8421,71 @@ class DoorOpenA2Pull(DoorPregrasp):
             "arm_utilization": arm_utilization,
         }
 
+    def _get_a2_pull_v28_post_release_mask(self):
+        masks = self._get_a2_stage3_stage4_contact_squeeze_masks("pull v28 post-release")
+        return (
+            self._a2_pull_v6_release_event
+            & ~masks["both_contact"]
+            & (self.stage_buf == self.STAGE_SWING)
+            & (
+                (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C)
+                | (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_D)
+            )
+        )
+
+    def _get_a2_v28_camera_trace_fields(self, env_ids):
+        """Raw camera geometry and signed horizontal bearings; no reward shaping."""
+        robot = self.simulator._robot
+        flange = list(robot.body_names).index("arm_body6_to_gripper")
+        trunk = list(robot.body_names).index("trunk")
+        tower = list(self.simulator.body_names).index("wrist_camera_tower")
+        door = self.simulator.scene.articulations["door"]
+        panel = list(door.body_names).index("door_panel")
+        target = self._get_a2_gripper_handle_frame_transformer().data.target_pos_w[:, 0]
+        post_release = self._get_a2_pull_v28_post_release_mask()
+        default = self._get_a2_arm_default_dof_pos().expand(self.num_envs, -1)
+        force = self.simulator.contact_forces[:, tower, :].norm(dim=-1)
+        trunk_pos = robot.data.body_pos_w[:, trunk]
+        trunk_heading = yaw_quat(robot.data.body_quat_w[:, trunk])
+        handle_local = quat_apply_inverse(trunk_heading, target - trunk_pos)
+        doorway_local = quat_apply_inverse(trunk_heading, door.data.root_pos_w - trunk_pos)
+        handle_bearing = torch.rad2deg(torch.atan2(handle_local[:, 1], handle_local[:, 0]))
+        doorway_bearing = torch.rad2deg(torch.atan2(doorway_local[:, 1], doorway_local[:, 0]))
+        forward = torch.zeros_like(trunk_pos)
+        forward[:, 0] = 1.0
+        root_forward_door = quat_apply_inverse(
+            door.data.root_quat_w, quat_apply(robot.data.root_quat_w, forward)
+        )
+        root_yaw = torch.rad2deg(torch.atan2(root_forward_door[:, 1], root_forward_door[:, 0]))
+        command = self.get_physical_base_command()
+        records = []
+        for index in env_ids.tolist():
+            records.append({
+                "v28_flange_pos_w": robot.data.body_pos_w[index, flange].detach().cpu().tolist(),
+                "v28_flange_quat_w": robot.data.body_quat_w[index, flange].detach().cpu().tolist(),
+                "v28_flange_ang_vel_w": robot.data.body_ang_vel_w[index, flange].detach().cpu().tolist(),
+                "v28_trunk_ang_vel_w": robot.data.body_ang_vel_w[index, trunk].detach().cpu().tolist(),
+                "v28_handle_target_pos_w": target[index].detach().cpu().tolist(),
+                "v28_door_panel_pos_w": door.data.body_pos_w[index, panel].detach().cpu().tolist(),
+                "v28_door_panel_quat_w": door.data.body_quat_w[index, panel].detach().cpu().tolist(),
+                "v28_door_width_m": float(self.door_width[index].item()),
+                "v28_door_height_m": float(self.door_height[index].item()),
+                "v28_tower_contact_force_N": float(force[index].item()),
+                "v28_post_release": bool(post_release[index].item()),
+                "v28_arm_default_pose_rad": default[index].detach().cpu().tolist(),
+                "v28_handle_bearing_deg": float(handle_bearing[index].item()),
+                "v28_doorway_bearing_deg": float(doorway_bearing[index].item()),
+                "v28_root_yaw_relative_door_deg": float(root_yaw[index].item()),
+                "v28_crossing_event": "E6_PATH_REVERSAL_ENTRY",
+                "v28_crossing_yaw_deg": (
+                    float(torch.rad2deg(self._a2_pull_v28_e6_yaw_rad[index]).item())
+                    if bool(self._a2_pull_event_reached[index, A2PullEvent.E6_PATH_REVERSAL_ENTRY].item()) else None
+                ),
+                "v28_vy_cmd_m_s": float(command[index, 1].item()),
+                "v28_vy_cmd_at_clip": bool((command[index, 1].abs() == 0.5).item()),
+            })
+        return records
+
     def get_a2_pull_control_step_telemetry(self, env_ids=None) -> list[dict]:
         """Return schema-validated records after the current reward step."""
 
@@ -9288,11 +9369,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         reward = super()._reward_penalty_a2_stage4_arm_default_pose_l1()
         if not self._is_a2_pull_v6():
             return reward
-        active = (
-            self._a2_pull_v6_clean_release
-            & (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_D)
-            & (self.stage_buf == self.STAGE_SWING)
-        )
+        active = self._get_a2_pull_v28_post_release_mask()
         return torch.where(active, reward, torch.zeros_like(reward))
 
     @StagedTaskBase.effective_in_stage(DoorPregrasp.STAGE_SWING)

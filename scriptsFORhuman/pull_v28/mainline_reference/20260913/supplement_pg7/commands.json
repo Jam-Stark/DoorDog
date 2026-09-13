@@ -1,0 +1,149 @@
+{
+  "schema": "a2_base_flat_walk_command_script_v1",
+  "blocks": [
+    {
+      "name": "stand",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "vx025",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0.25,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "vx050",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0.5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "vy_pos",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0,
+        0.25,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "vy_neg",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0,
+        -0.25,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "wz_pos",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0,
+        0,
+        0.5,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "wz_neg",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0,
+        0,
+        -0.5,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "vx_pitch_m032",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0.5,
+        0,
+        0,
+        -0.32,
+        0
+      ]
+    },
+    {
+      "name": "vx_pitch_m04",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0.5,
+        0,
+        0,
+        -0.4,
+        0
+      ]
+    },
+    {
+      "name": "vx_pitch_p04",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0.5,
+        0,
+        0,
+        0.4,
+        0
+      ]
+    },
+    {
+      "name": "roll_pos",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0,
+        0,
+        0,
+        0,
+        0.2
+      ]
+    },
+    {
+      "name": "roll_neg",
+      "duration_s": 6.0,
+      "physical_base_command": [
+        0,
+        0,
+        0,
+        0,
+        -0.2
+      ]
+    },
+    {
+      "name": "C_S21_stage2_3",
+      "replay": {
+        "trace_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v28/mainline_reference/20260913/supplement_pg7/replay_env39_58steps.json",
+        "env_id": 39,
+        "stages": [
+          2,
+          3
+        ],
+        "steps": 58
+      }
+    }
+  ]
+}

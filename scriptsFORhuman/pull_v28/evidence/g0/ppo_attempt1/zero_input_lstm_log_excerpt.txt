@@ -1,0 +1,2 @@
+isaac.log:737: RunningMeanStd:  (0,)
+isaac.log:739:   (rnn): LSTM(0, 256, num_layers=2)

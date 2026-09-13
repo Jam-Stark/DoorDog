@@ -1,0 +1,26 @@
+{
+  "acceptance_claim": "",
+  "auto_eval": false,
+  "checkpoint": null,
+  "checkpoint_lineage": "null scratch",
+  "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v28/pipeline.py train --cell G0 --gpu 1 --train-root /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913 --eval-root /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913 --smoke",
+  "config_ref": "gr00t/rl/config/ablation/wbmanip/pull_v28_common.yaml",
+  "created_at": "2026-09-13T15:01:17+00:00",
+  "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "eta_source": "v28 plan historical 22s/batch; re-estimate after startup",
+  "eval_authorized": false,
+  "eval_command": "",
+  "expected_seconds": 2400.0,
+  "name": "pull_v28_train_g0_attempt1",
+  "output": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/train/G0__train_attempt1.supervisor.log",
+  "owner_session": "",
+  "project_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "resources": [
+    "GPU1"
+  ],
+  "schema_version": 2,
+  "session": "jam-pull_v28_train_g0_attempt1",
+  "source_revision": "924646079b35a50e0194c2ae7232014ff5464620",
+  "stop_condition": "declared v28 budget or corresponding evaluator failure",
+  "supervisor_version": "1.4.0"
+}

@@ -1,0 +1,94 @@
+{
+  "status": "D035_TOWER_ESTIMATED_GEOMETRY_READY",
+  "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+  "urdf_independent_input": "/tmp/v28_d35_independent.GGYoy1/a2_piper.urdf",
+  "persistent_independent_input": "/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/source_inputs/a2_piper_independent_d35.urdf",
+  "tower_geometry": {
+    "support_transform": [
+      [
+        0.9989537255614271,
+        0.00010393955248041813,
+        0.045732301314436084,
+        -0.001847409350796595
+      ],
+      [
+        -0.0452513284469789,
+        -0.14242073382277357,
+        0.9887712838928759,
+        0.09275377146318296
+      ],
+      [
+        0.006616000357359494,
+        -0.9898062051603598,
+        -0.14226701924662408,
+        0.008970432104081754
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "support_size_m": [
+      0.09,
+      0.025,
+      0.07622718704613948
+    ],
+    "housing_transform": [
+      [
+        0.0005610066295785286,
+        0.9999996795090338,
+        -0.000571185951302131,
+        -0.0001115268320149064
+      ],
+      [
+        -0.691593543476254,
+        0.0008005486979806193,
+        0.7222864596153942,
+        0.13946797900995225
+      ],
+      [
+        0.7222866853912786,
+        -1.0178976254146335e-05,
+        0.6915937709398982,
+        0.01219304689752591
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "housing_size_m": [
+      0.025,
+      0.09,
+      0.025
+    ]
+  },
+  "mass_estimate": {
+    "support_reference_mass_kg": 0.075,
+    "support_reference_length_m": 0.11470001524266443,
+    "support_formula": "0.075 kg * support_length_m / 0.11470001524266443 m",
+    "support_mass_kg": 0.04984340251712469,
+    "housing_mass_kg": 0.075,
+    "tower_mass_kg": 0.1248434025171247,
+    "status": "ESTIMATED_SIMULATION_GEOMETRY_NOT_HARDWARE_CAD_OR_MEASUREMENT"
+  },
+  "tower_inertial": {
+    "origin_m": [
+      -0.00080457339564255,
+      0.120817453607116,
+      0.0109064263547604
+    ],
+    "tensor_kgm2": {
+      "ixx": 0.000100217678830318,
+      "ixy": -2.03599274031247e-06,
+      "ixz": -2.32095117030679e-07,
+      "iyy": 9.15901433335122e-05,
+      "iyz": -1.46859236462816e-06,
+      "izz": 0.000177306748882
+    }
+  }
+}

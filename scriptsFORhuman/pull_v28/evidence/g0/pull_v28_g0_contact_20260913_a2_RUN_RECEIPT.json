@@ -1,0 +1,26 @@
+{
+  "acceptance_claim": "",
+  "auto_eval": false,
+  "checkpoint": null,
+  "checkpoint_lineage": "",
+  "command": "env CUDA_VISIBLE_DEVICES=1 CUDA_DEVICE_ORDER=PCI_BUS_ID PYTHONUNBUFFERED=1 WANDB_MODE=disabled /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v28/g0_contact.py --config /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/runtime/pull_v28_execution/g0_contact_config.yaml --output /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0/contact_a2",
+  "config_ref": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/runtime/pull_v28_execution/g0_contact_config.yaml",
+  "created_at": "2026-09-13T14:56:59+00:00",
+  "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "eta_source": "a1 initialization under60sec plus50controlsteps andprobes",
+  "eval_authorized": false,
+  "eval_command": "",
+  "expected_seconds": 240.0,
+  "name": "pull_v28_g0_contact_20260913_a2",
+  "output": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/eval/g0/contact_a2.supervisor.log",
+  "owner_session": "pull_v28_main",
+  "project_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "resources": [
+    "gpu:1"
+  ],
+  "schema_version": 2,
+  "session": "jam-pull_v28_g0_contact_20260913_a2",
+  "source_revision": "924646079b35a50e0194c2ae7232014ff5464620",
+  "stop_condition": "process exit; raw error or measured contact/mapping gate result",
+  "supervisor_version": "1.4.0"
+}

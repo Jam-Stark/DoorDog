@@ -1,0 +1,13 @@
+{
+  "attempt": "contact_a2",
+  "process_state": "PROCESS_FAILED",
+  "exit_code": 1,
+  "status": "HARNESS_CONFIG_FAILURE",
+  "pg_result": null,
+  "policy_executed": false,
+  "reason": "enable_staged_reset=false conflicts with enabled pull-v6 staged-reset registration during environment construction",
+  "repair_budget_used": 2,
+  "g0_ppo_batches": 0,
+  "pa_batches": 0,
+  "next_attempt": "contact_a3 after aligning natural constructor flags with existing evaluator"
+}

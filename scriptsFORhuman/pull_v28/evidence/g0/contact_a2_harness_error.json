@@ -1,0 +1,9 @@
+{
+  "schema": "a2_piper_pull_v28_g0_contact_v1",
+  "status": "HARNESS_ERROR",
+  "source_config": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/runtime/pull_v28_execution/g0_contact_config.yaml",
+  "exception_type": "RuntimeError",
+  "error": "Pull-v6 staged reset requires enable_staged_reset=true.",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v28/g0_contact.py\", line 69, in main\n    env = custom_instantiate(cfg.env, device=\"cuda:0\", _resolve=False)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/trl/utils/common.py\", line 52, in custom_instantiate\n    return _type(**d, **add_kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_pull.py\", line 698, in __init__\n    super().__init__(config, device)\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_base.py\", line 6728, in __init__\n    self._init_a2_door_pregrasp_state()\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_pull.py\", line 2371, in _init_a2_door_pregrasp_state\n    self._register_a2_pull_v6_staged_reset_buffers()\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_pull.py\", line 2419, in _register_a2_pull_v6_staged_reset_buffers\n    self._register_a2_pull_staged_reset_buffers(\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_pull.py\", line 2429, in _register_a2_pull_staged_reset_buffers\n    raise RuntimeError(\nRuntimeError: Pull-v6 staged reset requires enable_staged_reset=true.\n",
+  "acceptance": "NOT_EVALUATED"
+}

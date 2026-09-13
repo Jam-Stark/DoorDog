@@ -1,0 +1,44 @@
+{
+  "scope": "PG7 missing runtime inputs; no contract change",
+  "source_host": "gpu1-codex",
+  "source_commands": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/g0/walk/commands.json",
+  "source_postures": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/walk_inputs/postures.json",
+  "source_trace": {
+    "trace_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v27/v27_bilateral_hardening_20260905/wave_a/step3000/C_S21/nominal/right/stage2_5_step_trace.json",
+    "env_id": 39,
+    "stages": [
+      2,
+      3
+    ],
+    "steps": 58
+  },
+  "trace_projection_fields": [
+    "env_id",
+    "stage_buf",
+    "first_episode_active",
+    "episode_index",
+    "control_dt",
+    "physical_base_command",
+    "step_index"
+  ],
+  "adaptation": "Only replay trace path remapped; 58 matching first-episode rows in original order and exact physical command values retained",
+  "copied_at": "2026-09-13T13:07:55.644424+00:00",
+  "files": [
+    {
+      "path": "commands_source.json",
+      "bytes": 2362
+    },
+    {
+      "path": "postures.json",
+      "bytes": 860
+    },
+    {
+      "path": "replay_env39_58steps.json",
+      "bytes": 17776
+    },
+    {
+      "path": "commands.json",
+      "bytes": 2351
+    }
+  ]
+}

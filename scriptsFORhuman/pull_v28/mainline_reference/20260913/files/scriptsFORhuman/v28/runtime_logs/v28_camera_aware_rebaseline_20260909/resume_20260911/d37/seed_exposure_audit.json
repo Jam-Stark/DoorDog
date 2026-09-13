@@ -1,0 +1,40 @@
+{
+  "recorded_at": "2026-09-11T17:34:14.350520+00:00",
+  "baseline_and_merged_seed281_vs282_all_blocks_equal": true,
+  "only_changed_top_level_field": "seed",
+  "actual_seed282_pids": [
+    3822747,
+    3822749
+  ],
+  "both_seed282_processes_returncode": 0,
+  "self_comparison_commanded": {
+    "count": 19,
+    "defined_ratio_count": 19,
+    "ratio_median": 1.0,
+    "ratio_max": 1.0,
+    "ratio_gt_1p15_count": 0,
+    "p95_ratio_max": 1.0,
+    "cap_applied_count": 0
+  },
+  "self_comparison_coupled": {
+    "count": 46,
+    "defined_ratio_count": 46,
+    "ratio_median": 1.0,
+    "ratio_max": 1.0,
+    "ratio_gt_1p15_count": 0,
+    "p95_ratio_max": 1.0,
+    "cap_applied_count": 0
+  },
+  "status": "INSPECTED_NO_STOCHASTIC_SEED_EXPOSURE",
+  "X24_status": "OPEN_NO_STOCHASTIC_CALIBRATION",
+  "evidence_level": "INSPECTED_SOURCE_AND_POLICY_GRAPH_WITH_RUNTIME_IDENTICAL_READOUT",
+  "harness": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/source_lock_d36_stop/files/gr00t/rl/scripts/smoke_a2_base_flat_walk.py",
+  "source_findings": {
+    "seed_call": "torch.manual_seed at line1025, after scene creation and reset",
+    "after_seed_rng_consumers": "none in harness; no Torch/Python/NumPy sampling",
+    "policy": "torch.jit.load(...).eval(); inspected CPU inlined graph has no random operators",
+    "fixed_inputs": "root/arm pose, command script, replay env39/stages2,3/58steps, phase and history deterministic",
+    "Isaac_PhysX_seed": "not explicitly set by harness"
+  },
+  "interpretation": "Fresh seed282 runs satisfy registered numerical comparisons but are deterministic replications. X24 remains open; no stochastic null distribution or independent random realization is claimed."
+}

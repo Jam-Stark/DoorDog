@@ -2,7 +2,7 @@
 
 创建：2026-09-09 HKT；修订：2026-09-13 HKT。
 修改：-codex planner；依据：-owner 要求更新 pull 同步 plan 并交付 m5 Codex team 启动 prompt。
-状态：`P2_DIAGNOSTIC_CLOSED_G0_PENDING`。2026-09-13 21:11 HKT Owner已授权执行；三条P2旧配方评估队列已启动，MERGED/D17/bundle尚未应用活动源码。以下历史事实按原核对时间保留。
+状态：`BLOCKED_G0_INFRA_REPAIR_LIMIT`。P2 18条诊断已封存；S1–S8已应用。PG1/2/3/5与PG7有界证据通过，但G0 PPO因flat robot引用断裂构造LSTM(0,256)在batch1前失败。两次G0 harness修复额度已用完，第三次修复未应用，PA未运行。见pull_v28/G0_CLOSURE_20260913.md及OPENING_CLOSURE_20260913.md；下列原合同不改门、不自动扩额。
 
 执行仓库：m5（`baoquanc@m5.precognition.team`，主机名 `ai-precog-machine5`）的 `/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0`，分支 `codex/a2-piper-pull-v0-20260803`。
 canonical：pull 仓库 `scriptsFORhuman/pull_task/a2_piper_pull_v28_baseline_sync_plan_20260909.md`；主线镜像：`scriptsFORhuman/pull_v28_alignment/`。

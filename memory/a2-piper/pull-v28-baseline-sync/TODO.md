@@ -1,8 +1,7 @@
 # TODO
 
-- P2 18条natural诊断已封存；下一步应用S1–S8并执行pull G0，真实Owner门暂停相关工作。
-- P2封存后按S1–S8应用MERGED/robot/rig/D17与pull专属bundle，补齐pull_v28执行链；参考文件不是已实现。
-- 完成PG1–PG8的窄证明，尤其本机D37比较、持久release latch映射与null口径；不重复原G0或新建全面测试套件。
-- PA_S1/2/3各6000、四milestone各双侧exact64；endpoint k/3与历史checkpoint分列，margin无E5时NOT_OBSERVED/null。
-- 本轮opening closure成功/失败均回收P3–P5、恢复/传感/门域与push/pull合一依赖；不自动启动后续实验。
-- 真实代码/运行完成后再更新planned与待办，不由输入接收推定PASS；默认不push、不用GPU0、不改事件/ready/C_T。
+- **Owner门**：G0已用完两次harness修复；决定是否授权额外一次恢复env.robot动态引用的一行修复。提案在scriptsFORhuman/pull_v28/OWNER_PROPOSED_FIX_NOT_APPLIED.patch，尚未应用。不要把该补丁当作已生效。
+- 若获授权，在全新attempt/输出目录接续已批准256env×5batch smoke及full-checkpoint双侧natural评估；保留全部旧失败证据，完成PG4/6/8，再决定合法PA启动。当前0batch，无checkpoint可评估。
+- PA_S1/2/3仍NOT_RUN；原三seed各6000和24条natural矩阵保持，warm默认不运行。不得将当前缺失终点填0/3。
+- P3–P5、恢复/感知/门域及push/pull合一需单独立项，未获本轮自动执行权；Teacher/硬件/推送未运行。
+- 当前任务资源与对应事件已收尾；重新运行前按原计划核对授权GPU1/2/3。GPU0/无关tmux及他人变更不处置。

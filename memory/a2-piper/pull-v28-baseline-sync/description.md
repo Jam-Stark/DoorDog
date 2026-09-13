@@ -1,6 +1,6 @@
 ---
 name: pull-v28-baseline-sync
-status: executing_p2_evaluation
+status: blocked_g0_infra_repair_limit
 scope: pull v28 C_T infrastructure sync, m5 G0 and three-scratch-seed opening baseline
 last_verified: 2026-09-13
 read_when:
@@ -16,9 +16,9 @@ related_entries:
 
 # Pull v28 baseline 同步
 
-2026-09-13 Owner要求更新同步plan并交付m5 Codex team启动prompt。已依据m5真实source/旧runtime记录写明V28P-D001–D006；plan与必要主线输入由同目录manifest/receipt路由。接收不等于集成，当前活动代码、pull G0与P-A仍待执行。
+2026-09-13 Owner要求更新同步plan并交付m5 Codex team启动prompt。已依据m5真实source/旧runtime记录写明V28P-D001–D006；plan与必要主线输入由同目录manifest/receipt路由。P2已封存，新S1–S8已应用，当前G0因robot动态引用断裂在batch1前失败；两次修复额度已用完，P-A未启动。
 
-当前P2三格T_S1/T_S2/C_S2的step10500训练child_returncode均0，18条natural尚缺，legacy receipts仍RUNNING；C_S1仅DECLARED。本轮先封存P2旧配方读数，再应用新共享代码，不补C_S1或另做资产门A矩阵，不触发D2后续重试。
+P2三格T_S1/T_S2/C_S2的step10500训练child_returncode均0；18条natural已补完且归约，legacy receipts已按process-only收口；C_S1仍仅DECLARED。本轮先封存P2旧配方读数，再应用新共享代码，不补C_S1或另做资产门A矩阵，不触发D2后续重试。
 
 共享项为MERGED/28body、140mm/38.76°、reset[0,.10,-.10,0,-.415,1.57]、D17、camera/tower/回位bundle、当前U3_F39_H140与证据/等待规则；base最终布局和真实光学/CAD仍归C_S/G2。pull保留Stage4 A–D、E4–E7/ready/tensile语义、1024env与无K基线。
 
@@ -26,8 +26,12 @@ related_entries:
 
 PG7使用m5匹配旧asset对照和D37分层p50/p95/CAP/零摔倒/slope。无事件=null；接线/进程完成不等于opening、Teacher或hardware；失败不证明E_T几何无解。源端G0不替代pull运行证据。
 
-证据级别：INSPECTED（已有source与runtime记录）及文档/输入交付；没有本次训练/评估、代码应用、commit/push或硬件。
+当前证据级别：P2运行/诊断已完成，S1/S2已直接内容比对应用，PG4 CPU compose完成；G0运行中。P2本地commit9246460；无PA/push/硬件。
 
 2026-09-13 01:31 HKT 输入交付完成：110份主线文件（62,519,259 bytes）与plan/决策/prompt/memory已在m5直接内容比对通过；现有A2_Base与主线内容一致、未替换。仅接收非活动参考输入，代码/配置/训练未应用；详见参考目录SHARED_INPUTS_RECEIPT.json。GPU1同路径为文档镜像，运行和参考输入事实以m5为准。
 
 2026-09-13 21:11 HKT 执行接续：已再次确认18条缺失，GPU1/2/3的旧P2评估队列已启动；两个harness接线修复，PG7缺失输入已按原命令补齐。共享代码仅staging patch，未应用；G0/P-A/closure仍待完成。证据为INSPECTED与运行已启动，不是评估/实验PASS。
+
+2026-09-13 22:29 HKT：P2全部18条完成；ready/clean-release均0。封存后应用MERGED/S2及语义patch，启动G0 contact_a1，Main持有GPU1–3。raw读数与process-only边界见pull_v7/P2_CLOSURE_20260913.md；真实G0失败须Owner处理。
+
+2026-09-13 23:02:48 HKT最新终态：BLOCKED_G0_INFRA_REPAIR_LIMIT。contact_a3和PG7均有界PASS；flat env.robot引用断裂导致LSTM(0,256)，G0 PPO0batch，无checkpoint。第三次修复一行补丁仅提案未应用，等待Owner额外修复授权。PA全部NOT_RUN、k=null/3，不能判opening失败。资源及对应事件已收尾，P2 commit9246460/G0 commitcad573c；详见OPENING_CLOSURE_20260913.md和OWNER_REPAIR_REQUEST_20260913.md。

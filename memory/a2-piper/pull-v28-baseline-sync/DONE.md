@@ -7,3 +7,5 @@
 - 2026-09-13 21:11 HKT：Owner授权启动核对与最小team接续完成；P2三个六lane队列运行，旧事件未确认。修复输出隔离与D2诊断列表；补齐PG7运行输入并记录内容比对。未重跑训练、未应用新共享代码、未commit/push。
 
 - 2026-09-13 22:29 HKT：P2全部18条exact64及三milestone归约完成；T较低overshoot但ready/clean-release均0，旧配方诊断封存。仅对应legacy process-only收口与新eval事件确认；无重训/C_S1。资源已释放，下一步G0。
+
+- 2026-09-13 23:02:48 HKT：S1–S8应用并保留输入直接内容证据；contact两次有限修复后a3通过，PG7三姿态D37通过。真实G0 PPO揭示flat env.robot引用断裂导致LSTM(0,256)，0batch/无checkpoint；按修复额度门停于BLOCKED_G0_INFRA_REPAIR_LIMIT，未作第三次修复。提交一行未应用提案与具体Owner证据，PA k=null/3、warm/P3–P5未运行。资源/事件收尾完成；P2 commit9246460，G0 commitcad573c。

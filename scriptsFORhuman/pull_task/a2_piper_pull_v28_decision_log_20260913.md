@@ -1,7 +1,7 @@
 # Pull v28 同步修订决策记录
 
 日期：2026-09-13 HKT；修改：-codex planner；依据：-owner 要求更新 pull v28 新 baseline 同步 plan，并提供 m5 Codex team 启动 prompt。
-状态：方案已修订；m5活动源码/配置与训练未执行。输入交付状态以SHARED_INPUTS_RECEIPT为准。
+当前状态：BLOCKED_G0_INFRA_REPAIR_LIMIT；P2封存、共享实现与有界接触/PG7完成，PPO初始化失败，PA未运行。D001–D006为planner交付记录，最新执行事实见D010及closure。
 
 ## 输入与权限
 
@@ -39,10 +39,26 @@ P2真实接线修复：eval显式eval_output_dir作为experiment_dir，防止写
 
 已交付manifest缺PG7 commands/postures及trace replay输入，从GPU1主线只读补齐到mainline_reference/20260913/supplement_pg7，逐文件直接内容比对。commands仅重定向replay路径，保留env39/stage2,3/58steps原始物理指令；三姿态保持主线已批准值。详见补充RECEIPT.json。原110文件接收记录不改写，不复制训练checkpoint，不改变D37合同。
 
-长等待：P2三receipt绝对wait_until_epoch=1789312071（2026-09-13 23:07:51 HKT），根据计划同类吞吐先估2h；使用同一supervisor waiter，完成/失败提前返回。当前宿主write_stdin工具schema上限300000ms，并受本轮developer单次等待≤60s约束，不能声称m5配置的24h transport已被本宿主加载；传输续接不作为业务轮询。
+长等待：P2三receipt绝对wait_until_epoch=1789312071（2026-09-13 23:07:51 HKT），根据计划同类吞吐先估2h；使用同一supervisor waiter，完成/失败提前返回。当前宿主write_stdin工具schema上限300000ms，本轮通用工具指导要求避免长时间阻塞且进度可见，不能声称m5配置的24h transport已被本宿主加载；传输续接不作为业务轮询。
 
 ## V28P-D008：P2诊断封存与资源落盘
 
 2026-09-13 22:29 HKT，18条缺失natural exact64全部child0，三个milestone各一次归约。10500 T格overshoot低于C格，但18条ready/clean-release/E6/E7均0；不成立旧配方释放能力，不推导几何无解。T_S1无C_S1匹配对照。见pull_v7/P2_CLOSURE_20260913.md及pull_v28/evidence/p2。只收口三条已完成旧训练receipt及三条新eval事件，legacy PASS注明仅进程/检查点；C_S1保持DECLARED。
 
 根卷仅24GB空闲，而18条trace约30GB；未移动旧输出，仅将未启动10000/10500的12条lane父目录和新v28输出路由到用户自有SSD任务目录，canonical路径不变。P2完整保留，允许应用S1–S8进入G0。
+
+## V28P-D009：G0探针退出可见性修复
+
+contact_a1在64env初始化后child0但缺少contact_probe.json，按INVALID_OUTPUT_CONTRACT处理，不能当作PG PASS/FAIL。安装版SimulationApp.close直接退出framework，原finally掩盖了待抛异常/返回码；仅修复短命探针为先落盘原始traceback或结果、再明确exit1/0/2。第一次有限harness修复，a1保留，原底层异常不可从既有日志恢复。PG7匹配比较独立运行，门限不变。
+
+contact_a2明确暴露natural配置注册冲突（policy构造前），第二次修复按现有P2 natural入口保留enable_staged_reset=true、比例[1,0,0,0,0,0]并关闭两bank。contact_a3全部有界门PASS，50步监测接触均0N，D17 upper/lower、动作/obs锚点与LEFT180°/RIGHT定义通过。冻结A2_Base实际驱动腿部，pull高层命令为0；release/E6未出现，不证明晚阶段回位。PG7 walk_a1三姿态D37均PASS、无tracking failure，X24仍OPEN。已开始256env×5batch PPO smoke，P-A仍未启动。
+
+## V28P-D010：G0有限修复额度门与本轮终态
+
+2026-09-13 23:02:48 HKT，G0 scratch256env×5batch在首次学习前失败，runner正确以缺失model_step_000005.pt返回1（Isaac子进程关闭路径返回0不能作成功）。只读证据：flat config失去原env.config.robot=${robot}引用，pre_process_config只更新root维度133/138，env副本仍0/0，真实日志为RunningMeanStd(0)、LSTM(0,256,num_layers=2)，随后CUDA/cuDNN flatten BAD_PARAM。不是已证明的驱动或硬件问题，也没有OOM证据。
+
+contact_a1/a2的两次harness修复已消耗本G0格§8额度，不按子探针重新计数。第三次一行引用恢复补丁已形成OWNER_PROPOSED_FIX_NOT_APPLIED.patch，但未应用/运行；须Owner决定是否授权这一额外修复及原计划smoke/eval接续。未新增测试、fallback或兼容层，没有改变133/138合同、事件/ready、物理资产、奖励或门。
+
+终态BLOCKED_G0_INFRA_REPAIR_LIMIT：P2共18/18；接触a3与三姿态PG7通过；PG4 CPU compose被真实运行发现的引用缺陷收窄，PG6 PPO/PG8全链未完成。G0已完成PPO batches0，PA三格NOT_RUN，k=null/3而非0/3，warm/P3–P5/Teacher/hardware/push均NOT_RUN。P2 commit9246460；G0终态/实现commitcad573c。PA endpoint节点未到达，不伪造该节点commit；最终closure另作本地commit。
+
+已核对本任务tmux/waiter/训练进程均退出，GPU1/2/3无本任务compute，Main leases释放；保留无关tmux0与GPU0外部进程。只确认本任务已处理的事件，不改legacy C_S1或其他活动任务。后续P3–P5、恢复/感知/门域、push/pull合一均记为独立待立项；当前没有可转交的新baseline checkpoint。

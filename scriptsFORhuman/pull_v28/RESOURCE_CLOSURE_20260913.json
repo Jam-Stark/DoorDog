@@ -1,0 +1,20 @@
+{
+  "observed_at": "2026-09-13T15:08:58.414275+00:00",
+  "task_tmux": [],
+  "task_waiters_coordinators_supervisors": [],
+  "gpu1_2_3_task_compute": [],
+  "main_gpu_leases": "RELEASED",
+  "unrelated_tmux_preserved": [
+    "0"
+  ],
+  "external_gpu0_process_preserved": 3446012,
+  "task_events": "Only corresponding P2 and G0 terminal events handled; no scientific acceptance promoted",
+  "processes": {
+    "p2_evals": "3 COMPLETED",
+    "contact_a1": "COMPLETED but INVALID_OUTPUT_CONTRACT",
+    "contact_a2": "FAILED pre-policy harness",
+    "contact_a3": "COMPLETED scoped PASS",
+    "walk_a1": "COMPLETED D37 PASS",
+    "g0_train_attempt1": "FAILED no batch/checkpoint"
+  }
+}

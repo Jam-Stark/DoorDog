@@ -1,0 +1,17 @@
+{
+  "recorded_at": "2026-09-13T13:23:50.398524+00:00",
+  "reason": "Project root volume has 24GB free; user-owned /mnt/ssd1 volume has about1.7TB free",
+  "ownership": "baoquanc:baoquanc",
+  "storage_root": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913",
+  "canonical_paths": {
+    "train": "logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913",
+    "eval": "logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913"
+  },
+  "link_targets": {
+    "train": "train",
+    "eval": "eval"
+  },
+  "P2_outputs_moved": false,
+  "external_processes_modified": false,
+  "evidence_retention": "Keep raw checkpoints, logs, failures; no deletion or external service upload"
+}

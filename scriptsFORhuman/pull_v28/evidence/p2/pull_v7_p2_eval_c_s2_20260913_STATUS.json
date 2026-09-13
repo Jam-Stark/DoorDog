@@ -1,0 +1,14 @@
+{
+  "acceptance_state": "UNASSESSED",
+  "backend": "tmux",
+  "checkpoint_state": "PRESENT_NOT_VALIDATED",
+  "exit_code": 0,
+  "finished_at": "2026-09-13T14:28:24+00:00",
+  "finished_epoch": 1789309704.850149,
+  "launched_at": "2026-09-13T13:07:51+00:00",
+  "launched_epoch": 1789304871.2563505,
+  "process_state": "PROCESS_COMPLETED",
+  "supervisor_pid": 3268317,
+  "updated_at": "2026-09-13T14:28:24+00:00",
+  "wait_until_epoch": 1789312071.2563505
+}

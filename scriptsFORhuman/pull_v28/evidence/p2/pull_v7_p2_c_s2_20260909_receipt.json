@@ -1,0 +1,52 @@
+{
+  "name": "pull_v7_p2_c_s2_20260909",
+  "session": "pull_v7_p2_c_s2",
+  "command": "bash scriptsFORhuman/pull_v7/run_p2_cell.sh 3 C_S2 /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v7/p2_20260909/C_S2",
+  "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "output": "logs_rl/a2_piper_pull_v7/p2_20260909/C_S2_launcher.log",
+  "checkpoint": "logs_rl/a2_piper_pull_v7/p2_20260909/C_S2/model_step_010500.pt",
+  "eval_command": null,
+  "resources": [
+    "gpu:3"
+  ],
+  "state": "PASS",
+  "created_at": "2026-09-08T17:37:46+00:00",
+  "gpu": 3,
+  "branch": "codex/a2-piper-pull-v0-20260803",
+  "git_revision": "025ce28bce4c76e01c6d9ad8942f9cd89e75d758",
+  "source_revision": "uncommitted: one new reward method in gr00t/rl/envs/door/door_open_a2_pull.py plus two new pull_v7_p2_T_S* ablation configs",
+  "source_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2/model_step_009000.pt",
+  "source_cell": "P_S2",
+  "treatment": false,
+  "ablation_selector": "wbmanip/pull_v26_8_backbone_P_S2",
+  "reward_treatment": "none; reward_scales bit-identical to the step9000 source",
+  "authorized_new_batches": 1500,
+  "authorized_transitions": 98304000,
+  "batch_range": [
+    9001,
+    10500
+  ],
+  "checkpoint_steps": [
+    9250,
+    9500,
+    9750,
+    10000,
+    10250,
+    10500
+  ],
+  "milestone_evals": [
+    9500,
+    10000,
+    10500
+  ],
+  "contract": "scriptsFORhuman/pull_v7/P2_CONTRACT.md",
+  "plan": "scriptsFORhuman/pull_task/a2_piper_pull_v7_stage_plan_20260909.md",
+  "stop": "absolute ceiling batch 10500; NaN/anomaly/source-config mismatch/Owner stop; either side retention <48/64 with no margin-mediator improvement at 9500 or 10000; the 9500 admission gate is enforced by Main stopping this cell after the 9500 milestone eval, not by relaunching; no automatic extension even if ready remains 0",
+  "launch_to_ceiling_rationale": "one process to 10500 keeps the online staged-reset banks and LSTM rollout history continuous; full load does not restore them across a restart",
+  "launched_at": "2026-09-08T17:47:13+00:00",
+  "process_returncode": 0,
+  "finalized_at": "2026-09-13T14:49:22+00:00",
+  "summary": "process completed and expected checkpoint condition satisfied",
+  "acceptance_scope": "Legacy PASS is process/checkpoint only; P2 diagnosis has no ready/clean-release; no v28 acceptance.",
+  "diagnostic_closure": "scriptsFORhuman/pull_v7/P2_CLOSURE_20260913.md"
+}

@@ -1,0 +1,32 @@
+{
+  "recorded_at": "2026-09-13T13:27:16.304021+00:00",
+  "reason": "First exact64 trace measured1.67GB;18lanes~30GB exceeds root24GB. Allocate only not-started milestone parents on user-owned ssd1.",
+  "live_files_moved": false,
+  "step9500_unchanged": true,
+  "links": [
+    {
+      "canonical": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v7/p2_20260909/T_S1_STEP10000",
+      "target": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/p2_diagnostic/T_S1_STEP10000"
+    },
+    {
+      "canonical": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v7/p2_20260909/T_S1_STEP10500",
+      "target": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/p2_diagnostic/T_S1_STEP10500"
+    },
+    {
+      "canonical": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v7/p2_20260909/T_S2_STEP10000",
+      "target": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/p2_diagnostic/T_S2_STEP10000"
+    },
+    {
+      "canonical": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v7/p2_20260909/T_S2_STEP10500",
+      "target": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/p2_diagnostic/T_S2_STEP10500"
+    },
+    {
+      "canonical": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v7/p2_20260909/C_S2_STEP10000",
+      "target": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/p2_diagnostic/C_S2_STEP10000"
+    },
+    {
+      "canonical": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v7/p2_20260909/C_S2_STEP10500",
+      "target": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/p2_diagnostic/C_S2_STEP10500"
+    }
+  ]
+}

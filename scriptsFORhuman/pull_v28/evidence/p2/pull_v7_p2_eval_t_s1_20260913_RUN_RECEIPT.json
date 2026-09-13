@@ -1,0 +1,27 @@
+{
+  "acceptance_claim": "",
+  "auto_eval": false,
+  "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v7/p2_20260909/T_S1/model_step_010500.pt",
+  "checkpoint_lineage": "logs_rl/a2_piper_pull_v7/p2_20260909/T_S1",
+  "command": "for step in 9500 10000 10500; do bash scriptsFORhuman/pull_v7/eval_p2_cell.sh 1 T_S1 \"$step\" logs_rl/a2_piper_pull_v7/p2_20260909 logs_eval/a2_piper_pull_v7/p2_20260909; done",
+  "config_ref": "scriptsFORhuman/pull_v7/eval_p2_cell.sh",
+  "created_at": "2026-09-13T13:07:43+00:00",
+  "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "eta_source": "P2 plan §9: 18 exact64 lanes on three idle GPUs, estimated two hours total",
+  "eval_authorized": false,
+  "eval_command": "",
+  "expected_seconds": 7200.0,
+  "name": "pull_v7_p2_eval_t_s1_20260913",
+  "output": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v7/p2_20260909/T_S1_queue_20260913.log",
+  "owner_session": "p2_closure_runtime",
+  "project_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "resources": [
+    "gpu:1",
+    "output:logs_eval/a2_piper_pull_v7/p2_20260909"
+  ],
+  "schema_version": 2,
+  "session": "pull_v7_p2_eval_t_s1_20260913",
+  "source_revision": "025ce28bce4c76e01c6d9ad8942f9cd89e75d758",
+  "stop_condition": "complete the three frozen P2 milestones for this cell; terminate on first nonzero eval command",
+  "supervisor_version": "1.4.0"
+}

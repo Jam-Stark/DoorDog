@@ -1,0 +1,73 @@
+diff --git a/gr00t/rl/envs/door/door_open_a2_pull.py b/gr00t/rl/envs/door/door_open_a2_pull.py
+index e92860f..c413575 100644
+--- a/gr00t/rl/envs/door/door_open_a2_pull.py
++++ b/gr00t/rl/envs/door/door_open_a2_pull.py
+@@ -9722,6 +9722,68 @@ class DoorOpenA2Pull(DoorPregrasp):
+         error = torch.abs(wrap_to_pi(root_yaw - target_yaw))
+         return (error / (0.5 * math.pi)).clamp(max=1.0) * active.float()
+ 
++    def _reward_a2_pull_v7_arm_target_overshoot_penalty(self):
++        # Pull-v7 D2.  Penalize how far the commanded arm PD target lies outside
++        # the joint's hard range, in radians summed over arm_j1..arm_j6.
++        #
++        # The executor forms the arm PD target in two places that must stay
++        # consistent with this recomputation:
++        #   * DeltaActionBase.step writes the clamped cumulative arm state into
++        #     action columns delta_action_indices (delta_action_base.py:63-90);
++        #   * _step_a2_base routes those columns to arm_j1..arm_j6 through
++        #     _a2_arm_dof_indices (a2_base.py:561,572), and
++        #     _apply_force_in_physics_step forms
++        #     jpos_target = action * action_scale + default_dof_pos
++        #     (legged_robot_base.py:1183-1184).
++        # Hard limits come from simulator.hard_dof_pos_limits, the same tensor
++        # _reward_limits_dof_pos uses; it is a verbatim copy of the robot config
++        # dof_pos_lower/upper_limit_list (isaacsim.py:2398-2399), so the two
++        # limit sources are identical and only this one is loaded here.
++        arm_dof_idx = self._a2_arm_dof_indices
++        if list(arm_dof_idx.tolist()) != list(self._upper_non_gripper_dof_idx):
++            raise RuntimeError(
++                "Pull-v7 arm target overshoot penalty requires the executor arm DOF "
++                f"order {arm_dof_idx.tolist()} to equal the limit-penalty arm DOF order "
++                f"{list(self._upper_non_gripper_dof_idx)}."
++            )
++        expected_delta_action_indices = torch.arange(
++            self.A2_BASE_COMMAND_ACTION_DIM,
++            self.A2_BASE_COMMAND_ACTION_DIM + self.A2_ARM_ACTION_DIM,
++            dtype=self._delta_action_indices.dtype,
++            device=self._delta_action_indices.device,
++        )
++        if not torch.equal(self._delta_action_indices, expected_delta_action_indices):
++            raise RuntimeError(
++                "Pull-v7 arm target overshoot penalty requires delta_action_indices "
++                f"{expected_delta_action_indices.tolist()} so that cumulative column j "
++                f"drives arm_j{{j+1}}; got {self._delta_action_indices.tolist()}."
++            )
++        expected_delta_shape = (self.num_envs, self.A2_ARM_ACTION_DIM)
++        if tuple(self._delta_actions.shape) != expected_delta_shape:
++            raise RuntimeError(
++                "Pull-v7 arm target overshoot penalty requires _delta_actions shape "
++                f"{expected_delta_shape}; got {tuple(self._delta_actions.shape)}."
++            )
++        arm_default = self._get_a2_arm_default_dof_pos()
++        if tuple(arm_default.shape) != expected_delta_shape:
++            raise RuntimeError(
++                "Pull-v7 arm target overshoot penalty requires arm default DOF shape "
++                f"{expected_delta_shape}; got {tuple(arm_default.shape)}."
++            )
++        limits = self.simulator.hard_dof_pos_limits[arm_dof_idx, :]
++        if tuple(limits.shape) != (self.A2_ARM_ACTION_DIM, 2):
++            raise RuntimeError(
++                "Pull-v7 arm target overshoot penalty requires arm hard limit shape "
++                f"({self.A2_ARM_ACTION_DIM}, 2); got {tuple(limits.shape)}."
++            )
++        arm_target = (
++            arm_default + self.config.robot.control.action_scale * self._delta_actions
++        )
++        overshoot = (arm_target - limits[None, :, 1]).clamp(min=0.0) + (
++            limits[None, :, 0] - arm_target
++        ).clamp(min=0.0)
++        return torch.sum(overshoot, dim=-1)
++
+     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+     @override
+     def _reward_a2_corridor_clean_passage(self):

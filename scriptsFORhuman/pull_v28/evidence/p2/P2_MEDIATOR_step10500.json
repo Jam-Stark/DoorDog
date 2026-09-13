@@ -1,0 +1,1326 @@
+{
+  "schema": "pull_v7_p2_mediator_v1",
+  "step": 10500,
+  "eval_root": "logs_eval/a2_piper_pull_v7/p2_20260909",
+  "cells": [
+    "T_S1",
+    "T_S2",
+    "C_S2"
+  ],
+  "gate_reference": "scriptsFORhuman/pull_task/a2_piper_pull_v7_stage_plan_20260909.md §4.4",
+  "groups": [
+    {
+      "cell": "T_S1",
+      "side": "left",
+      "directory": "logs_eval/a2_piper_pull_v7/p2_20260909/T_S1_STEP10500/left",
+      "denominator": 64,
+      "trace_bytes": 1666117930,
+      "births": 64,
+      "episodes_with_trace": 64,
+      "margin_threshold": 0.07,
+      "margin_recompute_max_abs_error": 1.1767489754973756e-08,
+      "d2_term_present": true,
+      "d2_reward_raw": {
+        "n": 45954,
+        "median": 3.75,
+        "p90": 3.75,
+        "max": 6.532812118530273
+      },
+      "d2_reward_scaled": {
+        "n": 45954,
+        "median": -0.07499999552965164,
+        "p90": -0.07499999552965164,
+        "max": -0.023450113832950592
+      },
+      "overshoot_stage1plus": {
+        "arm_j1": {
+          "n": 45954,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.7528121776580812
+        },
+        "arm_j2": {
+          "n": 45954,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.5048064589500427
+        },
+        "arm_j3": {
+          "n": 45954,
+          "median": 3.75,
+          "p90": 3.75,
+          "max": 3.75
+        },
+        "arm_j4": {
+          "n": 45954,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 45954,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 2.0300000000000002
+        },
+        "arm_j6": {
+          "n": 45954,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.3485020881652834
+        },
+        "sum": {
+          "n": 45954,
+          "median": 3.75,
+          "p90": 3.75,
+          "max": 6.532812177658081
+        }
+      },
+      "overshoot_post_e5": {
+        "arm_j1": {
+          "n": 10751,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j2": {
+          "n": 10751,
+          "median": 0.0,
+          "p90": 0.12101872265338898,
+          "max": 0.5048064589500427
+        },
+        "arm_j3": {
+          "n": 10751,
+          "median": 3.75,
+          "p90": 3.75,
+          "max": 3.75
+        },
+        "arm_j4": {
+          "n": 10751,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 10751,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j6": {
+          "n": 10751,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.15299885330200214
+        },
+        "sum": {
+          "n": 10751,
+          "median": 3.75,
+          "p90": 3.83712691423893,
+          "max": 4.254806458950043
+        }
+      },
+      "release_margin_episode_max": {
+        "n": 64,
+        "median": 0.00022712999634677544,
+        "p90": 0.00026529975002631545,
+        "max": 0.00036701097269542515
+      },
+      "high_margin_b_steps_total": 0,
+      "high_margin_b_episodes": 0,
+      "high_margin_e5_entries": 0,
+      "leave_limit": {
+        "arm_j3": {
+          "episodes": 0,
+          "first_age_median": null
+        },
+        "arm_j5": {
+          "episodes": 64,
+          "first_age_median": 100
+        }
+      },
+      "pass_count_histogram_post_e5": {
+        "3": 35,
+        "4": 3560,
+        "5": 4800,
+        "6": 2218,
+        "7": 138
+      },
+      "only_missing_one_post_e5": {
+        "pivot_valid": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "bilateral": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "panel_clear": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "handle_y": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "pivot": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "share": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "hinge": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "velocity": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "clearance": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "margin": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        }
+      },
+      "ready": {
+        "episodes": 0,
+        "steps": 0,
+        "longest": 0
+      },
+      "clean_release_episodes": 0,
+      "retention": {
+        "K5": 64,
+        "D": 64,
+        "E4": 64,
+        "E5": 63
+      },
+      "events": {
+        "E2": 64,
+        "E3": 64,
+        "E4": 64,
+        "E5": 63,
+        "E6": 0,
+        "E7": 0
+      },
+      "complete": 0,
+      "retained_4a_4b": {
+        "handoff_reached": 61,
+        "tangent_share_ge_0_6": 61,
+        "handle_crossed": 0
+      },
+      "terminal_reasons": {
+        "stage_overtime": 64
+      }
+    },
+    {
+      "cell": "T_S1",
+      "side": "right",
+      "directory": "logs_eval/a2_piper_pull_v7/p2_20260909/T_S1_STEP10500/right",
+      "denominator": 64,
+      "trace_bytes": 1665954880,
+      "births": 64,
+      "episodes_with_trace": 64,
+      "margin_threshold": 0.07,
+      "margin_recompute_max_abs_error": 1.6945688564602018e-08,
+      "d2_term_present": true,
+      "d2_reward_raw": {
+        "n": 45902,
+        "median": 3.7907516956329346,
+        "p90": 4.124327659606934,
+        "max": 5.553504943847656
+      },
+      "d2_reward_scaled": {
+        "n": 45902,
+        "median": -0.07581503316760063,
+        "p90": -0.06245414540171623,
+        "max": -0.0
+      },
+      "overshoot_stage1plus": {
+        "arm_j1": {
+          "n": 45902,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j2": {
+          "n": 45902,
+          "median": 0.0,
+          "p90": 0.373737096786499,
+          "max": 0.993209183216095
+        },
+        "arm_j3": {
+          "n": 45902,
+          "median": 3.75,
+          "p90": 3.75,
+          "max": 3.75
+        },
+        "arm_j4": {
+          "n": 45902,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 45902,
+          "median": 0.0,
+          "p90": 0.36210873603820803,
+          "max": 1.8035047340393067
+        },
+        "arm_j6": {
+          "n": 45902,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.4507359748840334
+        },
+        "sum": {
+          "n": 45902,
+          "median": 3.790751843452454,
+          "p90": 4.124327926635742,
+          "max": 5.553504734039307
+        }
+      },
+      "overshoot_post_e5": {
+        "arm_j1": {
+          "n": 12269,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j2": {
+          "n": 12269,
+          "median": 0.2876589596271515,
+          "p90": 0.6151852607727051,
+          "max": 0.993209183216095
+        },
+        "arm_j3": {
+          "n": 12269,
+          "median": 3.170827865600586,
+          "p90": 3.75,
+          "max": 3.75
+        },
+        "arm_j4": {
+          "n": 12269,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 12269,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.1629169273376465
+        },
+        "arm_j6": {
+          "n": 12269,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.27560417709350604
+        },
+        "sum": {
+          "n": 12269,
+          "median": 3.458280235528946,
+          "p90": 3.9724701792001724,
+          "max": 4.473342180252075
+        }
+      },
+      "release_margin_episode_max": {
+        "n": 64,
+        "median": 0.0001515556068625301,
+        "p90": 0.00023136628442443907,
+        "max": 0.05371073633432388
+      },
+      "high_margin_b_steps_total": 0,
+      "high_margin_b_episodes": 0,
+      "high_margin_e5_entries": 0,
+      "leave_limit": {
+        "arm_j3": {
+          "episodes": 1,
+          "first_age_median": 769
+        },
+        "arm_j5": {
+          "episodes": 64,
+          "first_age_median": 112
+        }
+      },
+      "pass_count_histogram_post_e5": {
+        "3": 1,
+        "4": 4930,
+        "5": 5965,
+        "6": 1089,
+        "7": 284
+      },
+      "only_missing_one_post_e5": {
+        "pivot_valid": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "bilateral": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "panel_clear": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "handle_y": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "pivot": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "share": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "hinge": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "velocity": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "clearance": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "margin": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        }
+      },
+      "ready": {
+        "episodes": 0,
+        "steps": 0,
+        "longest": 0
+      },
+      "clean_release_episodes": 0,
+      "retention": {
+        "K5": 64,
+        "D": 64,
+        "E4": 64,
+        "E5": 64
+      },
+      "events": {
+        "E2": 64,
+        "E3": 64,
+        "E4": 64,
+        "E5": 64,
+        "E6": 0,
+        "E7": 0
+      },
+      "complete": 0,
+      "retained_4a_4b": {
+        "handoff_reached": 49,
+        "tangent_share_ge_0_6": 49,
+        "handle_crossed": 0
+      },
+      "terminal_reasons": {
+        "stage_overtime": 64
+      }
+    },
+    {
+      "cell": "T_S2",
+      "side": "left",
+      "directory": "logs_eval/a2_piper_pull_v7/p2_20260909/T_S2_STEP10500/left",
+      "denominator": 64,
+      "trace_bytes": 1690892088,
+      "births": 64,
+      "episodes_with_trace": 64,
+      "margin_threshold": 0.07,
+      "margin_recompute_max_abs_error": 1.6941947755229412e-08,
+      "d2_term_present": true,
+      "d2_reward_raw": {
+        "n": 46560,
+        "median": 2.087211847305298,
+        "p90": 2.2566206455230713,
+        "max": 2.7166638374328613
+      },
+      "d2_reward_scaled": {
+        "n": 46560,
+        "median": -0.04174423590302467,
+        "p90": -0.003318549832329154,
+        "max": -0.0
+      },
+      "overshoot_stage1plus": {
+        "arm_j1": {
+          "n": 46560,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j2": {
+          "n": 46560,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j3": {
+          "n": 46560,
+          "median": 0.0979815386235714,
+          "p90": 0.265019953250885,
+          "max": 0.7658392190933228
+        },
+        "arm_j4": {
+          "n": 46560,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 46560,
+          "median": 2.0300000000000002,
+          "p90": 2.0300000000000002,
+          "max": 2.0300000000000002
+        },
+        "arm_j6": {
+          "n": 46560,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.3559922462463381
+        },
+        "sum": {
+          "n": 46560,
+          "median": 2.087211944833398,
+          "p90": 2.256620584726334,
+          "max": 2.716663925647736
+        }
+      },
+      "overshoot_post_e5": {
+        "arm_j1": {
+          "n": 14063,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j2": {
+          "n": 14063,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j3": {
+          "n": 14063,
+          "median": 0.09881170094013214,
+          "p90": 0.28542616963386536,
+          "max": 0.7658392190933228
+        },
+        "arm_j4": {
+          "n": 14063,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 14063,
+          "median": 0.06882849216461184,
+          "p90": 2.0300000000000002,
+          "max": 2.0300000000000002
+        },
+        "arm_j6": {
+          "n": 14063,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "sum": {
+          "n": 14063,
+          "median": 0.31301695108413696,
+          "p90": 2.148610516190529,
+          "max": 2.492549686431885
+        }
+      },
+      "release_margin_episode_max": {
+        "n": 64,
+        "median": 0.01072410074993968,
+        "p90": 0.015432977117598057,
+        "max": 0.016654107719659805
+      },
+      "high_margin_b_steps_total": 0,
+      "high_margin_b_episodes": 0,
+      "high_margin_e5_entries": 0,
+      "leave_limit": {
+        "arm_j3": {
+          "episodes": 0,
+          "first_age_median": null
+        },
+        "arm_j5": {
+          "episodes": 64,
+          "first_age_median": 96
+        }
+      },
+      "pass_count_histogram_post_e5": {
+        "3": 84,
+        "4": 2645,
+        "5": 6089,
+        "6": 5186,
+        "7": 59
+      },
+      "only_missing_one_post_e5": {
+        "pivot_valid": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "bilateral": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "panel_clear": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "handle_y": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "pivot": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "share": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "hinge": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "velocity": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "clearance": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "margin": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        }
+      },
+      "ready": {
+        "episodes": 0,
+        "steps": 0,
+        "longest": 0
+      },
+      "clean_release_episodes": 0,
+      "retention": {
+        "K5": 64,
+        "D": 64,
+        "E4": 64,
+        "E5": 64
+      },
+      "events": {
+        "E2": 64,
+        "E3": 64,
+        "E4": 64,
+        "E5": 64,
+        "E6": 0,
+        "E7": 0
+      },
+      "complete": 0,
+      "retained_4a_4b": {
+        "handoff_reached": 57,
+        "tangent_share_ge_0_6": 64,
+        "handle_crossed": 64
+      },
+      "terminal_reasons": {
+        "stage_overtime": 64
+      }
+    },
+    {
+      "cell": "T_S2",
+      "side": "right",
+      "directory": "logs_eval/a2_piper_pull_v7/p2_20260909/T_S2_STEP10500/right",
+      "denominator": 64,
+      "trace_bytes": 1687649213,
+      "births": 64,
+      "episodes_with_trace": 64,
+      "margin_threshold": 0.07,
+      "margin_recompute_max_abs_error": 1.694197554727488e-08,
+      "d2_term_present": true,
+      "d2_reward_raw": {
+        "n": 46505,
+        "median": 2.0299999713897705,
+        "p90": 2.1862707138061523,
+        "max": 3.202571392059326
+      },
+      "d2_reward_scaled": {
+        "n": 46505,
+        "median": -0.0405999980866909,
+        "p90": -0.0011652957182377577,
+        "max": -0.0
+      },
+      "overshoot_stage1plus": {
+        "arm_j1": {
+          "n": 46505,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j2": {
+          "n": 46505,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j3": {
+          "n": 46505,
+          "median": 0.03469659760594368,
+          "p90": 0.17035551369190216,
+          "max": 0.7388870716094971
+        },
+        "arm_j4": {
+          "n": 46505,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 46505,
+          "median": 2.0300000000000002,
+          "p90": 2.0300000000000002,
+          "max": 2.0300000000000002
+        },
+        "arm_j6": {
+          "n": 46505,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.5454320198059084
+        },
+        "sum": {
+          "n": 46505,
+          "median": 2.0300000000000002,
+          "p90": 2.1862706232070925,
+          "max": 3.2025714689254765
+        }
+      },
+      "overshoot_post_e5": {
+        "arm_j1": {
+          "n": 12242,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j2": {
+          "n": 12242,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j3": {
+          "n": 12242,
+          "median": 0.01395004615187645,
+          "p90": 0.09749478846788406,
+          "max": 0.2736762762069702
+        },
+        "arm_j4": {
+          "n": 12242,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 12242,
+          "median": 0.062066762447357204,
+          "p90": 1.5797512817382813,
+          "max": 2.0300000000000002
+        },
+        "arm_j6": {
+          "n": 12242,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "sum": {
+          "n": 12242,
+          "median": 0.10326013654470445,
+          "p90": 1.6159496910125017,
+          "max": 2.2418133753538134
+        }
+      },
+      "release_margin_episode_max": {
+        "n": 64,
+        "median": 0.008858191315084696,
+        "p90": 0.010658669285476208,
+        "max": 0.015801111236214638
+      },
+      "high_margin_b_steps_total": 0,
+      "high_margin_b_episodes": 0,
+      "high_margin_e5_entries": 0,
+      "leave_limit": {
+        "arm_j3": {
+          "episodes": 0,
+          "first_age_median": null
+        },
+        "arm_j5": {
+          "episodes": 63,
+          "first_age_median": 91
+        }
+      },
+      "pass_count_histogram_post_e5": {
+        "4": 509,
+        "5": 9709,
+        "6": 1923,
+        "7": 93,
+        "8": 8
+      },
+      "only_missing_one_post_e5": {
+        "pivot_valid": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "bilateral": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "panel_clear": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "handle_y": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "pivot": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "share": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "hinge": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "velocity": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "clearance": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "margin": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        }
+      },
+      "ready": {
+        "episodes": 0,
+        "steps": 0,
+        "longest": 0
+      },
+      "clean_release_episodes": 0,
+      "retention": {
+        "K5": 64,
+        "D": 64,
+        "E4": 64,
+        "E5": 64
+      },
+      "events": {
+        "E2": 64,
+        "E3": 64,
+        "E4": 64,
+        "E5": 64,
+        "E6": 0,
+        "E7": 0
+      },
+      "complete": 0,
+      "retained_4a_4b": {
+        "handoff_reached": 46,
+        "tangent_share_ge_0_6": 49,
+        "handle_crossed": 0
+      },
+      "terminal_reasons": {
+        "stage_overtime": 64
+      }
+    },
+    {
+      "cell": "C_S2",
+      "side": "left",
+      "directory": "logs_eval/a2_piper_pull_v7/p2_20260909/C_S2_STEP10500/left",
+      "denominator": 64,
+      "trace_bytes": 1675756905,
+      "births": 64,
+      "episodes_with_trace": 64,
+      "margin_threshold": 0.07,
+      "margin_recompute_max_abs_error": 1.6944476831400718e-08,
+      "d2_term_present": false,
+      "d2_reward_raw": {
+        "n": 0,
+        "median": null,
+        "p90": null,
+        "max": null
+      },
+      "d2_reward_scaled": {
+        "n": 0,
+        "median": null,
+        "p90": null,
+        "max": null
+      },
+      "overshoot_stage1plus": {
+        "arm_j1": {
+          "n": 46621,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j2": {
+          "n": 46621,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j3": {
+          "n": 46621,
+          "median": 3.75,
+          "p90": 3.75,
+          "max": 3.75
+        },
+        "arm_j4": {
+          "n": 46621,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 46621,
+          "median": 2.0300000000000002,
+          "p90": 2.0300000000000002,
+          "max": 2.0300000000000002
+        },
+        "arm_j6": {
+          "n": 46621,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 1.272913623428345
+        },
+        "sum": {
+          "n": 46621,
+          "median": 5.78,
+          "p90": 5.78,
+          "max": 5.78
+        }
+      },
+      "overshoot_post_e5": {
+        "arm_j1": {
+          "n": 15587,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j2": {
+          "n": 15587,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j3": {
+          "n": 15587,
+          "median": 3.75,
+          "p90": 3.75,
+          "max": 3.75
+        },
+        "arm_j4": {
+          "n": 15587,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 15587,
+          "median": 2.0300000000000002,
+          "p90": 2.0300000000000002,
+          "max": 2.0300000000000002
+        },
+        "arm_j6": {
+          "n": 15587,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "sum": {
+          "n": 15587,
+          "median": 5.78,
+          "p90": 5.78,
+          "max": 5.78
+        }
+      },
+      "release_margin_episode_max": {
+        "n": 64,
+        "median": 0.00013264646258903667,
+        "p90": 0.00018203844956588,
+        "max": 0.0002269373508170247
+      },
+      "high_margin_b_steps_total": 0,
+      "high_margin_b_episodes": 0,
+      "high_margin_e5_entries": 0,
+      "leave_limit": {
+        "arm_j3": {
+          "episodes": 0,
+          "first_age_median": null
+        },
+        "arm_j5": {
+          "episodes": 16,
+          "first_age_median": 65
+        }
+      },
+      "pass_count_histogram_post_e5": {
+        "3": 111,
+        "4": 5157,
+        "5": 2980,
+        "6": 7257,
+        "7": 82
+      },
+      "only_missing_one_post_e5": {
+        "pivot_valid": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "bilateral": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "panel_clear": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "handle_y": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "pivot": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "share": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "hinge": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "velocity": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "clearance": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "margin": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        }
+      },
+      "ready": {
+        "episodes": 0,
+        "steps": 0,
+        "longest": 0
+      },
+      "clean_release_episodes": 0,
+      "retention": {
+        "K5": 64,
+        "D": 64,
+        "E4": 64,
+        "E5": 64
+      },
+      "events": {
+        "E2": 64,
+        "E3": 64,
+        "E4": 64,
+        "E5": 64,
+        "E6": 0,
+        "E7": 0
+      },
+      "complete": 0,
+      "retained_4a_4b": {
+        "handoff_reached": 43,
+        "tangent_share_ge_0_6": 64,
+        "handle_crossed": 64
+      },
+      "terminal_reasons": {
+        "stage_overtime": 64
+      }
+    },
+    {
+      "cell": "C_S2",
+      "side": "right",
+      "directory": "logs_eval/a2_piper_pull_v7/p2_20260909/C_S2_STEP10500/right",
+      "denominator": 64,
+      "trace_bytes": 1664185334,
+      "births": 64,
+      "episodes_with_trace": 64,
+      "margin_threshold": 0.07,
+      "margin_recompute_max_abs_error": 1.6941875495912555e-08,
+      "d2_term_present": false,
+      "d2_reward_raw": {
+        "n": 0,
+        "median": null,
+        "p90": null,
+        "max": null
+      },
+      "d2_reward_scaled": {
+        "n": 0,
+        "median": null,
+        "p90": null,
+        "max": null
+      },
+      "overshoot_stage1plus": {
+        "arm_j1": {
+          "n": 46352,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.04590585899353039
+        },
+        "arm_j2": {
+          "n": 46352,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.05535396188497543
+        },
+        "arm_j3": {
+          "n": 46352,
+          "median": 3.75,
+          "p90": 3.75,
+          "max": 3.75
+        },
+        "arm_j4": {
+          "n": 46352,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 46352,
+          "median": 2.0300000000000002,
+          "p90": 2.0300000000000002,
+          "max": 2.0300000000000002
+        },
+        "arm_j6": {
+          "n": 46352,
+          "median": 3.225600171661377,
+          "p90": 3.225600171661377,
+          "max": 3.225600171661377
+        },
+        "sum": {
+          "n": 46352,
+          "median": 9.005600171661378,
+          "p90": 9.005600171661378,
+          "max": 9.051506030654908
+        }
+      },
+      "overshoot_post_e5": {
+        "arm_j1": {
+          "n": 13052,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.033340961456298945
+        },
+        "arm_j2": {
+          "n": 13052,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.05535396188497543
+        },
+        "arm_j3": {
+          "n": 13052,
+          "median": 3.75,
+          "p90": 3.75,
+          "max": 3.75
+        },
+        "arm_j4": {
+          "n": 13052,
+          "median": 0.0,
+          "p90": 0.0,
+          "max": 0.0
+        },
+        "arm_j5": {
+          "n": 13052,
+          "median": 2.0300000000000002,
+          "p90": 2.0300000000000002,
+          "max": 2.0300000000000002
+        },
+        "arm_j6": {
+          "n": 13052,
+          "median": 0.0,
+          "p90": 3.225600171661377,
+          "max": 3.225600171661377
+        },
+        "sum": {
+          "n": 13052,
+          "median": 5.78,
+          "p90": 9.001608090972901,
+          "max": 9.038941133117676
+        }
+      },
+      "release_margin_episode_max": {
+        "n": 64,
+        "median": 2.792135546769714e-05,
+        "p90": 5.801962470286526e-05,
+        "max": 9.078123548533767e-05
+      },
+      "high_margin_b_steps_total": 0,
+      "high_margin_b_episodes": 0,
+      "high_margin_e5_entries": 0,
+      "leave_limit": {
+        "arm_j3": {
+          "episodes": 0,
+          "first_age_median": null
+        },
+        "arm_j5": {
+          "episodes": 26,
+          "first_age_median": 86
+        }
+      },
+      "pass_count_histogram_post_e5": {
+        "3": 2353,
+        "4": 10111,
+        "5": 587,
+        "6": 1
+      },
+      "only_missing_one_post_e5": {
+        "pivot_valid": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "bilateral": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "panel_clear": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "handle_y": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "pivot": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "share": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "hinge": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "velocity": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "clearance": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        },
+        "margin": {
+          "episodes": 0,
+          "steps": 0,
+          "longest": 0
+        }
+      },
+      "ready": {
+        "episodes": 0,
+        "steps": 0,
+        "longest": 0
+      },
+      "clean_release_episodes": 0,
+      "retention": {
+        "K5": 64,
+        "D": 64,
+        "E4": 64,
+        "E5": 64
+      },
+      "events": {
+        "E2": 64,
+        "E3": 64,
+        "E4": 64,
+        "E5": 64,
+        "E6": 0,
+        "E7": 0
+      },
+      "complete": 0,
+      "retained_4a_4b": {
+        "handoff_reached": 14,
+        "tangent_share_ge_0_6": 36,
+        "handle_crossed": 0
+      },
+      "terminal_reasons": {
+        "stage_overtime": 64
+      }
+    }
+  ]
+}

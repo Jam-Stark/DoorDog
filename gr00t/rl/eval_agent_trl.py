@@ -564,7 +564,10 @@ def main(override_config: OmegaConf):
                 _apply_r2_workflow_overrides(config, override_config)
             else:
                 config = override_config
-        config.experiment_dir = checkpoint.parent
+        # Checkpoint-adjacent config supplies the trained policy and its
+        # environment contract. Evaluation artifacts belong to the explicit
+        # eval output directory so a diagnostic run never writes into training.
+        config.experiment_dir = config.eval_output_dir
     else:
         if override_config.eval_overrides is not None:
             config = override_config.copy()

@@ -1,0 +1,66 @@
+{
+  "schema": "pull_v28_opening_closure_v2",
+  "status": "BLOCKED_G0_POST_POLICY_CHECKPOINT_FAILURE",
+  "owner_action_required": true,
+  "owner_gate": "plan8: policy readings followed by nonzero run stops this cell; no automatic retry",
+  "p2_completed_lanes": 18,
+  "g0": {
+    "latest_attempt": 2,
+    "robot_reference_fix_applied": true,
+    "actor_input_dim": 133,
+    "critic_input_dim": 138,
+    "learning_iterations_completed": 5,
+    "total_timesteps": 81920,
+    "iteration_times_s": [
+      18.97,
+      17.63,
+      16.68,
+      17.2,
+      16.82
+    ],
+    "training_iteration_time_total_s": 87.3,
+    "child_returncode": 0,
+    "wrapper_returncode": 1,
+    "policy_readings_observed": true,
+    "checkpoint_emitted": false,
+    "save_frequency": 250,
+    "last_pt_frequency": 50,
+    "reason": "5-step smoke does not reach either save trigger",
+    "peak_gpu_memory_mib": 6210,
+    "minimum_headroom_mib": 18366
+  },
+  "gates": {
+    "PG1": "PASS_REUSED",
+    "PG2": "PASS_REUSED",
+    "PG3": "SCOPED_PASS_REUSED_NO_LATE_EVENT",
+    "PG4": "PASS_RUNTIME_DIMS133_138",
+    "PG5": "PASS_REUSED",
+    "PG6": "TRAINING_5_BATCHES_COMPLETE_CHECKPOINT_EVAL_INCOMPLETE",
+    "PG7": "PASS_REUSED",
+    "PG8": "G0_REDUCER_IMPLEMENTED_END_TO_END_UNVALIDATED"
+  },
+  "budget": {
+    "g0_batches_completed_all_attempts": 5,
+    "g0_batch_ceiling": 32,
+    "pa_batches_completed": 0,
+    "pa_default_budget": 18000,
+    "pa_plus_warm_ceiling": 18500,
+    "warm": "NOT_RUN"
+  },
+  "pa_endpoint": {
+    "status": "NOT_ASSESSED_G0_INCOMPLETE",
+    "k": null,
+    "denominator": 3,
+    "valid_endpoints": 0,
+    "PA_S1": "NOT_RUN",
+    "PA_S2": "NOT_RUN",
+    "PA_S3": "NOT_RUN"
+  },
+  "proposed_not_applied_fix": "Set smoke save_frequency5, PA remains250; new5batch attempt would make G0 total10<=32. Requires Owner authorization for post-policy retry.",
+  "resources": {
+    "tmux_snapshot": "0: 1 windows (created Tue Sep  8 18:34:17 2026)",
+    "compute_snapshot": "",
+    "main_leases": "RELEASED"
+  },
+  "no_push": true
+}

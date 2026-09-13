@@ -1,6 +1,6 @@
 ---
 name: pull-v28-baseline-sync
-status: blocked_g0_infra_repair_limit
+status: blocked_g0_post_policy_checkpoint_failure
 scope: pull v28 C_T infrastructure sync, m5 G0 and three-scratch-seed opening baseline
 last_verified: 2026-09-13
 read_when:
@@ -35,3 +35,7 @@ PG7使用m5匹配旧asset对照和D37分层p50/p95/CAP/零摔倒/slope。无事�
 2026-09-13 22:29 HKT：P2全部18条完成；ready/clean-release均0。封存后应用MERGED/S2及语义patch，启动G0 contact_a1，Main持有GPU1–3。raw读数与process-only边界见pull_v7/P2_CLOSURE_20260913.md；真实G0失败须Owner处理。
 
 2026-09-13 23:02:48 HKT最新终态：BLOCKED_G0_INFRA_REPAIR_LIMIT。contact_a3和PG7均有界PASS；flat env.robot引用断裂导致LSTM(0,256)，G0 PPO0batch，无checkpoint。第三次修复一行补丁仅提案未应用，等待Owner额外修复授权。PA全部NOT_RUN、k=null/3，不能判opening失败。资源及对应事件已收尾，P2 commit9246460/G0 commitcad573c；详见OPENING_CLOSURE_20260913.md和OWNER_REPAIR_REQUEST_20260913.md。
+
+2026-09-14当前接续：Owner已授权额外一行修复并按原计划继续；补丁现已应用，G0新train attempt2、输出g0_resume_20260914/G0。P2/contact_a3/PG7证据复用；PA仍待G0。旧Owner门closure保留为历史，不再当作当前暂停令。
+
+2026-09-14最新终态：env.robot引用修复已在G0 attempt2实证成功，LSTM输入133/138；完成5个学习迭代，但save_frequency250/last每50使5步smoke不写checkpoint，runner返回1且policy_readings_observed=true。按计划§8停止，不自动重跑。新提案OWNER_PROPOSED_SMOKE_SAVE_FIX_NOT_APPLIED.patch仅将smoke save_frequency设5，未应用；需Owner授权新5步attempt（累计将10≤32）。PA仍NOT_RUN，k=null/3。资源已释放，见OPENING_CLOSURE_20260914.md。

@@ -1,7 +1,7 @@
 # TODO
 
-- **Owner门**：G0已用完两次harness修复；决定是否授权额外一次恢复env.robot动态引用的一行修复。提案在scriptsFORhuman/pull_v28/OWNER_PROPOSED_FIX_NOT_APPLIED.patch，尚未应用。不要把该补丁当作已生效。
-- 若获授权，在全新attempt/输出目录接续已批准256env×5batch smoke及full-checkpoint双侧natural评估；保留全部旧失败证据，完成PG4/6/8，再决定合法PA启动。当前0batch，无checkpoint可评估。
-- PA_S1/2/3仍NOT_RUN；原三seed各6000和24条natural矩阵保持，warm默认不运行。不得将当前缺失终点填0/3。
-- P3–P5、恢复/感知/门域及push/pull合一需单独立项，未获本轮自动执行权；Teacher/硬件/推送未运行。
-- 当前任务资源与对应事件已收尾；重新运行前按原计划核对授权GPU1/2/3。GPU0/无关tmux及他人变更不处置。
+- **当前Owner门**：G0 attempt2已产生policy读数并完成5迭代，但没有checkpoint，runner返回1；依计划§8不得自动重跑。等待Owner授权仅修复smoke保存间隔为5及一次新5batch attempt。
+- `OWNER_PROPOSED_SMOKE_SAVE_FIX_NOT_APPLIED.patch`尚未应用；原env.robot引用补丁已应用且133/138运行验证成功，不要重复应用旧patch。
+- 若获得授权，使用新attempt与新输出目录；累计G0将10 batches≤32。完成checkpoint natural双侧和G0归约，再按原计划PA_S1/2/3各6000及24条natural接续。
+- P2/contact/PG7已有证据不重跑；PA当前均NOT_RUN、k=null/3，warm默认NOT_RUN；P3–P5/Teacher/硬件/push不自动执行。
+- 本任务资源和事件已收尾。保留全部旧失败输出、D2及无关工作树修改。

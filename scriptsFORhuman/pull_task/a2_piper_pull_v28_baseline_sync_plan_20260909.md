@@ -2,7 +2,7 @@
 
 创建：2026-09-09 HKT；修订：2026-09-13 HKT。
 修改：-codex planner；依据：-owner 要求更新 pull 同步 plan 并交付 m5 Codex team 启动 prompt。
-状态：`BLOCKED_G0_INFRA_REPAIR_LIMIT`。P2 18条诊断已封存；S1–S8已应用。PG1/2/3/5与PG7有界证据通过，但G0 PPO因flat robot引用断裂构造LSTM(0,256)在batch1前失败。两次G0 harness修复额度已用完，第三次修复未应用，PA未运行。见pull_v28/G0_CLOSURE_20260913.md及OPENING_CLOSURE_20260913.md；下列原合同不改门、不自动扩额。
+状态：`BLOCKED_G0_POST_POLICY_CHECKPOINT_FAILURE`。2026-09-14已授权robot引用修复运行成功，G0 attempt2完成5迭代，但save_frequency250使未发出第5步checkpoint；按§8已有policy读数后的非零run停止，不自动重跑。见OPENING_CLOSURE_20260914.md与未应用smoke保存补丁；PA均NOT_RUN，原合同与预算不变。
 
 执行仓库：m5（`baoquanc@m5.precognition.team`，主机名 `ai-precog-machine5`）的 `/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0`，分支 `codex/a2-piper-pull-v0-20260803`。
 canonical：pull 仓库 `scriptsFORhuman/pull_task/a2_piper_pull_v28_baseline_sync_plan_20260909.md`；主线镜像：`scriptsFORhuman/pull_v28_alignment/`。

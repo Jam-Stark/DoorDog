@@ -1,0 +1,25 @@
+isaac.log:735: RunningMeanStd:  (133,)
+isaac.log:737:   (rnn): LSTM(133, 256, num_layers=2)
+isaac.log:750: RunningMeanStd:  (138,)
+isaac.log:752:   (rnn): LSTM(138, 256, num_layers=2)
+isaac.log:765: [32m2026-09-14 01:09:37.494[0m | [1mINFO    [0m | [36m__main__[0m:[36mmain[0m:[36m572[0m - [1mSaving config file to /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_resume_20260914/G0[0m
+isaac.log:776: │                         [1m Learning iteration 1  [0m                        │
+isaac.log:994: │                    Total timesteps: 16384                                    │
+isaac.log:995: │                     Iteration time: 18.97s                                   │
+isaac.log:996: │                         Total time: 18.97s                                   │
+isaac.log:1002: │                         [1m Learning iteration 2  [0m                        │
+isaac.log:1220: │                    Total timesteps: 32768                                    │
+isaac.log:1221: │                     Iteration time: 17.63s                                   │
+isaac.log:1222: │                         Total time: 36.61s                                   │
+isaac.log:1228: │                         [1m Learning iteration 3  [0m                        │
+isaac.log:1446: │                    Total timesteps: 49152                                    │
+isaac.log:1447: │                     Iteration time: 16.68s                                   │
+isaac.log:1448: │                         Total time: 53.29s                                   │
+isaac.log:1454: │                         [1m Learning iteration 4  [0m                        │
+isaac.log:1672: │                    Total timesteps: 65536                                    │
+isaac.log:1673: │                     Iteration time: 17.20s                                   │
+isaac.log:1674: │                         Total time: 70.48s                                   │
+isaac.log:1680: │                         [1m Learning iteration 5  [0m                        │
+isaac.log:1898: │                    Total timesteps: 81920                                    │
+isaac.log:1899: │                     Iteration time: 16.82s                                   │
+isaac.log:1900: │                         Total time: 87.30s                                   │

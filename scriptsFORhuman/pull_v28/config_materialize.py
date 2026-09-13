@@ -92,7 +92,7 @@ def main() -> int:
         if callback in cfg["callbacks"] and "save_dir" in cfg["callbacks"][callback]:
             cfg["callbacks"][callback]["save_dir"] = str(a.train_dir)
     cfg["algo"]["trl"]["output_dir"] = str(a.train_dir)
-    env["robot"] = robot
+    env["robot"] = "${robot}"
     cfg["robot"] = robot
     env["a2_door_open_lr_permutation_seed"] = a.seed
     for key, expected in {"a2_v26_6_side_mirrored_handle_offset_enabled": True,

@@ -1,0 +1,11 @@
+{
+  "authorized_at": "2026-09-13T17:08:09.142957+00:00",
+  "owner_instruction": "授权，然后按照原计划继续",
+  "scope": "one additional G0 env.robot reference repair, fresh5batch smoke/eval; originalPA onlyafterG0",
+  "patch_applied": "OWNER_PROPOSED_FIX_NOT_APPLIED.patch",
+  "train_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_resume_20260914",
+  "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_resume_20260914",
+  "previous_attempts_preserved": true,
+  "repeats": "No P2/contact/PG7 repeat",
+  "active_status": "G0_RESUMED"
+}

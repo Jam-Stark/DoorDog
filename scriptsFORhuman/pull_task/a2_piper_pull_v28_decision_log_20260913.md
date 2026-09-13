@@ -1,7 +1,7 @@
 # Pull v28 同步修订决策记录
 
 日期：2026-09-13 HKT；修改：-codex planner；依据：-owner 要求更新 pull v28 新 baseline 同步 plan，并提供 m5 Codex team 启动 prompt。
-当前状态：BLOCKED_G0_INFRA_REPAIR_LIMIT；P2封存、共享实现与有界接触/PG7完成，PPO初始化失败，PA未运行。D001–D006为planner交付记录，最新执行事实见D010及closure。
+当前状态：BLOCKED_G0_POST_POLICY_CHECKPOINT_FAILURE；最新见D012及20260914 closure。robot引用修复已成功，G0完成5迭代但没有checkpoint，PA未运行。
 
 ## 输入与权限
 
@@ -62,3 +62,15 @@ contact_a1/a2的两次harness修复已消耗本G0格§8额度，不按子探针�
 终态BLOCKED_G0_INFRA_REPAIR_LIMIT：P2共18/18；接触a3与三姿态PG7通过；PG4 CPU compose被真实运行发现的引用缺陷收窄，PG6 PPO/PG8全链未完成。G0已完成PPO batches0，PA三格NOT_RUN，k=null/3而非0/3，warm/P3–P5/Teacher/hardware/push均NOT_RUN。P2 commit9246460；G0终态/实现commitcad573c。PA endpoint节点未到达，不伪造该节点commit；最终closure另作本地commit。
 
 已核对本任务tmux/waiter/训练进程均退出，GPU1/2/3无本任务compute，Main leases释放；保留无关tmux0与GPU0外部进程。只确认本任务已处理的事件，不改legacy C_S1或其他活动任务。后续P3–P5、恢复/感知/门域、push/pull合一均记为独立待立项；当前没有可转交的新baseline checkpoint。
+
+## V28P-D011：Owner额外修复授权后接续
+
+2026-09-14 Owner明确“授权，然后按照原计划继续”。应用既有一行补丁恢复env.config.robot=${robot}，保留全部旧失败attempt。使用全新g0_resume_20260914/G0输出与train_g0_attempt2 receipt执行原256env×5batch，随后full-checkpoint双侧natural与归约；不重跑P2/contact/PG7。通过G0才按原三seed各6000/24条natural继续，无warm/扩预算/改门/push。原9月13日closure是当时Owner门快照，当前状态为G0_RESUMED。
+
+## V28P-D012：真实5batch完成后保存接线门
+
+Owner额外授权的一行修复已实证成功：G0 attempt2的actor/critic输入133/138，5学习迭代全部完成，81920timesteps，迭代耗时18.97/17.63/16.68/17.20/16.82s。子进程exit0，runner因model_step_000005.pt缺失exit1，policy_readings_observed=true。
+
+只读核对确认ModelSaveCallback的实际save_frequency=250，last.pt每50步；5步smoke不触发保存，没有异地检查点。按原§8“policy读数后的非零退出停该格…不自动重跑”暂停相关执行。已准备未应用补丁，仅smoke频率5、PA仍250；需Owner授权新的5batch attempt，届时G0累计10≤32。没有改变actor/reward/门/资产/预算，没有新fallback或测试。
+
+G0累计5batch，PA三格均NOT_RUN、k=null/3；G0 natural及PG8尚无端到端证据。contact/PG7/P2未重复。资源/对应事件已收尾；保留原失败及旧closure快照。当前closure为OPENING_CLOSURE_20260914.md。

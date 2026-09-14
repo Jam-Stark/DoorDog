@@ -1,0 +1,59 @@
+{
+  "schema": "a2_piper_v28_next_stage_review_v1",
+  "recorded_at": "2026-09-14T08:53:45+08:00",
+  "decision_log_id": "V28-D045",
+  "reviewed_by": "Codex Main; focused scope_planner input",
+  "trigger": "G1_WARM_FAIL scoped execution closure",
+  "evidence_level": "INSPECTED",
+  "decisions": {
+    "N01": {
+      "disposition": "CONTINUE",
+      "scope": "Bounded next-stage pilot proposal only",
+      "experiment_execution": "DEFER",
+      "reason": "The prior recovery pilot was UNRESOLVED: missing R1 endpoint and too few observed R2 grasp-loss events; this does not establish benefit or futility.",
+      "next_actions": [
+        "Define unplanned grasp-loss duration before crossing and distinguish normal release, non-exposure, loss, regrasp and recovered clean completion.",
+        "Redesign disturbance timing/amplitude and event exposure; retain nominal/sham controls and the all-injected denominator.",
+        "Decide new pilot endpoint and small budget before any multi-seed confirmation. Loss-event definition is distinct from changing optimization losses; any such change needs its own proposal."
+      ],
+      "entry_conditions": [
+        "Explicit simulator asset/checkpoint and reachable interaction window.",
+        "Owner-approved pilot scope and budget."
+      ],
+      "not_required": [
+        "Old v27 RECOVERY_PILOT_PROMISING",
+        "A final qualified Teacher"
+      ],
+      "sources": [
+        "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_recovery_decision.json",
+        "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/a2_piper_base_v27_wave_b_r_step1500_readout_20260907.md"
+      ]
+    },
+    "N02": {
+      "disposition": "CONTINUE",
+      "scope": "Deployable sensor contract and identifiability proposal only",
+      "experiment_execution": "DEFER",
+      "reason": "Existing shadow estimation is limited offline evidence and excluded 51 short episodes; the load/friction domain remains unestablished.",
+      "next_actions": [
+        "Specify proprioception, action history and gripper qpos; verify availability of any effort proxy. Privileged mass/joints/6D hand-force are labels or oracle inputs, not assumed deployment inputs.",
+        "Define control-relevant resistance, rebound, grasp confidence and opening-progress targets. Stratify the physical mass 80–160 / friction {0,2,5} domain by side and interaction exposure; retain short/failure episodes explicitly.",
+        "Propose a limited-domain pilot with matched sensor budgets for recurrent DR/history latent/oracle, within-episode resistance changes and held-out parameter combinations."
+      ],
+      "entry_conditions": [
+        "Named input sources and informative interaction windows.",
+        "Owner-approved independent pilot scope and budget."
+      ],
+      "not_required": [
+        "Perfect Teacher",
+        "Final camera layout or CAD"
+      ],
+      "sources": [
+        "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/a2_piper_base_v27_shadow_estimator_readout_20260907.md",
+        "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_decision.json"
+      ]
+    }
+  },
+  "X05": "CLOSED_REVIEW_COMPLETED_METHODS_REMAIN_OPEN",
+  "new_experiments_started": false,
+  "interpretation_boundary": "G1 warm failure does not establish scratch failure, infeasible geometry, or method futility."
+}

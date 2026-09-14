@@ -1,0 +1,47 @@
+{
+  "schema": "a2_piper_v28_queue_launch_receipt_v1",
+  "evidence_scope": "Bounded queue initialization and watcher launch only. It does not establish a G1 training, evaluation, or scientific result.",
+  "init": {
+    "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B scriptsFORhuman/v28/v28_orchestrate.py init --source-lock /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock/source_lock.json",
+    "exit_code": 0,
+    "state": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json"
+  },
+  "watcher": {
+    "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B scriptsFORhuman/v28/v28_orchestrate.py start-watcher",
+    "exit_code": 0,
+    "backend": "tmux",
+    "session": "v28_execution_20260913_watcher",
+    "tmux_has_session_exit_code_after_30_second_check": 0,
+    "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher/RUN_RECEIPT.json",
+    "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/watcher_a1.log",
+    "proxy_environment_pinned": true,
+    "proxy_values_omitted": true
+  },
+  "one_launch_check_after_seconds": 30,
+  "source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock/source_lock.json",
+  "state": {
+    "task_count": 1,
+    "task_id": "g1_train_500",
+    "task_status": "PENDING_GPU",
+    "selected_gpu": null,
+    "g1_status": "NOT_STARTED",
+    "wave_a_status": "NOT_STARTED",
+    "next_decision_epoch": 1789278524.2939584,
+    "next_decision_reason": "12h pending-GPU decision",
+    "task_output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt1",
+    "fixed_deadline_epoch": 1789278524.2939584
+  },
+  "gpu_observation": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/gpu_occupancy/0000.json",
+    "observed_at": "2026-09-12T17:48:48+00:00",
+    "minimum_free_mib": 20480,
+    "eligible_gpu_count": 0,
+    "resource_fact": "All physical GPU 0-7 were externally occupied and below the selector threshold at this one check. No external process was changed."
+  },
+  "native_main_waiter_command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B scriptsFORhuman/v28/v28_wait.py --state /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json --target g1 --until-epoch 1789278524.2939584",
+  "limitations": [
+    "The watcher process being alive and a task being PENDING_GPU are scheduler facts only, not G1 PASS.",
+    "No eligible GPU existed at the single permitted launch check, so no training process receipt or selected GPU exists.",
+    "No second waiter was created; the listed native command is for Main to resume the one logical target-g1 wait."
+  ]
+}

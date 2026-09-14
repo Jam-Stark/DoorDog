@@ -9,7 +9,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from v28_contract import ROOT, RUNTIME, PYTHON, cell_contract
+from v28_contract import ROOT, RUNTIME, PYTHON, cell_contract, require
 
 PROXY_KEYS = ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "no_proxy", "NO_PROXY")
 RIG = ROOT / "scriptsFORhuman/v28/camera/U3_F39_H140.json"
@@ -22,7 +22,7 @@ def runtime_env(gpu):
             "PYTHONUNBUFFERED": "1", "OMP_NUM_THREADS": "8", "PYTHONPATH": str(ROOT)}
 
 
-def run(command, output, gpu, expected, metadata):
+def run(command, output, gpu, expected, metadata, *, training_endpoint=None):
     output.mkdir(parents=True, exist_ok=False)
     receipt = {"schema": "a2_piper_v28_process_v2", "state": "RUNNING", "command": command,
                "worktree": str(ROOT), "resources": {"physical_gpu": gpu, "logical_device": "cuda:0"},
@@ -41,6 +41,15 @@ def run(command, output, gpu, expected, metadata):
                    policy_readout_observed=bool(iterations) or "Starting evaluation with" in log,
                    last_iteration=None if not iterations else int(iterations[-1]))
     receipt["missing_outputs"] = [str(p) for p in expected if not p.is_file()]
+    if training_endpoint is not None and returncode == 0 and not receipt["missing_outputs"]:
+        receipt["state"] = "CHECKPOINT_VALIDATION_PENDING"
+        path.write_text(json.dumps(receipt, indent=2) + "\n")
+        end = checkpoint_counters(training_endpoint)
+        require(end["global_step"] == metadata["expected_end_global_step"], "checkpoint cumulative counter mismatch")
+        restored = metadata["restored_checkpoint_counters"]
+        if restored is not None:
+            require(end["tot_timesteps"] > restored["tot_timesteps"], "continuation timesteps did not advance")
+        receipt["endpoint_checkpoint_counters"] = end
     receipt["state"] = "PASS" if returncode == 0 and not receipt["missing_outputs"] else "FAIL"
     path.write_text(json.dumps(receipt, indent=2) + "\n")
     print(f"{output.name}: {receipt['state']}", flush=True)
@@ -70,26 +79,70 @@ def walk(args):
                "posture_input": str(poses_path), "command_input": str(commands)})
 
 
+def checkpoint_counters(path):
+    """Read persisted full-state components using the training interpreter on CPU."""
+    program = """
+import json, sys, torch
+p = torch.load(sys.argv[1], map_location='cpu', weights_only=False)
+for key in ('policy_state_dict', 'value_state_dict', 'optimizer_state_dict', 'lr_scheduler_state_dict', 'state', 'env_state_dict'):
+    if key not in p or p[key] is None:
+        raise RuntimeError('missing full checkpoint component: ' + key)
+s = p['state']
+print(json.dumps({'global_step': int(s.global_step), 'tot_timesteps': int(s.tot_timesteps), 'episode': int(s.episode), 'env_state_keys': sorted(p['env_state_dict'])}))
+"""
+    result = subprocess.run([PYTHON, "-B", "-c", program, str(path)], cwd=ROOT,
+                            text=True, capture_output=True, check=True)
+    return json.loads(result.stdout)
+
+
 def train(args):
     spec = cell_contract(args.cell)
     is_smoke = args.mode == "smoke"
-    budget = 5 if is_smoke else spec["batches"]
-    if spec["checkpoint"] is not None and not Path(spec["checkpoint"]).is_file():
-        raise FileNotFoundError(spec["checkpoint"])
+    total = 5 if is_smoke else spec["batches"]
+    start = 0
+    source = spec["checkpoint"]
+    load_mode = spec["checkpoint_load_mode"]
+    counters = None
+    if args.resume is not None:
+        require(not is_smoke and args.cell == "G1_WARM" and args.total_batches == 1000,
+                "only G1 PARTIAL full continuation to cumulative1000 is registered")
+        source = str(args.resume.resolve())
+        require(Path(source).is_file() and (Path(source).parent / "config.yaml").is_file(),
+                "resume checkpoint and adjacent config required")
+        counters = checkpoint_counters(Path(source))
+        require(counters["global_step"] == 500, "G1 continuation must restore exactly step500")
+        import yaml
+        previous = yaml.safe_load((Path(source).parent / "config.yaml").read_text())
+        require(previous["v26_cell"] == "V28_G1_WARM" and previous["seed"] == 281,
+                "G1 continuation checkpoint lineage")
+        start, total, load_mode = 500, 1000, "full"
+    elif args.total_batches is not None:
+        require(args.total_batches == total, "unregistered training budget override")
+    if source is not None and not Path(source).is_file():
+        raise FileNotFoundError(source)
+    invocation = total - start
     command = [PYTHON, "-B", "-m", "gr00t.rl.train_agent_trl",
                "+exp=wbmanip/door_open_a2_base_lstm", f"+ablation=wbmanip/base_v28_{args.cell}",
                "headless=true", "use_wandb=false", f"++experiment_dir={args.output}", f"output_dir={args.output}/output",
-               "project_name=base_v28_camera_aware_rebaseline", f"experiment_name=V28_{args.cell}"]
+               "project_name=base_v28_camera_aware_rebaseline", f"experiment_name=V28_{args.cell}",
+               f"algo.trl.num_total_batches={invocation}"]
+    if args.resume is not None:
+        command += [f"checkpoint={source}", "checkpoint_load_mode=full", "policy_only_load_actor_rms=false"]
     if is_smoke:
-        command += ["num_envs=64", "algo.trl.num_total_batches=5", "callbacks.model_save.save_frequency=5"]
-    return run(command, args.output, args.gpu, [args.output / f"model_step_{budget:06d}.pt", args.output / "config.yaml"],
-               {"mode": args.mode, "cell": args.cell, "batches": budget, "source_checkpoint": spec["checkpoint"]})
+        command += ["num_envs=64", "callbacks.model_save.save_frequency=5"]
+    endpoint = args.output / f"model_step_{total:06d}.pt"
+    result = run(command, args.output, args.gpu, [endpoint, args.output / "config.yaml"],
+                 {"mode": args.mode, "cell": args.cell, "batches": invocation,
+                  "cumulative_batches": total, "start_global_step": start, "expected_end_global_step": total,
+                  "source_checkpoint": source, "checkpoint_load_mode": load_mode,
+                  "restored_checkpoint_counters": counters,
+                  "continuation_semantics": "saved training state; fresh simulator rollout" if start else "fresh training counters"},
+                 training_endpoint=endpoint)
+    return result
 
 
-def evaluate(args):
-    if not args.checkpoint.is_file() or not (args.checkpoint.parent / "config.yaml").is_file():
-        raise FileNotFoundError(f"checkpoint and adjacent config required: {args.checkpoint}")
-    values = {
+def evaluation_overrides(args):
+    return {
         "checkpoint": str(args.checkpoint), "checkpoint_load_mode": "full", "auto_load_latest": False,
         "seed": args.seed, "num_envs": args.episodes, "algo.config.num_mini_batches": 1,
         "algo.config.eval.num_eval_episodes": args.episodes, "algo.config.eval.eval_num_envs_episodes": True,
@@ -109,8 +162,18 @@ def evaluate(args):
         "env.config.save_rendering_dir": str(args.output / "renderings"), "output_dir": str(args.output / "output"),
         "eval_name": f"V28_{args.cell}_{args.side}", "eval_output_dir": str(args.output),
     }
-    command = [PYTHON, "-B", "-m", "gr00t.rl.eval_agent_trl", "+ablation=wbmanip/base_v28_eval_natural_start",
-               *[f"++{key}=" + json.dumps(value, separators=(",", ":")) for key, value in values.items()]]
+
+
+def evaluation_command(values):
+    return [PYTHON, "-B", "-m", "gr00t.rl.eval_agent_trl", "+ablation=wbmanip/base_v28_eval_natural_start",
+            *[f"++{key}=" + json.dumps(value, separators=(",", ":")) for key, value in values.items()]]
+
+
+def evaluate(args):
+    if not args.checkpoint.is_file() or not (args.checkpoint.parent / "config.yaml").is_file():
+        raise FileNotFoundError(f"checkpoint and adjacent config required: {args.checkpoint}")
+    values = evaluation_overrides(args)
+    command = evaluation_command(values)
     expected = [args.output / name for name in ("metrics_eval.json", "a2_v14_per_env_records.json",
                 "stage2_5_step_trace.json", "a2_eval_diagnostic_metadata.json", ".hydra/runtime_config.yaml")]
     lane = {"cell": args.cell, "stratum": args.stratum, "side": args.side, "seed": args.seed,
@@ -127,6 +190,8 @@ def main():
     parser.add_argument("--asset", choices=["baseline", "v28"])
     parser.add_argument("--posture", choices=["default", "hold", "stage2"])
     parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument("--resume", type=Path)
+    parser.add_argument("--total-batches", type=int)
     parser.add_argument("--side", choices=["left", "right"])
     parser.add_argument("--episodes", type=int, choices=[64, 128], default=64)
     parser.add_argument("--seed", type=int, default=280001)

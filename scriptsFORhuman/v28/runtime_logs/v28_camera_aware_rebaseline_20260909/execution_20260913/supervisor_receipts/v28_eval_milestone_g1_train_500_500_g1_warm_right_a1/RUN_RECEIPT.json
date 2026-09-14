@@ -1,0 +1,27 @@
+{
+  "acceptance_claim": "",
+  "auto_eval": false,
+  "checkpoint": null,
+  "checkpoint_lineage": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt2/model_step_000500.pt",
+  "command": "env http_proxy=http://127.0.0.1:18889 https_proxy=http://127.0.0.1:18889 HTTP_PROXY=http://127.0.0.1:18889 HTTPS_PROXY=http://127.0.0.1:18889 no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/v28_run_cell.py eval --gpu 5 --output /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_g1_train_500_500_g1_warm_right/attempt1 --cell G1_WARM --checkpoint /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt2/model_step_000500.pt --side right --episodes 64 --seed 280001 --stratum milestone",
+  "config_ref": "v28:G1_WARM:/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock/source_lock.json",
+  "created_at": "2026-09-14T00:40:41+00:00",
+  "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+  "eta_source": "v28 plan section 10",
+  "eval_authorized": false,
+  "eval_command": "",
+  "expected_seconds": 900.0,
+  "name": "v28_eval_milestone_g1_train_500_500_g1_warm_right_a1",
+  "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_g1_train_500_500_g1_warm_right/supervisor_logs/attempt1.log",
+  "owner_session": "",
+  "project_root": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+  "resources": [
+    "GPU5",
+    "IsaacSim_GPU5"
+  ],
+  "schema_version": 2,
+  "session": "v28_eval_milestone_g1_train_500_500_g1_warm_right_a1",
+  "source_revision": "source-lock:/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock/source_lock.json",
+  "stop_condition": "registered v28 task completion or explicit supervisor cancellation",
+  "supervisor_version": "1.4.0"
+}

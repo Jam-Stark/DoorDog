@@ -1,0 +1,27 @@
+{
+  "at": "2026-09-12T20:24:10.956772+00:00",
+  "repair": "V28-D043",
+  "task": "g1_train_500",
+  "attempt": 2,
+  "status_at_start_check": "PENDING_GPU",
+  "watcher_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher_a2/RUN_RECEIPT.json",
+  "main_wait_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_g1_20260913_r1/RUN_RECEIPT.json",
+  "main_wait_command": [
+    "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+    "-B",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/v28_wait.py",
+    "--state",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json",
+    "--target",
+    "g1",
+    "--until-epoch",
+    "1789287757.218425",
+    "--renew-reason",
+    "V28-D043 first pre-policy external-GPU OOM handled; attempt2 requeued and watcher a2 running."
+  ],
+  "wait_until_epoch": 1789287757.218425,
+  "gpu_admission_observation": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/gpu_occupancy/0140.json",
+  "actual_consumed_batches": 0,
+  "remaining_infra_repairs": 1,
+  "g1_policy_decision": "NOT_RUN"
+}

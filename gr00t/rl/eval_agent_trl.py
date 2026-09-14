@@ -600,7 +600,9 @@ def main(override_config: OmegaConf):
                 _apply_r2_workflow_overrides(config, override_config)
             else:
                 config = override_config
-        config.experiment_dir = checkpoint.parent
+        # Evaluation artifacts belong to this evaluation, including trainer output
+        # and exports. The checkpoint directory is a read-only training input.
+        config.experiment_dir = str(override_config.eval_output_dir)
     else:
         if override_config.eval_overrides is not None:
             config = override_config.copy()
@@ -624,7 +626,11 @@ def main(override_config: OmegaConf):
         validate_r2_eval_config(config)
 
     # Resume wandb run if meta.yaml exists
-    meta_path = Path(config.experiment_dir) / "meta.yaml"
+    meta_path = (
+        Path(config.checkpoint).parent / "meta.yaml"
+        if config.checkpoint is not None
+        else Path(config.experiment_dir) / "meta.yaml"
+    )
     if meta_path.exists():
         meta = yaml.safe_load(open(meta_path, "r"))
         config.wandb.wandb_id = meta["wandb_run"]
@@ -857,17 +863,9 @@ def main(override_config: OmegaConf):
 
     # --- Optional ONNX export (only with single env) ---
     EXPORT_ONNX = config.num_envs == 1
-    checkpoint_path = str(checkpoint)
-
     exported_policy_path = os.path.join(config.experiment_dir, "exported")
     os.makedirs(exported_policy_path, exist_ok=True)
     exported_onnx_name = f"model_step_{trainer.state.global_step:06d}.onnx"
-    new_cp_path = (
-        f"{os.path.dirname(config.checkpoint)}/model_step_{trainer.state.global_step:06d}.pt"
-    )
-
-    if not os.path.exists(new_cp_path):
-        shutil.copy(checkpoint_path, new_cp_path)
 
     if EXPORT_ONNX:
         assert config.num_envs == 1, "num_envs must be 1 for exporting onnx"

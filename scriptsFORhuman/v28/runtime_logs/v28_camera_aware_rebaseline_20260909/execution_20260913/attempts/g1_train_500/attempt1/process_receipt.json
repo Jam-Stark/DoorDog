@@ -1,0 +1,56 @@
+{
+  "schema": "a2_piper_v28_process_v2",
+  "state": "FAIL",
+  "command": [
+    "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+    "-B",
+    "-m",
+    "gr00t.rl.train_agent_trl",
+    "+exp=wbmanip/door_open_a2_base_lstm",
+    "+ablation=wbmanip/base_v28_G1_WARM",
+    "headless=true",
+    "use_wandb=false",
+    "++experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt1",
+    "output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt1/output",
+    "project_name=base_v28_camera_aware_rebaseline",
+    "experiment_name=V28_G1_WARM",
+    "algo.trl.num_total_batches=500"
+  ],
+  "worktree": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+  "resources": {
+    "physical_gpu": 1,
+    "logical_device": "cuda:0"
+  },
+  "proxy_environment": {
+    "http_proxy": "http://127.0.0.1:18889",
+    "https_proxy": "http://127.0.0.1:18889",
+    "HTTP_PROXY": "http://127.0.0.1:18889",
+    "HTTPS_PROXY": "http://127.0.0.1:18889",
+    "no_proxy": "localhost,127.0.0.1",
+    "NO_PROXY": "localhost,127.0.0.1"
+  },
+  "started_at": "2026-09-12T20:07:58.059745+00:00",
+  "expected_outputs": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt1/model_step_000500.pt",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt1/config.yaml"
+  ],
+  "mode": "train",
+  "cell": "G1_WARM",
+  "batches": 500,
+  "cumulative_batches": 500,
+  "start_global_step": 0,
+  "expected_end_global_step": 500,
+  "source_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/model_step_003000.pt",
+  "checkpoint_load_mode": "policy_only",
+  "restored_checkpoint_counters": null,
+  "continuation_semantics": "fresh training counters",
+  "pid": 375695,
+  "returncode": 0,
+  "finished_at": "2026-09-12T20:18:36.840758+00:00",
+  "policy_readout_observed": false,
+  "last_iteration": null,
+  "missing_outputs": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt1/model_step_000500.pt",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt1/config.yaml"
+  ]
+}

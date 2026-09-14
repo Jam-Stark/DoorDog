@@ -1,0 +1,23 @@
+{
+  "schema": "a2_piper_base_v28_g1_step_decision_v1",
+  "run_id": "v28_camera_aware_rebaseline_20260909",
+  "source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock/source_lock.json",
+  "route_authority": "plan §8.1 / V28-D038",
+  "decision_log_id": "V28-D038",
+  "step": 500,
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/reducers/milestone_g1_train_500_500.json",
+  "decision": {
+    "decision": "FAIL",
+    "outcome": "WARM_FAIL",
+    "step": 500,
+    "action": "STOP",
+    "warm_arm_cancelled": true,
+    "wave_c_best_D_per_side": {
+      "left": 0,
+      "right": 63
+    },
+    "warm_arm_eligible": false,
+    "additional_batches": 0
+  },
+  "recorded_at": "2026-09-14T00:47:50+00:00"
+}

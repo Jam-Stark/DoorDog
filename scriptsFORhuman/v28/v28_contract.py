@@ -17,6 +17,8 @@ ROBOT_CONFIG = ROOT / "gr00t/rl/config/robot/A2_Piper/a2_piper_vpiper.yaml"
 PLAN = HERE / "a2_piper_base_v28_plan_20260909.md"
 PYTHON = "/home/baoquanc/anaconda3/envs/isaaclab/bin/python"
 SIDES = ("left", "right")
+MILESTONES = (1000, 2000, 3000, 4000, 5000, 6000)
+ORIGINAL_CELLS = ("A_S281", "A_S282", "A_S283")
 METRICS = ("D", "S3+", "S4+", "open_hold", "S5+", "complete", "clean_complete")
 EVAL_SEEDS = {"milestone": 280001, "DEV": 280101, "CONF": 280201, "render": 280303}
 MERGED_ASSET = "a2_piper_v28_merged_20260909"
@@ -56,7 +58,13 @@ def cells() -> dict[str, dict[str, Any]]:
         }
         for seed in (281, 282, 283, 284)
     }
+    warm_checkpoint = str(ROOT / "logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/model_step_003000.pt")
     return {
+        "A_W281": {
+            "cell": "A_W281", "seed": 281, "checkpoint": warm_checkpoint,
+            "checkpoint_load_mode": "policy_only", "policy_only_load_actor_rms": True,
+            "batches": 6000, "milestones": MILESTONES, "driver_target_stage": 4,
+        },
         "G1_WARM": {
             "cell": "G1_WARM", "seed": 281,
             "checkpoint": str(ROOT / "logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/model_step_003000.pt"),

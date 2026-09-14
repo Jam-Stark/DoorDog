@@ -1,0 +1,66 @@
+{
+  "schema": "a2_piper_v28_g1_owner_gate_v1",
+  "recorded_at": "2026-09-14T08:53:45+08:00",
+  "status": "OWNER_DECISION_REQUIRED",
+  "decision_log_id": "V28-D044",
+  "g1_status": "WARM_FAIL",
+  "step": 500,
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/reducers/milestone_g1_train_500_500.json",
+  "source_readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_g1_train_500_500.md",
+  "evidence_level": "RUNTIME_OBSERVATION",
+  "train_process": "COMPLETE",
+  "actual_batches": 500,
+  "partial_extension": "NOT_ELIGIBLE",
+  "warm_arm": "CANCELLED",
+  "left": {
+    "D": 62,
+    "S4_plus": 64,
+    "complete": 64,
+    "clean_complete": 64,
+    "terminal_noncomplete": 0,
+    "tower_episodes_gt5N": 0
+  },
+  "right": {
+    "D": 58,
+    "S4_plus": 63,
+    "complete": 63,
+    "clean_complete": 47,
+    "terminal_noncomplete": 1,
+    "tower_episodes_gt5N": 6,
+    "hinge_quality_failures": 16
+  },
+  "g1_pass_limits": {
+    "D_min": 40,
+    "clean_complete_min": 36,
+    "terminal_noncomplete_max": 2,
+    "tower_episodes_gt5N_max": 2
+  },
+  "decisive_failure": "RIGHT tower episodes 6 > 2",
+  "partial_not_eligible_reason": "Both D >= 40; the registered PARTIAL branch requires at least one D < 40.",
+  "warm_cancellation_comparison": {
+    "right_D": 58,
+    "prior_wave_c_best_right_D": 63,
+    "required_D_at_least": 59
+  },
+  "camera_outcomes": {
+    "left": "CAMERA_UNMET",
+    "right": "CAMERA_UNMET",
+    "report_only": true
+  },
+  "downstream": {
+    "Wave_A": "NOT_RUN",
+    "original_three_seed_6000_endpoint": null,
+    "endpoint_lock": null,
+    "Wave_B_DEV_CONF": "NOT_RUN",
+    "render": "NOT_RUN_NO_FROZEN_CANDIDATE",
+    "Teacher_qualification": "NOT_RUN"
+  },
+  "D16_runtime_output_fix": "OBSERVED_IN_BOTH_EXACT64_EVALS",
+  "reviewed_by": "Codex Main with focused runtime_qa",
+  "owner_decision_needed": "Whether to authorize the original three-seed scratch Wave A under unchanged C_T, gates and existing budget despite the G1 warm failure.",
+  "limitations": [
+    "No scratch experiment was performed.",
+    "No claim of infeasible geometry, causal camera-bundle benefit, Teacher qualification or hardware readiness.",
+    "No additional G1 extension or changed route is authorized by this record."
+  ]
+}

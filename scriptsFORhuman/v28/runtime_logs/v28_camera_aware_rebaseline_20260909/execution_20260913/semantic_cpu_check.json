@@ -1,0 +1,49 @@
+{
+  "schema": "a2_piper_v28_semantic_cpu_check_v1",
+  "evidence": "CPU_CHECK_PASS",
+  "execution": "inline Python heredoc via /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -u; ephemeral stdout, no script/log file saved",
+  "exit_code": 0,
+  "checked_files": [
+    "scriptsFORhuman/v28/v28_contract.py",
+    "scriptsFORhuman/v28/v28_reduce.py",
+    "scriptsFORhuman/v28/v28_run_cell.py"
+  ],
+  "checks": {
+    "ast_parse": "PASS",
+    "validate_cpu_contract": "PASS",
+    "real_G0_reduce_manifest": "V28_COMPLETE",
+    "incomplete_history_freeze_blocked": true
+  },
+  "G0_lane_receipts": [
+    "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/left/process_receipt.json",
+    "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/right/process_receipt.json"
+  ],
+  "G0_reducer_call": {
+    "function": "v28_reduce.reduce_manifest",
+    "manifest_schema": "a2_piper_base_v28_eval_manifest_v1",
+    "step": 5,
+    "expected_n": 64,
+    "lanes": "lane mappings read from G0_lane_receipts"
+  },
+  "G0_reducer_result_file": null,
+  "diagnostic_classifier": {
+    "function": "g1_decision",
+    "input": "in-memory real G0 A_S281/g0_telemetry_wiring bilateral summaries",
+    "decision": "FAIL",
+    "action": "STOP",
+    "claim": "WIRING_CHECK_ONLY; expressly NOT an actual G1 result or G1 gate decision"
+  },
+  "checkpoint": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/ppo_smoke_d37_r1/model_step_000005.pt",
+  "checkpoint_counters": {
+    "global_step": 5,
+    "tot_timesteps": 20480,
+    "episode": 320
+  },
+  "prior_check_failure": "First inline check had already obtained V28_COMPLETE, then failed on harness stratum key nominal; corrected actual g0_telemetry_wiring key and completed one necessary rerun.",
+  "limitations": [
+    "No full reducer payload was persisted; do not infer readout metrics from this receipt.",
+    "No GPU or new simulation was launched.",
+    "No actual G1 continuation or D039 candidate selection runtime evidence."
+  ],
+  "provenance": "Receipt transcribed from observed successful inline stdout; no rerun performed for handoff."
+}

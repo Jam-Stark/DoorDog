@@ -1,6 +1,10 @@
-# v28 G0 决策日志
+# v28 决策日志：G0 与 planner finalize
 
-更新：2026-09-10 HKT；修改：-codex worker。Owner指示以每项authority字段标记；已批准决定与待planner判断的讨论分开记录。
+更新：2026-09-12 17:18 HKT；本次修改：-codex planner；依据：-owner 已同意规划裁决并要求修改 plan、做好记录。历史执行记录保留各自时点与作者。
+
+当前更新（2026-09-14 08:56 HKT）：G1@500真实判WARM_FAIL并进入Owner成本复议，Wave A/B与render未运行。D044记录原门判据与停止证据，D045记录N01/N02回收；实现及CPU证据见D041/D042，首次pre-policy外部GPU争用修复见D043。下方各历史记录保留时点。
+
+以下 D018–D037 保留原讨论、暂停、事后修订与执行过程；末尾 D038–D040 为本次新决定，不回写原评审或旧运行结果。
 
 | ID | 决定 | 修改者 / 依据 | 状态 | 重审触发 |
 |---|---|---|---|---|
@@ -13,7 +17,7 @@
 
 详细证据路径见 `runtime_logs/v28_camera_aware_rebaseline_20260909/decision_log.jsonl`。
 
-当前 G0 尚未通过；没有第一个本地 commit，未启动 G1、正式训练或更新 Teacher/G7。
+D018–D023 记录时 G0 尚未通过，没有第一个本地 commit，未启动 G1、正式训练或更新 Teacher/G7；这不是当前状态。
 
 ## V28-D024：G0 高度判据修订
 
@@ -108,3 +112,89 @@ Owner裁决同一门进行第二次事后修订：指令轴维持p50≤1.15×bas
 ### G0首个commit验收（2026-09-12，D037后）
 
 记录：-codex worker；依据：-owner（§9.7）。PPO64env×5batch与LEFT/RIGHT各exact64完整checkpoint评估均exit0；每侧22400条raw trace，26个计划字段完成schema/归约验证，两项新reward进入训练日志。自然评估仅Stage0，7个无事件字段为null，不声称晚阶段事件已验证。G0 launch门通过，准备首个本地commit；X24随机校准和X25耦合问题保持OPEN，旧C3轨迹FAIL未改，G2后移项不升级为通过。证据`resume_20260911/telemetry_validation.json`，未push。
+
+## 2026-09-12 17:18 HKT — Owner 批准 planner finalize
+
+修改：-codex planner；依据：-owner 本次原话“ok，同意。按照你的决策修改plan，做好决策修改记录。”。状态：**ACCEPTED**。授权范围为已同意决策的 plan、决策记录和相关待办/memory 更新；本次不执行源码改动、训练、评估、硬件、Teacher/G7、commit/push 或外部写入。
+
+输入依次为原 Cursor planner 对话（`b6b2f107-333e-4356-a18a-5215e5ff83a7`，2026-09-09 至 2026-09-11 的方案推导、Owner 定案和自省）、[审计索引](../pro_reviews/v28/8435858/README.md)中的 Pro 原文与本地更新审计、当前 plan/source 及 G0 记录。当前 `g0_decision.json` 为 `G0_PASSED_FIRST_LOCAL_COMMIT_COMPLETED`，未发现 G1、Wave A/B 的 decision/receipt。以下选择合同在这些训练/资格结果出现前确定；既有 G0 数据已可见，不将其冒充盲样。
+
+### V28-D038 / plan D-38：M1–M5 取舍与主线边界
+
+| 审计项 | 裁决 | 变更及落点 |
+|---|---|---|
+| M1 | 接受 | plan 顶部与 §0、G0 readout 当前入口、memory 路由更新为 G0 完成与 MERGED/140 mm/38.76°/j5=-0.415。base 最终布局仍在 C_S；原 FAIL/D36/D37 与旧几何结果按历史保留 |
+| M2 | 接受，单列标签修复 | plan §8.2 将原三 seed 的 6000 可靠性、历史 reach、候选与 Wave B 对象分列。0/3 为 `REACH_NOT_ESTABLISHED`，即使历史已有候选；历史候选不因此删除。`v28_reduce.py` 当前在此情形返回 UNSTABLE，代码同步仍待执行；选择合同变化另见 D039 |
+| M3 | 修改后接受 | plan §8.1/§8.3 保留 G1 PASS/PARTIAL/FAIL、失败 STOP 交 Owner 与固定 reset 比例。warm 失败只表示指定迁移未达门，STOP 是成本复议，不否定 scratch。A284 资格另见 D040 |
+| M4 | 接受 | plan §6.4/§8.2/§13 明确无事件 null、投影/min-Z 代理与采样 clearance 的边界。RIGHT 学习失败伴随塔架接触仅支持“本配方和预算下未建立，E_T 干涉是待区分解释”，不证明几何无解；保留旧 C3 与原触发、G2 时点，不新增当前 STOP |
+| M5 | 修改后接受 | deferred register、长期 TODO 与相关 memory 修复 closure 回收、旧 rig/阶段、重复编号和已关闭项；不保留常驻兼容 alias，不改历史评审/实验档案 |
+
+主线决定：保留 MERGED、140 mm/38.76°、新 reset、D17、现有 bundle 与 K；它们是已批准的工程选择，不声称已由实机测量唯一确定。不采纳默认无 bundle/K 风险梯、8000-batch 延长、当前 reward 重调或 G1/scratch 并行；不取消既有条件分支，也不把它们变为常规必交付。G1 PARTIAL 原定额外 500 batches 计入 36,500 总上限、占用可选余额；若条件臂叠加超额，沿 §9.8 既有预算裁决处理，不自动缩短单格或追加上限。
+
+待办回收：v28 closure 成功或失败均触发 N01/N02 复核；N01 先决定是否重新立项 pilot、定义扰动/loss，新证据成立后再考虑多 seed，不等待已关闭 v27 的 PROMISING；N02 复核可部署传感、可辨识性与未收敛门域，明确继续/延期/关闭。X24 在下一次 asset/A2_Base 变更立项时复核真实随机暴露的校准需求，运行另行授权；X25 保留原 Stage2/3 位姿不稳触发。X17 合并重复项，朝向项统一为 X19、CAD 路线保留唯一 X18；X07 移到 G2 CAD，X09 以最终 C_S 为准；X04/X08 指向已有关闭记录，不重复操作。
+
+### V28-D039 / plan D-39：资格导向的主候选与备选
+
+**替代的旧规则**：plan §8.2 的“最早双侧 reach、并列最小 seed”，以及 §8.4 的“同一 seed 在选种时点和 6000 各做资格确认”。这不是 M2 标签修复的隐含副作用，而是 Owner 明确批准的选择/替补合同变更。
+
+理由：v28 仍需报告原三 seed 的从零可靠性，同时在有限预算内尽力产出供蒸馏使用的 Teacher。最早 reach 与最终 qualification 目标不一致；利用已经安排的 milestone 质量字段可改变候选选择，不必增加训练或采集矩阵。此选择不保证成功，也不消除筛选带来的偏差，候选资格不能替代三 seed 可靠性结论。
+
+新规则（plan §7、§8.2、§8.4、§10）：
+
+1. 基础候选池仅来自 A_S281–283 的六个既定 milestone（1000 至 6000、步长 1000）双侧 exact64；A_S284 仅按 D040 条件纳入。
+2. 双侧过现行 reach 门后，依次按弱侧 `clean_complete` 降序、双侧 clean 总和降序、较晚 milestone、较小训练 seed 排序。不增加 clean 入池阈值或加权评分。
+3. 固定最多两个不同 checkpoint，可来自同一 seed；依次为主候选和备选。原三 seed 的既定评估完成后冻结；若 A284 实际启动，则待它完成既定训练/评估后冻结。身份与顺序在任何 DEV/CONF 结果读取前写入既有 `wave_a_endpoint_lock.json`。
+4. 主候选先做双侧 exact128 DEV（280101），双侧通过才做 CONF（280201）；CONF 通过即取得 sim 资格，备选 NOT_RUN。主候选 DEV 或 CONF 未确认资格时才验预定备选，程序相同；两者均未确认即结束，不从池内寻找第三名。
+5. 无候选则 Wave B NOT_RUN；仅一名则只验该名。最多八条 exact128 lane，现有 quality/hinge/tower 门和评估 seed 不变。实际未评估对象不被此结果否定。
+
+**实现状态**：合同已批准并落盘，当前 reducer 仍是旧单 seed 选择；本次不改代码或宣称新排序已有 runtime 证据。后续 worker 同步 reducer、endpoint lock/manifest 和 DEV→CONF 固定顺序。warm 与 A2_Base 附加臂不自动进入本次资格池。
+
+### V28-D040 / plan D-40：A_S284 的条件资格
+
+补充 D031，保持原触发：任一 A_S281/282/283 cell 在相邻两个 milestone 的双侧均满足 `S4+≥56` 且 `complete≤4`，且既有预留额度可用时，A_S284 以 scratch、seed284、`target_stage=5`、6000 batches 启动；不要求三个 cell 同时触发，不改已运行格。
+
+实际启动后，A_S284 在与原三 seed 相同的六个 milestone 做既定双侧 exact64，并可按 D039 竞争原有两个 Wave B 名额；它完成前不冻结资格池。A284 始终单列为 driver 变体，manifest 披露 seed/driver 谱系，不计入原三 seed 的 6000 分母；其成功不把 0/3 或 1–2/3 改成 3/3。与触发格同时改变 seed 和 driver，不能视作同 seed 单因素因果比较。训练 staged reset 保持 `[0.5,0.1,0.1,0.1,0.1,0.1]`，natural eval 关闭 staged reset。
+
+实现状态：cell/触发合同已有，当前 `select_wave_a` 仍排除 A284；D040 的资格接入待代码同步。本次未启动 A284，也未改 budget、driver 数值、门或配置。
+
+## V28-D041：阶段执行授权与代码同步（2026-09-13 01:47 HKT）
+
+修改：-codex Main；依据：-owner 的 `goal-objective.md` 新阶段执行授权。状态：ACCEPTED / CODE_SYNC_COMPLETED。既有C_T、reward/stage/loader、门、预算和G2边界保持。已实现D038独立endpoint、D039最多两个固定主备、D040实际启动A284、G1一次500→累计1000、条件A_W281、active-cell milestone、预算/attempt记账、DEV→CONF、readout/render/closure与安静持久等待。
+
+A_W281按“附加6000批”执行为独立warm arm：同一旧C_S2、policy_only+actor RMS、seed281、fresh counters，不把G1的剩余5500批称为额外6000。SC1000原始D读数LEFT/RIGHT为SC201=0/0、SC202=0/9、SC203=0/63；既有取消条件等价于原warm500的RIGHT D<59，不新增阈值。G1 full续训保留训练state/counter，但当前loader不保存完整simulator/RNG轨迹，receipt显式披露。
+
+证据：[semantic CPU receipt](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/semantic_cpu_check.json)与[最终集成CPU receipt](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/cpu_integration/cpu_integration_receipt.json)。原G0真实trace只用于接口/无事件null检查，诊断分类不作为G1 decision；没有新GPU训练、eval或render结果。后续训练成本与实际结果仅以注册receipt/manifest/reducer为证据。
+
+## V28-D042：评估输出目录接线修复（2026-09-13 01:47 HKT）
+
+修改：-codex Main；依据：-owner 已授权不改变实验合同的路径/接线修复及D16。状态：IMPLEMENTED / STATIC_PASS。实际source在读取checkpoint邻接config后把`experiment_dir`覆盖为checkpoint.parent；G0 LEFT runtime_config与PPO checkpoint根已有`exported/`共同证明原D16 CLI覆盖并未落实到所有输出。旧G0证据和该副作用原样保留，不重跑G0。
+
+`eval_agent_trl.py`现在把顶层experiment_dir置为本次eval_output_dir，checkpoint旁meta仍只读；移除了未被下游使用的checkpoint别名复制。后续trainer输出和export写入eval artifact根，权重加载语义未改。实际新eval路径证据待G1既定eval；不以AST/compose宣称runtime路径通过。
+
+## V28-D043：G1首次尝试的外部显存争用（2026-09-13 04:22 HKT）
+
+记录：-codex Main；依据：-owner 已授权的policy读数前infra修复额度（每格最多两次）。G1 attempt1于04:07:57在物理GPU1准入：当时空闲48536 MiB且无compute进程，见`execution_20260913/gpu_occupancy/0138.json`。随后外部PID380745占用44.04 GiB，环境状态分配244 MiB时仅余168.81 MiB，`staged_task_base.py:506`发生CUDA OOM。证据：`execution_20260913/attempts/g1_train_500/attempt1/runtime.log:528-540`及同目录`process_receipt.json`。逻辑GPU0对应已限制可见的物理GPU1。
+
+分类为`RUNTIME_INFRA_FAILURE`，尚无policy/PPO读数、checkpoint或训练config，实际消耗0 batches；不生成G1 PASS/FAIL科研判定。调度器已取消并确认退出，保留原attempt和全部证据。修复方式为在现有资源准入条件下重新排队到空闲GPU，使用attempt2；资源争用无需源码或实验合同修改，4096env、500批、旧C_S2 policy_only+actor RMS及C_T保持。重排前GPU0–7均有外部compute占用；不处理这些外部进程。修复次数记1/2，后续仅在资源条件满足时启动。
+
+## V28-D044：G1@500失败与Owner成本复议（2026-09-14 08:56 HKT）
+
+修改：-codex Main；依据：-owner 阶段执行授权、plan §8.1/§9.6。状态：ACCEPTED（执行既有STOP规则；后续路线仍待Owner）。
+
+- attempt1因准入后外部进程进入发生pre-policy OOM，消耗0批；D043一次资源重排后，attempt2在GPU4完成500批，使用旧C_S2 policy_only+actor RMS、seed281、4096env。训练进程完成不等于G1科学通过。
+- 双侧自然exact64、seed280001，reducer `V28_COMPLETE`：LEFT D62/S4+64/complete64/clean64/塔架>5N集0；RIGHT D58/S4+63/complete63/clean47/塔架集6。RIGHT有16集hinge质量分量失败、1集stage_overtime；body/低高度或超速质量分量为0。G1失败的决定项为RIGHT塔架6>2。
+- 双侧D均≥40，既定PARTIAL条件不成立，不延至1000。RIGHT D58<SC1000最佳RIGHT63−4=59，另满足warm附加臂取消条件。门值、配方、几何和loader语义均未改。
+- Wave A/B、原三seed6000、候选池排序/冻结、DEV/CONF及预定候选render均NOT_RUN；原三seed结果为未评估，不写成0/3。累计实际训练500，未支用后续额度。warm迁移失败不能否定scratch或证明E_T几何无解。
+- 双侧相机标签CAMERA_UNMET，属report-only；RIGHT释放后回位仅10集观察到、53集右删失，不能把0.46/0.54秒分位数外推到全部释放集。针孔投影和采样间隙仍是几何代理。D16新eval输出路径在本次左右评估均成立。
+
+证据：[G1权威decision](runtime_logs/v28_camera_aware_rebaseline_20260909/g1_probe_decision.json)、[停止点事实](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/g1_owner_gate_record.json)、[实际readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_g1_train_500_500.md)。证据等级RUNTIME_OBSERVATION；依既定门得到WARM_FAIL，不是Teacher或硬件结论。重审触发：Owner决定是否在原C_T和既有预算内继续三seed scratch；未经裁决不启动。
+
+## V28-D045：停止点closure与N01/N02回收（2026-09-14 08:56 HKT）
+
+修改：-codex Main；依据：-owner closure要求、D038/X05。状态：ACCEPTED（回收与归档）；新方法实验未授权。
+
+N01=CONTINUE有界pilot立项设计：重设计扰动和失抓事件定义，区分正常释放、未触发、失抓、重抓与恢复后clean；保留sham/nominal和全部注入分母。有效事件暴露及完整endpoint之后再考虑多seed。N02=CONTINUE传感/可辨识性立项设计：明确proprio/action history/夹爪qpos及effort代理的可读性，保留短集/失败集，并按物理质量、摩擦、侧别和交互暴露定义门域。两项实验执行均DEFER，须有独立范围和预算；不等待旧v27 PROMISING、完美Teacher或最终相机。X05本次复核义务关闭，N01/N02方法条目继续开放。
+
+本次closure标记OWNER_DECISION_REQUIRED，候选manifest资格NOT_RUN；它是G1停止点的执行收尾，不声称Wave A/B已完成。Wave A1000与endpoint两个commit节点未到达；按已授权closure节点保存本任务实现、证据和文档，不制造未执行阶段的空commit。实际commit与资源释放由execution目录receipts记录。
+
+证据：[后续立项复核](../novelty/documents/20260914_v28_g1_closure_N01_N02.md)、[机器可读决定](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/next_stage_review.json)。证据等级INSPECTED；不改变G7、C_S/G2、X24/X25或硬件边界。

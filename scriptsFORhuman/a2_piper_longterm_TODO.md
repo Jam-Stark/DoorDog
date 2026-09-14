@@ -2,6 +2,7 @@
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
 创建:2026-07-21;最近更新:2026-09-05(v25/v26 收口归档;三条 novelty 路线裁定入册为 R 节;v27 排期;force-feasibility 主线 C 节降级为背景与 v28 输入;规则 19-21 入册)。
+当前入口更新：2026-09-14 08:56 HKT；修改：-codex Main；依据：-owner v28执行授权。v28实现同步及G1真实运行完成，G1@500因RIGHT塔架6>2判WARM_FAIL，停止交Owner成本复议；Wave A/B及原三seed终点未运行。D044/D045与[closure](v28/a2_piper_base_v28_execution_closure_20260914.md)记录事实、NOT_RUN和后续入口。N01/N02已复核为继续有界立项设计、实验DEFER；X05回收义务关闭，方法未验证。原C_T、D038–D040及C_S/G2边界不变。
 
 ## Worktree 分工(2026-09-05 修订)
 
@@ -70,8 +71,8 @@
 | latch/handle 几何进一步 randomization(hook 概率、handle 长径、latch 行程) | lr 镜像之后 | v13 §2.5、门生成器已有参数 |
 | privileged obs 加门动力学参数(输入层扩展手术保 warm-start) | 仅当分桶显示策略对门参数自适应失败 | v14 plan M20.4(v14/v15 均未触发) |
 | Phase3 student bootstrapping / GRPO | distillation 之后 | memory `phase3-student-bootstrapping` |
-| **N-01 恢复图多 seed 确认** | v27.4 pilot 判 `RECOVERY_PILOT_PROMISING`;3 seed 同预算,与普通 RNN 扰动训练比较 | R 节方向 2 |
-| **N-02 交互历史 latent / 在线适应(方向 1 重构版)** | v27.2 门域含 arm-only 失败层且 shadow estimator 显示可辨识;冻结可部署传感合同;对照 = 同传感预算 recurrent DR、+history latent、oracle 上界;含 episode 内阻力变化 | R 节方向 1 |
+| **N-01 恢复图：继续有界pilot立项设计（CONTINUE）** | 2026-09-14 closure已回收：先定义非计划失抓和重设计扰动，保留sham/nominal/全部注入分母；在明确asset/checkpoint、可进入交互窗口及新小预算授权后执行。实验DEFER；有效暴露及完整endpoint后再决定多seed，不等待旧PROMISING或最终合格Teacher | R节方向2；v28 D045；[复核](novelty/documents/20260914_v28_g1_closure_N01_N02.md) |
+| **N-02 交互历史：继续传感/可辨识性立项设计（CONTINUE）** | 2026-09-14已复核：明确proprio/action history/夹爪qpos及effort可读性，保留短集和失败集；按物理质量/摩擦、侧别和暴露分层。有限域pilot须独立范围/预算授权，执行DEFER；最终相机/CAD不是立项前置，在线适应收益未验证 | R节方向1；v28 D045；[复核](novelty/documents/20260914_v28_g1_closure_N01_N02.md) |
 | **N-03 同一 actor 的 push/pull × LEFT/RIGHT** | PULL-01 建立 pull 双侧全链路;共同 135/140-D 语义;四格分别报告,不以平均掩盖单格失效 | R 节方向 2(a) |
 | **N-04 hold / controlled-swing 策略选择** | 两种策略均在质量规则下成立;由风险/回弹预测决定,不按门重硬编码 | R 节方向 1 三层门的正确形式 |
 | **N-05 多次打断、动态障碍与 Stage0/1 站位 repair** | N-01 之后;独立预算与恢复窗口 | R 节方向 2(c) |
@@ -80,6 +81,8 @@
 | ~~按 LEFT/RIGHT 等外部条件长出独立策略树~~ | **否决**:v26-7 证明条件化单一 actor 已覆盖;树比条件策略更不通用 | R 节方向 2(a) |
 
 ## E. 维护性挂账(小,勿丢)
+
+2026-09-14归档：v28 X05的本次N01/N02 closure复核义务已完成（D045）；两项方法的立项/实验仍按D节开放条目处理，不等同方法完成。
 
 - [ ] formal launcher natural-exit 复核习惯化(v13.1 起多轮 NOT RECORDED);
 - [ ] git push(截至 v15 交付 push_status=NOT PUSHED);

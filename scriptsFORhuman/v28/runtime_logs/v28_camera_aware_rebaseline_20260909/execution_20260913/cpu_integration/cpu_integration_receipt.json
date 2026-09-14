@@ -1,0 +1,69 @@
+{
+  "schema": "a2_piper_v28_cpu_integration_receipt_v1",
+  "evidence_scope": "One bounded CPU-only integration proof after the D16 eval_output_dir fix. No GPU, Isaac Sim, training, evaluation launch, raw G0 reduction, synthetic data, or permanent test was run.",
+  "interpreter": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+  "static_checks": {
+    "ast_parse": {
+      "evidence_level": "STATIC_PASS",
+      "exit_code": 0,
+      "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY' (ast.parse each listed source file)",
+      "files": [
+        "scriptsFORhuman/v28/v28_contract.py",
+        "scriptsFORhuman/v28/v28_reduce.py",
+        "scriptsFORhuman/v28/v28_run_cell.py",
+        "scriptsFORhuman/v28/v28_orchestrate.py",
+        "scriptsFORhuman/v28/v28_watch_wave.py",
+        "scriptsFORhuman/v28/v28_readout.py",
+        "scriptsFORhuman/v28/v28_render.py",
+        "scriptsFORhuman/v28/v28_closure.py",
+        "scriptsFORhuman/v28/v28_wait.py",
+        "gr00t/rl/eval_agent_trl.py"
+      ],
+      "stdout": "ast_parse.stdout.log",
+      "stderr": "ast_parse.stderr.log"
+    },
+    "hydra_compose": {
+      "evidence_level": "STATIC_PASS",
+      "exit_code": 0,
+      "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl +exp=wbmanip/door_open_a2_base_lstm +ablation=wbmanip/base_v28_A_W281 --cfg job --resolve",
+      "stdout": "hydra_compose.stdout.log",
+      "stderr": "hydra_compose.stderr.log",
+      "verified": "hydra_compose_verification.json",
+      "resolved_contract": {
+        "checkpoint": "logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/model_step_003000.pt",
+        "checkpoint_load_mode": "policy_only",
+        "policy_only_load_actor_rms": true,
+        "seed": 281,
+        "num_envs": 4096,
+        "num_total_batches": 6000,
+        "target_stage": 4,
+        "urdf_file": "a2_piper_v28_merged_20260909/a2_piper.urdf",
+        "default_arm_angles": [0.0, 0.1, -0.1, 0.0, -0.415, 1.57],
+        "enable_staged_reset": true,
+        "staged_reset_ratios": [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
+      }
+    }
+  },
+  "saved_runtime_reanalysis": {
+    "evidence_level": "RUNTIME_OBSERVATION_REANALYSIS",
+    "exit_code": 0,
+    "command": "PYTHONPATH=scriptsFORhuman/v28 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B - <<'PY' (v28_readout.camera_assessment on saved LEFT camera_metrics.json)",
+    "source_camera_metrics": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/left/camera_metrics.json",
+    "source_trace": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/telemetry_eval_d37/left/stage2_5_step_trace.json",
+    "source_trace_bytes": 494858088,
+    "assessment": "camera_assessment.json",
+    "outcome": "CAMERA_PARTIAL",
+    "observed_measured_passes": {
+      "stage0_j6_reversals_per_s": 0.01119269340974504,
+      "stage0_5_arm_posture_l1_p95_rad": 0.12205876118969172,
+      "stage0_5_j6_deviation_gt_0p3_frame_share": 0.0
+    },
+    "missing_event_fields_recorded_in": "camera_assessment.json"
+  },
+  "limitations": [
+    "The compose and AST results are static evidence; neither proves checkpoint loading, training, policy quality, nor G1 admission.",
+    "The camera result reinterprets an existing G0 LEFT trace only. It does not rerun the evaluator and is not a new camera or policy evaluation.",
+    "CAMERA_PARTIAL is caused by recorded null event fields, including no observed or right-censored post-release-return episodes; it is not CAMERA_MET.",
+    "No raw G0 reduction was performed, in accordance with the existing semantic_cpu_check receipt."
+  ]
+}

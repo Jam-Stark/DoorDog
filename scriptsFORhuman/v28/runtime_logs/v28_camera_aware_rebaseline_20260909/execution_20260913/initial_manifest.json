@@ -1,0 +1,152 @@
+{
+  "schema": "a2_piper_base_v28_initial_manifest_v1",
+  "run_id": "v28_camera_aware_rebaseline_20260909",
+  "execution_root": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913",
+  "source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock/source_lock.json",
+  "evaluation_contract": {
+    "milestone": {
+      "episodes_per_side": 64,
+      "seed": 280001,
+      "order": [
+        "left",
+        "right"
+      ]
+    },
+    "DEV": {
+      "episodes_per_side": 128,
+      "seed": 280101,
+      "order": [
+        "left",
+        "right"
+      ]
+    },
+    "CONF": {
+      "episodes_per_side": 128,
+      "seed": 280201,
+      "order": [
+        "left",
+        "right"
+      ]
+    },
+    "render": {
+      "episodes_per_side": 3,
+      "seed": 280303,
+      "episode_ids": [
+        0,
+        1,
+        2
+      ]
+    }
+  },
+  "cells": {
+    "A_W281": {
+      "cell": "A_W281",
+      "seed": 281,
+      "checkpoint_load_mode": "policy_only",
+      "policy_only_load_actor_rms": true,
+      "batches": 6000,
+      "milestones": [
+        1000,
+        2000,
+        3000,
+        4000,
+        5000,
+        6000
+      ],
+      "driver_target_stage": 4,
+      "source_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/model_step_003000.pt"
+    },
+    "G1_WARM": {
+      "cell": "G1_WARM",
+      "seed": 281,
+      "checkpoint_load_mode": "policy_only",
+      "policy_only_load_actor_rms": true,
+      "batches": 500,
+      "milestones": [
+        250,
+        500
+      ],
+      "driver_target_stage": 4,
+      "source_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26/v26_8_bilateral_opening_scaffold_decay_20260903_r3a/train/C_S2/model_step_003000.pt"
+    },
+    "A_S281": {
+      "cell": "A_S281",
+      "seed": 281,
+      "checkpoint_load_mode": "full",
+      "policy_only_load_actor_rms": false,
+      "batches": 6000,
+      "milestones": [
+        1000,
+        2000,
+        3000,
+        4000,
+        5000,
+        6000
+      ],
+      "driver_target_stage": 4,
+      "source_checkpoint": null
+    },
+    "A_S282": {
+      "cell": "A_S282",
+      "seed": 282,
+      "checkpoint_load_mode": "full",
+      "policy_only_load_actor_rms": false,
+      "batches": 6000,
+      "milestones": [
+        1000,
+        2000,
+        3000,
+        4000,
+        5000,
+        6000
+      ],
+      "driver_target_stage": 4,
+      "source_checkpoint": null
+    },
+    "A_S283": {
+      "cell": "A_S283",
+      "seed": 283,
+      "checkpoint_load_mode": "full",
+      "policy_only_load_actor_rms": false,
+      "batches": 6000,
+      "milestones": [
+        1000,
+        2000,
+        3000,
+        4000,
+        5000,
+        6000
+      ],
+      "driver_target_stage": 4,
+      "source_checkpoint": null
+    },
+    "A_S284": {
+      "cell": "A_S284",
+      "seed": 284,
+      "checkpoint_load_mode": "full",
+      "policy_only_load_actor_rms": false,
+      "batches": 6000,
+      "milestones": [
+        1000,
+        2000,
+        3000,
+        4000,
+        5000,
+        6000
+      ],
+      "driver_target_stage": 5,
+      "source_checkpoint": null
+    }
+  },
+  "selection": {
+    "max_candidates": 2,
+    "max_exact128_lanes": 8,
+    "order": [
+      "primary_DEV",
+      "primary_CONF",
+      "reserve_DEV",
+      "reserve_CONF"
+    ]
+  },
+  "budget_cap_batches": 36500
+}

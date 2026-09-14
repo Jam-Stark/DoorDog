@@ -1,0 +1,172 @@
+{
+  "schema": "a2_piper_base_v28_teacher_candidate_manifest_v1",
+  "status": "NOT_RUN",
+  "recorded_at": "2026-09-14 08:58 HKT",
+  "source_state": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json",
+  "source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock/source_lock.json",
+  "endpoint_lock": null,
+  "g1": {
+    "status": "FAIL",
+    "decision": {
+      "decision": "FAIL",
+      "outcome": "WARM_FAIL",
+      "step": 500,
+      "action": "STOP",
+      "warm_arm_cancelled": true,
+      "wave_c_best_D_per_side": {
+        "left": 0,
+        "right": 63
+      },
+      "warm_arm_eligible": false,
+      "additional_batches": 0
+    },
+    "decided_at": "2026-09-14T00:47:50+00:00",
+    "history": [
+      {
+        "step": 500,
+        "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/reducers/milestone_g1_train_500_500.json",
+        "decision": {
+          "decision": "FAIL",
+          "outcome": "WARM_FAIL",
+          "step": 500,
+          "action": "STOP",
+          "warm_arm_cancelled": true,
+          "wave_c_best_D_per_side": {
+            "left": 0,
+            "right": 63
+          },
+          "warm_arm_eligible": false,
+          "additional_batches": 0
+        },
+        "recorded_at": "2026-09-14T00:47:50+00:00"
+      }
+    ]
+  },
+  "wave_a": {
+    "status": "NOT_RUN",
+    "history": [],
+    "endpoint_lock": null,
+    "not_run_reason": "G1_WARM_FAIL_OWNER_COST_REVIEW_REQUIRED",
+    "original_three_seed_endpoint_status": "NOT_EVALUATED",
+    "candidate_selection_status": "NOT_RUN"
+  },
+  "original_three_seed_endpoint": null,
+  "candidate_pool": [],
+  "candidates": [],
+  "qualification": {
+    "status": "NOT_RUN",
+    "exact128_lanes": 0,
+    "not_run_reason": "G1_WARM_FAIL_OWNER_COST_REVIEW_REQUIRED",
+    "render_status": "NOT_RUN",
+    "render_not_run_reason": "NO_FROZEN_CANDIDATE_G1_OWNER_GATE"
+  },
+  "budget": {
+    "cap_batches": 36500,
+    "scheduled_batches": 0,
+    "active_reserved_batches": 0,
+    "actual_consumed_batches": 500
+  },
+  "stop": {
+    "reason": "G1_WARM_FAIL",
+    "decision": {
+      "decision": "FAIL",
+      "outcome": "WARM_FAIL",
+      "step": 500,
+      "action": "STOP",
+      "warm_arm_cancelled": true,
+      "wave_c_best_D_per_side": {
+        "left": 0,
+        "right": 63
+      },
+      "warm_arm_eligible": false,
+      "additional_batches": 0
+    },
+    "at": "2026-09-14T00:47:50+00:00"
+  },
+  "next_stage_review": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/next_stage_review.json",
+  "next_stage": {
+    "schema": "a2_piper_v28_next_stage_review_v1",
+    "recorded_at": "2026-09-14T08:53:45+08:00",
+    "decision_log_id": "V28-D045",
+    "reviewed_by": "Codex Main; focused scope_planner input",
+    "trigger": "G1_WARM_FAIL scoped execution closure",
+    "evidence_level": "INSPECTED",
+    "decisions": {
+      "N01": {
+        "disposition": "CONTINUE",
+        "scope": "Bounded next-stage pilot proposal only",
+        "experiment_execution": "DEFER",
+        "reason": "The prior recovery pilot was UNRESOLVED: missing R1 endpoint and too few observed R2 grasp-loss events; this does not establish benefit or futility.",
+        "next_actions": [
+          "Define unplanned grasp-loss duration before crossing and distinguish normal release, non-exposure, loss, regrasp and recovered clean completion.",
+          "Redesign disturbance timing/amplitude and event exposure; retain nominal/sham controls and the all-injected denominator.",
+          "Decide new pilot endpoint and small budget before any multi-seed confirmation. Loss-event definition is distinct from changing optimization losses; any such change needs its own proposal."
+        ],
+        "entry_conditions": [
+          "Explicit simulator asset/checkpoint and reachable interaction window.",
+          "Owner-approved pilot scope and budget."
+        ],
+        "not_required": [
+          "Old v27 RECOVERY_PILOT_PROMISING",
+          "A final qualified Teacher"
+        ],
+        "sources": [
+          "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_recovery_decision.json",
+          "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/a2_piper_base_v27_wave_b_r_step1500_readout_20260907.md"
+        ]
+      },
+      "N02": {
+        "disposition": "CONTINUE",
+        "scope": "Deployable sensor contract and identifiability proposal only",
+        "experiment_execution": "DEFER",
+        "reason": "Existing shadow estimation is limited offline evidence and excluded 51 short episodes; the load/friction domain remains unestablished.",
+        "next_actions": [
+          "Specify proprioception, action history and gripper qpos; verify availability of any effort proxy. Privileged mass/joints/6D hand-force are labels or oracle inputs, not assumed deployment inputs.",
+          "Define control-relevant resistance, rebound, grasp confidence and opening-progress targets. Stratify the physical mass 80–160 / friction {0,2,5} domain by side and interaction exposure; retain short/failure episodes explicitly.",
+          "Propose a limited-domain pilot with matched sensor budgets for recurrent DR/history latent/oracle, within-episode resistance changes and held-out parameter combinations."
+        ],
+        "entry_conditions": [
+          "Named input sources and informative interaction windows.",
+          "Owner-approved independent pilot scope and budget."
+        ],
+        "not_required": [
+          "Perfect Teacher",
+          "Final camera layout or CAD"
+        ],
+        "sources": [
+          "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/a2_piper_base_v27_shadow_estimator_readout_20260907.md",
+          "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/wave_b_decision.json"
+        ]
+      }
+    },
+    "X05": "CLOSED_REVIEW_COMPLETED_METHODS_REMAIN_OPEN",
+    "new_experiments_started": false,
+    "interpretation_boundary": "G1 warm failure does not establish scratch failure, infeasible geometry, or method futility."
+  },
+  "evidence_level": "RUNTIME_OBSERVATION",
+  "not_run_boundaries": {
+    "G2_optics_CAD_mount_swap": "DEFERRED_TO_C_S_G2",
+    "Teacher_G7_binding": "OWNER_AUTHORIZATION_REQUIRED",
+    "hardware": "NOT_AUTHORIZED",
+    "push": "NOT_AUTHORIZED"
+  },
+  "limitations": [
+    "Qualification covers only the evaluated fixed candidate(s).",
+    "Qualification never upgrades the original three-seed endpoint conclusion.",
+    "A284 is a separate seed/driver variant, not a causal driver estimate.",
+    "No-event metrics are null; pinhole projection and sampled clearance are geometric proxies.",
+    "Learning failure with tower contact does not prove infeasible geometry.",
+    "X24/X25 and archived G0/C3 limitations remain in force."
+  ],
+  "selection_status": "NOT_RUN_G1_OWNER_GATE",
+  "candidate_pool_interpretation": "Empty because selection was not run; not evidence that all checkpoints failed.",
+  "g1_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/g1_owner_gate_record.json",
+  "milestone_readouts": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_g1_train_500_500.md"
+  ],
+  "render": {
+    "status": "NOT_RUN",
+    "reason": "NO_FROZEN_CANDIDATE_G1_OWNER_GATE"
+  },
+  "cleanup_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/cleanup_receipt.json"
+}

@@ -1,0 +1,16 @@
+{
+  "schema": "a2_piper_base_v28_wave_b_decision_v1",
+  "run_id": "v28_camera_aware_rebaseline_20260909",
+  "status": "NOT_RUN",
+  "outcome": "G1_WARM_FAIL_OWNER_COST_REVIEW_REQUIRED",
+  "recorded_at": "2026-09-14T08:53:45+08:00",
+  "source_state": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json",
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/reducers/milestone_g1_train_500_500.json",
+  "source_g1_decision": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/g1_probe_decision.json",
+  "endpoint_lock": null,
+  "selection_rule": "NOT_APPLIED_G1_OWNER_GATE",
+  "route_authority": "Owner stage execution authorization / plan §8.1 and §9.6",
+  "decision_log_id": "V28-D044",
+  "original_three_seed_endpoint": null,
+  "exact128_lanes": 0
+}

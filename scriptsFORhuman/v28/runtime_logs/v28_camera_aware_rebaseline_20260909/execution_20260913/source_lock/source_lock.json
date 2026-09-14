@@ -1,0 +1,2201 @@
+{
+  "schema": "a2_piper_v28_source_bytes_v1",
+  "state": "BYTE_COPY_VERIFIED",
+  "created_at": "2026-09-12T17:47:56.944836+00:00",
+  "source_root": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+  "isaaclab_root": "/home/baoquanc/workspace/IsaacLab",
+  "files": [
+    {
+      "path": "gr00t/rl/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/agents/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/agents/base_algo/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/agents/base_algo/base_algo.py",
+      "bytes": 945
+    },
+    {
+      "path": "gr00t/rl/agents/modules/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/agents/modules/data_utils.py",
+      "bytes": 6266
+    },
+    {
+      "path": "gr00t/rl/agents/modules/encoder_modules.py",
+      "bytes": 870
+    },
+    {
+      "path": "gr00t/rl/agents/modules/modules.py",
+      "bytes": 21569
+    },
+    {
+      "path": "gr00t/rl/agents/modules/ppo_modules.py",
+      "bytes": 16553
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v12_A_v10A_scratch_control.yaml",
+      "bytes": 1510
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v12_B_v10A_scratch_kp160.yaml",
+      "bytes": 1513
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v12_C_v10A_scratch_stability1.yaml",
+      "bytes": 1510
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v12_D_v10A_scratch_kp160_stability1.yaml",
+      "bytes": 1513
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v13_1_main.yaml",
+      "bytes": 2225
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v13_A_main.yaml",
+      "bytes": 2127
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v13_B_gate_only.yaml",
+      "bytes": 2162
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v14_main.yaml",
+      "bytes": 2335
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v15_main.yaml",
+      "bytes": 2524
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v16_main.yaml",
+      "bytes": 2727
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G1_full_m34_m35_hinge135.yaml",
+      "bytes": 2930
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G2_m35_only.yaml",
+      "bytes": 2924
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G3_m34_only.yaml",
+      "bytes": 2927
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G4_v16_control.yaml",
+      "bytes": 2944
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G5_full_m34_m35_hinge125.yaml",
+      "bytes": 2927
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G6_full_m34_m35_robustness.yaml",
+      "bytes": 2927
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v18_M39_combined_probe.yaml",
+      "bytes": 4028
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v18_main.yaml",
+      "bytes": 3493
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G1_full.yaml",
+      "bytes": 3589
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G2_norm_control.yaml",
+      "bytes": 3581
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G3_no_carry_control.yaml",
+      "bytes": 3581
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G4_drifted_warmstart.yaml",
+      "bytes": 3587
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G5_no_overspeed_fix.yaml",
+      "bytes": 3573
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G6_full_replicate.yaml",
+      "bytes": 3576
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G7_ceiling_probe.yaml",
+      "bytes": 3581
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G1_g2_continuation.yaml",
+      "bytes": 3802
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G2_economics_only.yaml",
+      "bytes": 3991
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G3_send_institution_only.yaml",
+      "bytes": 3840
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G4_send_economics.yaml",
+      "bytes": 4007
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G5_send_arm_tie.yaml",
+      "bytes": 3945
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G6_full.yaml",
+      "bytes": 4051
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G7_full_seed1.yaml",
+      "bytes": 4095
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G1_g2_continuation.yaml",
+      "bytes": 4676
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G2_economics_only.yaml",
+      "bytes": 4673
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G3_send_curriculum_only.yaml",
+      "bytes": 4897
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G4_send_curriculum_economics.yaml",
+      "bytes": 4901
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G5_send_curriculum_arm_tie.yaml",
+      "bytes": 4901
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G6_full.yaml",
+      "bytes": 4881
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G7_full_seed1.yaml",
+      "bytes": 4887
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_P2_G4_learnability_pilot.yaml",
+      "bytes": 4961
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G1_g2_continuation.yaml",
+      "bytes": 5106
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G2_economics_only.yaml",
+      "bytes": 5103
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G3_send_curriculum_only.yaml",
+      "bytes": 5327
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G4_send_curriculum_economics.yaml",
+      "bytes": 5331
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G5_send_curriculum_arm_tie.yaml",
+      "bytes": 5331
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G6_full.yaml",
+      "bytes": 5311
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G7_full_seed1.yaml",
+      "bytes": 5317
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_P2_G4_learnability_pilot.yaml",
+      "bytes": 5391
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B1_theta090_arm_v20.yaml",
+      "bytes": 5786
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B2_theta120_arm_v20.yaml",
+      "bytes": 5774
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B3_theta090_arm_realistic.yaml",
+      "bytes": 5867
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B4_theta120_arm_realistic.yaml",
+      "bytes": 5867
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B5_theta120_arm_realistic_seed1.yaml",
+      "bytes": 5867
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B6_theta120_arm_v20_seed1.yaml",
+      "bytes": 5774
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B7_theta120_arm_realistic_arm_tie.yaml",
+      "bytes": 5908
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G1_posture_seed0.yaml",
+      "bytes": 6535
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G2_posture_seed1.yaml",
+      "bytes": 6535
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G3_randomized_seed0.yaml",
+      "bytes": 7536
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G4_randomized_seed1.yaml",
+      "bytes": 7536
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G5_body_assist_seed0.yaml",
+      "bytes": 7534
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G6_body_assist_seed1.yaml",
+      "bytes": 7534
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G1_warm_D0_full.yaml",
+      "bytes": 2531
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G2_warm_D0_rp0.yaml",
+      "bytes": 1303
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G3_scratch_D0_full.yaml",
+      "bytes": 1370
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G4_scratch_D0_rp0.yaml",
+      "bytes": 1358
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G5_warm_D1_full.yaml",
+      "bytes": 1464
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G6_warm_D1_rp0.yaml",
+      "bytes": 1490
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G7_scratch_D1_full.yaml",
+      "bytes": 1557
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G8_scratch_D1_rp0.yaml",
+      "bytes": 1545
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_common.yaml",
+      "bytes": 4313
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_d1_full_64x10_smoke.yaml",
+      "bytes": 3325
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_f1_d0_head_reset_smoke.yaml",
+      "bytes": 2190
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p06_warm_full_d0_smoke.yaml",
+      "bytes": 3416
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p07_rp0_runtime.yaml",
+      "bytes": 2295
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p08_a0_d0_state_bank.yaml",
+      "bytes": 7917
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p08_preformal_v2.yaml",
+      "bytes": 2965
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p09_d0_type_smoke.yaml",
+      "bytes": 3568
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p1_d_v2_energy.yaml",
+      "bytes": 1709
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p1_friction_domain_escalation.yaml",
+      "bytes": 2569
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p1_native_probe.yaml",
+      "bytes": 3267
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p2_force_boundary.yaml",
+      "bytes": 5559
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p2_force_boundary_r13.yaml",
+      "bytes": 5255
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_r13_f3_behavioral_pilot.yaml",
+      "bytes": 2205
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_r1_f3_marginal_e1_pilot.yaml",
+      "bytes": 2309
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v25_formal_full_p10.yaml",
+      "bytes": 1211
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v25_formal_rp0_p10.yaml",
+      "bytes": 294
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v25_m1_left_only.yaml",
+      "bytes": 885
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v25_m2_mixed_lr_64x8_smoke.yaml",
+      "bytes": 1116
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_A_RAW0_DEP0_T010.yaml",
+      "bytes": 325
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_C_RAW6_T010.yaml",
+      "bytes": 320
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_R_RAW0_DEP6_T010.yaml",
+      "bytes": 325
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_W_RAW0_DEP6_T025.yaml",
+      "bytes": 326
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_pull_derived.yaml",
+      "bytes": 996
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_3_M0_OLD.yaml",
+      "bytes": 345
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_3_M1_CREATE.yaml",
+      "bytes": 348
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_3_event_time_creation.yaml",
+      "bytes": 1330
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_4_C0_CANONICAL_OFF.yaml",
+      "bytes": 139
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_4_C1_CANONICAL_ON.yaml",
+      "bytes": 203
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_4_bilateral_grasp_foundation.yaml",
+      "bytes": 1406
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_O0A1_rebase.yaml",
+      "bytes": 394
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_O1A0_geometry.yaml",
+      "bytes": 350
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_O1A1_geometry_rebase.yaml",
+      "bytes": 348
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_eval_O0A0.yaml",
+      "bytes": 250
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_eval_O0A1.yaml",
+      "bytes": 249
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_eval_O1A0.yaml",
+      "bytes": 249
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_eval_O1A1.yaml",
+      "bytes": 248
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_geometry_target.yaml",
+      "bytes": 378
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_C2_eval_gauge.yaml",
+      "bytes": 471
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_C2_gauge.yaml",
+      "bytes": 469
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_K0_eval_O0A0.yaml",
+      "bytes": 382
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R13_eval_policy_residual.yaml",
+      "bytes": 912
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R13_policy_residual.yaml",
+      "bytes": 890
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R14_eval_policy_residual.yaml",
+      "bytes": 907
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R14_policy_residual.yaml",
+      "bytes": 885
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R15_eval_policy_residual.yaml",
+      "bytes": 962
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R15_policy_residual.yaml",
+      "bytes": 940
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R1_eval_policy_residual.yaml",
+      "bytes": 895
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R1_policy_residual.yaml",
+      "bytes": 873
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_6_waveB_B0.yaml",
+      "bytes": 1154
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_6_waveB_B1.yaml",
+      "bytes": 400
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q05_S0.yaml",
+      "bytes": 164
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q05_S1.yaml",
+      "bytes": 164
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q05_S2.yaml",
+      "bytes": 164
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q20_S0.yaml",
+      "bytes": 164
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q20_S1.yaml",
+      "bytes": 164
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q20_S2.yaml",
+      "bytes": 164
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_common.yaml",
+      "bytes": 831
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_C_S1.yaml",
+      "bytes": 273
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_C_S2.yaml",
+      "bytes": 273
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_K_S1.yaml",
+      "bytes": 1324
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_K_S2.yaml",
+      "bytes": 1324
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_W_S1.yaml",
+      "bytes": 329
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_W_S2.yaml",
+      "bytes": 329
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_common.yaml",
+      "bytes": 790
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_common_scratch_lr.yaml",
+      "bytes": 2604
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_eval_natural_start.yaml",
+      "bytes": 604
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_left_scratch_seed0.yaml",
+      "bytes": 200
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_lr_policy_continuation.yaml",
+      "bytes": 850
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_lr_scratch_seed0.yaml",
+      "bytes": 206
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_lr_scratch_seed1.yaml",
+      "bytes": 206
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_right_scratch_seed0.yaml",
+      "bytes": 201
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_C_S21.yaml",
+      "bytes": 336
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_C_S22.yaml",
+      "bytes": 336
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_L0_S31.yaml",
+      "bytes": 344
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_L1_S31.yaml",
+      "bytes": 723
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_L1_S32.yaml",
+      "bytes": 723
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_Q1_S21.yaml",
+      "bytes": 607
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_Q1_S22.yaml",
+      "bytes": 607
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_Q2_S21.yaml",
+      "bytes": 813
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_Q2_S22.yaml",
+      "bytes": 813
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_R0_S41.yaml",
+      "bytes": 544
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_R1_S41.yaml",
+      "bytes": 543
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_R2_S41.yaml",
+      "bytes": 543
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SC_S201.yaml",
+      "bytes": 279
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SC_S202.yaml",
+      "bytes": 279
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SC_S203.yaml",
+      "bytes": 279
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SK_S211.yaml",
+      "bytes": 1298
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SK_S212.yaml",
+      "bytes": 1298
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SK_S213.yaml",
+      "bytes": 1298
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_common.yaml",
+      "bytes": 437
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_S281.yaml",
+      "bytes": 238
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_S282.yaml",
+      "bytes": 238
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_S283.yaml",
+      "bytes": 238
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_S284.yaml",
+      "bytes": 284
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_W281.yaml",
+      "bytes": 430
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_G1_WARM.yaml",
+      "bytes": 430
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_common.yaml",
+      "bytes": 5504
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_eval_natural_start.yaml",
+      "bytes": 145
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v9_A.yaml",
+      "bytes": 120
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v9_B.yaml",
+      "bytes": 116
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v9_C.yaml",
+      "bytes": 119
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v9_D.yaml",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/config/algo/dagger_vision_distributed.yaml",
+      "bytes": 2332
+    },
+    {
+      "path": "gr00t/rl/config/algo/eval/base.yaml",
+      "bytes": 639
+    },
+    {
+      "path": "gr00t/rl/config/algo/ppo.yaml",
+      "bytes": 1176
+    },
+    {
+      "path": "gr00t/rl/config/algo/trl/ppo.yaml",
+      "bytes": 597
+    },
+    {
+      "path": "gr00t/rl/config/base/hydra.yaml",
+      "bytes": 293
+    },
+    {
+      "path": "gr00t/rl/config/base/structure.yaml",
+      "bytes": 109
+    },
+    {
+      "path": "gr00t/rl/config/base.yaml",
+      "bytes": 1177
+    },
+    {
+      "path": "gr00t/rl/config/base_eval.yaml",
+      "bytes": 7376
+    },
+    {
+      "path": "gr00t/rl/config/callbacks/autoresume.yaml",
+      "bytes": 136
+    },
+    {
+      "path": "gr00t/rl/config/callbacks/model_save.yaml",
+      "bytes": 137
+    },
+    {
+      "path": "gr00t/rl/config/callbacks/read_eval_locomanip.yaml",
+      "bytes": 166
+    },
+    {
+      "path": "gr00t/rl/config/callbacks/wandb.yaml",
+      "bytes": 73
+    },
+    {
+      "path": "gr00t/rl/config/domain_rand/NO_domain_rand.yaml",
+      "bytes": 7754
+    },
+    {
+      "path": "gr00t/rl/config/domain_rand/domain_rand_base.yaml",
+      "bytes": 754
+    },
+    {
+      "path": "gr00t/rl/config/domain_rand/domain_rand_visual_ImageRand.yaml",
+      "bytes": 2328
+    },
+    {
+      "path": "gr00t/rl/config/env/base_task.yaml",
+      "bytes": 887
+    },
+    {
+      "path": "gr00t/rl/config/env/door_open_a2_base.yaml",
+      "bytes": 12708
+    },
+    {
+      "path": "gr00t/rl/config/env/legged_base.yaml",
+      "bytes": 952
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_dagger-lstm.yaml",
+      "bytes": 7035
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_lstm.yaml",
+      "bytes": 3110
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_stage0_2_grasp_terminal_lstm.yaml",
+      "bytes": 3520
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_homie_dagger-lstm.yaml",
+      "bytes": 5384
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_base.yaml",
+      "bytes": 6382
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_base_dagger.yaml",
+      "bytes": 4563
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_v26_5_gauge.yaml",
+      "bytes": 2104
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_homie_dagger.yaml",
+      "bytes": 6674
+    },
+    {
+      "path": "gr00t/rl/config/opt/wandb.yaml",
+      "bytes": 223
+    },
+    {
+      "path": "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml",
+      "bytes": 5663
+    },
+    {
+      "path": "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_v23.yaml",
+      "bytes": 5799
+    },
+    {
+      "path": "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_v26_acquisition.yaml",
+      "bytes": 5063
+    },
+    {
+      "path": "gr00t/rl/config/robot/A2_Piper/a2_piper.yaml",
+      "bytes": 5183
+    },
+    {
+      "path": "gr00t/rl/config/robot/A2_Piper/a2_piper_vpiper.yaml",
+      "bytes": 5248
+    },
+    {
+      "path": "gr00t/rl/config/robot/g1/g1_43dof.yaml",
+      "bytes": 19831
+    },
+    {
+      "path": "gr00t/rl/config/robot/robot_base.yaml",
+      "bytes": 1713
+    },
+    {
+      "path": "gr00t/rl/config/simulator/isaacsim.yaml",
+      "bytes": 1992
+    },
+    {
+      "path": "gr00t/rl/config/terrain/terrain_base.yaml",
+      "bytes": 95
+    },
+    {
+      "path": "gr00t/rl/config/terrain/terrain_locomotion_plane.yaml",
+      "bytes": 1091
+    },
+    {
+      "path": "gr00t/rl/config/trainer/trl.yaml",
+      "bytes": 56
+    },
+    {
+      "path": "gr00t/rl/config/trainer/trl_a2_base_api.yaml",
+      "bytes": 69
+    },
+    {
+      "path": "gr00t/rl/config/trainer/trl_distill_a2_base_api.yaml",
+      "bytes": 86
+    },
+    {
+      "path": "gr00t/rl/config/trainer/trl_distill_obj_pred_homie_api.yaml",
+      "bytes": 99
+    },
+    {
+      "path": "gr00t/rl/data/policies/A2_Base/policy.pt",
+      "bytes": 5855314
+    },
+    {
+      "path": "gr00t/rl/data/policies/A2_Base/policy_metadata.json",
+      "bytes": 7091
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.proposal.json",
+      "bytes": 9486
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.urdf",
+      "bytes": 51780
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.usd",
+      "bytes": 1457
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper_independent_d35.urdf",
+      "bytes": 50095
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/config/camera_rig.json",
+      "bytes": 37488
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/config.yaml",
+      "bytes": 706
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_base.usd",
+      "bytes": 35762594
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_physics.usd",
+      "bytes": 11002
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_robot.usd",
+      "bytes": 2477
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_sensor.usd",
+      "bytes": 648
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link1.STL",
+      "bytes": 249684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link2.STL",
+      "bytes": 548484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link3.STL",
+      "bytes": 310484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link4.STL",
+      "bytes": 1719884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link1.STL",
+      "bytes": 249684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link2.STL",
+      "bytes": 548484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link3.STL",
+      "bytes": 310484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link4.STL",
+      "bytes": 1719884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/metal_plate_5mm_head_width.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_00.stl",
+      "bytes": 1484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_01.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_02.stl",
+      "bytes": 13484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_03.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_04.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_05.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_06.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_07.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_08.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_09.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_10.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_11.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_12.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_13.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_14.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_visual.stl",
+      "bytes": 626284
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_00.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_01.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_02.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_03.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_04.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_05.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_06.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_07.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_08.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_09.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_10.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_11.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_12.stl",
+      "bytes": 484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_13.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_14.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_15.stl",
+      "bytes": 484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_16.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_17.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_18.stl",
+      "bytes": 484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_19.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_20.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_21.stl",
+      "bytes": 484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_22.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_23.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_24.stl",
+      "bytes": 484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_25.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_26.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_27.stl",
+      "bytes": 484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_28.stl",
+      "bytes": 684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_29.stl",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_30.stl",
+      "bytes": 6784
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_31.stl",
+      "bytes": 7084
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_32.stl",
+      "bytes": 7284
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_33.stl",
+      "bytes": 6784
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_34.stl",
+      "bytes": 7084
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_35.stl",
+      "bytes": 7284
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_visual.stl",
+      "bytes": 182984
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/base_link.STL",
+      "bytes": 607384
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/gripper_base.STL",
+      "bytes": 649484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link1.STL",
+      "bytes": 447784
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link2.STL",
+      "bytes": 3658384
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link3.STL",
+      "bytes": 1845784
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link4.STL",
+      "bytes": 877984
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link5.STL",
+      "bytes": 833684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link6.STL",
+      "bytes": 58884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link7.STL",
+      "bytes": 104384
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link8.STL",
+      "bytes": 104384
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link1.STL",
+      "bytes": 249684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link2.STL",
+      "bytes": 547484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link3.STL",
+      "bytes": 310484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link4.STL",
+      "bytes": 1719884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link1.STL",
+      "bytes": 249684
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link2.STL",
+      "bytes": 547484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link3.STL",
+      "bytes": 310484
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link4.STL",
+      "bytes": 1719884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/trunk.STL",
+      "bytes": 3421184
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/d35_tower_estimate.json",
+      "bytes": 2357
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/mass_pose_contract.json",
+      "bytes": 883
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/source_inputs/a2_piper_independent_d35.urdf",
+      "bytes": 50420
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/usd_import_readback.json",
+      "bytes": 14550
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/usd_mass_inertia_comparison.json",
+      "bytes": 6328
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/apply_mount_masses.py",
+      "bytes": 3736
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/build_models.py",
+      "bytes": 13126
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/draw_plate_datums.py",
+      "bytes": 4300
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/preview_mujoco.py",
+      "bytes": 963
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/rebuild_plate_and_config.py",
+      "bytes": 5262
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/render_inspection.py",
+      "bytes": 4532
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/verify_manifest.py",
+      "bytes": 884
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/verify_models.py",
+      "bytes": 11227
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/verify_mount_geometry.py",
+      "bytes": 8691
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_vpiper_final_20260906/tools/verify_resources.py",
+      "bytes": 3143
+    },
+    {
+      "path": "gr00t/rl/data/tasks/door/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/data/tasks/door/scenario_cfg/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py",
+      "bytes": 98460
+    },
+    {
+      "path": "gr00t/rl/envs/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/a2_base.py",
+      "bytes": 73793
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/base_task.py",
+      "bytes": 17508
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/delta_action_base.py",
+      "bytes": 7893
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/finger_primitive_base.py",
+      "bytes": 6696
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/staged_task_base.py",
+      "bytes": 35752
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/warped_action_base.py",
+      "bytes": 1547
+    },
+    {
+      "path": "gr00t/rl/envs/door/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_piper_door_scene_preview.py",
+      "bytes": 16220
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v20_r2_evidence.py",
+      "bytes": 25807
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v20_r2_forced_semantics.py",
+      "bytes": 3637
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v21b_evidence.py",
+      "bytes": 82874
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v22_evidence.py",
+      "bytes": 23801
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v23_d1_sampler.py",
+      "bytes": 26044
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v23_evidence.py",
+      "bytes": 100508
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v24_df1_sampler.py",
+      "bytes": 12622
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v24_force_boundary.py",
+      "bytes": 122597
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v24_friction.py",
+      "bytes": 11829
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v24_r12_marginal_e1_evidence.py",
+      "bytes": 11327
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v24_r13_f3_evidence.py",
+      "bytes": 9724
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v24_r13_f3_sampler.py",
+      "bytes": 6880
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v25_intervention.py",
+      "bytes": 13482
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v26_3_creation.py",
+      "bytes": 3042
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v26_4_canonicalization.py",
+      "bytes": 5635
+    },
+    {
+      "path": "gr00t/rl/envs/door/door_open_a2_base.py",
+      "bytes": 1488752
+    },
+    {
+      "path": "gr00t/rl/envs/door/reset_from_dataset.py",
+      "bytes": 3256
+    },
+    {
+      "path": "gr00t/rl/envs/env_utils/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/envs/env_utils/command_generator.py",
+      "bytes": 1511
+    },
+    {
+      "path": "gr00t/rl/envs/env_utils/general.py",
+      "bytes": 826
+    },
+    {
+      "path": "gr00t/rl/envs/env_utils/history_handler.py",
+      "bytes": 6301
+    },
+    {
+      "path": "gr00t/rl/envs/env_utils/terrain.py",
+      "bytes": 11190
+    },
+    {
+      "path": "gr00t/rl/envs/env_utils/visualization.py",
+      "bytes": 257
+    },
+    {
+      "path": "gr00t/rl/envs/legged_base_task/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/envs/legged_base_task/legged_robot_base.py",
+      "bytes": 135443
+    },
+    {
+      "path": "gr00t/rl/envs/legged_base_task/live_reward_plotter.py",
+      "bytes": 2637
+    },
+    {
+      "path": "gr00t/rl/eval_agent_trl.py",
+      "bytes": 38329
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/maths.py",
+      "bytes": 1592
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/domelight.py",
+      "bytes": 2084
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/door.py",
+      "bytes": 55791
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/table_grid.py",
+      "bytes": 22224
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/global_variables.py",
+      "bytes": 189
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/scripts/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/scripts/domelight_randomization.py",
+      "bytes": 2530
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/scripts/material_randomization.py",
+      "bytes": 3631
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/utils/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/utils/math_utils.py",
+      "bytes": 6381
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/utils/nucleus_utils.py",
+      "bytes": 795
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/utils/usd_utils.py",
+      "bytes": 7346
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/rotations.py",
+      "bytes": 26845
+    },
+    {
+      "path": "gr00t/rl/scripts/a2_piper_v14_reachability_map.py",
+      "bytes": 49324
+    },
+    {
+      "path": "gr00t/rl/scripts/a2_piper_v15_dynamic_reachability.py",
+      "bytes": 103803
+    },
+    {
+      "path": "gr00t/rl/scripts/generate_door_assets.py",
+      "bytes": 27766
+    },
+    {
+      "path": "gr00t/rl/scripts/preview_a2_piper_door_scene.py",
+      "bytes": 18515
+    },
+    {
+      "path": "gr00t/rl/scripts/smoke_a2_base_flat_walk.py",
+      "bytes": 50048
+    },
+    {
+      "path": "gr00t/rl/scripts/smoke_a2_student_camera.py",
+      "bytes": 5636
+    },
+    {
+      "path": "gr00t/rl/scripts/smoke_door_joint_reward.py",
+      "bytes": 8902
+    },
+    {
+      "path": "gr00t/rl/scripts/validate_a2_teacher_checkpoint.py",
+      "bytes": 28453
+    },
+    {
+      "path": "gr00t/rl/simulator/base_simulator/base_simulator.py",
+      "bytes": 9174
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/event_cfg.py",
+      "bytes": 1431
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/events.py",
+      "bytes": 16955
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/isaaclab_cfg.py",
+      "bytes": 11126
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/isaaclab_viewpoint_camera_controller.py",
+      "bytes": 4462
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/isaacsim.py",
+      "bytes": 155797
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/isaacsim_articulation_cfg.py",
+      "bytes": 10991
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/utils.py",
+      "bytes": 3933
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_hold_oracle_diagnostics.py",
+      "bytes": 168582
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_student_distillation_contract.py",
+      "bytes": 23865
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v13_1_env_semantics.py",
+      "bytes": 9687
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v13_1_trainer_config.py",
+      "bytes": 23602
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v13_gate_zero_warning.py",
+      "bytes": 2291
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v14_bucket_report.py",
+      "bytes": 8288
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v14_env_telemetry.py",
+      "bytes": 8678
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v14_randomization.py",
+      "bytes": 13564
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v14_reachability.py",
+      "bytes": 9443
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v15_bucket_report.py",
+      "bytes": 11548
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v15_dynamic_reachability.py",
+      "bytes": 47769
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v15_env_semantics.py",
+      "bytes": 14065
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v16_bucket_report.py",
+      "bytes": 8238
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v16_env_semantics.py",
+      "bytes": 11354
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v17_bucket_report.py",
+      "bytes": 8814
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v17_env_semantics.py",
+      "bytes": 11202
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v18_combined_probe_report.py",
+      "bytes": 16859
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v18_m39.py",
+      "bytes": 17578
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v18_main_config.py",
+      "bytes": 5073
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v18_p2_m41.py",
+      "bytes": 10903
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v18_slip_report.py",
+      "bytes": 3985
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v19_env_semantics.py",
+      "bytes": 5430
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v19_final_analysis.py",
+      "bytes": 10633
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v19_m22_adjudicator.py",
+      "bytes": 26953
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v19_main_config.py",
+      "bytes": 3049
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v19_p03_overspeed_report.py",
+      "bytes": 2464
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v19_render_qa.py",
+      "bytes": 5914
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v19_render_queue.py",
+      "bytes": 4331
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R1_curriculum.py",
+      "bytes": 5369
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R1_gates.py",
+      "bytes": 15008
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R1_launcher.py",
+      "bytes": 5072
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R1_m22.py",
+      "bytes": 4393
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R1_main_config.py",
+      "bytes": 2872
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R1_pilot_adjudicator.py",
+      "bytes": 4745
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R1_staged_reset_guard.py",
+      "bytes": 2312
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R1_strict_schema.py",
+      "bytes": 11287
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_common.py",
+      "bytes": 2803
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_evidence_record.py",
+      "bytes": 25168
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_executable_dag.py",
+      "bytes": 7770
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_p0_binding.py",
+      "bytes": 5870
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_r1_blocked.py",
+      "bytes": 1313
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_schemas.py",
+      "bytes": 2764
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_source_freeze_p0.py",
+      "bytes": 3415
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_staged_reset.py",
+      "bytes": 3208
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_taskspace.py",
+      "bytes": 3101
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_R2_workflow.py",
+      "bytes": 7642
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_arc_feasibility.py",
+      "bytes": 50916
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_endpoint_report.py",
+      "bytes": 4228
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_env_semantics.py",
+      "bytes": 3498
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_exporter.py",
+      "bytes": 9228
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_final_analysis.py",
+      "bytes": 5702
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_launcher.py",
+      "bytes": 9037
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_m22_adjudicator.py",
+      "bytes": 15878
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_main_config.py",
+      "bytes": 5732
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_preflight.py",
+      "bytes": 7627
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_render_qa.py",
+      "bytes": 5566
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_staged_reset_state.py",
+      "bytes": 10930
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v20_taskspace_carry.py",
+      "bytes": 9599
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v21B_config.py",
+      "bytes": 8539
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v21B_evidence.py",
+      "bytes": 26332
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v21B_postformal_eval.py",
+      "bytes": 71807
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v21B_training_metrics.py",
+      "bytes": 11027
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v21B_workflow.py",
+      "bytes": 54808
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v23_evidence.py",
+      "bytes": 23161
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v23_rp0_contract.py",
+      "bytes": 5257
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v26_3_creation.py",
+      "bytes": 3373
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v26_4_mirror_signs.py",
+      "bytes": 5068
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v26_6_handle_offset_mirror.py",
+      "bytes": 3517
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v26_8_g1_reduce.py",
+      "bytes": 3540
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v26_8_penalty_curriculum.py",
+      "bytes": 10626
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v27_friction.py",
+      "bytes": 3538
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v27_recovery.py",
+      "bytes": 4648
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v27_recovery_methods.py",
+      "bytes": 6349
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v27_reduce.py",
+      "bytes": 8554
+    },
+    {
+      "path": "gr00t/rl/tests/test_a2_v28_env_semantics.py",
+      "bytes": 6289
+    },
+    {
+      "path": "gr00t/rl/tests/test_eval_output_layout.py",
+      "bytes": 3112
+    },
+    {
+      "path": "gr00t/rl/train_agent_trl.py",
+      "bytes": 26803
+    },
+    {
+      "path": "gr00t/rl/trl/callbacks/autoresume_callback.py",
+      "bytes": 2575
+    },
+    {
+      "path": "gr00t/rl/trl/callbacks/hv_callback_handler.py",
+      "bytes": 6393
+    },
+    {
+      "path": "gr00t/rl/trl/callbacks/model_save_callback.py",
+      "bytes": 4723
+    },
+    {
+      "path": "gr00t/rl/trl/callbacks/read_eval_locomanip_callback.py",
+      "bytes": 4911
+    },
+    {
+      "path": "gr00t/rl/trl/callbacks/wandb_callback.py",
+      "bytes": 576
+    },
+    {
+      "path": "gr00t/rl/trl/modules/actor_critic_modules.py",
+      "bytes": 14970
+    },
+    {
+      "path": "gr00t/rl/trl/modules/actor_critic_modules_recurrent.py",
+      "bytes": 30613
+    },
+    {
+      "path": "gr00t/rl/trl/modules/cross_attention_transformer.py",
+      "bytes": 11939
+    },
+    {
+      "path": "gr00t/rl/trl/modules/homie_modules.py",
+      "bytes": 15621
+    },
+    {
+      "path": "gr00t/rl/trl/modules/memory.py",
+      "bytes": 5691
+    },
+    {
+      "path": "gr00t/rl/trl/modules/vision_actor_critic_modules.py",
+      "bytes": 10628
+    },
+    {
+      "path": "gr00t/rl/trl/modules/vision_actor_critic_modules_obj_pred.py",
+      "bytes": 13553
+    },
+    {
+      "path": "gr00t/rl/trl/modules/vision_actor_critic_modules_obj_pred_recurrent.py",
+      "bytes": 14595
+    },
+    {
+      "path": "gr00t/rl/trl/modules/vision_actor_critic_modules_recurrent.py",
+      "bytes": 23741
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/distill_trainer.py",
+      "bytes": 23517
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/distill_trainer_a2_base_api.py",
+      "bytes": 23412
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/distill_trainer_obj_pred.py",
+      "bytes": 28122
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/distill_trainer_obj_pred_homie_api.py",
+      "bytes": 36799
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/ppo_trainer.py",
+      "bytes": 97030
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py",
+      "bytes": 483464
+    },
+    {
+      "path": "gr00t/rl/trl/utils/common.py",
+      "bytes": 1664
+    },
+    {
+      "path": "gr00t/rl/trl/utils/data.py",
+      "bytes": 565
+    },
+    {
+      "path": "gr00t/rl/trl/utils/rl.py",
+      "bytes": 7714
+    },
+    {
+      "path": "gr00t/rl/trl/utils/scheduler.py",
+      "bytes": 7371
+    },
+    {
+      "path": "gr00t/rl/utils/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/utils/average_meters.py",
+      "bytes": 2311
+    },
+    {
+      "path": "gr00t/rl/utils/common.py",
+      "bytes": 4947
+    },
+    {
+      "path": "gr00t/rl/utils/config_utils.py",
+      "bytes": 969
+    },
+    {
+      "path": "gr00t/rl/utils/helpers.py",
+      "bytes": 6731
+    },
+    {
+      "path": "gr00t/rl/utils/inference_helpers.py",
+      "bytes": 17790
+    },
+    {
+      "path": "gr00t/rl/utils/logging.py",
+      "bytes": 1447
+    },
+    {
+      "path": "gr00t/rl/utils/running_mean_std.py",
+      "bytes": 5101
+    },
+    {
+      "path": "gr00t/rl/utils/teleop_reset_lib/__init__.py",
+      "bytes": 115
+    },
+    {
+      "path": "gr00t/rl/utils/teleop_reset_lib/dataset.py",
+      "bytes": 8357
+    },
+    {
+      "path": "gr00t/rl/utils/teleop_reset_lib/motion_loader.py",
+      "bytes": 20419
+    },
+    {
+      "path": "gr00t/rl/utils/terrain.py",
+      "bytes": 7711
+    },
+    {
+      "path": "gr00t/rl/utils/torch_utils.py",
+      "bytes": 6733
+    },
+    {
+      "path": "scriptsFORhuman/v28/a2_piper_base_v28_decision_log.md",
+      "bytes": 25111
+    },
+    {
+      "path": "scriptsFORhuman/v28/a2_piper_base_v28_deferred_register.md",
+      "bytes": 9935
+    },
+    {
+      "path": "scriptsFORhuman/v28/a2_piper_base_v28_g0_resume_readout_20260912.md",
+      "bytes": 11788
+    },
+    {
+      "path": "scriptsFORhuman/v28/a2_piper_base_v28_plan_20260909.md",
+      "bytes": 88696
+    },
+    {
+      "path": "scriptsFORhuman/v28/a2_piper_base_v28_planner_self_review_20260911.md",
+      "bytes": 13795
+    },
+    {
+      "path": "scriptsFORhuman/v28/camera/U3_F39_H140.json",
+      "bytes": 37488
+    },
+    {
+      "path": "scriptsFORhuman/v28/camera/d435_native_sim_parameters_20260907.json",
+      "bytes": 164237
+    },
+    {
+      "path": "scriptsFORhuman/v28/draw_wrist_comparison.py",
+      "bytes": 14365
+    },
+    {
+      "path": "scriptsFORhuman/v28/planner_evidence_20260909/asset/mount_clearance_check.py",
+      "bytes": 13110
+    },
+    {
+      "path": "scriptsFORhuman/v28/planner_evidence_20260909/camera/t4_clearance.py",
+      "bytes": 13756
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_asset_readback.py",
+      "bytes": 2496
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_build_asset.py",
+      "bytes": 11944
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_build_cut_asset.py",
+      "bytes": 13680
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_camera_geometry.py",
+      "bytes": 12859
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_camera_metrics.py",
+      "bytes": 19125
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_closure.py",
+      "bytes": 9081
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_contract.py",
+      "bytes": 6465
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_g0_contact_probe.py",
+      "bytes": 6279
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_g0_geometry_checks.py",
+      "bytes": 18526
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_g0_walk_gate.py",
+      "bytes": 9274
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_merge_mount_bodies.py",
+      "bytes": 10051
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_orchestrate.py",
+      "bytes": 14943
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_readout.py",
+      "bytes": 8787
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_reduce.py",
+      "bytes": 16598
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_refine_support_collision.py",
+      "bytes": 6371
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_render.py",
+      "bytes": 3829
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_run_cell.py",
+      "bytes": 12331
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_source_lock.py",
+      "bytes": 2968
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_u3f0_geometry_precheck.py",
+      "bytes": 28497
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_verify.py",
+      "bytes": 6468
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_wait.py",
+      "bytes": 4010
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_watch_wave.py",
+      "bytes": 33663
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "a2_piper_v28_infra_repair_v1",
+  "created_at": "2026-09-12T20:22:37.162718+00:00",
+  "decision_id": "V28-D043",
+  "task": "g1_train_500",
+  "failed_attempt": 1,
+  "next_attempt": 2,
+  "repair_number": 1,
+  "allowed_repairs": 2,
+  "classification": "RUNTIME_INFRA_FAILURE",
+  "policy_readout_observed": false,
+  "last_iteration": null,
+  "actual_consumed_batches": 0,
+  "process_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/g1_train_500/attempt1/process_receipt.json",
+  "admission_snapshot": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/gpu_occupancy/0138.json",
+  "oom_evidence": [
+    {
+      "line": 540,
+      "text": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 244.00 MiB. GPU 0 has a total capacity of 47.40 GiB of which 168.81 MiB is free. Including non-PyTorch memory, this process has 3.18 GiB memory in use. Process 380745 has 44.04 GiB memory in use. Of the allocated memory 124.76 MiB is allocated by PyTorch, and 5.24 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
+    }
+  ],
+  "remedy": "Requeue on an unoccupied eligible GPU using existing admission rules after external contention; no source or experiment contract change.",
+  "source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock/source_lock.json",
+  "watcher_quiesced_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher/RUN_RECEIPT.json"
+}

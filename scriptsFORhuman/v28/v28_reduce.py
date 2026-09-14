@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from v28_contract import HERE, METRICS, SIDES, require
+from v28_contract import HERE, METRICS, SIDES, MILESTONES, ORIGINAL_CELLS, cell_contract, require
 
 
 SCHEMA = "a2_piper_base_v28_reducer_v1"
@@ -152,36 +152,108 @@ def cell_sides(cells: dict[str, Any], cell: str, stratum: str = "nominal") -> di
     return sides if isinstance(sides, dict) and set(sides) == set(SIDES) else None
 
 
-def select_wave_a(history: list[dict[str, Any]]) -> dict[str, Any]:
-    candidates: list[tuple[int, str, int]] = []
-    for payload in sorted(history, key=lambda value: value["step"]):
-        for seed in (281, 282, 283):
-            cell = f"A_S{seed}"
+def history_index(history: list[dict[str, Any]]) -> dict[tuple[str, int], dict[str, Any]]:
+    index = {}
+    for payload in history:
+        step = payload["step"]
+        if step not in MILESTONES:
+            raise ReducerError(f"unregistered Wave A milestone: {step}")
+        for cell in payload["cells"]:
             sides = cell_sides(payload["cells"], cell)
-            if sides is not None and all(reachability_gate(sides[side]) for side in SIDES):
-                candidates.append((payload["step"], cell, sum(sides[side]["clean_complete"] for side in SIDES)))
-    if not candidates:
-        return {"outcome": "REACH_NOT_ESTABLISHED", "selected_cell": None}
-    earliest = min(value[0] for value in candidates)
-    tied = [value for value in candidates if value[0] == earliest]
-    chosen = sorted(tied, key=lambda value: (value[1], -value[2]))[0]
-    return {"outcome": "REACH_3SEED" if len({value[1] for value in candidates if value[0] == max(row["step"] for row in history)}) == 3 else "REACH_SEED_UNSTABLE",
-            "selected_cell": chosen[1], "selected_milestone": chosen[0], "clean_complete_sum": chosen[2]}
+            if sides is None:
+                continue
+            key = (cell, step)
+            if key in index and index[key] != sides:
+                raise ReducerError(f"conflicting history for {key}")
+            index[key] = sides
+    return index
+
+
+def select_wave_a(history: list[dict[str, Any]], *, started_cells: list[str]) -> dict[str, Any]:
+    """Freeze only complete registered history; actual launches control A284 eligibility."""
+    index = history_index(history)
+    eligible = [*ORIGINAL_CELLS]
+    if "A_S284" in started_cells:
+        if not k_reach_without_complete(history)["triggers"]:
+            raise ReducerError("A_S284 started without a registered D031 trigger")
+        eligible.append("A_S284")
+    missing = [{"cell": cell, "step": step} for cell in eligible for step in MILESTONES
+               if (cell, step) not in index]
+    endpoint_pass = {cell: all(reachability_gate(index[(cell, 6000)][side]) for side in SIDES)
+                     if (cell, 6000) in index else None for cell in ORIGINAL_CELLS}
+    count = sum(value is True for value in endpoint_pass.values())
+    outcome = ("UNRESOLVED" if None in endpoint_pass.values() else
+               "REACH_3SEED" if count == 3 else "REACH_SEED_UNSTABLE" if count else "REACH_NOT_ESTABLISHED")
+    ranked = []
+    for (cell, step), sides in index.items():
+        if cell not in eligible or not all(reachability_gate(sides[side]) for side in SIDES):
+            continue
+        paths = {sides[side]["checkpoint"] for side in SIDES}
+        if len(paths) != 1:
+            raise ReducerError(f"bilateral checkpoint mismatch: {cell}@{step}")
+        spec = cell_contract(cell)
+        clean = [sides[side]["clean_complete"] for side in SIDES]
+        ranked.append({"cell": cell, "step": step, "seed": spec["seed"],
+                       "checkpoint": paths.pop(), "driver_target_stage": spec["driver_target_stage"],
+                       "weak_clean": min(clean), "clean_sum": sum(clean)})
+    ranked.sort(key=lambda row: (-row["weak_clean"], -row["clean_sum"], -row["step"], row["seed"]))
+    identities = [row["checkpoint"] for row in ranked]
+    if len(identities) != len(set(identities)):
+        raise ReducerError("one checkpoint path assigned multiple cell/milestone identities")
+    return {"outcome": outcome,
+            "endpoint_reliability": {"outcome": outcome, "passed": count, "denominator": 3, "cells": endpoint_pass},
+            "history_reach": {"exists": bool(ranked), "earliest_milestone": min((row["step"] for row in ranked), default=None)},
+            "eligible_cells": eligible, "history_complete": not missing, "missing_evaluations": missing,
+            "ranked_candidates": ranked, "candidates": ranked[:2] if not missing else [],
+            "freeze_ready": not missing, "a284_separate": "A_S284" in eligible}
 
 
 def k_reach_without_complete(history: list[dict[str, Any]]) -> dict[str, Any]:
-    ordered = sorted(history, key=lambda value: value["step"])
+    index = history_index(history)
     triggers = []
-    for previous, current in zip(ordered[:-1], ordered[1:], strict=True):
-        for cell in ("A_S281", "A_S282", "A_S283"):
-            previous_sides, current_sides = cell_sides(previous["cells"], cell), cell_sides(current["cells"], cell)
-            if previous_sides is None or current_sides is None:
+    for cell in ORIGINAL_CELLS:
+        for previous, current in zip(MILESTONES[:-1], MILESTONES[1:], strict=True):
+            if (cell, previous) not in index or (cell, current) not in index:
                 continue
+            sides_pair = (index[(cell, previous)], index[(cell, current)])
+            if any(summary["episodes"] != 64 for sides in sides_pair for summary in sides.values()):
+                raise ReducerError("K trigger requires exact64")
             if all(summary["S4+"] >= 56 and summary["complete"] <= 4
-                   for sides in (previous_sides, current_sides) for summary in sides.values()):
-                triggers.append({"cell": cell, "milestones": [previous["step"], current["step"]], "outcome": "K_REACH_WITHOUT_COMPLETE"})
+                   for sides in sides_pair for summary in sides.values()):
+                triggers.append({"cell": cell, "milestones": [previous, current], "outcome": "K_REACH_WITHOUT_COMPLETE"})
     return {"outcome": "K_REACH_WITHOUT_COMPLETE" if triggers else "NOT_TRIGGERED", "triggers": triggers,
             "reserve_cell": "A_S284" if triggers else None}
+
+
+def g1_decision(sides: dict[str, Any], *, step: int = 500,
+                initial_sides: dict[str, Any] | None = None,
+                wave_c_step1000: dict[str, Any] | None = None) -> dict[str, Any]:
+    if step not in (500, 1000) or set(sides) != set(SIDES):
+        raise ReducerError("G1 requires complete bilateral step500 or step1000")
+    if any(sides[side]["episodes"] != 64 for side in SIDES):
+        raise ReducerError("G1 requires exact64")
+    if step == 1000:
+        if initial_sides is None or g1_decision(initial_sides)["decision"] != "PARTIAL":
+            raise ReducerError("G1 step1000 requires the original PARTIAL step500 result")
+    passed = all(sides[side]["D"] >= 40 and sides[side]["clean_complete"] >= 36
+                 and terminal_failures(sides[side]) <= 2
+                 and sides[side]["wrist_tower_contact_episodes_gt_5N"] <= 2 for side in SIDES)
+    partial = (all(sides[side]["S4+"] >= 32 for side in SIDES)
+               and any(sides[side]["D"] < 40 for side in SIDES))
+    decision = "PASS" if passed else "PARTIAL" if partial and step == 500 else "FAIL"
+    initial = sides if step == 500 else initial_sides
+    comparison = None
+    if wave_c_step1000 is not None:
+        sc = [cell_sides(wave_c_step1000, f"SC_S{seed}") for seed in (201, 202, 203)]
+        if any(item is None for item in sc):
+            raise ReducerError("Wave C comparison requires all three SC step1000 bilateral results")
+        comparison = {side: max(item[side]["D"] for item in sc) for side in SIDES}
+    cancelled = comparison is not None and any(initial[side]["D"] < comparison[side] - 4 for side in SIDES)
+    return {"decision": decision, "outcome": f"WARM_{decision}", "step": step,
+            "action": {"PASS": "START_WAVE_A", "PARTIAL": "EXTEND_TO_1000", "FAIL": "STOP"}[decision],
+            "warm_arm_cancelled": cancelled, "wave_c_best_D_per_side": comparison,
+            "warm_arm_eligible": decision == "PASS" and not cancelled,
+            "additional_batches": 500 if decision == "PARTIAL" else 0}
 
 
 def reduce_manifest(manifest: dict[str, Any], expected_n: int) -> dict[str, Any]:
@@ -205,6 +277,7 @@ def reduce_manifest(manifest: dict[str, Any], expected_n: int) -> dict[str, Any]
                 raise ReducerError(f"duplicate lane: {identity}")
             seen.add(identity)
             summary = summary_for_lane(lane, expected_n)
+            summary["checkpoint"] = str(Path(lane["checkpoint"]).resolve())
         except (ReducerError, V27.ReducerError, ValueError, TypeError, KeyError) as error:
             invalid[str(cell)].append(f"{lane.get('stratum', '<missing>')}/{lane.get('side', '<missing>')}: {error}")
             lane_outputs.append({"cell": cell, "status": "V28_INVALID", "failure": str(error)})
@@ -219,7 +292,7 @@ def reduce_manifest(manifest: dict[str, Any], expected_n: int) -> dict[str, Any]
     history = [*prior, {"step": step, "cells": cells}]
     typed = None
     if manifest.get("endpoint") is True and not invalid:
-        typed = {"selection": select_wave_a(history), "k_driver": k_reach_without_complete(history)}
+        typed = {"selection": select_wave_a(history, started_cells=manifest["started_cells"]), "k_driver": k_reach_without_complete(history)}
     return {"schema": SCHEMA, "status": "V28_INVALID" if invalid else "V28_COMPLETE", "expected_n": expected_n,
             "step": step, "endpoint": manifest.get("endpoint", False), "cells": cells, "lanes": lane_outputs,
             "invalid_cells": dict(invalid), "typed_outcomes": typed,

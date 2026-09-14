@@ -1,0 +1,49 @@
+{
+  "schema": "a2_piper_v28_owner_resume_v1",
+  "status": "ACCEPTED",
+  "decision_log_id": "V28-D046",
+  "recorded_at": "2026-09-14 10:54 HKT",
+  "action": "RESUME_SCRATCH_WAVE_A",
+  "authorized_cells": [
+    "A_S281",
+    "A_S282",
+    "A_S283"
+  ],
+  "batches_per_cell": 6000,
+  "allowed_gpus": [
+    4,
+    5,
+    6,
+    7
+  ],
+  "training_gpus": [
+    4,
+    5,
+    6
+  ],
+  "preserved_g1_status": "FAIL",
+  "warm_arm_cancelled": true,
+  "prior_consumed_batches": 500,
+  "total_batch_cap": 36500,
+  "approved_core_total_batches": 18500,
+  "milestones": [
+    1000,
+    2000,
+    3000,
+    4000,
+    5000,
+    6000
+  ],
+  "milestone_evaluation": {
+    "episodes_per_side": 64,
+    "seed": 280001,
+    "natural_start": true
+  },
+  "owner_instruction": "同意在原 C_T、原门值和既有预算内继续 A_S281/A_S282/A_S283，各6000 batches 的 scratch Wave A。保留 G1 的 WARM_FAIL，warm 附加臂取消，已消耗500批计入总预算；milestone 按原计划评估和汇报。 目前可用GPU是4-7，自主安排训练任务/eval并行，最大化GPU利用率",
+  "Main_resource_allocation": "Three independent training lanes on GPU4/5/6; ready evaluation lanes have priority and prefer GPU7, using other idle eligible GPUs as available. Conditional A284 retains its approved trigger/budget and queues for a training lane.",
+  "scientific_contract": "UNCHANGED",
+  "continuity_evidence": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/wave_a_ct_continuity_20260914.json",
+  "prior_stop_closure": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/a2_piper_base_v28_execution_closure_20260914.md",
+  "prior_g1_decision": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/g1_probe_decision.json",
+  "downstream_authority": "Previously approved D038-D040 conditional A284 and fixed candidate DEV/CONF/render route remains in force; no warm arm, risk ladder, geometry or gate changes."
+}

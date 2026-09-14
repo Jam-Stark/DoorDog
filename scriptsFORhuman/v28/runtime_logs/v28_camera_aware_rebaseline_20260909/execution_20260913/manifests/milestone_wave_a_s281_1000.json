@@ -1,0 +1,42 @@
+{
+  "schema": "a2_piper_base_v28_eval_manifest_v1",
+  "name": "milestone_wave_a_s281_1000",
+  "step": 1000,
+  "endpoint": false,
+  "lanes": [
+    {
+      "cell": "A_S281",
+      "stratum": "nominal",
+      "side": "left",
+      "seed": 280001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_001000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_1000_a_s281_left/attempt1",
+      "camera_rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+      "checkpoint_identity": {
+        "cell": "A_S281",
+        "step": 1000,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_001000.pt",
+        "run_id": "v28_camera_aware_rebaseline_20260909"
+      }
+    },
+    {
+      "cell": "A_S281",
+      "stratum": "nominal",
+      "side": "right",
+      "seed": 280001,
+      "episodes": 64,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_001000.pt",
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_1000_a_s281_right/attempt1",
+      "camera_rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+      "checkpoint_identity": {
+        "cell": "A_S281",
+        "step": 1000,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_001000.pt",
+        "run_id": "v28_camera_aware_rebaseline_20260909"
+      }
+    }
+  ],
+  "wave_a_history": [],
+  "scheduler_reducer_output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/reducers/milestone_wave_a_s281_1000.json"
+}

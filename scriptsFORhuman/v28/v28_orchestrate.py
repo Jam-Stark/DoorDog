@@ -96,7 +96,16 @@ def add_task(state: dict[str, Any], root: Path, *, task_id: str, kind: str, cell
     return task
 
 
-def initial_manifest(root: Path, source_lock: Path) -> dict[str, Any]:
+def validate_gpu_assignment(allowed_gpus: list[int], training_gpus: list[int]) -> tuple[list[int], list[int]]:
+    require(allowed_gpus, "at least one allowed GPU is required")
+    require(len(set(allowed_gpus)) == len(allowed_gpus), "allowed GPUs must be unique")
+    require(training_gpus, "at least one training GPU is required")
+    require(len(set(training_gpus)) == len(training_gpus), "training GPUs must be unique")
+    require(set(training_gpus).issubset(allowed_gpus), "training GPUs must be allowed GPUs")
+    return allowed_gpus, training_gpus
+
+
+def initial_manifest(root: Path, source_lock: Path, allowed_gpus: list[int], training_gpus: list[int]) -> dict[str, Any]:
     declared_cells = cells()
     return {
         "schema": "a2_piper_base_v28_initial_manifest_v1", "run_id": RUN_ID,
@@ -111,25 +120,30 @@ def initial_manifest(root: Path, source_lock: Path) -> dict[str, Any]:
         "selection": {"max_candidates": 2, "max_exact128_lanes": 8,
                       "order": ["primary_DEV", "primary_CONF", "reserve_DEV", "reserve_CONF"]},
         "budget_cap_batches": BUDGET_CAP,
+        "allowed_gpus": allowed_gpus,
+        "training_gpus": training_gpus,
     }
 
 
-def initialize(root: Path, *, source_lock: Path, deadline_epoch: float | None = None) -> Path:
+def initialize(root: Path, *, source_lock: Path, allowed_gpus: list[int], training_gpus: list[int],
+               deadline_epoch: float | None = None) -> Path:
     g0_passed()
     require(not state_path(root).exists() and not (root / "initial_manifest.json").exists(),
             f"scheduler state already initialized: {root}")
     require(source_lock.is_file(), f"source lock missing: {source_lock}")
+    allowed_gpus, training_gpus = validate_gpu_assignment(allowed_gpus, training_gpus)
     now = time.time()
     deadline = deadline_epoch if deadline_epoch is not None else now + GPU_WAIT_SECONDS
     require(deadline > now, "next decision deadline must be in the future")
     root.mkdir(parents=True, exist_ok=True)
-    write_new_json(root / "initial_manifest.json", initial_manifest(root, source_lock))
+    write_new_json(root / "initial_manifest.json", initial_manifest(root, source_lock, allowed_gpus, training_gpus))
     state: dict[str, Any] = {
         "schema": SCHEMA, "run_id": RUN_ID, "created_at": utc_now(), "source_lock": str(source_lock.resolve()),
         "next_decision_epoch": deadline, "next_decision_reason": "GPU capacity or 12h pending-GPU decision",
         "budget": {"cap_batches": BUDGET_CAP, "scheduled_batches": 0, "active_reserved_batches": 0,
                    "actual_consumed_batches": 0},
         "proxy_environment": {key: os.environ.get(key, "") for key in PROXY_KEYS},
+        "allowed_gpus": allowed_gpus, "training_gpus": training_gpus,
         "tasks": {}, "reducers": {}, "wave_a": {"status": "NOT_STARTED", "history": [], "endpoint_lock": None},
         "g1": {"status": "NOT_STARTED", "decision": None}, "wave_b": {"status": "NOT_STARTED", "exact128_lanes": 0},
         "gpu_observations": [], "notifications": [], "stop": None,
@@ -139,6 +153,82 @@ def initialize(root: Path, *, source_lock: Path, deadline_epoch: float | None = 
     add_task(state, root, task_id="g1_train_500", kind="train", cell="G1_WARM", batches=500, step=500)
     write_state(state_path(root), state)
     return state_path(root)
+
+
+def archive_resume_stop(root: Path, state: dict[str, Any], owner_decision: dict[str, Any]) -> Path:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    archive = root / "archives" / f"resume_wave_a_{stamp}"
+    write_new_json(archive / "state_before_resume.json", state)
+    for wave in ("wave_a", "wave_b"):
+        source = root.parent / f"{wave}_decision.json"
+        require(source.is_file(), f"canonical {wave} decision missing: {source}")
+        write_new_json(archive / f"{wave}_decision_before_resume.json", read_json(source))
+    write_new_json(archive / "owner_decision.json", owner_decision)
+    return archive
+
+
+def resume_wave_a(root: Path, *, source_lock: Path, owner_decision_path: Path,
+                  allowed_gpus: list[int], training_gpus: list[int]) -> None:
+    path = state_path(root)
+    require(path.is_file(), f"scheduler state missing: {path}")
+    require(source_lock.is_file(), f"resume source lock missing: {source_lock}")
+    require(owner_decision_path.is_file(), f"owner decision missing: {owner_decision_path}")
+    allowed_gpus, training_gpus = validate_gpu_assignment(allowed_gpus, training_gpus)
+    state = read_json(path)
+    require(state.get("schema") == SCHEMA, "scheduler state schema")
+    require(state["stop"] is not None and state["stop"].get("reason") == "G1_WARM_FAIL",
+            "resume-wave-a requires the recorded G1_WARM_FAIL stop")
+    require(not any(task["status"] in {"PENDING_GPU", "LAUNCHED"} for task in state["tasks"].values()),
+            "resume-wave-a requires a terminal scheduler state")
+    require(state["g1"]["status"] == "FAIL", "resume-wave-a preserves the recorded G1 FAIL")
+    require(state["budget"]["actual_consumed_batches"] == 500, "resume-wave-a requires the recorded 500-batch cost")
+    require(Path(state["source_lock"]).resolve() != source_lock.resolve(),
+            "resume-wave-a requires a new source-lock snapshot")
+    owner = read_json(owner_decision_path)
+    require(owner.get("status") == "ACCEPTED" and owner.get("action") == "RESUME_SCRATCH_WAVE_A",
+            "owner decision does not authorize Wave A scratch resume")
+    require(owner.get("authorized_cells") == ["A_S281", "A_S282", "A_S283"],
+            "owner decision must authorize only the original three Wave A seeds")
+    require(owner.get("batches_per_cell") == 6000 and owner.get("prior_consumed_batches") == 500,
+            "owner decision does not preserve the registered Wave A budget")
+    require(owner.get("allowed_gpus") == allowed_gpus and owner.get("training_gpus") == training_gpus,
+            "CLI GPU allocation must match the owner decision")
+    require(owner.get("preserved_g1_status") == "FAIL" and owner.get("warm_arm_cancelled") is True,
+            "owner decision must preserve G1 FAIL and the warm-arm cancellation")
+    archive = archive_resume_stop(root, state, owner)
+    prior_closure = root / "closure_receipt.json"
+    require(prior_closure.is_file(), f"prior closure receipt missing: {prior_closure}")
+    archived_closure = archive / "closure_receipt_before_resume.json"
+    write_new_json(archived_closure, read_json(prior_closure))
+    state["historical_stop"] = state["stop"]
+    state["stop"] = None
+    state["source_lock"] = str(source_lock.resolve())
+    state["allowed_gpus"] = allowed_gpus
+    state["training_gpus"] = training_gpus
+    state["resume_wave_a"] = {
+        "at": utc_now(), "owner_decision": str(owner_decision_path.resolve()),
+        "decision_log_id": owner.get("decision_log_id"), "archive": str(archive),
+        "prior_closure_reference": str(archived_closure),
+    }
+    state["wave_a"] = {"status": "ACTIVE", "history": [], "endpoint_lock": None,
+                       "warm_arm_cancelled": True, "resume_authority": str(owner_decision_path.resolve())}
+    state["wave_b"] = {"status": "NOT_STARTED", "exact128_lanes": 0}
+    state["commit_milestones"] = {
+        "wave_a_step1000_aggregate": "PENDING", "wave_a_endpoint_lock": "PENDING",
+        "final_closure": "PENDING", "prior_final_closure_reference": str(archived_closure),
+    }
+    for seed in (281, 282, 283):
+        add_task(state, root, task_id=f"wave_a_s{seed}", kind="train", cell=f"A_S{seed}",
+                 batches=6000, step=6000)
+    write_state(path, state)
+    for wave in ("wave_a", "wave_b"):
+        write_canonical_json(root.parent / f"{wave}_decision.json", {
+            "schema": f"a2_piper_base_v28_{wave}_decision_v1", "run_id": RUN_ID,
+            "status": state[wave]["status"], "outcome": "IN_PROGRESS" if wave == "wave_a" else "PREREQUISITE_PENDING",
+            "source_state": str(path), "source_lock": state["source_lock"], "endpoint_lock": None,
+            "route_authority": str(owner_decision_path.resolve()), "decision_log_id": owner["decision_log_id"],
+            "prior_stop_decision": str(archive / f"{wave}_decision_before_resume.json"),
+        })
 
 
 def task_command(task: dict[str, Any]) -> tuple[list[str], Path, int, Path | None]:
@@ -253,6 +343,8 @@ def main() -> int:
     init = sub.add_parser("init")
     init.add_argument("--execution-root", type=Path)
     init.add_argument("--source-lock", type=Path, required=True)
+    init.add_argument("--gpus", type=int, nargs="+", required=True)
+    init.add_argument("--train-gpus", type=int, nargs="+", required=True)
     init.add_argument("--deadline-epoch", type=float)
     start = sub.add_parser("start-watcher")
     start.add_argument("--execution-root", type=Path)
@@ -261,14 +353,26 @@ def main() -> int:
     retry.add_argument("--task", required=True)
     retry.add_argument("--reason", required=True)
     retry.add_argument("--source-lock", type=Path)
+    resume = sub.add_parser("resume-wave-a")
+    resume.add_argument("--root", type=Path, required=True)
+    resume.add_argument("--source-lock", type=Path, required=True)
+    resume.add_argument("--owner-decision", type=Path, required=True)
+    resume.add_argument("--gpus", type=int, nargs="+", required=True)
+    resume.add_argument("--train-gpus", type=int, nargs="+", required=True)
     args = parser.parse_args()
-    root = execution_root(getattr(args, "execution_root", None))
     if args.command == "init":
-        print(initialize(root, source_lock=args.source_lock, deadline_epoch=args.deadline_epoch))
+        root = execution_root(args.execution_root)
+        print(initialize(root, source_lock=args.source_lock, allowed_gpus=args.gpus,
+                         training_gpus=args.train_gpus, deadline_epoch=args.deadline_epoch))
     elif args.command == "start-watcher":
+        root = execution_root(args.execution_root)
         print(launch_watcher(root))
-    else:
+    elif args.command == "resume-infra":
+        root = execution_root(args.execution_root)
         resume_infra(root, args.task, args.reason, args.source_lock)
+    else:
+        resume_wave_a(args.root.resolve(), source_lock=args.source_lock, owner_decision_path=args.owner_decision,
+                      allowed_gpus=args.gpus, training_gpus=args.train_gpus)
     return 0
 
 

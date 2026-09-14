@@ -2,7 +2,7 @@
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
 创建:2026-07-21;最近更新:2026-09-05(v25/v26 收口归档;三条 novelty 路线裁定入册为 R 节;v27 排期;force-feasibility 主线 C 节降级为背景与 v28 输入;规则 19-21 入册)。
-当前入口更新：2026-09-14 08:56 HKT；修改：-codex Main；依据：-owner v28执行授权。v28实现同步及G1真实运行完成，G1@500因RIGHT塔架6>2判WARM_FAIL，停止交Owner成本复议；Wave A/B及原三seed终点未运行。D044/D045与[closure](v28/a2_piper_base_v28_execution_closure_20260914.md)记录事实、NOT_RUN和后续入口。N01/N02已复核为继续有界立项设计、实验DEFER；X05回收义务关闭，方法未验证。原C_T、D038–D040及C_S/G2边界不变。
+当前入口更新：2026-09-14 18:14 HKT；修改：-codex Main；依据：-owner D046及D047实际milestone。三seed scratch step1000共6条exact64完整，早期两侧D/S4+/complete为0，训练按原6000继续；A284未触发，终点/候选/资格尚未评估。G1 WARM_FAIL与500保留、warm取消；C_T/门/预算不变。N01/N02立项设计继续、实验DEFER。
 
 ## Worktree 分工(2026-09-05 修订)
 

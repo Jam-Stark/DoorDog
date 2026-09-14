@@ -1,0 +1,71 @@
+{
+  "schema": "a2_piper_v28_wave_a_launch_intent_v1",
+  "status": "THREE_SCRATCH_PROCESSES_LAUNCHED_BOOTSTRAPPING",
+  "owner_decision": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/owner_resume_wave_a_20260914.json",
+  "watcher_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher_a3/RUN_RECEIPT.json",
+  "waiter_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_step1000_20260914/RUN_RECEIPT.json",
+  "wait_until_epoch": 1789387171.0321996,
+  "wait_until_hkt": "2026-09-14T19:59:31+08:00",
+  "target": "step1000",
+  "early_return": "real milestone readout, required repair/owner action, failure, notification, or terminal",
+  "wait_command": [
+    "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+    "-B",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/v28_wait.py",
+    "--state",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json",
+    "--target",
+    "step1000",
+    "--until-epoch",
+    "1789387171.0321996"
+  ],
+  "native_transport_policy": "One business waiter; resume the same transport and deadline after host yields; do not inspect business logs on empty returns.",
+  "startup_observation": {
+    "recorded_at": "2026-09-14T11:04:09+08:00",
+    "observer": "focused runtime_qa",
+    "protocol": "one observation after a single180-second quiet wait",
+    "tasks": [
+      {
+        "cell": "A_S281",
+        "gpu": 4,
+        "pid": 1272211,
+        "process_receipt_state": "RUNNING",
+        "checkpoint": null,
+        "start_global_step": 0,
+        "expected_end_global_step": 6000,
+        "bootstrap": "IsaacSim initialized; no policy iteration/config.yaml observed yet"
+      },
+      {
+        "cell": "A_S282",
+        "gpu": 5,
+        "pid": 1272227,
+        "process_receipt_state": "RUNNING",
+        "checkpoint": null,
+        "start_global_step": 0,
+        "expected_end_global_step": 6000,
+        "bootstrap": "IsaacSim initialized; no policy iteration/config.yaml observed yet"
+      },
+      {
+        "cell": "A_S283",
+        "gpu": 6,
+        "pid": 1272239,
+        "process_receipt_state": "RUNNING",
+        "checkpoint": null,
+        "start_global_step": 0,
+        "expected_end_global_step": 6000,
+        "bootstrap": "IsaacSim initialized; no policy iteration/config.yaml observed yet"
+      }
+    ],
+    "gpu_free_mib": {
+      "4": 48363,
+      "5": 48363,
+      "6": 48363,
+      "7": 48539
+    },
+    "GPU7_compute_processes": [],
+    "runtime_config_verification": "PENDING_BOOTSTRAP",
+    "policy_progress_verification": "PENDING_FIRST_READOUT",
+    "failure_observed": false,
+    "no_extra_evaluation_or_training": true
+  }
+}

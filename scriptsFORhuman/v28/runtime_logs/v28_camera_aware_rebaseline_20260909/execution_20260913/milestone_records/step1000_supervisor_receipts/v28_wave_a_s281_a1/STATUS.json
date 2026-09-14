@@ -1,0 +1,10 @@
+{
+  "acceptance_state": "UNASSESSED",
+  "backend": "tmux",
+  "launched_at": "2026-09-14T02:57:33+00:00",
+  "launched_epoch": 1789354653.8915231,
+  "process_state": "RUNNING",
+  "supervisor_pid": 1272204,
+  "updated_at": "2026-09-14T02:57:33+00:00",
+  "wait_until_epoch": 1789520253.8915231
+}

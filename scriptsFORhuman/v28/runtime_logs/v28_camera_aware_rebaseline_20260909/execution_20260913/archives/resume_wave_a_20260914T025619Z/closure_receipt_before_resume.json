@@ -1,0 +1,9 @@
+{
+  "schema": "a2_piper_v28_execution_closure_v1",
+  "status": "OWNER_DECISION_REQUIRED",
+  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/a2_piper_base_v28_teacher_candidate_manifest_20260914.json",
+  "closure": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/a2_piper_base_v28_execution_closure_20260914.md",
+  "recorded_at": "2026-09-14 08:58 HKT",
+  "active_tasks": [],
+  "qualification": "NOT_RUN"
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "a2_piper_v28_ct_continuity_v1",
+  "recorded_at": "2026-09-14 10:54 HKT",
+  "status": "BYTE_IDENTICAL",
+  "source_reference": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock/source_lock.json",
+  "scope": "scientific gr00t/rl code/config, active asset/A2_Base inputs and camera contract from G1 source snapshot",
+  "compared_files": 518,
+  "changed_paths": [],
+  "excluded": "scheduler control and dated execution documentation; expected to change for the newly authorized route"
+}

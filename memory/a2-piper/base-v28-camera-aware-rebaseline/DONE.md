@@ -1,5 +1,9 @@
 # DONE
 
+- 2026-09-14 18:14 HKT：完成原三seed step1000双侧共6条exact64与readout；全部有效，实际scratch/4096/Ktarget4/reset合同成立。早期D/S4+/complete为0，按D046继续6000，不提前给终点结论；D047记录预算、A284未触发和下一等待依据。
+
+- 2026-09-14 10:54 HKT：记录Owner D046明确批准原三seed scratch续行；G1不改判、warm取消、500纳入总账。完成一次G1科学source/config/asset与当前字节连续性比对；授权与STATIC事实不等于Wave A已运行。
+
 - 2026-09-14 08:56 HKT：真实G1完成500批及左右exact64，reducer V28_COMPLETE、门判WARM_FAIL（RIGHT塔架6>2），按Owner成本门停止。D16实际eval目录通过，双侧CAMERA_UNMET属report-only；完整回位删失已报告。交付停止点记录、NOT_RUN WaveA/B、空候选manifest与OWNER_DECISION_REQUIRED closure、N01/N02回收。实际预算500；代码同步/CPU与真实路径证据区分，未启动scratch、DEV/CONF或新方法。证据D044/D045及execution_20260913。
 
 - 2026-09-13 01:47 HKT：按新的阶段执行授权同步D038–D040、G1 full续训/条件warm arm、supervisor调度/独立格watcher、固定DEV→CONF、readout/render/closure和持久waiter。修复D16 eval顶层目录覆盖与checkpoint旁别名复制，metadata只读路径保持。10个Python文件AST、实际A_W281 Hydra compose及原G0 camera readout检查通过；无事件保持null。证据STATIC_PASS/已保存runtime观测，未产生新G1或训练验收。runtime入口execution_20260913，决策D041/D042。

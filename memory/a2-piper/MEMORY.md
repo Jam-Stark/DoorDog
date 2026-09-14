@@ -2,7 +2,7 @@
 
 本 subsystem 记录 A2_Piper branch/worktree 的开发约定、robot migration、reward design、workspace routing、experiment progress 与当前 TODO/DONE。不要把这些施工状态写入 `origin-reference`。
 
-- [base-v28-camera-aware-rebaseline/description.md](base-v28-camera-aware-rebaseline/description.md): 2026-09-14 — 实现同步及G1实际500批/exact64完成；RIGHT塔架6>2导致WARM_FAIL，停止待Owner成本复议；WaveA/B/候选/render未运行。D16实际路径成立，停止点closure和N01/N02回收见D044/D045，X24/X25/G2保留。
+- [base-v28-camera-aware-rebaseline/description.md](base-v28-camera-aware-rebaseline/description.md): 2026-09-14 — D046续行后三seed step1000的6条exact64有效评估完成（D047），实际scratch合同成立；早期D/S4+/complete为0，继续6000，A284未触发。G1FAIL/500/warm取消保持；终点/资格待评估。
 - [novelty-research/description.md](novelty-research/description.md): 2026-09-14 — v28 G1停止点N01/N02回收已完成；两项继续有界立项设计、实验DEFER，X05复核义务关闭；方法收益未建立。
 ## Entries
 

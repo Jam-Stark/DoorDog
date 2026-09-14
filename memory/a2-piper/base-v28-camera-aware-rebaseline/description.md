@@ -20,6 +20,10 @@ related_entries:
 
 # base_v28 camera-aware re-baseline
 
+运行证据更新（2026-09-14 18:14 HKT，D047）：原三seed已完成1000时点的六条exact64；实际scratch配置/GPU分配成立。两侧D/S4+/complete为0，少量RIGHT到S3；相机CAMERA_PARTIAL，无事件保持null。它不是6000终点结论，训练按D046继续，A284尚未触发；统计与commit从runtime milestone_records/step1000.json路由。
+
+当前路由（2026-09-14 10:54 HKT，D046）：Owner已批准G1失败后继续原三seed各6000 scratch，原C_T/门值/预算不变；WARM_FAIL与500消耗保留，warm附加臂取消。按原milestone、条件A284及固定资格合同推进，实际任务和资源仅由execution_20260913的state/receipts路由。下方G1停止点是历史时点，不再要求重复成本批准。
+
 当前停止点（2026-09-14 08:56 HKT）：G1@500真实WARM_FAIL，RIGHT塔架>5N集6>2；LEFT/RIGHT complete=64/63、clean=64/47。双侧D≥40所以不触发PARTIAL；warm附加臂取消，后续scratch/WaveA/B/候选与render均NOT_RUN，原三seed终点未评估。按既定成本复议门等待Owner，不能外推scratch失败或几何无解。D16输出修复已在左右真实eval成立，晚阶段遥测有事件；完整分量及删失读[本次closure](../../../scriptsFORhuman/v28/a2_piper_base_v28_execution_closure_20260914.md)与D044/D045。N01/N02已回收为继续有界立项设计、实验执行DEFER；X05本次回收关闭。
 
 审计材料入口：[Pro 原文、本地更新审计与 planner finalize 索引](../../../scriptsFORhuman/pro_reviews/v28/8435858/README.md)。原文与解析 prompt 保留归档时点，不在仓库保留重复 ZIP。2026-09-12 17:18 HKT，Owner 已同意 planner 裁决并授权方案/记录更新，M1–M5 已落实到活动文档；当前合同从 plan 与[决策日志 D038–D040](../../../scriptsFORhuman/v28/a2_piper_base_v28_decision_log.md)读取，不能再把审计原文的“草案未应用”当作当前状态。

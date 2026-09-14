@@ -6,12 +6,12 @@ import os
 import time
 from pathlib import Path
 
-from v28_contract import require
+from v28_contract import MILESTONES, require
 from v28_orchestrate import read_json, utc_now, write_canonical_json
 from v28_watch_wave import execution_terminal
 
 
-def ready(state, target):
+def ready(state, target, root):
     if state["stop"] is not None:
         return "OWNER_DECISION_OR_STOP"
     if any(task["status"] == "NEEDS_INFRA_REPAIR" for task in state["tasks"].values()):
@@ -21,6 +21,8 @@ def ready(state, target):
     milestone = {"step1000": "wave_a_step1000_aggregate", "endpoint": "wave_a_endpoint_lock"}.get(target)
     if milestone and state["commit_milestones"][milestone] in {"REACHED", "COMMITTED"}:
         return "COMMIT_MILESTONE_REACHED"
+    if target.startswith("step") and (root / "readouts" / f"wave_a_{target}_aggregate.md").is_file():
+        return "MILESTONE_READOUT_READY"
     if execution_terminal(state):
         return "EXECUTION_TERMINAL"
     return None
@@ -29,7 +31,7 @@ def ready(state, target):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state", type=Path, required=True)
-    parser.add_argument("--target", choices=("g1", "step1000", "endpoint", "terminal"), required=True)
+    parser.add_argument("--target", choices=("g1", *(f"step{step}" for step in MILESTONES), "endpoint", "terminal"), required=True)
     parser.add_argument("--until-epoch", type=float)
     parser.add_argument("--renew-reason")
     args = parser.parse_args()
@@ -54,7 +56,7 @@ def main():
     write_canonical_json(plan_path, plan)
     while True:
         state = read_json(state_path)
-        reason = ready(state, args.target)
+        reason = ready(state, args.target, state_path.parent)
         if reason is None and len(state["notifications"]) > plan["notifications_seen"]:
             reason = "REGISTERED_NOTIFICATION"
         receipt = state.get("watcher_receipt")

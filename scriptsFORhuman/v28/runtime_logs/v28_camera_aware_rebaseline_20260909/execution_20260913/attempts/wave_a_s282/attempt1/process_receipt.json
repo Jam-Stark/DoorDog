@@ -1,0 +1,48 @@
+{
+  "schema": "a2_piper_v28_process_v2",
+  "state": "RUNNING",
+  "command": [
+    "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+    "-B",
+    "-m",
+    "gr00t.rl.train_agent_trl",
+    "+exp=wbmanip/door_open_a2_base_lstm",
+    "+ablation=wbmanip/base_v28_A_S282",
+    "headless=true",
+    "use_wandb=false",
+    "++experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1",
+    "output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/output",
+    "project_name=base_v28_camera_aware_rebaseline",
+    "experiment_name=V28_A_S282",
+    "algo.trl.num_total_batches=6000"
+  ],
+  "worktree": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+  "resources": {
+    "physical_gpu": 5,
+    "logical_device": "cuda:0"
+  },
+  "proxy_environment": {
+    "http_proxy": "http://127.0.0.1:18889",
+    "https_proxy": "http://127.0.0.1:18889",
+    "HTTP_PROXY": "http://127.0.0.1:18889",
+    "HTTPS_PROXY": "http://127.0.0.1:18889",
+    "no_proxy": "localhost,127.0.0.1",
+    "NO_PROXY": "localhost,127.0.0.1"
+  },
+  "started_at": "2026-09-14T02:57:34.199614+00:00",
+  "expected_outputs": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/config.yaml"
+  ],
+  "mode": "train",
+  "cell": "A_S282",
+  "batches": 6000,
+  "cumulative_batches": 6000,
+  "start_global_step": 0,
+  "expected_end_global_step": 6000,
+  "source_checkpoint": null,
+  "checkpoint_load_mode": "full",
+  "restored_checkpoint_counters": null,
+  "continuation_semantics": "fresh training counters",
+  "pid": 1272227
+}

@@ -2,7 +2,7 @@
 
 更新：2026-09-12 17:18 HKT；本次修改：-codex planner；依据：-owner 已同意规划裁决并要求修改 plan、做好记录。历史执行记录保留各自时点与作者。
 
-当前更新（2026-09-14 08:56 HKT）：G1@500真实判WARM_FAIL并进入Owner成本复议，Wave A/B与render未运行。D044记录原门判据与停止证据，D045记录N01/N02回收；实现及CPU证据见D041/D042，首次pre-policy外部GPU争用修复见D043。下方各历史记录保留时点。
+当前更新（2026-09-14 18:14 HKT）：D047记录step1000六条exact64有效评估与预注册继续训练。D046续行有效，G1 WARM_FAIL和warm取消保留；三训练仍在运行，6000终点和资格未评估。
 
 以下 D018–D037 保留原讨论、暂停、事后修订与执行过程；末尾 D038–D040 为本次新决定，不回写原评审或旧运行结果。
 
@@ -198,3 +198,27 @@ N01=CONTINUE有界pilot立项设计：重设计扰动和失抓事件定义，区
 本次closure标记OWNER_DECISION_REQUIRED，候选manifest资格NOT_RUN；它是G1停止点的执行收尾，不声称Wave A/B已完成。Wave A1000与endpoint两个commit节点未到达；按已授权closure节点保存本任务实现、证据和文档，不制造未执行阶段的空commit。实际commit与资源释放由execution目录receipts记录。
 
 证据：[后续立项复核](../novelty/documents/20260914_v28_g1_closure_N01_N02.md)、[机器可读决定](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/next_stage_review.json)。证据等级INSPECTED；不改变G7、C_S/G2、X24/X25或硬件边界。
+
+## V28-D046：Owner批准G1失败后继续scratch Wave A（2026-09-14 10:54 HKT）
+
+修改：-codex Main；依据：-owner本次明确授权。状态：ACCEPTED。
+
+继续A_S281/A_S282/A_S283，各6000 batches scratch；保留原C_T、门值、staged reset及既有预算。G1的WARM_FAIL不改判，warm附加臂取消，已消耗500批进入总账；原三seed完成后核心累计18500，总上限仍36500。1000/2000/3000/4000/5000/6000双侧exact64自然评估与readout按原计划，固定eval seed280001。条件A284和后续固定主备资格合同仍按D038–D040。
+
+资源边界为GPU4–7。Main分配GPU4/5/6各一条训练，GPU7优先处理ready eval；其他训练卡空闲后可并行eval。条件A284进入既定训练lane队列，以保持milestone评估可推进。GPU仍须符合>=20GiB空闲且无外部compute准入，不处理外部进程。只运行既有训练/评估任务，不用额外训练填满空闲卡。
+
+恢复保留G1停止点state与canonical WaveA/B NOT_RUN的时点副本，再单独记录Owner续行；新任务指向本次source snapshot，已完成G1/eval的source引用不改。G1所用gr00t/rl科学代码、配置、活动asset/A2_Base及camera输入与续行前当前文件经一次字节比较相同；调度和文档更新单列，不重跑G0或追加测试套件。恢复1000/endpoint两个未触发commit节点；失败修复上限、精确评估分母、选种和结论边界不变。
+
+证据：[Owner授权记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/owner_resume_wave_a_20260914.json)、[C_T连续性](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/wave_a_ct_continuity_20260914.json)。重审触发仍按原Owner门；当前记录是路由授权和STATIC证据，不是Wave A结果。
+
+## V28-D047：Wave A step1000实际结果与继续训练（2026-09-14 18:14 HKT）
+
+修改：-codex Main；依据：-owner D046、plan §8.2/§9.3/§9.7。状态：ACCEPTED（执行预注册继续及commit节点，无新实验合同）。
+
+原三seed的6/6自然exact64 lane全部完成、integrity=0、invalid为空。每个seed双侧D/S4+/complete/clean均0，RIGHT S3+为A_S282=1、A_S283=4，其余0；每条lane64集均stage_overtime，塔架>5N集数/接触步占比0。相机CAMERA_PARTIAL，crossing/release和晚阶段事件尚缺，相关字段保持null。它是1000时点的早期学习读数，不是6000的原三seed可靠性或全轮失败结论。
+
+三条配置已实际物化：seed281/282/283、4096env、checkpoint null、6000、K target4、固定staged reset [.5,.1,.1,.1,.1,.1]、MERGED与原reset。启动时待bootstrap验证的合同现有运行配置证据。A284条件不成立（S4+全0且仅一个milestone）；不改变配方、reset比例、门值或6000终点，继续训练。
+
+一次runtime快照见iteration1104/1134/1118，约22.85/22.2/22.0秒每迭代；六条step1000评估在GPU7串行墙钟约44.9分钟，与GPU4/5/6训练并行。按最慢训练剩余与实际eval成本，下一2000汇总预计约6.5小时；绝对等待截止见milestone记录，真实结果/故障提前返回。账本已结算500、在途预留18000；保存的checkpoint已证明至少3500累计训练批（含G1），不把已结算计数冒充实时总进度。
+
+证据：[step1000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step1000_aggregate.md)、[有界核对记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/step1000.json)。执行本地step1000 commit，实际receipt在execution目录；训练与watcher持续，未push或追加评估。

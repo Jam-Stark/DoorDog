@@ -62,7 +62,8 @@ def append_gpu_observation(state: dict[str, Any], root: Path) -> list[int]:
     state["gpu_observations"].append(str(path))
     launched = {task["gpu"] for task in state["tasks"].values()
                 if task["status"] == "LAUNCHED" and task.get("gpu") is not None}
-    return [row["gpu"] for row in snapshot["gpus"] if row["eligible"] and row["gpu"] not in launched]
+    return [row["gpu"] for row in snapshot["gpus"]
+            if row["eligible"] and row["gpu"] in state["allowed_gpus"] and row["gpu"] not in launched]
 
 
 def supervisor_status(receipt: str) -> dict[str, Any]:
@@ -519,14 +520,27 @@ def schedule_renders(state: dict[str, Any], root: Path) -> None:
 def launch_pending(state: dict[str, Any], root: Path, eligible: list[int]) -> None:
     if state["stop"] is not None:
         return
-    available = list(eligible)
+    allowed_gpus = state["allowed_gpus"]
+    training_gpus = state["training_gpus"]
+    available = [gpu for gpu in eligible if gpu in allowed_gpus]
     render_running = any(task["kind"] == "render" and task["status"] == "LAUNCHED" for task in state["tasks"].values())
-    for task in state["tasks"].values():
-        if task["status"] != "PENDING_GPU" or not available:
-            continue
+    priority = {"eval": 0, "render": 1, "train": 2}
+    pending = sorted((task for task in state["tasks"].values() if task["status"] == "PENDING_GPU"),
+                     key=lambda task: priority[task["kind"]])
+    for task in pending:
+        if not available:
+            break
         if task["kind"] == "render" and render_running:
             continue
-        gpu = available.pop(0)
+        if task["kind"] == "train":
+            choices = [gpu for gpu in available if gpu in training_gpus]
+        else:
+            choices = [gpu for gpu in available if gpu not in training_gpus]
+            choices.extend(gpu for gpu in available if gpu in training_gpus)
+        if not choices:
+            continue
+        gpu = choices[0]
+        available.remove(gpu)
         task["receipt"] = supervisor_prepare(task, gpu)
         task.update(status="LAUNCHED", gpu=gpu, launched_at=utc_now())
         budget = state["budget"]

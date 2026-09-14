@@ -1,8 +1,8 @@
 # `base_v28`：camera-aware bilateral Teacher re-baseline（MERGED、新姿态与分期相机合同）预注册计划
 
 日期：2026-09-09 HKT
-最近修订：2026-09-14 08:56 HKT；修改：-codex Main；依据：-owner 阶段执行授权及 §8.1/§9.6 既定停止门。D038–D040 合同不变；G1停止与closure见D044/D045。
-运行入口状态：`G1_WARM_FAIL_OWNER_DECISION_REQUIRED`。G1实际完成500 batches和双侧exact64：LEFT D62/complete64/clean64/塔架>5N集0；RIGHT D58/complete63/clean47/塔架集6，超过G1上限2。双侧D≥40，不触发PARTIAL；warm附加臂取消。Wave A/B、候选冻结、DEV/CONF与render均NOT_RUN，原三seed终点未评估，不记0/3。G0和首commit沿用，原FAIL/D36/D37及旧C3历史保留；证据见[本次closure](a2_piper_base_v28_execution_closure_20260914.md)和runtime `execution_20260913/`。
+最近修订：2026-09-14 18:14 HKT；修改：-codex Main；依据：-owner D046及既定milestone路由。step1000真实结果与继续训练记录见D047。
+运行入口状态：`WAVE_A_ACTIVE_STEP1000_REPORTED`。原三seed的step1000六条自然exact64评估完整：两侧D/S4+/complete/clean均0，RIGHT S3+仅A_S282=1、A_S283=4；塔架>5N集数均0。相机均CAMERA_PARTIAL，无事件保持null。三条6000批训练继续，A284尚未触发；6000终点/候选/DEVCONF尚未评估，不能写为本轮0/3失败。G1 WARM_FAIL与500已耗保留、warm取消；源配置与实际GPU4/5/6运行合同均已核对。详见D047和runtime execution_20260913的milestone_records/step1000.json。
 合同实现状态：D038–D040、G1续训/条件warm、固定主备DEV→CONF及readout/render/closure已同步；对应CPU检查完成。本次G1训练、双侧eval、归约/readout、停止路由和D16输出目录修复已有真实运行证据；PARTIAL续训及Wave A/B分支未运行。本轮不新增永久测试套件，未push。
 Owner 授权：GPU0–7 可用于 v28（受外部占用约束，见 §10）；G0/G1/Wave A/Wave B 按 §9 自主推进；四个本地 commit 点预授权；push、Teacher/Student G7 binding 更新、hardware 动作未授权。
 上游：v27 plan（`scriptsFORhuman/v27/a2_piper_base_v27_plan_20260905.md`）及其 Wave A/B 冻结结论；Wave C endpoint 是 v28 的条件输入（§8.3）。

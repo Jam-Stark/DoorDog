@@ -1,0 +1,26 @@
+{
+  "acceptance_claim": "",
+  "auto_eval": false,
+  "checkpoint": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/train/g0_attempt3_20260914/G0/model_step_000005.pt",
+  "checkpoint_lineage": "",
+  "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v28/pipeline.py eval --cell G0 --gpu 1 --step 5 --smoke --train-root /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_20260914 --eval-root /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_20260914 && /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v28/g0_reduce.py --eval-root /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_20260914/G0 --output /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_20260914/G0/g0_eval_decision.json",
+  "config_ref": "",
+  "created_at": "2026-09-14T02:46:41+00:00",
+  "cwd": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "eta_source": "P2 actual~14min per64env natural lane; two sides plus new all-stage camera reduction",
+  "eval_authorized": false,
+  "eval_command": "",
+  "expected_seconds": 2100.0,
+  "name": "pull_v28_g0_eval_attempt3",
+  "output": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_baseline_sync_20260913/eval/g0_attempt3_20260914/eval_and_reduce.supervisor.log",
+  "owner_session": "pull_v28_main",
+  "project_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "resources": [
+    "gpu:1"
+  ],
+  "schema_version": 2,
+  "session": "jam-pull_v28_g0_eval_attempt3",
+  "source_revision": "98015043750d5dd4dd412c0df9954b4a8af8f5f2",
+  "stop_condition": "both natural64 sides and G0 wiring reduction complete or actual failure",
+  "supervisor_version": "1.4.0"
+}

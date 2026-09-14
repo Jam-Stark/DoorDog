@@ -1,0 +1,29 @@
+{
+  "schema": "pull_v28_g0_acceptance_v1",
+  "status": "PULL_G0_PASS",
+  "basis": "bounded engineering gates only; not opening qualification",
+  "gates": {
+    "PG1": "PASS_INPUT_AND_RUNTIME_MAPPING",
+    "PG2": "PASS_RESET_OBSERVATION_D17",
+    "PG3": "PASS_FIXED_BUNDLE_AND_SCOPED_RUNTIME_NO_LATE_EVENT",
+    "PG4": "PASS_ACTUAL_P_S2_CONFIG_AND_133_138_RUNTIME",
+    "PG5": "PASS_MIRROR_GEOMETRY",
+    "PG6": "PASS_256ENV_5BATCH_CHECKPOINT_AND_BILATERAL_NATURAL64_PLUS_CONTACT",
+    "PG7": "PASS_M5_MATCHED_D37_THREE_POSTURES",
+    "PG8": "PASS_SCOPED_DISPATCH_RECEIPT_EVAL_REDUCTION_READOUT_CHAIN"
+  },
+  "g0_total_batches": 10,
+  "g0_ceiling": 32,
+  "latest_train_attempt": 3,
+  "eval_source": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_eval64_20260914/G0/g0_eval_decision.json",
+  "reused_contact": "contact_a3",
+  "reused_walk": "walk_a1",
+  "prior_failures_retained": true,
+  "opening_assessment": "NOT_EVALUATED",
+  "margin_left_right": [
+    "NOT_OBSERVED",
+    "NOT_OBSERVED"
+  ],
+  "late_events_observed": false,
+  "next": "PA_S1/2/3 scratch1024x6000 originalseed denominator; no warm/P3-P5/push"
+}

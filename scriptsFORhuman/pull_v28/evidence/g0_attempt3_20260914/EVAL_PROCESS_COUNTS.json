@@ -1,0 +1,18 @@
+{
+  "left": {
+    "completed_episodes": 256,
+    "terminal_rows": 256,
+    "record_rows": 256,
+    "runtime_actual_success": true,
+    "child": 0,
+    "wrapper": 0
+  },
+  "right": {
+    "completed_episodes": 256,
+    "terminal_rows": 256,
+    "record_rows": 256,
+    "runtime_actual_success": true,
+    "child": 0,
+    "wrapper": 0
+  }
+}

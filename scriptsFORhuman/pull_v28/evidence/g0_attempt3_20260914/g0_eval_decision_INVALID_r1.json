@@ -1,0 +1,24 @@
+{
+  "schema": "a2_piper_pull_v28_g0_eval_wiring_v1",
+  "status": "G0_EVAL_WIRING_INVALID",
+  "cell": "G0",
+  "seed": 0,
+  "step": 5,
+  "eval_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_20260914/G0",
+  "sides": {
+    "left": {
+      "status": "INVALID",
+      "directory": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_20260914/G0/G0_STEP5/left",
+      "error": "KeyError: 'a2_v26_8_penalty_driver'"
+    },
+    "right": {
+      "status": "INVALID",
+      "directory": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_20260914/G0/G0_STEP5/right",
+      "error": "KeyError: 'a2_v26_8_penalty_driver'"
+    }
+  },
+  "claim": "STEP5 checkpoint natural64 per side, pull integrity and bundle/camera telemetry wiring",
+  "limits": "Not full G0 acceptance, opening, Teacher/Student, hardware, or PA endpoint evidence. Camera thresholds are report-only; absent late events remain null.",
+  "opening_assessment": "NOT_EVALUATED",
+  "pa_endpoint": false
+}

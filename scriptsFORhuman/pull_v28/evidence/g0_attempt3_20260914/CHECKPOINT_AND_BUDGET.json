@@ -1,0 +1,8 @@
+{
+  "g0_total_completed_batches": 10,
+  "g0_ceiling": 32,
+  "checkpoint_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_20260914/G0/model_step_000005.pt",
+  "checkpoint_bytes": 29551427,
+  "eval_status": "RUNNING",
+  "previous_p2_contact_pg7": "REUSED_NO_REPEAT"
+}

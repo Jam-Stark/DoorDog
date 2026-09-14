@@ -1,0 +1,10 @@
+{
+  "status": "INVALID_EVAL_NUM_ENVS",
+  "expected_per_side": 64,
+  "actual_per_side": 256,
+  "downsampling": "NOT_PERFORMED",
+  "training_checkpoint": "REUSED step5; no retraining needed",
+  "reducer_initial_failure": "nonexistent a2_v26_8_penalty_driver key",
+  "correction": "use actual driver field and override root/env/two scene num_envs consistently; new evaluator output required",
+  "g0_training_batches_remain": 10
+}

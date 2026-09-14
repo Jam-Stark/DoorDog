@@ -2,7 +2,7 @@
 
 创建：2026-09-09 HKT；修订：2026-09-13 HKT。
 修改：-codex planner；依据：-owner 要求更新 pull 同步 plan 并交付 m5 Codex team 启动 prompt。
-状态：`BLOCKED_G0_POST_POLICY_CHECKPOINT_FAILURE`。2026-09-14已授权robot引用修复运行成功，G0 attempt2完成5迭代，但save_frequency250使未发出第5步checkpoint；按§8已有policy读数后的非零run停止，不自动重跑。见OPENING_CLOSURE_20260914.md与未应用smoke保存补丁；PA均NOT_RUN，原合同与预算不变。
+状态：`PULL_G0_PASS_PA_STARTING`。2026-09-14已完成计划有界G0接线与实际双侧natural64，G0累计10/32；进入原三seed scratchPA1024×6000。Owner D013工程自主修复权限生效，原科学/预算门不变；详见G0_ACCEPTANCE_20260914.md。
 
 执行仓库：m5（`baoquanc@m5.precognition.team`，主机名 `ai-precog-machine5`）的 `/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0`，分支 `codex/a2-piper-pull-v0-20260803`。
 canonical：pull 仓库 `scriptsFORhuman/pull_task/a2_piper_pull_v28_baseline_sync_plan_20260909.md`；主线镜像：`scriptsFORhuman/pull_v28_alignment/`。
@@ -115,6 +115,8 @@ Wave P-A closure后，无论成功失败，planner复核：双侧opening是否�
 N03 push/pull合一只登记共享合同与各侧实际能力，不因完成输入同步就声称合一。N01/N02可在同一closure窗口提交与pull有关的恢复/传感/门域需求，不自动运行主线方法实验。
 
 ## 8. 自主权限与停止边界
+
+**2026-09-14 Owner执行修订（D013）**：已定位的配置引用、检查点保存与调度工程故障自主修复推进，使用新attempt并保留证据；不机械因旧修复次数或post-policy工程wrapper非零而停止。真实训练问题不得吞错或掩盖，真实G0门失败、合同变更、预算上限及硬件/外部写入边界仍按下列规则。
 
 执行team收到Owner启动prompt后，可自主完成本轮S1–S8必要代码/配置/调度修复、P2缺失评估、G0、三seedP-A、各milestone与closure；条件满足的阶段转换通知后继续，不逐项等待审批。
 

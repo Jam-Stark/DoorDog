@@ -1,6 +1,6 @@
 ---
 name: pull-v28-baseline-sync
-status: blocked_g0_post_policy_checkpoint_failure
+status: pa_starting
 scope: pull v28 C_T infrastructure sync, m5 G0 and three-scratch-seed opening baseline
 last_verified: 2026-09-13
 read_when:
@@ -39,3 +39,7 @@ PG7使用m5匹配旧asset对照和D37分层p50/p95/CAP/零摔倒/slope。无事�
 2026-09-14当前接续：Owner已授权额外一行修复并按原计划继续；补丁现已应用，G0新train attempt2、输出g0_resume_20260914/G0。P2/contact_a3/PG7证据复用；PA仍待G0。旧Owner门closure保留为历史，不再当作当前暂停令。
 
 2026-09-14最新终态：env.robot引用修复已在G0 attempt2实证成功，LSTM输入133/138；完成5个学习迭代，但save_frequency250/last每50使5步smoke不写checkpoint，runner返回1且policy_readings_observed=true。按计划§8停止，不自动重跑。新提案OWNER_PROPOSED_SMOKE_SAVE_FIX_NOT_APPLIED.patch仅将smoke save_frequency设5，未应用；需Owner授权新5步attempt（累计将10≤32）。PA仍NOT_RUN，k=null/3。资源已释放，见OPENING_CLOSURE_20260914.md。
+
+最新Owner指令2026-09-14：简单配置/保存/调度工程故障自主修复推进，不机械stop；真实G0物理门/合同/预算/硬件门保留。smoke save5补丁已应用、PA仍250，G0 attempt3独立目录g0_attempt3_20260914。此前累计5batch；旧blocked记录仅历史。
+
+当前2026-09-14：G0_ACCEPTANCE_20260914.json=PULL_G0_PASS（有界工程接线），eval实际左右各64 VALID，G0累计10/32。无opening/release声明。原三PA格开始执行，Owner D013自主工程修复权限保留，真实科学门与预算不变。

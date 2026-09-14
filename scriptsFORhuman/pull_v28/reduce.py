@@ -38,11 +38,20 @@ def side_summary(directory, side, seed, rig=DEFAULT_RIG, native=DEFAULT_NATIVE):
     cfg = runtime["env"]["config"]
     require(runtime["seed"] == seed, "evaluation seed differs from cell")
     require(cfg["a2_pull_threshold_mode"] == "hard_gate", "pull predecessor contract")
-    require(cfg["rewards"]["reward_penalty_curriculum"] is False and cfg["a2_v26_8_penalty_driver"] is None, "natural curriculum/driver contract")
+    # This pull branch consumes only rewards.reward_penalty_curriculum in
+    # LeggedRobotBase._prepare_reward_function/_compute_reward. It has no
+    # a2_v26_8_penalty_driver consumer; that mainline-only key is not a required
+    # pull runtime field. Require the real consumer switch, with no missing-key default.
+    require(cfg["rewards"]["reward_penalty_curriculum"] is False, "natural reward_penalty_curriculum must be false")
     metrics = load(directory / "metrics_eval.json")
     records = load(directory / "a2_v14_per_env_records.json")
     terminals = metrics["episode_terminal_diagnostics"]
-    require(metrics["completed_episodes"] == len(terminals) == len(records) == 64, "exact64 artifacts required")
+    population = {"runtime_num_envs": runtime["num_envs"], "env_num_envs": cfg["num_envs"],
+                  "scene_num_envs": cfg["simulator"]["config"]["scene"]["num_envs"],
+                  "completed_episodes": metrics["completed_episodes"],
+                  "terminal_count": len(terminals), "record_count": len(records)}
+    require(all(value == 64 for value in population.values()),
+            f"INVALID_NUM_ENVS: exact64 runtime and artifacts required; observed {population}")
     by_env = {row["env_id"]: row for row in terminals}
     require(set(by_env) == set(range(64)), "terminal exact64 unique env IDs required")
     counts = Counter()

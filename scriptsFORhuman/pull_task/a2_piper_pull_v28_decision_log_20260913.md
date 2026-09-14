@@ -1,7 +1,7 @@
 # Pull v28 同步修订决策记录
 
 日期：2026-09-13 HKT；修改：-codex planner；依据：-owner 要求更新 pull v28 新 baseline 同步 plan，并提供 m5 Codex team 启动 prompt。
-当前状态：BLOCKED_G0_POST_POLICY_CHECKPOINT_FAILURE；最新见D012及20260914 closure。robot引用修复已成功，G0完成5迭代但没有checkpoint，PA未运行。
+当前状态：G0_RESUMED_AUTONOMOUS_ENGINEERING；最新Owner权限与执行见D013，旧blocked closure仅历史快照。
 
 ## 输入与权限
 
@@ -74,3 +74,17 @@ Owner额外授权的一行修复已实证成功：G0 attempt2的actor/critic输�
 只读核对确认ModelSaveCallback的实际save_frequency=250，last.pt每50步；5步smoke不触发保存，没有异地检查点。按原§8“policy读数后的非零退出停该格…不自动重跑”暂停相关执行。已准备未应用补丁，仅smoke频率5、PA仍250；需Owner授权新的5batch attempt，届时G0累计10≤32。没有改变actor/reward/门/资产/预算，没有新fallback或测试。
 
 G0累计5batch，PA三格均NOT_RUN、k=null/3；G0 natural及PG8尚无端到端证据。contact/PG7/P2未重复。资源/对应事件已收尾；保留原失败及旧closure快照。当前closure为OPENING_CLOSURE_20260914.md。
+
+## V28P-D013：Owner明确工程故障自主推进权限
+
+Owner于2026-09-14授权smoke保存频率修复并原计划继续，明确“这种简单外部因素就不要随意stop了…自主解决推进方案”。据此，配置引用、保存和调度等已定位工程接线故障，在合同/物理门/预算不变下自主修复，不再机械套用先前次数或post-policy wrapper失败停止；真实训练异常不得掩盖，真实G0门失败、合同改变、超预算、硬件/外部写入仍Owner门。全部attempt/预算如实记录，无fallback或重复全面审计。
+
+已应用smoke save_frequency=5、PA保持250，启动新train_g0_attempt3，独立g0_attempt3_20260914目录。G0此前实际5batch，本次完成后累计10≤32；P2/contact/PG7不重跑。
+
+## V28P-D014：G0真实eval暴露flat环境数与归约字段接线
+
+attempt3 train成功保存step5，G0累计10batch。随后eval两侧child/wrapper0但各256terminal/record，而非64：root命令num_envs64未更新flat env/simulator字段。原256输出标INVALID，不裁剪、不当作科学失败。复用同checkpoint显式同步环境数到64，在新eval输出完成合同，无额外训练。另归约器直接读取不存在a2_v26_8_penalty_driver字段，改为真实source消费者的字段；不以缺失默认值掩盖，不改门。按D013自主处理工程接线，不重复Owner确认。
+
+## V28P-D015：pull G0完成，进入原三格PA
+
+修复后的eval64两侧actual completed/terminal/records均64，g0_eval_decision=G0_EVAL_WIRING_PASS；结合有效contact/PG7、实际133/138与256env×5batch完整checkpoint，PG1–PG8计划内有界接线完成。无晚阶段事件，G0结果不作opening判定。累计G0训练10≤32；旧256无效eval与所有失败保留。按Owner原授权直接启动PA_S1/2/3 scratch1024×6000，save250、四milestone双侧64，默认不warm、不P3–P5。

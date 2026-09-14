@@ -1,0 +1,36 @@
+{
+  "schema": "a2_piper_pull_v26_8_runtime_result_v1",
+  "command": [
+    "env",
+    "CUDA_VISIBLE_DEVICES=1",
+    "CUDA_DEVICE_ORDER=PCI_BUS_ID",
+    "ACCELERATE_TORCH_DEVICE=cuda:0",
+    "WANDB_MODE=disabled",
+    "HYDRA_FULL_ERROR=1",
+    "PYTHONUNBUFFERED=1",
+    "OMP_NUM_THREADS=8",
+    "PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+    "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+    "-B",
+    "-m",
+    "gr00t.rl.train_agent_trl",
+    "--config-dir",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/g0_attempt3_20260914/G0",
+    "--config-name",
+    "config"
+  ],
+  "child_returncode": 0,
+  "wrapper_returncode": 0,
+  "required_artifacts": [
+    "model_step_000005.pt"
+  ],
+  "missing_artifacts": [],
+  "actual_success": true,
+  "started_at": "2026-09-14T02:43:02.202776+00:00",
+  "finished_at": "2026-09-14T02:46:02.159499+00:00",
+  "policy_readings_observed": true,
+  "gpu": 1,
+  "peak_memory_mib": 6210,
+  "total_memory_mib": 24576,
+  "minimum_headroom_mib": 18366
+}

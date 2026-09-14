@@ -87,7 +87,7 @@ def main() -> int:
     for path in (("env", "config", "num_envs"), ("env", "config", "simulator", "config", "scene", "num_envs"), ("simulator", "config", "scene", "num_envs")):
         set_path(cfg, path, envs)
     cfg["algo"]["trl"]["num_total_batches"] = 5 if a.smoke else 6000
-    cfg["callbacks"]["model_save"]["save_frequency"] = 250
+    cfg["callbacks"]["model_save"]["save_frequency"] = 5 if a.smoke else 250
     for callback in ("model_save", "autoresume"):
         if callback in cfg["callbacks"] and "save_dir" in cfg["callbacks"][callback]:
             cfg["callbacks"][callback]["save_dir"] = str(a.train_dir)

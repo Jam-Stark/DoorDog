@@ -1,0 +1,102 @@
+{
+  "schema": "pull_v28_migration_v1",
+  "drive_folder_id": "1h1Z3gNXrX_JhtEv3s4N8shCL9ULeSYjX",
+  "git_url": "git@github.com:Jam-Stark/DoorDog.git",
+  "git_branch": "codex/a2-piper-pull-v0-20260803",
+  "archives": [
+    {
+      "name": "resume_core.tar.zst",
+      "bytes": 555965077,
+      "role": "resume",
+      "members": 170,
+      "drive_file_id": "1wDGgAATQZQ6hbwDsXu6UunD3O7sYeMAW",
+      "drive_url": "https://drive.google.com/file/d/1wDGgAATQZQ6hbwDsXu6UunD3O7sYeMAW/view"
+    },
+    {
+      "name": "history.tar.zst",
+      "bytes": 4871796209,
+      "role": "history",
+      "members": 1092,
+      "drive_file_id": "1oo8qcd3H_O24isJXDLgg9fGs4C3OHxIR",
+      "drive_url": "https://drive.google.com/file/d/1oo8qcd3H_O24isJXDLgg9fGs4C3OHxIR/view"
+    },
+    {
+      "name": "p2_diagnostics.tar.zst",
+      "bytes": 1952840,
+      "role": "history",
+      "members": 3,
+      "drive_file_id": "1YbvgZSmYOXs90IsCqBvRkgmo1TtTtYh_",
+      "drive_url": "https://drive.google.com/file/d/1YbvgZSmYOXs90IsCqBvRkgmo1TtTtYh_/view"
+    }
+  ],
+  "train_root": "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914",
+  "eval_root": "logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914",
+  "checkpoints": {
+    "PA_S1": {
+      "path": "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/resume_input_step001050.pt",
+      "step": 1050,
+      "remaining": 4950
+    },
+    "PA_S2": {
+      "path": "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/resume_input_step001400.pt",
+      "step": 1400,
+      "remaining": 4600
+    },
+    "PA_S3": {
+      "path": "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/resume_input_step001450.pt",
+      "step": 1450,
+      "remaining": 4550
+    }
+  },
+  "path_rewrites": {
+    "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_rebuild_2048_20260914/train": "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914",
+    "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_rebuild_2048_20260914/eval": "logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914"
+  },
+  "contract": {
+    "num_envs": 2048,
+    "target_step": 6000,
+    "save_frequency": 250,
+    "load_mode": "full",
+    "auto_load_latest": false,
+    "attempt": 3,
+    "gpu_assignment": {
+      "PA_S1": 1,
+      "PA_S2": 2,
+      "PA_S3": 3,
+      "eval": 0
+    },
+    "milestones": [
+      1500,
+      3000,
+      4500,
+      6000
+    ],
+    "evaluation": "left/right exact64 natural; 24 lanes"
+  },
+  "accounting": {
+    "historical_completed_2048": 3942,
+    "persisted_checkpoint_steps": 3900,
+    "remaining_to_target": 14100,
+    "necessary_replay_batches": 42,
+    "projected_actual_completed_2048": 18042,
+    "partial_batches": "retained separately in historical evidence"
+  },
+  "m5_status": "PAUSED_FOR_MIGRATION_OWNER_REQUEST",
+  "decision": "V28P-D019",
+  "archive_description": {
+    "resume": "Current 2048 checkpoints/configs/logs and runtime receipts, frozen policy/metadata, original P_S2 source config",
+    "history": "P2 raw training/eval; G0 and old 1024/4096 raw training/eval, corresponding receipts, original old robot asset",
+    "p2_diagnostics": "Previously untracked P0/P1 analysis CSV and JSON; raw bytes retained outside Git."
+  },
+  "p2_g0": "P2 18/18 and G0 pass 10/32 preserved; do not rerun",
+  "opening_closure": "pending on destination",
+  "code_commit": "d1b3950d2d2211d9c0599e5f07c4277494a44057",
+  "git_commit_url": "https://github.com/Jam-Stark/DoorDog/commit/d1b3950d2d2211d9c0599e5f07c4277494a44057",
+  "transfer": "Whole archives uploaded through Google Drive Desktop; no multipart download needed.",
+  "cloud_verification": {
+    "status": "ALL_ARCHIVES_VERIFIED",
+    "verified_at_utc": "2026-09-15T08:31:49.503574+00:00",
+    "method": "Drive get_file_metadata file ID, parent folder, exact byte size",
+    "total_archive_bytes": 5429714126
+  }
+}

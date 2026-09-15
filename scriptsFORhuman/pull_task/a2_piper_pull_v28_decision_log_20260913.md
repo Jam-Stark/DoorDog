@@ -184,3 +184,9 @@ Three actualsubmit-resume commands succeeded, each producednamedtmux train_pa_s{
 当前恢复包555965077bytes/170members、历史包4871796209bytes/1092members均已生成，保留原始输出，tar目录读取成功。实际在独立SSD checkout完成core解压、旧路径重写、三格配置确认、旧eval归档与四条attempt3命令准备；再由修复后的pipeline在CPU生成三份resume配置，1050/1400/1450、2048/full/6000/save250均保持，GPU启动0。证据MIGRATION_PREPARE_VERIFICATION_20260915.json。新机器IsaacLab/GPU仍需按说明核对，不能将本次CPU准备等同训练成功。
 
 代码迁移包含本任务当前P2/v28配置、pull reward实现、CPU staged快照存储、可迁移pipeline、所需v1.4 run_supervisor以及迁移脚本/新AI提示。无关agent-system/Codex配置改动留在本地不混入本任务提交。Drive最终文件ID和精确Git提交见交付目录migration_manifest.json及migration_receipt.json。
+
+### V28P-D019 delivery completed — 2026-09-15
+
+代码提交d1b3950已推送origin/codex/a2-piper-pull-v0-20260803，58个所需LFS对象推送成功。GoogleDrive目录 https://drive.google.com/drive/folders/1h1Z3gNXrX_JhtEv3s4N8shCL9ULeSYjX 的三个整包均已从云端get_file_metadata核对ID、parent及精确bytes：resume_core.tar.zst 555965077，history.tar.zst 4871796209，p2_diagnostics.tar.zst 1952840，总5429714126bytes。manifest记录下载ID；小文件包括脚本、中文新机器AI提示、成员清单、CPU恢复验证和最终receipt。连接器大文件传输超时后使用本机Drive客户端完成，不改变共享权限；源m5原始输出和归档保留。
+
+m5无本轮GPU进程/tmux，lease已释放，保持Owner暂停。CPU准备验证的独立临时checkout已清理，没有执行新训练或评估。迁移交付完成，opening closure仍待新机器按同seed full1050/1400/1450、2048env续至6000并完成24lane；不得把迁移完成当作opening完成。

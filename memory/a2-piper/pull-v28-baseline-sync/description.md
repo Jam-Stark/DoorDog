@@ -55,3 +55,7 @@ Owner明确停止m5本轮pull，授权commit/push、GoogleDrive归档和新机�
 当前2026-09-14：G0_ACCEPTANCE_20260914.json=PULL_G0_PASS（有界工程接线），eval实际左右各64 VALID，G0累计10/32。无opening/release声明。原三PA格开始执行，Owner D013自主工程修复权限保留，真实科学门与预算不变。
 
 PA_S1/2/3 train/watch attempt1已全部启动，默认canonical输出根在用户SSD；三卡对应seed1/2/3，scratch1024×6000，save250。Main持lease，等待一次启动吞吐记录后进入真实ETA持久等待。
+
+## D019迁移交付完成（2026-09-15）
+
+当前合法终态是m5暂停且迁移交付完成，不是opening closure完成。当前code已推送，三整包GoogleDrive云端ID及精确bytes已核实，恢复入口见scriptsFORhuman/pull_v28/migration_manifest.json、migrate.py及NEW_MACHINE_AI_PROMPT_20260915.md。只由新机器按原2048合同resume同seed1050/1400/1450到6000和补24lane；m5不得续训。

@@ -26,7 +26,7 @@ https://drive.google.com/drive/folders/1h1Z3gNXrX_JhtEv3s4N8shCL9ULeSYjX
 python /path/to/migrate.py --repo /new/workspace/DoorDog --manifest /path/to/migration_manifest.json --archive-dir /path/to/downloads
 ```
 
-默认只 prepare，不启动 GPU。它恢复相对 repo 路径，把旧 repo/SSD 前缀替换为新 repo 的活动 YAML 路径（包括供 eval 使用的 checkpoint 邻接配置），保留历史 runtime receipt 的原始信息。旧 eval_root 整目录归档为 _before_migration_attempt3；旧 runner 文件也保留。查看 .ai/runtime/migrations/pull_v28_2048_attempt3/prepare.json 中的四条命令和路径。不要把旧 PID/receipt 当作新机器进程。
+默认只 prepare，不启动 GPU。它恢复相对 repo 路径，把旧 repo/SSD 前缀替换为新 repo 的活动 YAML 路径（包括供 eval 使用的 checkpoint 邻接配置），保留历史 runtime receipt 的原始信息。旧 eval_root 整目录归档为 _before_migration_attempt3；旧 runner 文件也保留。查看 .ai/runtime/migrations/pull_v28_2048_attempt3/prepare.json 中的四条命令和路径。不要把旧 PID/receipt 当作新机器进程。 恢复的 ACTIVE_RUN.json 是 m5 的 D019 暂停证据，prepare.json 是新机待执行命令清单。新机实际续训启动检查后，先归档源 ACTIVE_RUN，再将新主机、attempt3 实际 receipt、checkpoint lineage 和真实状态写入 ACTIVE_RUN；单有 submit 成功不等于已恢复训练。
 
 准备完成后直接按已授权合同执行，无需等待 Owner 重复批准：
 

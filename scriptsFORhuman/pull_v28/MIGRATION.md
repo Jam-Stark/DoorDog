@@ -30,3 +30,5 @@ git -C /new/workspace/DoorDog lfs pull --include='gr00t/rl/data/robots/a2_piper_
 ```
 
 The restored config asset_root points into robots. A2_Base policy and metadata are supplied in resume_core. See NEW_MACHINE_AI_PROMPT_20260915.md for the complete Chinese handoff.
+
+The restored ACTIVE_RUN.json remains the source m5 pause evidence. After the destination startup check observes actual resumed batches, archive that source record and record the new host, attempt3 receipts and observed status in ACTIVE_RUN. A successful submit alone does not establish resumed training.

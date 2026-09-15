@@ -37,3 +37,5 @@ PA_S1正式5完整PPO batches通过，655360timesteps、均值22.636s、GPU11948
 GPU1/2/3实际提交2048 fullresume1050/1400/1450到6000，均trainattempt2；GPU0队列attempt2已提交。旧输出/固定resume输入和42batch重放账本已封存。首次CLI没有resumeaction发生在prepare之前，后实际同步修正并成功提交，未产生重复训练。一次新日志启动实证待完成；不commit/push。
 
 - 2026-09-15 D019：m5 pull暂停并释放lease；归档当前2048恢复包和P2/G0/1024/4096历史包。独立目录CPU prepare及三格语义resume配置生成通过，GPU启动0；迁移脚本migrate.py和NEW_MACHINE_AI_PROMPT_20260915.md交付。最终Drive上传/代码push凭证见migration_manifest.json和migration_receipt.json，不把本次准备称为训练或opening完成。
+
+- 2026-09-15 D019完成：code d1b3950已push；Drive三整包共5429714126bytes经云端metadata核实，manifest/中文AI接续提示/脚本齐备。m5保持停止，原始输出和归档保留，CPU验证临时目录已清理；opening仍待新机。

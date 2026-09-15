@@ -1,0 +1,10 @@
+{
+  "decision": "V28P-D016",
+  "archived_at": "2026-09-14T11:29:31.881274+00:00",
+  "original_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_4096_20260914/PA_S1",
+  "archive_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_4096_20260914/cancelled/PA_S1_attempt1_initialization_20260914",
+  "resolved_archive_path": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_rebuild_4096_20260914/train/cancelled/PA_S1_attempt1_initialization_20260914",
+  "completed_batches": 0,
+  "checkpoint": null,
+  "next_attempt": 2
+}

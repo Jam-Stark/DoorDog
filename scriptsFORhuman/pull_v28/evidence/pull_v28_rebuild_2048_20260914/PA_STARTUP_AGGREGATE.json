@@ -1,0 +1,89 @@
+{
+  "group": "pull_v28_rebuild_2048_20260914",
+  "gpu_total_mib": {
+    "source": "nvidia-smi",
+    "values": {
+      "0": 24576,
+      "1": 24576,
+      "2": 24576,
+      "3": 24576
+    }
+  },
+  "queue": {
+    "receipt": ".ai/runtime/runs/pull_v28_rebuild_2048_20260914_eval_queue_gpu0_attempt1/RUN_RECEIPT.json",
+    "state": "RUNNING"
+  },
+  "cells": {
+    "PA_S1": {
+      "seed": 1,
+      "gpu": 1,
+      "status": "RUNNING",
+      "iterations": 30,
+      "startup_mean_iteration_s": 22.636,
+      "gpu_memory_mib": 8122,
+      "host_rss_mib": 24972.3125,
+      "num_envs": 2048,
+      "checkpoint": null,
+      "checkpoint_lineage": "null scratch",
+      "auto_eval": false,
+      "target_iterations": 6000,
+      "save_frequency": 250,
+      "horizon": 64,
+      "ppo_epochs": 5,
+      "ppo_mini_batches": 4,
+      "learning_rate": 0.0001
+    },
+    "PA_S2": {
+      "seed": 2,
+      "gpu": 2,
+      "status": "RUNNING",
+      "iterations": 5,
+      "iteration_s": [
+        29.76,
+        21.09,
+        21.27,
+        21.19,
+        21.56
+      ],
+      "gpu_memory_mib": 9837,
+      "host_rss_mib": 25003.18359375,
+      "startup_mean_iteration_s": 22.974,
+      "num_envs": 2048,
+      "checkpoint": null,
+      "checkpoint_lineage": "null scratch",
+      "auto_eval": false,
+      "target_iterations": 6000,
+      "save_frequency": 250,
+      "horizon": 64,
+      "ppo_epochs": 5,
+      "ppo_mini_batches": 4,
+      "learning_rate": 0.0001
+    },
+    "PA_S3": {
+      "seed": 3,
+      "gpu": 3,
+      "status": "RUNNING",
+      "iterations": 6,
+      "iteration_s": [
+        29.81,
+        20.85,
+        20.56,
+        20.62,
+        21.08
+      ],
+      "gpu_memory_mib": 9155,
+      "host_rss_mib": 24971.9296875,
+      "startup_mean_iteration_s": 22.584,
+      "num_envs": 2048,
+      "checkpoint": null,
+      "checkpoint_lineage": "null scratch",
+      "auto_eval": false,
+      "target_iterations": 6000,
+      "save_frequency": 250,
+      "horizon": 64,
+      "ppo_epochs": 5,
+      "ppo_mini_batches": 4,
+      "learning_rate": 0.0001
+    }
+  }
+}

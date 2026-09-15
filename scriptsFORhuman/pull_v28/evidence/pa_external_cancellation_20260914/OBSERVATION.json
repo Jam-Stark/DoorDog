@@ -1,0 +1,136 @@
+{
+  "status": "EXPLICIT_EXTERNAL_CANCEL_REQUEST_PENDING_OWNER_CONTEXT",
+  "observed_at": "2026-09-14T11:11:49.623030+00:00",
+  "claim_in_cancel_request": "Owner V28P-D016: preserve old1024 attempt; rebuild independent4096 scratch group",
+  "canonical_decision_has_D016": false,
+  "current_chat_authorized_contract": "1024 scratch original3seed6000; simpleengineering fixesautonomous; no4096instructionreceived",
+  "action": "No automatic restart or4096launch; Owner clarification pending; preservecheckpoints/results",
+  "runs": [
+    {
+      "name": "pull_v28_train_pa_s1_attempt1",
+      "STATUS.json": {
+        "acceptance_state": "UNASSESSED",
+        "backend": "tmux",
+        "checkpoint_state": "NOT_DECLARED",
+        "exit_code": -15,
+        "finished_at": "2026-09-14T11:07:13+00:00",
+        "finished_epoch": 1789384033.3359044,
+        "launched_at": "2026-09-14T03:39:57+00:00",
+        "launched_epoch": 1789357197.9350305,
+        "process_state": "CANCELLED",
+        "supervisor_pid": 71658,
+        "updated_at": "2026-09-14T11:07:13+00:00",
+        "wait_until_epoch": 1789508397.9350305
+      },
+      "CANCEL_REQUEST.json": {
+        "reason": "Owner V28P-D016: preserve old1024 attempt; rebuild independent4096 scratch group",
+        "requested_at": "2026-09-14T11:07:12+00:00"
+      }
+    },
+    {
+      "name": "pull_v28_watch_pa_s1_attempt1",
+      "STATUS.json": {
+        "acceptance_state": "UNASSESSED",
+        "backend": "tmux",
+        "checkpoint_state": "NOT_DECLARED",
+        "exit_code": -15,
+        "finished_at": "2026-09-14T11:07:13+00:00",
+        "finished_epoch": 1789384033.4016907,
+        "launched_at": "2026-09-14T03:40:30+00:00",
+        "launched_epoch": 1789357230.4679096,
+        "process_state": "CANCELLED",
+        "supervisor_pid": 73264,
+        "updated_at": "2026-09-14T11:07:13+00:00",
+        "wait_until_epoch": 1789530030.4679096
+      },
+      "CANCEL_REQUEST.json": {
+        "reason": "Owner V28P-D016: preserve old1024 attempt; rebuild independent4096 scratch group",
+        "requested_at": "2026-09-14T11:07:12+00:00"
+      }
+    },
+    {
+      "name": "pull_v28_train_pa_s2_attempt1",
+      "STATUS.json": {
+        "acceptance_state": "UNASSESSED",
+        "backend": "tmux",
+        "checkpoint_state": "NOT_DECLARED",
+        "exit_code": -15,
+        "finished_at": "2026-09-14T11:07:13+00:00",
+        "finished_epoch": 1789384033.202621,
+        "launched_at": "2026-09-14T03:39:58+00:00",
+        "launched_epoch": 1789357198.107827,
+        "process_state": "CANCELLED",
+        "supervisor_pid": 71670,
+        "updated_at": "2026-09-14T11:07:13+00:00",
+        "wait_until_epoch": 1789508398.107827
+      },
+      "CANCEL_REQUEST.json": {
+        "reason": "Owner V28P-D016: preserve old1024 attempt; rebuild independent4096 scratch group",
+        "requested_at": "2026-09-14T11:07:12+00:00"
+      }
+    },
+    {
+      "name": "pull_v28_watch_pa_s2_attempt1",
+      "STATUS.json": {
+        "acceptance_state": "UNASSESSED",
+        "backend": "tmux",
+        "checkpoint_state": "NOT_DECLARED",
+        "exit_code": -15,
+        "finished_at": "2026-09-14T11:07:13+00:00",
+        "finished_epoch": 1789384033.4193292,
+        "launched_at": "2026-09-14T03:40:30+00:00",
+        "launched_epoch": 1789357230.6403098,
+        "process_state": "CANCELLED",
+        "supervisor_pid": 73276,
+        "updated_at": "2026-09-14T11:07:13+00:00",
+        "wait_until_epoch": 1789530030.6403098
+      },
+      "CANCEL_REQUEST.json": {
+        "reason": "Owner V28P-D016: preserve old1024 attempt; rebuild independent4096 scratch group",
+        "requested_at": "2026-09-14T11:07:12+00:00"
+      }
+    },
+    {
+      "name": "pull_v28_train_pa_s3_attempt1",
+      "STATUS.json": {
+        "acceptance_state": "UNASSESSED",
+        "backend": "tmux",
+        "checkpoint_state": "NOT_DECLARED",
+        "exit_code": -15,
+        "finished_at": "2026-09-14T11:07:13+00:00",
+        "finished_epoch": 1789384033.0875356,
+        "launched_at": "2026-09-14T03:39:58+00:00",
+        "launched_epoch": 1789357198.2866,
+        "process_state": "CANCELLED",
+        "supervisor_pid": 71691,
+        "updated_at": "2026-09-14T11:07:13+00:00",
+        "wait_until_epoch": 1789508398.2866
+      },
+      "CANCEL_REQUEST.json": {
+        "reason": "Owner V28P-D016: preserve old1024 attempt; rebuild independent4096 scratch group",
+        "requested_at": "2026-09-14T11:07:12+00:00"
+      }
+    },
+    {
+      "name": "pull_v28_watch_pa_s3_attempt1",
+      "STATUS.json": {
+        "acceptance_state": "UNASSESSED",
+        "backend": "tmux",
+        "checkpoint_state": "NOT_DECLARED",
+        "exit_code": -15,
+        "finished_at": "2026-09-14T11:07:13+00:00",
+        "finished_epoch": 1789384033.4657688,
+        "launched_at": "2026-09-14T03:40:30+00:00",
+        "launched_epoch": 1789357230.8161201,
+        "process_state": "CANCELLED",
+        "supervisor_pid": 73288,
+        "updated_at": "2026-09-14T11:07:13+00:00",
+        "wait_until_epoch": 1789530030.8161201
+      },
+      "CANCEL_REQUEST.json": {
+        "reason": "Owner V28P-D016: preserve old1024 attempt; rebuild independent4096 scratch group",
+        "requested_at": "2026-09-14T11:07:12+00:00"
+      }
+    }
+  ]
+}

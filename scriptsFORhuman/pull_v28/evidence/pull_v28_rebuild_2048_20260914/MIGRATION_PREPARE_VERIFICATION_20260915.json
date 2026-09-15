@@ -1,0 +1,140 @@
+{
+  "status": "CPU_PREPARE_AND_RESUME_CONFIG_PASSED",
+  "archive_bytes": 555965077,
+  "restored_members": 170,
+  "new_repository": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915",
+  "gpu_jobs_started": 0,
+  "prepare_receipt": {
+    "schema": "pull_v28_migration_prepared_v1",
+    "status": "PREPARED_NOT_STARTED",
+    "repo": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915",
+    "manifest": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_20260915/migration_manifest.json",
+    "git_branch": "codex/a2-piper-pull-v0-20260803",
+    "checkpoints": {
+      "PA_S1": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/resume_input_step001050.pt",
+      "PA_S2": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/resume_input_step001400.pt",
+      "PA_S3": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/resume_input_step001450.pt"
+    },
+    "start_steps": {
+      "PA_S1": 1050,
+      "PA_S2": 1400,
+      "PA_S3": 1450
+    },
+    "target_step": 6000,
+    "num_envs": 2048,
+    "attempt": 3,
+    "gpu_assignment": {
+      "PA_S1": 1,
+      "PA_S2": 2,
+      "PA_S3": 3,
+      "evaluation": 0
+    },
+    "rewritten_yaml": [
+      "logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2/resolved_config.yaml",
+      "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/attempt_history/attempt1/config.yaml",
+      "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/attempt_history/attempt1/resolved_config_verified.yaml",
+      "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/config.yaml",
+      "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/attempt_history/attempt1/config.yaml",
+      "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/attempt_history/attempt1/resolved_config_verified.yaml",
+      "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/config.yaml",
+      "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/attempt_history/attempt1/config.yaml",
+      "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/attempt_history/attempt1/resolved_config_verified.yaml",
+      "logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/config.yaml"
+    ],
+    "archived": [
+      "logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914_before_migration_attempt3"
+    ],
+    "commands": [
+      [
+        "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/scriptsFORhuman/pull_v28/pipeline.py",
+        "submit-resume",
+        "--cell",
+        "PA_S1",
+        "--checkpoint",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/resume_input_step001050.pt",
+        "--attempt",
+        "3",
+        "--train-root",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914",
+        "--eval-root",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914"
+      ],
+      [
+        "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/scriptsFORhuman/pull_v28/pipeline.py",
+        "submit-resume",
+        "--cell",
+        "PA_S2",
+        "--checkpoint",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/resume_input_step001400.pt",
+        "--attempt",
+        "3",
+        "--train-root",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914",
+        "--eval-root",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914"
+      ],
+      [
+        "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/scriptsFORhuman/pull_v28/pipeline.py",
+        "submit-resume",
+        "--cell",
+        "PA_S3",
+        "--checkpoint",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/resume_input_step001450.pt",
+        "--attempt",
+        "3",
+        "--train-root",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914",
+        "--eval-root",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914"
+      ],
+      [
+        "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/scriptsFORhuman/pull_v28/pipeline.py",
+        "submit-eval-queue",
+        "--attempt",
+        "3",
+        "--train-root",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914",
+        "--eval-root",
+        "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914"
+      ]
+    ],
+    "scope": "resume same-seed full checkpoints and24milestone lanes; do not rerun P2/G0"
+  },
+  "resume_configs": {
+    "PA_S1": {
+      "resume_config": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/resume_attempt3.yaml",
+      "checkpoint": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/resume_input_step001050.pt",
+      "seed": 1,
+      "num_envs": 2048,
+      "target": 6000,
+      "save_frequency": 250,
+      "load_mode": "full",
+      "auto_load_latest": false
+    },
+    "PA_S2": {
+      "resume_config": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/resume_attempt3.yaml",
+      "checkpoint": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/resume_input_step001400.pt",
+      "seed": 2,
+      "num_envs": 2048,
+      "target": 6000,
+      "save_frequency": 250,
+      "load_mode": "full",
+      "auto_load_latest": false
+    },
+    "PA_S3": {
+      "resume_config": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/resume_attempt3.yaml",
+      "checkpoint": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/migration_prepare_check_20260915/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/resume_input_step001450.pt",
+      "seed": 3,
+      "num_envs": 2048,
+      "target": 6000,
+      "save_frequency": 250,
+      "load_mode": "full",
+      "auto_load_latest": false
+    }
+  },
+  "scope": "Actual archive extracted in an isolated alternate repository path. Prepared commands and semantic resume config generated on CPU. Destination IsaacLab/GPU compatibility remains untested."
+}

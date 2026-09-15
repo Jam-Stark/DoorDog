@@ -1,0 +1,64 @@
+{
+  "receipt": ".ai/runtime/runs/pull_v28_rebuild_2048_20260914_train_pa_s1_attempt1/RUN_RECEIPT.json",
+  "status": "RUNNING",
+  "seed": 1,
+  "num_envs": 2048,
+  "checkpoint": null,
+  "checkpoint_lineage": "null scratch",
+  "auto_eval": false,
+  "target_iterations": 6000,
+  "model_save_frequency": 250,
+  "iterations_completed": 5,
+  "timesteps_completed": 655360,
+  "iterations": [
+    {
+      "iteration": 1,
+      "timesteps": 131072,
+      "collection_s": 27.694,
+      "learning_s": 2.016,
+      "total_s": 29.71,
+      "throughput_steps_s": 4411
+    },
+    {
+      "iteration": 2,
+      "timesteps": 262144,
+      "collection_s": 19.271,
+      "learning_s": 1.798,
+      "total_s": 21.07,
+      "throughput_steps_s": 6221
+    },
+    {
+      "iteration": 3,
+      "timesteps": 393216,
+      "collection_s": 18.784,
+      "learning_s": 1.761,
+      "total_s": 20.55,
+      "throughput_steps_s": 6379
+    },
+    {
+      "iteration": 4,
+      "timesteps": 524288,
+      "collection_s": 18.928,
+      "learning_s": 1.744,
+      "total_s": 20.67,
+      "throughput_steps_s": 6340
+    },
+    {
+      "iteration": 5,
+      "timesteps": 655360,
+      "collection_s": 19.191,
+      "learning_s": 1.992,
+      "total_s": 21.18,
+      "throughput_steps_s": 6187
+    }
+  ],
+  "mean_iteration_s": 22.636000000000003,
+  "eta_1500_seconds": 33840.82000000001,
+  "eta_6000_seconds": 135702.82,
+  "gpu": 1,
+  "gpu_memory_mib": 11948,
+  "gpu_total_mib": 24576,
+  "host_rss_mib": 24971.6,
+  "host_rss_source": "train_agent_trl RSS 25570904 KiB",
+  "observed_at": "2026-09-14T12:08:00+00:00"
+}

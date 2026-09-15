@@ -52,10 +52,9 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     p.add_argument("--output", type=Path, required=True)
-    p.add_argument("--cell", required=True, choices=("PA_S1", "PA_S2", "PA_S3", "G0"))
+    p.add_argument("--cell", required=True, choices=("PA_S1", "PA_S2", "PA_S3"))
     p.add_argument("--seed", type=int, required=True)
     p.add_argument("--train-dir", type=Path, required=True)
-    p.add_argument("--smoke", action="store_true")
     p.add_argument("--robot-config", type=Path, default=REPO / "gr00t/rl/config/robot/A2_Piper/a2_piper_vpiper.yaml")
     p.add_argument("--base-robot-config", type=Path, default=REPO / "gr00t/rl/config/robot/A2_Piper/a2_piper.yaml")
     p.add_argument("--delta", type=Path, default=DEFAULT_DELTA)
@@ -80,14 +79,14 @@ def main() -> int:
     require(new_raw_robot["num_bodies"] == 28 and new_raw_robot["actions_dim"] == 20, "S2 vPiper body/action contract diverged")
     robot = cfg["robot"]
     apply_raw_robot_delta(robot, old_raw_robot, new_raw_robot)
-    envs = 256 if a.smoke else 1024
+    envs = 2048
     cfg.update(checkpoint=None, checkpoint_load_mode="full", auto_load_latest=False, seed=a.seed,
                num_envs=envs, project_name="a2_piper_pull_v28",
                experiment_name=a.cell, experiment_dir=str(a.train_dir), output_dir=str(a.train_dir / "output"))
     for path in (("env", "config", "num_envs"), ("env", "config", "simulator", "config", "scene", "num_envs"), ("simulator", "config", "scene", "num_envs")):
         set_path(cfg, path, envs)
-    cfg["algo"]["trl"]["num_total_batches"] = 5 if a.smoke else 6000
-    cfg["callbacks"]["model_save"]["save_frequency"] = 5 if a.smoke else 250
+    cfg["algo"]["trl"]["num_total_batches"] = 6000
+    cfg["callbacks"]["model_save"]["save_frequency"] = 250
     for callback in ("model_save", "autoresume"):
         if callback in cfg["callbacks"] and "save_dir" in cfg["callbacks"][callback]:
             cfg["callbacks"][callback]["save_dir"] = str(a.train_dir)

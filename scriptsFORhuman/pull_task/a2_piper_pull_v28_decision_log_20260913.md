@@ -1,9 +1,9 @@
 # Pull v28 同步修订决策记录
 
 日期：2026-09-13 HKT；修改：-codex planner；依据：-owner 要求更新 pull v28 新 baseline 同步 plan，并提供 m5 Codex team 启动 prompt。
-当前状态：G0_RESUMED_AUTONOMOUS_ENGINEERING；最新Owner权限与执行见D013，旧blocked closure仅历史快照。
+当前状态：HANDOFF_READY_ALL_TRAINING_STOPPED。P2/G0已完成；D007–D015为真实历史，D016按Owner决定切换到新4096组三scratch，旧1024单列保留。本次不commit/push，D013继续有效。
 
-## 输入与权限
+## 初始交付时的输入与权限（历史）
 
 本次已读取原planner同步方案、主线当前plan/决策/G0材料、m5 memory、P2合同/runner/evaluator、P_S2真实resolved配置与pull释放事件源码。m5于01:13–01:20 HKT核对的事实：P2三格child_returncode均0但18条natural lane未运行，legacy receipts仍RUNNING，C_S1仅DECLARED；新v28 plan/资产/执行链未落地。GPU0外部占用，GPU1–3可用情况只是快照。
 
@@ -22,14 +22,14 @@
 
 ## 证据定位
 
-- m5 P2：`logs_rl/a2_piper_pull_v7/p2_20260909/{T_S1,T_S2,C_S2}/runtime_result.json`、`model_step_010500.pt`；eval根为空。
+- m5 P2：`logs_rl/a2_piper_pull_v7/p2_20260909/{T_S1,T_S2,C_S2}/runtime_result.json`、`model_step_010500.pt`；当时eval根为空，现已由D008完成18/18封存。
 - m5 base resolved：`logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2/resolved_config.yaml`：1024、curriculum=false、driver=null、固定reset比例。
 - m5 `gr00t/rl/envs/door/door_open_a2_pull.py:5947–5964`：`_a2_pull_v6_release_event`按OR持久记录，`_a2_pull_v6_clean_release_event`为单步clean_event，释放后subphase为D。
 - 主线来源：参考目录manifest列出的asset/robot/rig/D17源码、camera/walk helper与G0材料。只复制明确输入，不包含训练checkpoint或凭据；现有A2_Base不替换。
 
 ## 验收与记录边界
 
-文件接收/内容一致仅为交付证据；源码接线须执行team另证，pull opening须三seed natural结果。主线G0、旧进程exit0、legacy PASS、checkpoint存在均不能提升为pull新baseline已通过。P2/pull G0/P-A都尚未执行，不能在本次修改中关闭这些TODO。
+文件接收/内容一致仅为交付证据；源码接线须执行team另证，pull opening须三seed natural结果。主线G0、旧进程exit0、legacy PASS、checkpoint存在均不能提升为pull新baseline已通过。初始交付时P2/pull G0/P-A尚未执行；此后真实完成记录见D007–D015，不以本历史说明重复运行。
 
 ## V28P-D007：执行接续、P2接线与PG7输入补齐
 
@@ -88,3 +88,99 @@ attempt3 train成功保存step5，G0累计10batch。随后eval两侧child/wrappe
 ## V28P-D015：pull G0完成，进入原三格PA
 
 修复后的eval64两侧actual completed/terminal/records均64，g0_eval_decision=G0_EVAL_WIRING_PASS；结合有效contact/PG7、实际133/138与256env×5batch完整checkpoint，PG1–PG8计划内有界接线完成。无晚阶段事件，G0结果不作opening判定。累计G0训练10≤32；旧256无效eval与所有失败保留。按Owner原授权直接启动PA_S1/2/3 scratch1024×6000，save250、四milestone双侧64，默认不warm、不P3–P5。
+
+PA三train attempt1均启动后，submit-watch发现仅该CLI没有smoke参数，ETA表达式错误访问Namespace.smoke；修复条件分支，只在train分支读取smoke。三watcher随后成功启动，未重启任何训练/改变训练合同。代码改动留待下一任务commit节点，不扩展测试。
+
+PA一次稳定启动证据：三格均已iteration29/1900544timesteps，1024env，ModelSaveCallback实际save_frequency250；无关TRL save_interval500不是保存消费者。吞吐约18.1s/iter、GPU各13.96GiB，估算首1500还约7.4h、6000约30h（尚未计并行eval）。GPU Foundation/GLFW初始化报文与成功G0相同，未据其措辞重启或判失败。按实际ETA等待真正watcher decision/失败/完成，不周期模型读log。
+
+## V28P-D016：Owner决定三seed各4096，从scratch重建
+
+2026-09-14 Owner明确m5 GPU0–3可用：PA_S1/2/3分别GPU1/2/3，每seed独立4096env、6000batches、save250；GPU0只承担本轮milestone评估队列，1500/3000/4500/6000双侧exact64逐lane执行。4096不是三格共享总数。side window暂用的D007已被占用，此决定改用D016，D007–D015保持原文。
+
+新组`pull_v28_rebuild_4096_20260914`，checkpoint=null、full、auto_load_latest=false，从step0 scratch；所有实际num_envs路径同步4096。PPO仍H64、5epochs、4minibatches、lr1e-4，其余reward/asset/reset/事件/门不变。新预算三格各6000，共18000；旧1024的checkpoint、日志、completed/partial batches及GPU时长独立封存，不能进入新分母。
+
+P2 18/18、contact_a3、PG7、G0累计10/32与PULL_G0_PASS直接复用，不重复。先记录再取消本轮旧三个train、三个watcher与旧辅助等待；保留所有原始输出。此次m5 GPU0实测有无关ForceControl-lightnav进程，队列等卡空闲，不终止无关任务、不把未来eval排队时间写成已测ETA。
+
+首格正式前几个batch验证实际4096、显存和吞吐，再更新真实ETA；不另跑smoke/规模扫描/全面审计/测试，不回退1024。长任务独立tmux与既有supervisor/持久wait，进程完成和实验结论分开。D013的已定位工程故障自主修复权限保持；本次不新增commit/push，覆盖旧节点commit授权。详细进度与路径见`../pull_v28/evidence/pull_v28_rebuild_4096_20260914/TRANSITION.json`。
+
+2026-09-14 19:17 HKT执行交接：旧PA1024最终1284/1280/1296，共3860 completed batches、252,968,960 transitions，编号checkpoint均1250；约22.36 GPU小时（supervisor取消前，退出尾段另记）。六个旧train/watch及辅助wait均停止，所有原始输出保留。4096 PA_S1 attempt1仅初始化约38秒，按Owner改为prompt交接的最新指令取消；0 completed batch/无checkpoint，S2/S3和评估队列未启动。因此没有4096吞吐或真实训练ETA。代码/配置已更新，GPU与写入leases已释放；下一步由m5 AI接手保留已取消初始化目录、使用新attempt从step0启动。本次未commit/push，未修改主线运行。
+
+### V28P-D016 execution continuation — 2026-09-14 19:29 HKT
+
+Owner explicitly authorized the receiving Main to execute the 4096 rebuild through opening closure, without commit/push. Current receipts and GPU/process inventory confirmed no later formal run. Cancelled PA_S1 attempt1 initialization (0 completed batches, no checkpoint) was moved intact to `logs_rl/a2_piper_pull_v28/pull_v28_rebuild_4096_20260914/cancelled/PA_S1_attempt1_initialization_20260914`; original receipt remains unchanged. Archive evidence: `scriptsFORhuman/pull_v28/evidence/pull_v28_rebuild_4096_20260914/CANCELLED_ATTEMPT1_ARCHIVE.json`. PA_S1 attempt2 launched on GPU1 at 11:29:32 UTC with a 3600-second startup decision estimate. S2/S3 and GPU0 queue await first formal S1 batch measurement. GPU0 ForceControl-lightnav PID 136971 remains untouched. P2/G0 and old1024 outputs are reused/preserved as declared; no rerun or old checkpoint load.
+
+### V28P-D016 execution evidence — 2026-09-14 19:39 HKT
+
+PA_S1 attempt2 terminated PROCESS_FAILED/exit1 during initialization, before any formal batch/checkpoint. The actual 4096 bilateral scene and frozen training fields were confirmed, but pull-v6 staged-reset buffer allocation requested 29.66 GiB on a 23.56 GiB GPU (13.33 GiB free). This is a real CUDA OOM, not the known headless warnings. No measured ETA is available. S2/S3 and GPU0 queue remain unstarted. Evidence: `scriptsFORhuman/pull_v28/evidence/pull_v28_rebuild_4096_20260914/PA_S1_STARTUP_MEASUREMENT.json`. Main is tracing the specific snapshot allocation for a contract-preserving engineering repair under D013; no reset capacity, env count, reward, PPO, or evaluation threshold has been changed.
+
+### V28P-D016 / D013 engineering repair decision — 2026-09-14 19:42 HKT
+
+The failed allocation is exactly the valid A2Base observation-history snapshot, shape `(6,200,4096,30,54)` float32: 31,850,496,000 bytes (29.663 GiB). The env axis and 200 samples cannot be removed without changing reset semantics. Main authorizes explicit CPU storage for this single staged snapshot tensor, with matching index transfers on snapshot and restoration back to the original GPU before the existing load callback. No allocation fallback, reduced precision, lower sample capacity, altered sampling/RNG, reward, reset distribution, env count or PPO change is permitted. Host RAM is 251 GiB with about240 GiB available; three history caches total88.99 GiB. This is a storage placement repair within D013, not a scientific-contract change. Actual throughput still must be measured after repair. Failed attempt2 output is preserved under the new group `failed/PA_S1_attempt2_initialization_oom_20260914`, with `FAILED_ATTEMPT2_ARCHIVE.json`; no checkpoint and zero consumed formal batches. Next fresh training/queue receipt generation is attempt3 to preserve failed receipt immutability and keep queue train references consistent. No commit/push.
+
+### V28P-D016 / D013 execution — 2026-09-14 19:44 HKT
+
+Explicit CPU history snapshot storage implemented in the pull checkout only. Live A2Base history stays on the original GPU. Relevant snapshot/store/restore and bank/export consumers checked once, with one AST/diff check and no test suite/GPU smoke. PA_S1 attempt3 launched in named tmux on GPU1 at11:43:41UTC; first formal batches will measure resource fit and ETA. Attempt1 and2 archives/receipts remain immutable. S2/S3 and GPU0 queue still await S1 measurement.
+
+### V28P-D016 execution correction and budget gate — 2026-09-14 19:57 HKT
+
+Attempt3 passed4096 initialization after explicit CPU history storage and completed exactly one PPO batch:262144 transitions, collection35.912s, learning3.395s, total39.31s. It then failed in a subsequent partial batch at critic recurrent LSTM forward, requesting880MiB with788.88MiB free on a23.56GiB GPU. The initial agent summary incorrectly described zero completed PPO batches; Main checked the trainer log position and corrected the measurement to1 completed plus a subsequent partial batch. No checkpoint exists (save250). Raw output moved intact to `logs_rl/a2_piper_pull_v28/pull_v28_rebuild_4096_20260914/failed/PA_S1_attempt3_ppo_oom_20260914`; archive receipt and corrected measurement remain in group evidence.
+
+D016 permits only18000 new-group training batches. Without a checkpoint, another three fresh6000 runs would bring cumulative completed consumption to at least18001, plus the recorded partial attempt. Thus further training now requires an explicit Owner budget decision; this is not the old mechanical retry-limit gate. Main continues only bounded diagnosis/repair preparation and documentation, with no new train/eval launch. S2/S3 and GPU0 queue have never started. One successful batch does not establish a sustainable4096 ETA. Opening endpoint remains missing/unassessed, not0/3 or NOT_ESTABLISHED. No commit/push.
+
+## V28P-D017：Owner撤回4096，先验证2048，失败则1024
+
+2026-09-14 Owner最新明确指令：“撤回4096env的决定，改为2048，再不行回到1024。先试2048，如果ok的话就将plan中的约定改为2048，否则恢复1024”。此指令取代D016的固定4096及不得降低规模限制，授权本次2048正式启动验证与必要的1024后备，不再等待相同的规模/重启批准。先在独立新组 `pull_v28_rebuild_2048_20260914` 启动PA_S1 scratch正式训练，验证前5个完整PPO batches的实际环境数、显存与耗时。若成功，将2048写入当前plan固定合同并启动S2/S3及GPU0队列；若因实际训练资源问题仍失败，封存本次输出/消耗，按已授权1024新组scratch推进。不是另开smoke或扫描；通过的首格前几batch属于该格6000。
+
+其余合同保持：三原seed各6000/save250、H64、5epochs、4minibatches、lr1e-4、null/full/auto_load_latest=false；GPU1/2/3分配与GPU0串行24lane自然exact64不变，GPU0无关任务不终止。保留已实现的显式CPU pull状态快照存储（live状态仍GPU，shape/dtype/200容量/采样语义不变），不改reward/asset/reset/events/ready/Stage4或opening门。P2/G0复用，不commit/push。
+
+4096组已因实际异常结束：attempt1取消初始化0batch；attempt2初始化OOM0batch；attempt3完成1batch/262144 transitions后在随后partial batch PPO LSTM OOM，无checkpoint。全部原输出/receipt保留，S2/S3及评估队列均未启动。该1batch及partial作为已撤回4096方案的实际消耗单列，不能进入新规模三seed终点分母，也不能隐匿为0。最终通过规模的正式目标仍为3×6000=18000；Owner此次明确授权的尺度试运行及必要后备按实际另列诊断消耗，不凭此扩展warm/额外扫描/无界重试。旧1024的3860也独立保留。
+
+### V28P-D017 execution — 2026-09-14 20:01 HKT
+
+2048 PA_S1 attempt1 launched in independent named tmux onGPU1 at12:01:51UTC, new-group canonical SSD output, null scratch6000/save250. The four env count paths are materialized from2048. No2048 throughput claim yet; runtime worker waits quietly for5 complete PPO batches/actual failure. PA_S2/S3 andGPU0 queue remain gated on this scale check.
+
+### V28P-D017 accepted scale and dispatch — 2026-09-14 20:08 HKT
+
+2048 PA_S1 passed5 complete PPO batches with131072 transitions/batch,655360 cumulative. Batch times29.71/21.07/20.55/20.67/21.18s, mean22.636s; collection27.694/19.271/18.784/18.928/19.191s and learning2.016/1.798/1.761/1.744/1.992s. GPU1 memory11948MiB, host train RSS24971.6MiB. Atstep5 estimated1500 remaining33840.82s and6000 remaining135702.82s; this establishes startup capacity, not a guarantee of future stability. Evidence: new-groupPA_S1_STARTUP_MEASUREMENT.json.
+
+PerOwner conditional authorization, the active plan is now2048. PA_S1 continues the same attempt1; PA_S2/GPU2 andPA_S3/GPU3 attempt1 plusGPU0 eval queue attempt1 submitted at12:08:22–23UTC. All remain scratch6000/save250 with unchangedH64/5epochs/4minibatches/lr1e-4. Queue keeps24 exact64 lanes and waits for the unrelatedGPU0 process. No restart ofS1, no1024 fallback needed, no commit/push. Receipts are in new-group ACTIVE_RUN.json.
+
+### V28P-D017 three-seed startup confirmed — 2026-09-14 20:18 HKT
+
+All three2048train attempt1 andGPU0queue attempt1 are RUNNING. S1 observediteration30, S2 completed5, S3 completed6; all actual2048/seed1,2,3/null scratch/6000/save250/H64/5epochs/4minibatches/lr1e-4. Startup means22.636/22.974/22.584s; trainRSS about24.97/25.00/24.97GiB asMiB evidence recorded. SnapshotGPU1/2/3 memory8122/9837/9155MiB; usage varies by rollout/PPO phase. FirstM1500 absolute wait2026-09-14T21:43:28.952878Z based on slowest observedS2, with terminal failure/cancellation early return; GPU0queue runtime remains serial and may await external availability. Evidence PA_STARTUP_AGGREGATE.json; ACTIVE_RUN records allreceipts.
+
+### V28P-D017 runtime hardware gate — 2026-09-15 05:44 HKT
+
+At the measuredM1500 decision time, Main observedS1 stopped at1050 completedbatches whileS2/S3 continued1432/1444. S1log last write2026-09-14T19:04:21Z ends withCUDA unspecified launch failure andIsaac/PhysX exit warnings. `nvidia-smi -i1` returns6, `No devices were found` and `0000:82:00.0: Unknown Error`; lspci still enumeratesRTX3090 at82:00.0. This establishes device/driver unavailability, not the precise hardware cause and not a2048OOM. Ordinarydmesg read denied; no privilege escalation/reset/reboot performed. S1supervisor stayedRUNNING because the failingIsaac process did not finish exiting; the persistentwait watchedreceipt terminal status and did not detect this early. This monitoring limitation is explicit, not hidden.
+
+2048 remains accepted andS2/S3/GPU0queue continue. Do not downgrade healthyseeds or restartS1 on the unavailablecard. Owner hardware gate applies only toGPU1 recovery; preserveS1last/numberedcheckpoints and rawfailure. No mainline or unrelatedGPU0 process touched, no commit/push.
+
+### V28P-D017 scoped pause and preserved resume point — 2026-09-15 05:49 HKT
+
+Main loaded the explicit2048 PA_S1/last.pt onCPU: global_step1050, fullpolicy/value/optimizer/lr_scheduler/env/trainerstate;4950 batches remain to6000. A worker initially used a broadsearch and returned historical1024step1250; evidence was corrected using the exact currentgroup canonicalpath. No historicalcheckpoint is used for currentS1. Issued scoped supervisorcancel toS1 only; its stuckIsaacPID706323 was thenSIGKILLed afterSIGTERM did not finish. GPU1device reset/reboot not attempted. S2/S3 andGPU0queue continue. The plan remains2048; hardware recovery is the onlyOwner dependency forS1. Readout:2048_SCALE_AND_GPU1_HANDOFF_20260915.md innewgroup evidence.
+
+## V28P-D018：m5修复后恢复同组2048完整checkpoint
+
+2026-09-15 Owner明确“继续，现在m5机器故障修复了”。Main核对m5 uptime约16min，GPU0–3可访问且空闲，无compute进程/tmux；不存在后来正式训练。S2/S3实际在前次GPU故障期也报CUDA unknown error，日志停在1440/1452，进程直到维修时退出；前次“仍继续”只对应当时检查瞬间，此处更新事实。
+
+当前明确2048group的last.pt均CPU加载验证完整：S1step1050、S2step1400、S3step1450，包含policy/value/optimizer/lr_scheduler/env_state/trainerstate，均global目标6000。恢复剩4950/4600/4550，共14100batch；故障前完整3942中S2/S3分别40/2未保存，续训须重放42，累计实际completed将18042（既有partial另列），不是额外科学扫描。Owner此次修复后继续授权按同lineage恢复；不因42个必要checkpoint重放再次请求相同批准。正式原三seed终点仍各6000，不恢复旧1024，不scratch重开、不降规模、不改reward/reset/PPO/门。
+
+每格旧console/config/runtime等完整保存到attempt_history/attempt1，config.yaml原件保留供新resumeconfig生成；last1050/1400/1450分别复制为固定resume_input_step文件，防止后续last覆盖输入证据。旧evalqueue及S1四个MISSING决策移到eval attempt_history/attempt1；此前没有实际lane执行，当前使用attempt2新receipt重排24lane。新恢复入口只改变checkpoint/full/autoload和独立日志配置文件，canonical原cell及已编号checkpoint保留。证据REBOOT_RESUME_TRANSITION_20260915.json；不commit/push、不碰主线和无关任务。
+
+### V28P-D018 dispatch — 2026-09-15
+
+Three actualsubmit-resume commands succeeded, each producednamedtmux train_pa_s{1,2,3}_attempt2 receipt with1050/1400/1450 explicitimmutablecheckpointlineage. GPU0eval_queue attempt2 also launched. Before this success, firstCLI invocation failed beforeprepare because the delegatedfile had not actually reachedm5; noGPU job orbatch was started by thatfailedCLI. Main observedmissingaction, workercorrectedactualupload, thencommandsabove succeeded. This deliveryissue didnotchange scientificcontract orconsume trainingbudget. CurrentruntimeACTIVE_RUN points toattempt2receipts; startupverification remainspending.
+
+## V28P-D019：停止m5 pull，commit/push并迁移GoogleDrive
+
+2026-09-15 Owner明确暂停m5的pull分支执行，授权当前code commit后push，有效未追踪checkpoint/log打包上传GoogleDrive，并交付新机器AI的clone/pull、下载恢复、resume脚本。这覆盖旧不commit/push指令；m5本轮不再启动任何训练/评估。
+
+停止核对发现D018三trainattempt2在resume_config错误的全文件字符串唯一性判断处立即失败（auto_load_latest:false也出现在嵌套配置），未构造环境或新增batch；queue随后只输出MISSING决策，未执行实际eval。现已终止残余只读startupwait，GPU无compute、无本任务tmux。不能把submit成功称为已恢复训练。当前恢复点不变1050/1400/1450；3942历史完整batch、3900checkpoint持久步数，恢复剩14100、必要重放42，既有partial单列。
+
+迁移交付会用YAML语义解析修复该工程问题，把python/repo路径改为新机器可用路径，保留2048/6000/save250/H64/5epochs/4minibatches/lr1e-4以及pull物理/评估合同。当前恢复包与历史raw包独立，归档解引用SSDsymlink以可搬迁相对路径保留数据，使用文件大小/数量清单，不生成hash/SHA。旧MISSING决策保持历史，由新attempt3补24自然exact64lane；P2/G0不重跑。Opening尚未闭环，停止原因是Owner迁移决定。
+
+### V28P-D019 migration preparation verified — 2026-09-15
+
+当前恢复包555965077bytes/170members、历史包4871796209bytes/1092members均已生成，保留原始输出，tar目录读取成功。实际在独立SSD checkout完成core解压、旧路径重写、三格配置确认、旧eval归档与四条attempt3命令准备；再由修复后的pipeline在CPU生成三份resume配置，1050/1400/1450、2048/full/6000/save250均保持，GPU启动0。证据MIGRATION_PREPARE_VERIFICATION_20260915.json。新机器IsaacLab/GPU仍需按说明核对，不能将本次CPU准备等同训练成功。
+
+代码迁移包含本任务当前P2/v28配置、pull reward实现、CPU staged快照存储、可迁移pipeline、所需v1.4 run_supervisor以及迁移脚本/新AI提示。无关agent-system/Codex配置改动留在本地不混入本任务提交。Drive最终文件ID和精确Git提交见交付目录migration_manifest.json及migration_receipt.json。

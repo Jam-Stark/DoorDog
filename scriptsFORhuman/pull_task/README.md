@@ -2,7 +2,17 @@
 
 拉门任务（长期 TODO 表 C 第 4 项：finger-limited 的 force-feasibility 第二实验场）的全部规划文档集中于此。创建：2026-08-03 HKT。
 
-## 阅读顺序（worker 从这里开始）
+## 当前pull v28入口（2026-09-14）
+
+[4096重建team prompt](a2_piper_pull_v28_4096_team_restart_prompt_20260914.md)，对应V28P-D016。P2/G0已完成，旧1024三格已停止；新4096 S1初始化已取消、S2/S3和队列未启动。当前只交接，实际训练由m5 AI执行；不commit/push，保留旧证据和D013。
+
+## 历史阶段入口（2026-09-09）
+
+- 当前pull policy后继：[v7阶段方案 2026-09-09 修订版](a2_piper_pull_v7_stage_plan_20260909.md)。P0/P1诊断已完成（见[0908版](a2_piper_pull_v7_stage_plan_20260908.md)及`../pull_v7/`），阻塞定位为臂动作积分器零梯度平台；Owner否决改共享backbone，P2处理变量冻结为D2（pull侧臂目标越界惩罚reward），scale与四格预算待Owner确认，确认前不改源码、不启动训练。
+- [v26.8 migration plan](a2_piper_pull_v26_8_backbone_migration_plan_20260905.md)对应迁移已关闭；结果见[20260908 closure](../pull_v26_8/a2_piper_pull_v26_8_backbone_closure_20260908.md)。
+- 下列v0 worker分工、GPU和预算说明仅属历史合同，不是当前执行授权。当前任务以Owner指令及v7方案为准。
+
+## 历史v0阅读顺序
 
 1. **`a2_piper_pull_v0_worker_execution_split_20260803.md`** — **执行入口，冲突时以此为准**。包含：
    - §2 对云端方案的三条 binding amendments（P1 push 侧 known-good anchor 硬门槛；P1 fixture 质量 = 120 kg 按 resolved config；freeze-guard 前置到 build order 第 3 步）；

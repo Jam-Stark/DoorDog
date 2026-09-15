@@ -1,0 +1,49 @@
+{
+  "schema": "pull_v28_original1024_recovery_budget_v1",
+  "status": "PREPARED_NOT_EXECUTED_PENDING_CONTRACT_CONTEXT",
+  "original_denominator": [
+    "PA_S1",
+    "PA_S2",
+    "PA_S3"
+  ],
+  "cells": {
+    "PA_S1": {
+      "completed_batches_before_cancel": 1284,
+      "full_checkpoint_global_step": 1250,
+      "unpersisted_completed_batches": 34,
+      "remaining_to6000": 4750,
+      "checkpoint": "logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S1/last.pt"
+    },
+    "PA_S2": {
+      "completed_batches_before_cancel": 1280,
+      "full_checkpoint_global_step": 1250,
+      "unpersisted_completed_batches": 30,
+      "remaining_to6000": 4750,
+      "checkpoint": "logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S2/last.pt"
+    },
+    "PA_S3": {
+      "completed_batches_before_cancel": 1296,
+      "full_checkpoint_global_step": 1250,
+      "unpersisted_completed_batches": 46,
+      "remaining_to6000": 4750,
+      "checkpoint": "logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S3/last.pt"
+    }
+  },
+  "checkpoint_contents": [
+    "policy_state_dict",
+    "value_state_dict",
+    "optimizer_state_dict",
+    "lr_scheduler_state_dict",
+    "env_state_dict",
+    "state",
+    "args"
+  ],
+  "pa_batches_already_executed": 3860,
+  "pa_remaining_after_restore": 14250,
+  "pa_projected_total_executed": 18110,
+  "duplicate_unpersisted_work": 110,
+  "pa_budget_ceiling": 18500,
+  "g0_completed_batches_separate": 10,
+  "warm": "NOT_RUN",
+  "limits": "Original1024contract only; do not infer4096authorization fromcancelreason. 1250 onward statecannotberecovered. No GPUrestart."
+}

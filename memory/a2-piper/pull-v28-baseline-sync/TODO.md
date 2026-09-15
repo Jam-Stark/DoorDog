@@ -1,7 +1,6 @@
 # TODO
 
-- G0已按计划有界PASS，原P2/contact/PG7不再重跑；累计G0训练10/32。
-- 启动并完成PA_S1/2/3 scratch1024×6000，GPU1/2/3、save250；1500/3000/4500/6000各双侧natural64，保持原三seed终点分母。
-- 一次启动检查后用真实吞吐ETA持久等实际事件；不周期模型读日志。工程配置/保存/调度故障按Owner D013自主解决且保留证据，真实G0/合同/预算/硬件门仍须Owner。
-- endpoint与历史checkpoint分开；无E5 margin=NOT_OBSERVED；相机代理/无事件不得提升能力。最终完成closure/decision/memory/resource及任务本地commit，不push。
-- 默认无warm/P3–P5/Teacher/硬件；保留旧失败、D2和无关工作树改动。
+- m5 Owner暂停：不得恢复本机pull训练/评估。当前任务只完成code commit/push、有效未追踪恢复文件GoogleDrive上传、migration manifest/脚本/新机器AI说明。
+- 新机器clone/pull指定分支，准备匹配IsaacLab环境，下载当前恢复包，按manifest还原相对repo目录和配置路径；无需先下载历史包即可resume。
+- 明确新机器--resume后：2048三seed从1050/1400/1450 fullcheckpoint到6000，新attempt3；GPU1/2/3训练、GPU0串行补24条exact64自然lane。旧MISSING归档，P2/G0不重跑。
+- 保留42个必要checkpoint重放和所有历史/partial消耗，不填0/3。原三seed6000后完成opening closure，无warm/Teacher/P3–P5。

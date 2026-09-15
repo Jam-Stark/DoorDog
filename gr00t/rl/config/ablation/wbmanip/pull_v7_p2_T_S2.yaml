@@ -1,0 +1,11 @@
+# @package _global_
+# Pull-v7 P2 treatment cell T_S2: the P_S2 backbone baseline plus exactly one
+# new reward scale (D2).  Everything else, including seed and staged-reset
+# ratios, stays at the step9000 source values.
+defaults:
+  - /ablation/wbmanip/pull_v26_8_backbone_P_S2
+  - _self_
+
+rewards:
+  reward_scales:
+    a2_pull_v7_arm_target_overshoot_penalty: -1.0

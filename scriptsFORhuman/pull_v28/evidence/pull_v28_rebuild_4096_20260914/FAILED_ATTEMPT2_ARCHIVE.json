@@ -1,0 +1,12 @@
+{
+  "decision": "V28P-D016 with D013 engineering repair",
+  "archived_at": "2026-09-14T11:42:44.299469+00:00",
+  "original_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_4096_20260914/PA_S1",
+  "archive_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_4096_20260914/failed/PA_S1_attempt2_initialization_oom_20260914",
+  "resolved_archive_path": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_rebuild_4096_20260914/train/failed/PA_S1_attempt2_initialization_oom_20260914",
+  "completed_batches": 0,
+  "checkpoint": null,
+  "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/runtime/runs/pull_v28_rebuild_4096_20260914_train_pa_s1_attempt2/RUN_RECEIPT.json",
+  "next_training_attempt": 3,
+  "reason": "29.663GiB A2Base history snapshot allocation on GPU; CPU storage repair pending"
+}

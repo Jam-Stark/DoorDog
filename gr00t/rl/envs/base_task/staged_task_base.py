@@ -549,6 +549,7 @@ class StagedTaskBase(LeggedRobotBase):
         store_callback: Callable,
         load_callback: Callable,
         dtype: torch.dtype = torch.float,
+        storage_device: str | torch.device | None = None,
     ):
         """
         Register a buffer to track.
@@ -563,7 +564,7 @@ class StagedTaskBase(LeggedRobotBase):
                 self.num_stages,
                 self.staged_reset_max_samples_per_stage,
                 *shape,
-                device=self.device,
+                device=self.device if storage_device is None else storage_device,
                 dtype=dtype,
                 requires_grad=False,
             ),
@@ -581,8 +582,12 @@ class StagedTaskBase(LeggedRobotBase):
         )
         for name, state_case in self.staged_reset_buf.items():
             if state_case["type"] == "buffer":
-                state_case["data"][advanced_stages, sample_idx_to_overwrite, advance_env_ids] = (
-                    state_case["store_callback"](advance_env_ids).clone()
+                data = state_case["data"]
+                storage_indices = tuple(index.to(data.device) for index in (
+                    advanced_stages, sample_idx_to_overwrite, advance_env_ids
+                ))
+                data[storage_indices] = (
+                    state_case["store_callback"](advance_env_ids).clone().to(data.device)
                 )
             elif state_case["type"] == "rigid_object" or state_case["type"] == "articulation":
                 state_case["root_state"][
@@ -699,11 +704,13 @@ class StagedTaskBase(LeggedRobotBase):
                             torch.arange(obj.num_joints, device=self.device, dtype=torch.long),
                         )
                 elif state_case["type"] == "buffer":
+                    data = state_case["data"]
+                    storage_indices = tuple(index.to(data.device) for index in (
+                        selected_stages, selected_sample_indices, selected_env_ids
+                    ))
                     state_case["load_callback"](
                         selected_env_ids,
-                        state_case["data"][
-                            selected_stages, selected_sample_indices, selected_env_ids
-                        ].clone(),
+                        data[storage_indices].clone().to(self.device),
                     )
 
             if root_states:

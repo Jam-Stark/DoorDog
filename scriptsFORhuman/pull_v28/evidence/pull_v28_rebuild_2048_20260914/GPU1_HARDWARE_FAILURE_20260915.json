@@ -1,0 +1,151 @@
+{
+  "kind": "GPU1_HARDWARE_FAILURE",
+  "captured_at_utc": "2026-09-14T21:45:27.797960+00:00",
+  "gpu1_query": {
+    "argv": [
+      "nvidia-smi",
+      "-i",
+      "1"
+    ],
+    "returncode": 6,
+    "stdout": "No devices were found\n",
+    "stderr": "Unable to determine the device handle for GPU1: 0000:82:00.0: Unknown Error\n"
+  },
+  "gpu_full_query": {
+    "argv": [
+      "nvidia-smi",
+      "--query-gpu=index,pci.bus_id,name,temperature.gpu,memory.total,memory.used",
+      "--format=csv,noheader"
+    ],
+    "returncode": 0,
+    "stdout": "0, 00000000:81:00.0, NVIDIA GeForce RTX 3090, 37, 24576 MiB, 10410 MiB\n2, 00000000:C1:00.0, NVIDIA GeForce RTX 3090, 55, 24576 MiB, 9426 MiB\n3, 00000000:C2:00.0, NVIDIA GeForce RTX 3090, 57, 24576 MiB, 8093 MiB\n",
+    "stderr": "Unable to determine the device handle for GPU1: 0000:82:00.0: Unknown Error\n"
+  },
+  "process_tree": {
+    "source": "ps -eo pid,ppid,stat,etime,args; descendants of explicitS1supervisor706273 only",
+    "processes": [
+      {
+        "pid": 706273,
+        "ppid": 2210614,
+        "state": "Ss+",
+        "elapsed": "09:45:00",
+        "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/scripts/run_supervisor.py _run --receipt /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/runtime/runs/pull_v28_rebuild_2048_20260914_train_pa_s1_attempt1/RUN_RECEIPT.json"
+      },
+      {
+        "pid": 706276,
+        "ppid": 706273,
+        "state": "Ss",
+        "elapsed": "09:45:00",
+        "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v28/pipeline.py train --cell PA_S1 --train-root /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914 --eval-root /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914"
+      },
+      {
+        "pid": 706321,
+        "ppid": 706276,
+        "state": "S",
+        "elapsed": "09:44:58",
+        "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v26_8/runner.py --output /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1 --gpu 1 --required model_step_006000.pt -- env CUDA_VISIBLE_DEVICES=1 CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE=cuda:0 WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=8 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl --config-dir /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1 --config-name config"
+      },
+      {
+        "pid": 706322,
+        "ppid": 706321,
+        "state": "Sl",
+        "elapsed": "09:44:58",
+        "command": "nvidia-smi --id=1 --query-gpu=memory.used,memory.total --format=csv,noheader,nounits --loop-ms=200"
+      },
+      {
+        "pid": 706323,
+        "ppid": 706321,
+        "state": "Rl",
+        "elapsed": "09:44:58",
+        "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl --config-dir /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1 --config-name config"
+      }
+    ]
+  },
+  "isaac_log_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/isaac.log",
+  "isaac_log_tail": "\u2502 Mean episode rew_a2_pull_v6_pivot_excess_penalty: 0.0000                     \u2502\n\u2502 Mean episode rew_a2_pull_v6_hinge_momentum: 0.0000                           \u2502\n\u2502 Mean episode rew_a2_pull_v6_clean_release_quality: 0.0000                    \u2502\n\u2502 Mean episode rew_a2_pull_v6_premature_release_penalty: 0.0000                \u2502\n\u2502 Mean episode rew_a2_pull_v6_post_release_persistence: 0.0000                 \u2502\n\u2502 Mean episode rew_a2_pull_v6_handoff_side_progress: 0.0000                    \u2502\n\u2502 Mean episode rew_a2_pull_v6_handoff_hinge_momentum: 0.0000                   \u2502\n\u2502 Mean episode rew_a2_pull_v6_handoff_hinge_angle_deficit: 0.0000              \u2502\n\u2502 Mean episode rew_a2_pull_v6_post_release_arm_default_target_quality: 0.0000  \u2502\n\u2502 Mean episode rew_a2_pull_v6_post_release_open_command_quality: 0.0000        \u2502\n\u2502 Mean episode rew_a2_pull_v6_post_release_recontact_penalty: 0.0000           \u2502\n\u2502 Mean episode rew_a2_pull_v6_release_open_command_quality: 0.0000             \u2502\n\u2502 Mean episode rew_a2_pull_v6_post_release_lateral_command_alignment: 0.0000   \u2502\n\u2502 Mean episode rew_a2_pull_v6_post_release_arm_tuck_progress: 0.0000           \u2502\n\u2502 Mean episode rew_penalty_a2_wrist_motion_l2: -0.1421                         \u2502\n\u2502 Mean episode rew_penalty_a2_wrist_tower_contact: 0.0000                      \u2502\n\u2502 ---------------------------------------------------------------------------- \u2502\n\u2502 ----                                                                         \u2502\n\u2502                     Total episodes: 2150400                                  \u2502\n\u2502                    Total timesteps: 137625600                                \u2502\n\u2502                     Iteration time: 23.48s                                   \u2502\n\u2502                         Total time: 24133.78s                                \u2502\n\u2502                                ETA: 113773.5s                                \u2502\n\u2502 Logging Directory:                                                           \u2502\n\u2502 /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/ \u2502\n\u2502 pull_v28_rebuild_2048_20260914/PA_S1                                         \u2502\n\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256fSaved model checkpoint to /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/last.pt\nError executing job with overrides: []\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/train_agent_trl.py\", line 612, in <module>\n    main()\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/main.py\", line 94, in decorated_main\n    _run_hydra(\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py\", line 394, in _run_hydra\n    _run_app(\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py\", line 457, in _run_app\n    run_and_report(\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py\", line 223, in run_and_report\n    raise ex\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py\", line 220, in run_and_report\n    return func()\n           ^^^^^^\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/utils.py\", line 458, in <lambda>\n    lambda: hydra.run(\n            ^^^^^^^^^^\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/_internal/hydra.py\", line 132, in run\n    _ = ret.return_value\n        ^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/core/utils.py\", line 260, in return_value\n    raise self._return_value\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/hydra/core/utils.py\", line 186, in run_job\n    ret.return_value = task_function(task_cfg)\n                       ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/train_agent_trl.py\", line 605, in main\n    trainer.train()\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py\", line 4769, in train\n    obs_dict = self._rollout_step(model, obs_dict)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py\", line 4037, in _rollout_step\n    obs_dict, rewards, dones, infos = self.env.step(actor_state)\n                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_pull.py\", line 715, in step\n    return super().step(actor_state)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/base_task/delta_action_base.py\", line 142, in step\n    return super().step(actor_state)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/base_task/warped_action_base.py\", line 35, in step\n    return super().step(actor_state)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/base_task/a2_base.py\", line 477, in step\n    return self._step_a2_base(actor_state)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/base_task/a2_base.py\", line 625, in _step_a2_base\n    self._post_physics_step()\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/legged_base_task/legged_robot_base.py\", line 1236, in _post_physics_step\n    self._compute_reward()\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/legged_base_task/legged_robot_base.py\", line 1706, in _compute_reward\n    self._after_reward_components(raw_components, scaled_components)\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/envs/door/door_open_a2_pull.py\", line 6902, in _after_reward_components\n    or raw_value.device != torch.device(self.device)\n       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: CUDA error: unspecified launch failure\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1\nCompile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.\n\n2026-09-14T19:04:21Z [25,341,864ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 563\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 566\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 569\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 572\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 575\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 578\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 581\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 584\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 587\n2026-09-14T19:04:21Z [25,341,887ms] [Warning] [omni.physx.plugin] USD stage detach not called, holding a loose ptr to a stage!\n2026-09-14T19:04:21Z [25,341,968ms] [Warning] [omni.physx.plugin] PhysX warning: /builds/omniverse/physics/physx/source/gpucommon/src/PxgCudaMemoryAllocator.cpp, FILE /builds/omniverse/physics/physx/source/gpucommon/src/PxgCudaMemoryAllocator.cpp, LINE 68",
+  "recent_log_paths": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/isaac.log"
+  ],
+  "checkpoints": [
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/model_step_000750.pt",
+      "size_bytes": 29759299
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/model_step_000250.pt",
+      "size_bytes": 29759299
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/last.pt",
+      "size_bytes": 29749528
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/model_step_000500.pt",
+      "size_bytes": 29759299
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/model_step_001000.pt",
+      "size_bytes": 29759299
+    }
+  ],
+  "last_checkpoint_cpu_metadata": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/last.pt",
+    "resolved_path": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_rebuild_2048_20260914/train/PA_S1/last.pt",
+    "load_device": "cpu",
+    "keys": [
+      "policy_state_dict",
+      "value_state_dict",
+      "optimizer_state_dict",
+      "lr_scheduler_state_dict",
+      "state",
+      "args",
+      "env_state_dict"
+    ],
+    "global_step": 1050,
+    "epoch": 1050.0,
+    "episode": 2150400,
+    "max_steps": 6000
+  },
+  "correction": "Initial worker accidentally selected historical1024 log/checkpoint via broad search. Main replaced all log/checkpoint facts below with explicit current2048 canonical paths; historical1250 metadata is not currentS1.",
+  "completed_batches": 1050,
+  "subsequent_partial_batch": true,
+  "remaining_batches_to6000_from_last": 4950,
+  "current_s1_process_tree": [
+    {
+      "pid": 706273,
+      "ppid": 2210614,
+      "state": "Ss+",
+      "elapsed": "09:45:00",
+      "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/scripts/run_supervisor.py _run --receipt /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/runtime/runs/pull_v28_rebuild_2048_20260914_train_pa_s1_attempt1/RUN_RECEIPT.json"
+    },
+    {
+      "pid": 706276,
+      "ppid": 706273,
+      "state": "Ss",
+      "elapsed": "09:45:00",
+      "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v28/pipeline.py train --cell PA_S1 --train-root /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914 --eval-root /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914"
+    },
+    {
+      "pid": 706321,
+      "ppid": 706276,
+      "state": "S",
+      "elapsed": "09:44:58",
+      "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v26_8/runner.py --output /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1 --gpu 1 --required model_step_006000.pt -- env CUDA_VISIBLE_DEVICES=1 CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE=cuda:0 WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=8 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 /home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl --config-dir /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1 --config-name config"
+    },
+    {
+      "pid": 706322,
+      "ppid": 706321,
+      "state": "Sl",
+      "elapsed": "09:44:58",
+      "command": "nvidia-smi --id=1 --query-gpu=memory.used,memory.total --format=csv,noheader,nounits --loop-ms=200"
+    },
+    {
+      "pid": 706323,
+      "ppid": 706321,
+      "state": "Rl",
+      "elapsed": "09:44:58",
+      "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B -m gr00t.rl.train_agent_trl --config-dir /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1 --config-name config"
+    }
+  ],
+  "corrected_at_utc": "2026-09-14T21:46:52.083107+00:00"
+}

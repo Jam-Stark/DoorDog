@@ -1,0 +1,121 @@
+{
+  "decision": "V28P-D018",
+  "captured_at": "2026-09-15T07:13:51.857760+00:00",
+  "owner_instruction": "m5 repaired; continue",
+  "group": "pull_v28_rebuild_2048_20260914",
+  "previous_completed_batches": 3942,
+  "checkpoint_total_step": 3900,
+  "remaining_to6000": 14100,
+  "replayed_completed_batches": 42,
+  "resulting_completed_consumption_if_no_more_interruption": 18042,
+  "partial_batches": "priorfailedpartials separatelyretained",
+  "cells": {
+    "PA_S1": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/last.pt",
+      "resolved_checkpoint": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_rebuild_2048_20260914/train/PA_S1/last.pt",
+      "global_step": 1050,
+      "episode": 2150400,
+      "max_steps": 6000,
+      "keys": [
+        "policy_state_dict",
+        "value_state_dict",
+        "optimizer_state_dict",
+        "lr_scheduler_state_dict",
+        "state",
+        "args",
+        "env_state_dict"
+      ],
+      "last_completed_logged": 1050,
+      "remaining_to6000": 4950,
+      "replay_completed_batches": 0,
+      "log_tail": "\n2026-09-14T19:04:21Z [25,341,864ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 563\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 566\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 569\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 572\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 575\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 578\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 581\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 584\n2026-09-14T19:04:21Z [25,341,866ms] [Error] [omni.physx.fabric.plugin] CUDA error: unspecified launch failure: ../../../extensions/runtime/source/omni.physx.fabric/plugins/DirectGpuHelper.cpp: 587\n2026-09-14T19:04:21Z [25,341,887ms] [Warning] [omni.physx.plugin] USD stage detach not called, holding a loose ptr to a stage!\n2026-09-14T19:04:21Z [25,341,968ms] [Warning] [omni.physx.plugin] PhysX warning: /builds/omniverse/physics/physx/source/gpucommon/src/PxgCudaMemoryAllocator.cpp, FILE /builds/omniverse/physics/physx/source/gpucommon/src/PxgCudaMemoryAllocator.cpp, LINE 68",
+      "immutable_resume_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/resume_input_step001050.pt"
+    },
+    "PA_S2": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/last.pt",
+      "resolved_checkpoint": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_rebuild_2048_20260914/train/PA_S2/last.pt",
+      "global_step": 1400,
+      "episode": 2867200,
+      "max_steps": 6000,
+      "keys": [
+        "policy_state_dict",
+        "value_state_dict",
+        "optimizer_state_dict",
+        "lr_scheduler_state_dict",
+        "state",
+        "args",
+        "env_state_dict"
+      ],
+      "last_completed_logged": 1440,
+      "remaining_to6000": 4600,
+      "replay_completed_batches": 40,
+      "log_tail": "    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/torch/nn/modules/rnn.py\", line 1124, in forward\n    result = _VF.lstm(\n             ^^^^^^^^^\nRuntimeError: CUDA error: unknown error\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1\nCompile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.\n\n2026-09-14T21:47:24Z [34,574,647ms] [Warning] [omni.physx.plugin] USD stage detach not called, holding a loose ptr to a stage!\n2026-09-14T21:47:25Z [34,574,945ms] [Warning] [omni.physx.plugin] PhysX warning: /builds/omniverse/physics/physx/source/gpucommon/src/PxgCudaMemoryAllocator.cpp, FILE /builds/omniverse/physics/physx/source/gpucommon/src/PxgCudaMemoryAllocator.cpp, LINE 68",
+      "immutable_resume_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/resume_input_step001400.pt"
+    },
+    "PA_S3": {
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/last.pt",
+      "resolved_checkpoint": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_rebuild_2048_20260914/train/PA_S3/last.pt",
+      "global_step": 1450,
+      "episode": 2969600,
+      "max_steps": 6000,
+      "keys": [
+        "policy_state_dict",
+        "value_state_dict",
+        "optimizer_state_dict",
+        "lr_scheduler_state_dict",
+        "state",
+        "args",
+        "env_state_dict"
+      ],
+      "last_completed_logged": 1452,
+      "remaining_to6000": 4550,
+      "replay_completed_batches": 2,
+      "log_tail": "    padded_obs, traj_masks = split_and_pad_trajectories(\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/gr00t/rl/trl/utils/rl.py\", line 77, in split_and_pad_trajectories\n    trajectories = torch.split(tensor.transpose(1, 0).flatten(0, 1), trajectory_lengths_list)\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: CUDA error: unknown error\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1\nCompile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.\n\n2026-09-14T21:47:32Z [34,582,161ms] [Warning] [omni.physx.plugin] USD stage detach not called, holding a loose ptr to a stage!\n2026-09-14T21:47:32Z [34,582,448ms] [Warning] [omni.physx.plugin] PhysX warning: /builds/omniverse/physics/physx/source/gpucommon/src/PxgCudaMemoryAllocator.cpp, FILE /builds/omniverse/physics/physx/source/gpucommon/src/PxgCudaMemoryAllocator.cpp, LINE 68",
+      "immutable_resume_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/resume_input_step001450.pt"
+    }
+  },
+  "training_archives": {
+    "PA_S1": {
+      "archive_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/attempt_history/attempt1",
+      "moved": [
+        "gpu_memory.csv",
+        "resolved_config_verified.yaml",
+        "meta.yaml",
+        "isaac.log"
+      ],
+      "copied": [
+        "config.yaml"
+      ],
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S1/resume_input_step001050.pt"
+    },
+    "PA_S2": {
+      "archive_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/attempt_history/attempt1",
+      "moved": [
+        "gpu_memory.csv",
+        "resolved_config_verified.yaml",
+        "meta.yaml",
+        "isaac.log"
+      ],
+      "copied": [
+        "config.yaml"
+      ],
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S2/resume_input_step001400.pt"
+    },
+    "PA_S3": {
+      "archive_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/attempt_history/attempt1",
+      "moved": [
+        "gpu_memory.csv",
+        "resolved_config_verified.yaml",
+        "meta.yaml",
+        "isaac.log"
+      ],
+      "copied": [
+        "config.yaml"
+      ],
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/PA_S3/resume_input_step001450.pt"
+    }
+  },
+  "eval_archive": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/attempt_history/attempt1",
+  "actual_eval_lanes_previously_run": 0,
+  "old_missing_decisions": "archived; retry against newattempt2trainreceipts"
+}

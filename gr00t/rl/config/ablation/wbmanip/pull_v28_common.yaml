@@ -6,8 +6,8 @@ checkpoint: null
 checkpoint_load_mode: full
 auto_load_latest: false
 project_name: a2_piper_pull_v28
-experiment_name: pull_v28_baseline_sync
-num_envs: 1024
+experiment_name: pull_v28_rebuild_2048_20260914
+num_envs: 2048
 headless: true
 use_wandb: false
 

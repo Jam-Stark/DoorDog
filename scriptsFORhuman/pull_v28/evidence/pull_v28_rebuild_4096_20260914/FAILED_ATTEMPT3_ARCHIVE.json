@@ -1,0 +1,16 @@
+{
+  "decision": "V28P-D016",
+  "archived_at": "2026-09-14T11:57:22.901028+00:00",
+  "original_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_4096_20260914/PA_S1",
+  "archive_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_rebuild_4096_20260914/failed/PA_S1_attempt3_ppo_oom_20260914",
+  "resolved_archive_path": "/mnt/ssd1/baoquanc/DoorDog-A2_Piper_pull_v0/pull_v28_rebuild_4096_20260914/train/failed/PA_S1_attempt3_ppo_oom_20260914",
+  "completed_batches": 1,
+  "completed_batch_timesteps": 262144,
+  "subsequent_partial_batch": true,
+  "checkpoint": null,
+  "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/runtime/runs/pull_v28_rebuild_4096_20260914_train_pa_s1_attempt3/RUN_RECEIPT.json",
+  "reason": "PPO critic LSTM CUDA OOM after first completed learning iteration",
+  "budget_cap_completed_batches": 18000,
+  "minimum_total_if_three_fresh_6000_runs": 18001,
+  "next_training_requires_owner_budget_decision": true
+}

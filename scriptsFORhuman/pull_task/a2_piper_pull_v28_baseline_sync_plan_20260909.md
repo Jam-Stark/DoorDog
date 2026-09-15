@@ -1,8 +1,12 @@
+> 最新D019覆盖：m5停止pull执行；Owner现授权commit/push、GoogleDrive归档与新机器迁移。2048合同保留；本机不再自动resume，后续在新机器按迁移manifest恢复1050/1400/1450并补齐评估。此前“不commit/push”和运行状态均为历史。
+
+> 当前执行合同（V28P-D017，2026-09-14）：2048已通过首格5个完整PPO batch验证，正式采用每seed2048env。PA_S1继续原进程；S2/S3与GPU0队列已提交。Owner授权的1024后备仅在2048实际无法持续运行时使用。历史4096记录不再约束当前规模。
+
 # Pull v28 新 baseline 同步计划：共享 C_T，在 m5 重建双侧 unlatch→opening
 
-创建：2026-09-09 HKT；修订：2026-09-13 HKT。
-修改：-codex planner；依据：-owner 要求更新 pull 同步 plan 并交付 m5 Codex team 启动 prompt。
-状态：`PULL_G0_PASS_PA_STARTING`。2026-09-14已完成计划有界G0接线与实际双侧natural64，G0累计10/32；进入原三seed scratchPA1024×6000。Owner D013工程自主修复权限生效，原科学/预算门不变；详见G0_ACCEPTANCE_20260914.md。
+创建：2026-09-09 HKT；修订：2026-09-14 HKT。
+修改：Codex Main；依据：Owner撤回4096，先2048后备1024；2048首5个正式batch通过，按V28P-D017将活动合同固定为2048。
+状态：`PAUSED_FOR_MIGRATION_OWNER_REQUEST`。P2 18/18与pull G0=PULL_G0_PASS、累计10/32直接保留。旧1024三格3860 completed、新4096撤回组1 completed及后续partial均单独封存，无新组checkpoint继承。PA_S1已完成5完整batch的规模核对；PA_S2/S3与GPU0串行评估队列已启动。原三seed6000终点尚未形成。D007–D016保持历史，D013工程自主推进权限与不commit/push保持。
 
 执行仓库：m5（`baoquanc@m5.precognition.team`，主机名 `ai-precog-machine5`）的 `/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0`，分支 `codex/a2-piper-pull-v0-20260803`。
 canonical：pull 仓库 `scriptsFORhuman/pull_task/a2_piper_pull_v28_baseline_sync_plan_20260909.md`；主线镜像：`scriptsFORhuman/pull_v28_alignment/`。
@@ -17,7 +21,7 @@ canonical：pull 仓库 `scriptsFORhuman/pull_task/a2_piper_pull_v28_baseline_sy
 
 pull 从 Stage3→4 起保留自己的物理与控制语义：Stage4 子阶段 A–D、E4–E7、10 项 release-ready、clean release、send-past-body、tensile proof。E6/E7 如出现则报告，但本轮不保证完整通行，也不授予 Teacher/Student 资格。P3–P5 是 closure 后重新立项的后续工作，未冻结矩阵和预算，不自动接着训练。
 
-本轮不复制主线 K scaffold-decay、A_S284/target_stage=5、D039 主/备候选与 exact128 DEV/CONF；不复制主线强制 G1、4096 env 或 36,500 budget。pull 当前基线的 penalty curriculum=false、driver=null 保留。
+本轮不复制主线 K scaffold-decay、A_S284/target_stage=5、D039 主/备候选与 exact128 DEV/CONF；不复制主线强制 G1 或 36,500 budget。训练规模按本次Owner决定统一2048env；pull 当前基线的 penalty curriculum=false、driver=null 保留。
 
 C_T 是已批准的仿真建模/控制选择，不是已由实机测量唯一确定的事实。base 单/双相机、最终光学/CAD/Student 传感合同与安装件交换保留到 C_S/G2；不因这些待办或 X24 随机校准未完成阻塞当前集成。
 
@@ -27,10 +31,12 @@ C_T 是已批准的仿真建模/控制选择，不是已由实机测量唯一确
 - T_S1/T_S2/C_S2 的 `logs_rl/a2_piper_pull_v7/p2_20260909/<CELL>/runtime_result.json` 均记录 `child_returncode=0`；各自 step10500 checkpoint 存在。进程完成不等于 P2 结论成立。
 - `logs_eval/a2_piper_pull_v7/p2_20260909/` 为空，没有 P2_RESULTS/closure；三份 `.ai/runtime/runs/pull_v7_p2_<cell>_20260909/RUN_RECEIPT.json` 仍为旧 `RUNNING`，C_S1 为 `DECLARED`。本次未 finalize 或确认这些事件。
 - m5 尚无本计划、MERGED 资产、`a2_piper_vpiper.yaml`、pull_v28 执行链或 pull-v28 memory。本次交付后以 manifest/receipt 区分“已接收”与“已集成”。
-- GPU0 有两个外部 compute 进程，约16 GB占用；GPU1/2/3分别约24.1/23.5/24.1 GB空闲，未见本任务训练/评估进程。只有一个无关 tmux 会话。此为快照，launch 重新读取一次实际资源，GPU0不在本轮授权内。
+- 当时GPU0有两个外部compute进程，约16GB占用；GPU1/2/3分别约24.1/23.5/24.1GB空闲，未见本任务训练/评估进程。只有一个无关tmux会话。此为历史快照；2026-09-14 Owner已明确GPU0–3均可用，当前分配见§8。
 - `/home/baoquanc/anaconda3/envs/isaaclab/bin/python` 存在；m5 已采用项目 v1.4 workflow，是普通 Git checkout，沿用其现有 hooks，不能照搬主线 linked-worktree 的 hooks 安装步骤。m5 当前未安装 rg，可用 Python/pathlib 或 grep，不为此安装依赖。
-- P_S2 的真实继承输入是 `logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2/resolved_config.yaml`：1024 env、completion_stage=5、staged reset `[0.5,0.1,0.1,0.1,0.1,0.1]`、curriculum=false、driver=null。源码 `pull_v26_8_backbone_common.yaml` 表面仍有2048/4000，不能直接当本轮 resolved 配方。
+- P_S2 的真实继承输入是 `logs_rl/a2_piper_pull_v26_8_backbone/pull_v26_8_backbone_20260905_natural1_r2/wave2/train/P_S2/resolved_config.yaml`：1024 env、completion_stage=5、staged reset `[0.5,0.1,0.1,0.1,0.1,0.1]`、curriculum=false、driver=null。源码 `pull_v26_8_backbone_common.yaml` 表面仍有2048/4000，不能直接当本轮 resolved 配方。1024只保留为历史输入事实，本轮按V28P-D017显式覆盖为2048。
 - 主线、GPU1本地 pull worktree 与 m5 不是同一运行环境；本机 mirror 的旧状态不能替代 m5。主线 G0 PASS 只作为输入依据，pull G0 仍需自己的窄运行证据。
+
+2026-09-14当前接续：P2完成证据为`../pull_v7/P2_CLOSURE_20260913.md`；pull G0为`../pull_v28/G0_ACCEPTANCE_20260914.json`。D007–D015保留m5真实接线修复、Owner授权和执行记录。旧PA1024及新4096切换事实见`../pull_v28/evidence/pull_v28_rebuild_4096_20260914/TRANSITION.json`；不因上方历史快照重复P2、contact、PG7、G0训练或自然评估。
 
 ## 2. S1–S8 共享清单与交付方法
 
@@ -59,7 +65,7 @@ C_T 是已批准的仿真建模/控制选择，不是已由实机测量唯一确
 | tower接触 | 与主线相同raw定义与scale=-1，全stage；独立body与telemetry，不能塞入旧固定20体undesired-contact元组 |
 | 门域/actor/obs/action | 沿P_S2真实resolved基线与当前plain actor合同，旧actor/critic记为133/138、action19；执行者核对实际compose，不照抄过时135/140说明 |
 | curriculum/reset | 不加主线K；固定原pull staged reset比例，现有v6/v6.1 bank关闭；natural eval关闭staged reset |
-| 训练规模 | PA_S1/PA_S2/PA_S3全部scratch、1024env、6000 batches，保持三seed分母；不能用warm替换第三格 |
+| 训练规模 | PA_S1/PA_S2/PA_S3全部scratch，每格单GPU2048env、6000 batches，保持三seed分母；不能用warm替换第三格 |
 | 可选warm probe | 默认NOT_RUN；Owner另行要求时可在预留500内作迁移诊断，结果单列，不自动追加warm长臂或替换PA_S3；没有主线G1的强制STOP路由 |
 | 资格/渲染 | 本轮只做pull exact64 natural与opening/margin结果，不做Teacher exact128 DEV/CONF或Student渲染。相机运动阈值为report-only；最终光学仍是G2问题 |
 
@@ -80,7 +86,9 @@ P2期间保持其旧asset、source、checkpoint邻接配置与自然评估合同
 
 P2只作为诊断封存，其结果不路由pull v28。D17替代D2作为本轮动作修正；v28配置不含D2 scale，历史D2源码/配置继续只服务旧证据复现。
 
-## 5. pull G0：最小运行证明
+## 5. pull G0：已完成的最小运行证明
+
+G0已于2026-09-14形成PULL_G0_PASS，累计10/32 batches；以下为原门的证据合同。此次2048切换复用其有效证据，规模运行核对直接使用首格正式训练的前几个batch。
 
 PG1–PG8是验收项目，不要求分别构建八套测试；合并同一构造/smoke能覆盖的检查。先实现，再做一次相匹配的CPU/运行证明；不自动新增永久测试套件、变异/兼容测试或重复全仓审阅。
 
@@ -89,11 +97,11 @@ PG1–PG8是验收项目，不要求分别构建八套测试；合并同一构�
 | PG1 | S1/S2直接内容比对、URDF/USD相对路径、28 bodies/20 joints、按名body/dof/contact映射 | 主线交付与m5静态读回；不能按旧30/31体列表推断 |
 | PG2 | reset/动作/观测锚点与D17实际目标限位语义 | 相关CPU计算与下述smoke；不新增默认姿态fallback |
 | PG3 | S5固定权重、tower索引、pull持久释放事件门控与S6字段映射 | 单次有界计算/实际日志；没有晚阶段事件不填假值 |
-| PG4 | `pull_v28_common.yaml`以P_S2真实resolved合同扁平化；差异只含已登记asset/robot/姿态/夹紧/bundle/telemetry/seed/预算/输出 | 一次compose差异说明；checkpoint=null/full、1024/6000、原reset/无K必须可追踪 |
+| PG4 | `pull_v28_common.yaml`以P_S2真实resolved合同扁平化；差异只含已登记asset/robot/姿态/夹紧/bundle/telemetry/seed/num_envs/预算/输出 | G0引用修复已完成；新PA四处实际环境数均2048，checkpoint=null/full/auto_load_latest=false、6000、原reset/无K由真实配置与启动日志核对 |
 | PG5 | 新asset下pull LEFT镜像目标仍为既有180°关系，RIGHT维持本侧几何定义 | 复用原G1目标帧读回口径，不把新旧asset完整行为逐位相等作为要求 |
-| PG6 | 新配方256env×5batch PPO及其full-checkpoint双侧natural评估接线；零指令窗口trunk/arm_body0..6/tower接触<1N、body数与reward日志 | 一次smoke及配套小样本评估；仅有Stage0/null不证明opening或晚阶段事件 |
+| PG6 | 已完成256env×5batch完整checkpoint与双侧exact64；零指令接触、body/reward接线见G0证据 | 2048规模由首格正式训练前几个batch补充证明显存与吞吐；不把该规模核对称为重跑G0或额外smoke |
 | PG7 | 当前A2_Base在m5新旧asset上的步行比较 | 下述D37预先固定口径；失败保留原始值交Owner，不事后改门 |
-| PG8 | receipt、active-cell watcher、milestone reducer/readout与endpoint closure路径 | 用上述真实小运行串起链路；正式claim仍由规定natural评估给出 |
+| PG8 | receipt、GPU0单队列、milestone reducer/readout与endpoint closure路径 | 用上述真实小运行串起链路；正式claim仍由规定natural评估给出 |
 
 **PG7 / D37口径**：复用主线已交付的步行harness及命令/姿态定义，在m5以相同姿态/命令分别运行旧asset与MERGED，三种姿态为新默认、Stage1 hold、类Stage2，各64env。可以复用m5已有完全匹配的原始对照，不混用不同姿态或主机读数。命令轴p50≤1.15×baseline；零指令耦合轴p50≤max(1.15×baseline,CAP)，CAP vx/vy=0.1m/s、yaw=0.1rad/s、pitch=0.05rad、roll=0.04rad；全部轴p95≤1.15×baseline；0/64摔倒、vx@0.5 slope≥baseline−0.05。此次接收前已冻结口径，不套用已废弃的纯p50比例门。
 
@@ -102,7 +110,10 @@ PG1–PG8是验收项目，不要求分别构建八套测试；合并同一构�
 ## 6. Wave P-A：三 scratch seed重建
 
 - PA_S1/PA_S2/PA_S3，训练seed1/2/3。使用pull实际侧别键`a2_door_open_lr_permutation_seed`对应训练seed，不添加无人读取的主线同名近似键。
-- checkpoint=null、full、auto_load_latest=false、1024env、6000batches、save250；1500/3000/4500/6000各双侧exact64 natural，共24条lane。自然评估关闭staged reset、curriculum和driver，first-episode/exact64/integrity沿pull既有口径。
+- checkpoint=null、full、auto_load_latest=false、每格单GPU2048env、6000batches、save250；1500/3000/4500/6000各双侧exact64 natural，共24条lane。自然评估enable_staged_reset=true且staged_reset_ratios=[1,0,0,0,0,0]，关闭外部bank、curriculum和driver，first-episode/exact64/integrity沿pull既有口径。2048是每个seed自己的环境数，三格不共享policy或rollout。
+- 旧1024及已撤回4096的checkpoint、日志和实际消耗全部保留；不进入新2048三seed的6000终点分母。当前三格使用§10新输出根，从scratch step0开始，不加载任何旧checkpoint。
+- m5现有执行任务负责切换：先记录旧三格最后checkpoint/消耗及各自进程、watcher，再停止本轮旧1024任务及其尚未执行的后续调度；仅变更本任务配置、资源分配和新输出，保留已有有效P2/G0证据。当前文档更新不代表这些运行操作已完成。
+- rollout长度、PPO minibatch/epoch、学习率、奖励、reset比例与其他已批准pull配方保持；执行记录列出实际rollout样本数和PPO分批参数。设每env每batch收集H步，每seed新预算为2048×H×6000条transition，是旧1024方案的2倍；不能沿用旧墙钟ETA或把env数变化当成仅影响并行速度。
 - 原三seed在6000的结果单独判：每个seed必须两侧K5/D/E4/E5≥60/64且tower接触episode>5N的计数≤2/64/侧；≥2/3为`PULL_V28_OPENING_ESTABLISHED`，1/3为`PULL_V28_OPENING_UNSTABLE`，0/3为`PULL_V28_OPENING_NOT_ESTABLISHED`。同时报告精确k/3，不把2/3写成3/3。缺失/INVALID不填0、不算完整终点。
 - 历史过门checkpoint、最早opening时点和逐侧中介另列，不覆盖6000标签，也不在本轮授予Teacher资格或自动替换候选。
 - 保留`MARGIN_TRAP_RESOLVED/PERSISTS`原观测定义：E5后release margin≥0.07的步份额>0，且逐关节target overshoot中位=0时为RESOLVED，否则PERSISTS。无E5事件则NOT_OBSERVED/null，不能据无样本判已解决。该标签不等于10项ready同时成立、稳定release或E6/E7通过。
@@ -116,22 +127,21 @@ N03 push/pull合一只登记共享合同与各侧实际能力，不因完成输�
 
 ## 8. 自主权限与停止边界
 
-**2026-09-14 Owner执行修订（D013）**：已定位的配置引用、检查点保存与调度工程故障自主修复推进，使用新attempt并保留证据；不机械因旧修复次数或post-policy工程wrapper非零而停止。真实训练问题不得吞错或掩盖，真实G0门失败、合同变更、预算上限及硬件/外部写入边界仍按下列规则。
-
 执行team收到Owner启动prompt后，可自主完成本轮S1–S8必要代码/配置/调度修复、P2缺失评估、G0、三seedP-A、各milestone与closure；条件满足的阶段转换通知后继续，不逐项等待审批。
 
-- GPU只用1/2/3；训练启动时≥20GB空闲且无外部compute进程。P2评估可在空闲授权卡并行；P-A评估仅在实际余量≥5GB且不会挤占18GB级训练格时同卡，否则等一格结束。GPU0外部进程只记录，不处置。
-- policy读数前的infra/harness失败，在合同不变下自主修复，最多2次/格，使用新attempt并记录；policy读数后的非零退出停该格、其余继续，不自动重跑。
+- Owner已明确GPU0–3均可用。固定PA_S1→GPU1、PA_S2→GPU2、PA_S3→GPU3，每卡一个2048env训练进程；GPU0运行PA milestone双侧exact64评估队列，每次一条lane，按已就绪checkpoint推进。这样评估无需与训练同卡。P2/G0实际缺失项可使用当时空闲授权卡，不重复已完成项。
+- 首格已用5完整batch确认2048：GPU1约11948MiB，batch均值22.636秒，首批后20.55–21.18秒。S2/S3按同配置一次确认后持久等待；如2048出现真实容量失败，按Owner已授权1024后备封存并切换，不自行改PPO/reward/reset，不终止其他任务进程。
+- D013已授权已定位的配置、保存、调度等工程接线故障在合同/物理门/预算不变时自主修复；保留attempt/消耗，不机械套用旧次数或post-policy wrapper非零即停。真实训练异常必须显式报告，不掩盖或自动改变规模/配方；涉及合同、预算或真实科学门的决定仍交Owner。
 - reducer INVALID只停止对应评估，不自动杀训练；进程exit0、checkpoint存在、评估完成与实验结论分开。
 - G0真实接触/目标映射/PG7门失败、改事件/ready/stage/reward/门值、超预算、asset几何/质量或A2_Base变更、硬件/Teacher绑定/push等，必须交Owner；不设置新默认长臂来绕过失败。
-- 本地commit节点保持：P2 closure、pull G0完成、P-A endpoint、最终closure；是否执行以收到的Owner启动prompt明确授权为准，仅Main操作，不push。本次文档同步未commit。
+- 本次Owner明确不新增commit/push，覆盖旧启动prompt的节点commit授权；已有历史commit仅作来源记录。只操作m5本轮pull，不影响主线v28或无关进程。
 - 本轮不是workflow迁移任务。m5现有v1.4可用能力直接复用，不重装hooks/插件，不改Main模型/effort或全局配置。
 
 ## 9. 预算与长等待
 
-训练预算保持原上限：三scratch×6000=18,000 batches；可选warm probe至多500，默认不运行，总上限18,500。G0允许一组不超过32batch的接线smoke；本计划采用256env×5batch及配套小评估。P2仅补18条旧natural lane，P-A24条natural lane；本轮没有exact128资格矩阵或额外warm训练臂。
+新2048组正式目标为三scratch×6000=18,000 batches；每seed rollout为2048×64=131,072 transitions/batch，每seed全程786,432,000，三seed共2,359,296,000。PPO保持5 epochs、4 minibatches、learning_rate=0.0001；每minibatch名义32,768 transitions，实际序列分批沿原trainer。旧1024的3860 completed与已撤回4096的1 completed/后续partial/GPU时长单列；D017授权的2048验证及必要1024后备实际消耗如实记录，不混入最终规模的三seed终点。G0累计10/32直接复用；通过规模的首几个正式batch计入其6000，不新增smoke/扫描/测试。PA新组24条natural lane；无warm、exact128、Teacher/P3–P5。
 
-历史吞吐估计：约22s/batch，6000约37h/格，计划42h；P2两卡补评估约2h，G0约40min GPU（含本机对照会随吞吐调整）。执行者完成一次启动/稳定性检查后依据实际吞吐记录ETA与真正下一决策点，不能将此估计写成固定完成保证。
+2048首格实测前5完整batch均值22.636秒（首批29.71秒，其后20.55–21.18秒）；2026-09-14 20:08 HKT在step5估算1500还9.40小时、6000还37.70小时。S2/S3启动包含约10分钟初始化余量；GPU0资源排队与评估耗时另列，不能承诺队列完成时间。后续仅在真实milestone或状态变化时更新ETA，不做周期模型日志轮询。
 
 超过30分钟使用命名tmux和现有run_supervisor，固定命令、资源、输出、ETA、stop condition及已授权eval。按绝对截止恢复同一安静waiter；完成/失败/取消/真实决策点提前返回，不固定每30分钟唤醒Main或派agent反复看日志。传输层提前返回时沿用同一waiter/截止，不重置逻辑等待。不以日志静默判死锁，不把后台终端退出等同于自动唤醒保证。
 
@@ -141,7 +151,7 @@ legacy receipt/事件不批量迁移或确认；先核实其进程与尚缺的�
 
 - 本计划与同目录决策日志记录V28P-D001起的pull具体决定，并引用主线D号；不要对主线全部ADR机械加P或覆盖原记录。
 - 新建`memory/a2-piper/pull-v28-baseline-sync/{description,TODO,DONE}.md`，作为本轮入口；`pull-lr-full-stage`保留原v7/P2证据，不整表删除或重分类其历史日志。
-- 运行输出统一在`logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/`、`logs_eval/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/`及项目runtime receipts；每milestone先写真实decision/归约JSON，再写readout。
+- 新2048组运行输出统一在`logs_rl/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/`、`logs_eval/a2_piper_pull_v28/pull_v28_rebuild_2048_20260914/`及对应新runtime receipts；每milestone先写真实decision/归约JSON，再写readout。旧`pull_v28_baseline_sync_20260913/`输出保留历史，活动指针在m5真实切换时更新。
 - closure包含S1–S8来源/内容比对、实际resolved差异、k/3终点、历史checkpoint、中介/null、进程/eval状态、未运行项与后续议题。主线G0与pull运行证据分开。
 - 参考输入清单只包含明确需要的资产、YAML、rig、源码参考和G0材料，不含训练checkpoint、凭据或整个工作树。A2_Base仍使用m5已有policy；其同源性由输入核对记录，不在本次替换。
 
@@ -149,6 +159,14 @@ legacy receipt/事件不批量迁移或确认；先核实其进程与尚缺的�
 
 详见同目录决策日志：V28P-D001明确当前scope与主线继承边界；D002固定C_T/rig/D17；D003采用D37本机工程门与proxy/null边界；D004固定pull权重/释放事件/无K；D005保留三个scratch分母，warm不替换PA_S3；D006更新v1.4等待、窄验证与输入交付。
 
+V28P-D016（2026-09-14，Owner明确决定）替代训练1024env与GPU0禁用规则：三seed每格4096env×6000，GPU1/2/3训练、GPU0评估；旧1024结果与消耗独立保留，新组从scratch开始。旧规模来源只是沿用P_S2，未有1024优于4096或m5只能运行1024的性能证据。
+
 旧同步plan中的纯p50比例门、U3_F45_B15、默认强制测试清单、摘要校验要求，以及warm替换PA_S3的分支已被本修订取代；不是运行后改门。P2旧C_S1补跑、D2下一步及独立资产门A不在本轮执行范围。主线D039/D040的具体candidate/DEVCONF保持主线专用。
 
-本次SSH读取、plan/memory与输入交付不构成任何pull G0、opening或硬件PASS。执行团队应在真实完成对应步骤后更新IMPLEMENTATION_PENDING，不因文件已收到而标为已实现。
+接线和进程状态不等于opening或硬件PASS；新组实验结论以本组6000三seed双侧exact64为准。此次文档/配置同步和真实运行证据单独记录，不复用旧输入接收receipt冒充新启动证明。
+
+2026-09-14 19:17 HKT执行交接：旧PA1024最终1284/1280/1296，共3860 completed batches、252,968,960 transitions，编号checkpoint均1250；约22.36 GPU小时（supervisor取消前，退出尾段另记）。六个旧train/watch及辅助wait均停止，所有原始输出保留。4096 PA_S1 attempt1仅初始化约38秒，按Owner改为prompt交接的最新指令取消；0 completed batch/无checkpoint，S2/S3和评估队列未启动。因此没有4096吞吐或真实训练ETA。代码/配置已更新，GPU与写入leases已释放；下一步由m5 AI接手保留已取消初始化目录、使用新attempt从step0启动。本次未commit/push，未修改主线运行。
+
+2026-09-15 05:44 HKT运行更新：S1完成1050后GPU1驱动不可访问，相关训练暂停等待设备恢复；S2/S3仍正常接近1500，GPU0队列继续。2048规模合同不变，未判为规模OOM，不重跑P2/G0。S1 checkpoint与详细证据保留，opening终点仍未形成。
+
+2026-09-15 15:15 HKT当前D018：Owner确认m5修复并继续，GPU0–3均恢复。所有旧进程已停，将从本2048组完整1050/1400/1450checkpoint续训，各到6000；原scratch lineage不变，重放42个未持久化完成batch单列。旧S1缺失decision归档，新attempt2 GPU0队列补齐24lane。上述硬件暂停记录现为历史，当前无需再次Owner批准恢复。

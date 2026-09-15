@@ -1,0 +1,18 @@
+{
+  "decision": "V28P-D017",
+  "created_at": "2026-09-14T12:01:25.024560+00:00",
+  "status": "PA_S1_2048_PREPARATION",
+  "source_group": "pull_v28_rebuild_4096_20260914",
+  "new_group": "pull_v28_rebuild_2048_20260914",
+  "candidate_num_envs": 2048,
+  "authorized_fallback_num_envs": 1024,
+  "scale_acceptance": "first5 complete formal PPO batches; actual2048 config and memory/throughput",
+  "old4096_completed_batches": 1,
+  "old4096_partial_batch": true,
+  "old4096_checkpoint": null,
+  "old1024_completed_batches": 3860,
+  "checkpoint_lineage": "null scratch",
+  "formal_final_scale_batches": 18000,
+  "discarded_scale_attempts": "actual consumption separately recorded under explicit Owner D017 authorization",
+  "commit_push": false
+}

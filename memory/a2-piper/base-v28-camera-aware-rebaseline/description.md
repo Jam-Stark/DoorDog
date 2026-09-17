@@ -1,6 +1,6 @@
 ---
 name: base-v28-camera-aware-rebaseline
-status: active
+status: closed
 scope: v28 re-baseline — MERGED asset, wrist tower and PiPER posture, staged camera contract, camera-aware bundle, three-seed reachability and qualification-oriented Teacher selection
 last_verified: 2026-09-17
 read_when:
@@ -20,7 +20,7 @@ related_entries:
 
 # base_v28 camera-aware re-baseline
 
-运行证据更新（2026-09-17 16:58 HKT，D058）：Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（D058）。A284最后完整日志迭代5167、最新保存checkpoint5000，6000训练终点与双侧评估取消；按原D039排序冻结主候选A_S282@6000（weak clean12、总73）和备选A_S284@5000（12、总38），身份在DEV启动前落锁。原三seed终点reach1/3（REACH_SEED_UNSTABLE）保持；资格门、C_T和固定DEV→CONF程序不变。 主候选DEV已启动，实际资格/render与closure待收回。运行指针见owner_stop_training_wave_b_20260917.json、wave_a_endpoint_lock.json及wave_b_launch_receipt_20260917.json。
+运行证据更新（2026-09-17 17:35 HKT，D059）：v28已收尾：原三seed6000 reach1/3（REACH_SEED_UNSTABLE）；固定主A282@6000与备A284@5000均未通过双侧exact128 DEV，clean分别123/47与69/52，CONF均NOT_RUN，资格为QUALIFICATION_NOT_CONFIRMED。A284按Owner D058于已打印5167迭代提前停止；D059复用既有render/三相机观察。 N01/N02设计CONTINUE、实验DEFER；当前权威入口为20260917 execution closure与candidate manifest，旧G1停止点保留历史。
 
 当前路由（2026-09-14 10:54 HKT，D046）：Owner已批准G1失败后继续原三seed各6000 scratch，原C_T/门值/预算不变；WARM_FAIL与500消耗保留，warm附加臂取消。按原milestone、条件A284及固定资格合同推进，实际任务和资源仅由execution_20260913的state/receipts路由。下方G1停止点是历史时点，不再要求重复成本批准。
 

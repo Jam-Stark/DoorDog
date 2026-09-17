@@ -2,7 +2,7 @@
 
 用途：登记 v28 明确不做、但在规划或执行中已识别的事项。每项给出来源决策、入场条件、归属 lane 与长期 TODO 的对应条目。每个预授权 commit 点同步一次：open 项镜像到 `scriptsFORhuman/a2_piper_longterm_TODO.md` D 节，closed 项入归档。
 创建：2026-09-09 HKT（plan 冻结时）。状态取值：OPEN / HANDED_OFF / CLOSED / SUPERSEDED。
-更新：2026-09-12 17:18 HKT；修改：-codex planner；依据：-owner（D038–D040）。本次只修活动入口与回收条件，不重做已关闭事项。重复 X17 合为一项；历史朝向 X18 的活动内容归入 X19，X18 仅指 CAD/STL 路线，不设置兼容 alias。
+更新：2026-09-17 17:35 HKT；修改：-codex Main；依据：-owner D058/D059与本轮closure。原条目历史保留，补充X05增量回收、X21实测入口及现成视觉材料范围。
 
 | ID | 事项 | 来源 | 入场条件 | 归属 | longterm_TODO_ref | 状态 |
 |---|---|---|---|---|---|---|
@@ -10,7 +10,7 @@
 | X-02 | “带 / 不带相机 bundle”配对消融，并接上 Student 配对蒸馏以回答“observability-aware Teacher shaping 是否提高蒸馏成功率” | D-08 | v28 Teacher 资格通过且 Student lane 有两条蒸馏预算 | 主线 + Student lane | D 节 N-07b | OPEN |
 | X-03 | A2_Base 替换为 LMP Stage2 导出策略（`44:50` = TCP 球坐标） | D-14 | Owner 交付 TorchScript `policy.pt` + metadata `gripper_position` 字段 + 训练覆盖说明；通过 plan §5.2 G0-L-swap | 主线（接口）+ LMP（训练/导出） | D 节 N-08 | OPEN |
 | X-04 | j2/j3 默认值移离限位（现 0/0 落在 j2 下限、j3 上限，Stage5 `limits_dof_pos` 常驻） | D-03a | — | 主线 | E 节 | CLOSED（2026-09-09：Owner 授权，定为 j2=+0.10、j3=−0.10，进 plan D-03a） |
-| X-05 | N01/N02在G1停止点已完成复核：两项继续有界立项设计、实验执行DEFER；N01先建立可解释失抓暴露，N02先明确传感/可辨识性与未收敛门域。方法条目继续开放 | D-01、D-38、D045 | 本次closure回收完成；新pilot须独立范围与预算 | 下一阶段planner | D节N-01/N-02；E节回收归档 | CLOSED（2026-09-14；仅关闭本次复核义务） |
+| X-05 | N01/N02在G1停止点及恢复执行后的v28 closure均已复核：继续有界立项设计、实验DEFER；Owner更急切后续需求优先，不自动排入v29 | D-01、D-38、D045/D059 | 本轮增量回收完成；新pilot须独立范围/预算 | 下一阶段planner | D节N-01/N-02；E节回收归档 | CLOSED（2026-09-17；仅关闭复核义务，方法继续开放） |
 | X-06 | base_right（或双侧）上仰角降到 0° 换取 1.8 m 外地面视野 | §3 覆盖表 | Student lane 证明地面/门槛可见性是失败因 | Student lane + 硬件 | D 节 | OPEN |
 | X-07 | 按最终 C_S rig/CAD 核查自身支柱与 Min-Z 内像素；当前名义包络为 140 mm/38.76°。旧 θ45 下 6.7% 为历史设计包络读数，不是当前实 CAD 验收 | D-18/D-30/D-35/D-38；G2-C1′ | 蒸馏前 G2，真实 CAD 到位后 | Student + 硬件 lane | D 节 C_S/G2 承接 | OPEN |
 | X-08 | 关闭 `DoorDog-camera-baseline-20260908` / `DoorDog-camera-ablation-20260908` 两个 worktree | Owner 2026-09-09 | — | Student lane 仓库 | E 节 | CLOSED（2026-09-09 18:30 HKT：diff/status/HEAD 归档到 student worktree `logs_eval/d435_camera_regression_20260908/worktree_diffs_20260909/`（848+964 行，SHA256SUMS），`git worktree remove --force` ×2 + `prune` 完成） |
@@ -25,8 +25,8 @@
 | X-14 | 工具默认 USD 路径仍指旧 asset：`smoke_a2_base_flat_walk.py:18`、`preview_a2_piper_door_scene.py:18-19`、`a2_piper_v14_reachability_map.py:26` | §2.3 | v28 G0 顺带或轮间窗口 | 主线 | E 节 | OPEN |
 | X-18 | 独立 CAD/STL 路线：修正源装配 trunk↔vpiper_support 三角面干涉。MERGED 已通过当前狭义 G0；本项不是当前训练阻塞，也不是本轮另选 asset 的授权 | 历史 G0 R2；D-34/D-38 | Owner 另行授权且有 CAD 能力 | 硬件 lane | D 节 C_S/G2 承接 | OPEN（未授权） |
 | X-19 | 朝向/可观测性 shaping：当前只报告 Stage0–2 把手方位、Stage5 门口方位、越门 yaw 与横向指令顶限份额；保留现有 `penalty_face_door`，不增加 heading reward 或删除 vy。结合前视视场与 X22/X25 读数再决定后续 shaping，不能中途改变原三 seed 配方 | Owner 2026-09-11 讨论；D-38；合并历史朝向 X18 | Wave A 既定 milestone 出现相关事件后提交读数；具体 shaping 与阈值须新决定 | 主线 | D 节行为问题 | OPEN（先测量，不加约束） |
-| X-20 | base 相机最终布局：单中置 `[0.025,0,0.19]` +15°（几何推荐）vs 双 ±0.155 对称 15°；C_T 已冻结两布局并集包络，尚无本轮 Teacher 训练结果。最终布局按 C_S 冻结并通过包含关系、G2-C2/渲染和安装件交换检查 | D-06/D-30/D-33/D-38 | 蒸馏 plan 起草时 | Student lane + 硬件 lane | D 节 C_S/G2 承接 | HANDED_OFF |
-| X-21 | `clean_complete` 的 crossing hinge ≥ 1.0472 代理判据重审：塔架碰撞已提供物理安全信号，v27 中该分量单独否决了身体力为 0 的格（SC_S202 RIGHT 63/64）；Wave A endpoint 后用"塔架接触 vs 越门 hinge"实测关系决定 v29 是否改判据（v28 内不改，D-10） | 自省 S5；v27 closure | Wave A endpoint | 主线 | D 节 | OPEN |
+| X-20 | base 相机最终布局：单中置 `[0.025,0,0.19]` +15°（几何推荐）vs 双 ±0.155 对称 15°；C_T 已冻结两布局并集包络，本轮固定候选资格未确认，已有独立视觉预览但未冻结最终光学合同。最终布局按 C_S 冻结并通过包含关系、G2-C2/渲染和安装件交换检查 | D-06/D-30/D-33/D-38 | 蒸馏 plan 起草时 | Student lane + 硬件 lane | D 节 C_S/G2 承接 | HANDED_OFF |
+| X-21 | `clean_complete` 的 crossing hinge ≥ 1.0472 代理判据重审：塔架碰撞已提供物理安全信号，v27 中该分量单独否决了身体力为 0 的格（SC_S202 RIGHT 63/64）；Wave A endpoint 后用"塔架接触 vs 越门 hinge"实测关系决定 v29 是否改判据（v28 内不改，D-10）。D059主RIGHT/备LEFT/备RIGHT分别81/59/74个完成集门角不足；同期tower>5N为0/0/1，作为新阶段独立重审材料 | 自省 S5；v27 closure | Wave A endpoint | 主线 | D 节 | OPEN |
 | X-22 | 越门偏航与窄门通过性：v27 越门 root yaw 中位 12.5°（LEFT）/19.8°（RIGHT），整机扫掠宽 0.60–0.67 m；W p5=0.82 m 门在 60° 时净开口 0.70 m，机身–门框碰撞份额 23–28%（上界）；与相机无关（相机代价 0 mm） | `planner_evidence_20260911/camera/REPORT.md` §1.3 | Wave A `crossing_yaw_deg_*` 读数；与 X-19 合并考虑是否加 shaping | 主线 | D 节 | OPEN |
 | X-23 | LEFT Stage2 发现失败的 seed 型（v26-7 Q05_S0/Q20_S0、v27 SC_S201 LEFT：D=0 六个 milestone）：若再现则报告并单独诊断。该模式本身不触发 A_S284（其触发为 D31 的 Stage4 到达但不完成），也不授权改 staged reset 比例 | v27 closure；v26-7；D-38/D-40 | v28 Wave A 任一 seed 同型 | 主线 | D 节行为问题 | OPEN |
 | X-24 | 固定 seed 的旧 asset 单关节扰动 65 项比值为 0.970277–1.008755；seed282 自比精确相同但冻结 harness 无新的随机消费者，只有确定性复现。下次立项时复核具有真实随机暴露的校准需求，不能据当前零散布关闭本项或声称统计标定 | D-37/D-38；Owner 2026-09-12 | 下一次 asset/A2_Base 变更立项时复核；具体校准运行另行授权，不成为当前新增 STOP | 主线 locomotion lane | D 节 N-09 | OPEN |

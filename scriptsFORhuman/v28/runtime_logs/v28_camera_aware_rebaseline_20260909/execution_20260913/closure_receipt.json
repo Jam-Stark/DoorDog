@@ -1,9 +1,15 @@
 {
   "schema": "a2_piper_v28_execution_closure_v1",
-  "status": "OWNER_DECISION_REQUIRED",
-  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/a2_piper_base_v28_teacher_candidate_manifest_20260914.json",
-  "closure": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/a2_piper_base_v28_execution_closure_20260914.md",
-  "recorded_at": "2026-09-14 08:58 HKT",
+  "status": "V28_EXECUTION_CLOSED",
+  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/a2_piper_base_v28_teacher_candidate_manifest_20260917.json",
+  "closure": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/a2_piper_base_v28_execution_closure_20260917.md",
+  "recorded_at": "2026-09-17 17:31 HKT",
   "active_tasks": [],
-  "qualification": "NOT_RUN"
+  "qualification": "QUALIFICATION_NOT_CONFIRMED",
+  "prior_closure_receipt_preserved": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/archives/closure_receipt_before_final_20260917.json",
+  "owner_decisions": [
+    "V28-D058",
+    "V28-D059"
+  ],
+  "resource_cleanup_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/cleanup_receipt_20260917.json"
 }

@@ -1,0 +1,51 @@
+{
+    "diagnostic_trace_enabled": true,
+    "reward_terms": [
+        "stage",
+        "success_save_time",
+        "a2_stage3_handle_creation",
+        "a2_stage3_unlatch_hold",
+        "push_door_hinge",
+        "a2_stage3_stage4_hold_and_drive",
+        "penalty_a2_wrist_motion_l2",
+        "penalty_a2_wrist_tower_contact",
+        "penalty_a2_stage4_arm_default_pose_l1"
+    ],
+    "forced_gripper_close_enabled": false,
+    "stage2_close_gate_forced_gripper_close_enabled": false,
+    "forced_gripper_close_value": -1.0,
+    "forced_gripper_close_stages": [
+        3,
+        4
+    ],
+    "forced_gripper_close_applied_counts": [
+        0,
+        0,
+        0
+    ],
+    "stage2_close_gate_forced_gripper_close_applied_counts": [
+        0,
+        0,
+        0
+    ],
+    "p2_posture_axis": "none",
+    "m41_strict_telemetry": false,
+    "v20_strict_telemetry": false,
+    "canonical_high_level_action_layout": {
+        "dim": 12,
+        "base_start": 0,
+        "base_end": 5,
+        "arm_start": 5,
+        "arm_end": 11,
+        "gripper_index": 11
+    },
+    "stage3_to4_door_hinge_threshold": 0.25,
+    "trace_timing": {
+        "policy_and_post_forced_override": "computed from the pre-step observation and pre-step stage_buf",
+        "post_delta_post_warp_env_action": "captured inside A2Base after DeltaActionBase and WarpedActionBase, before action-to-joint-target mapping",
+        "articulation_state_contact_reward": "captured after physics tensor refresh and reward computation, before reset and before staged-task stage advancement",
+        "joint_pos_target": "the Articulation position target used for the completed physics step, read after physics and before reset",
+        "stage_buf": "pre-stage-advance for the completed physics step"
+    },
+    "first_episode_contract": "when eval_num_envs_episodes=true, intervention, counts, and expanded trace include only envs whose first episode is still active; episode_index audits reset boundaries"
+}

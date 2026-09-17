@@ -22,6 +22,7 @@
 |---|---|---|
 | 2026-09-05 03:19–08:27 | [Claude Code 原 Main 会话](conversations/20260905_claude_novelty_route.md) | Owner 三条想法、参考 Astra 的补充、Claude 最终裁定；同段 pull/v27 上下文保留。分支副本不重复收录 |
 | 2026-09-05 03:28–03:49 | [Codex / Astra：执行 base_v26-8 训练评估流程](conversations/20260905_codex_astra_novelty_route.md) | 独立比较请求、调查进展与最终建议；对应 `-Astra` 产出 |
+| 2026-09-17 | [Codex：v28提前收尾摘录](conversations/20260917_codex_v28_closure_excerpt.md) | Owner停止训练、复用render与后续优先级的有界摘录 |
 | 2026-09-14 | [Codex：v28 closure回收摘录](conversations/20260914_codex_v28_closure_excerpt.md) | Owner授权和公开回收结论的有界摘录；不是完整会话 |
 | 2026-09-10 | [Codex：检查 v28 意图](conversations/20260910_codex_novelty_status_and_provenance.md) | v28 意图、novelty 当前进展与历史讨论定位；截至讨论区整理开始之前 |
 
@@ -31,6 +32,7 @@
 |---|---|
 | [Astra 独立路线建议](documents/a2_piper_novelty_route_20260905-Astra.md) | 2026-09-05 历史提案；从 v27 目录迁入，正文保留；其中 v28 方法实验排期已被后续决定取代 |
 | [Claude 路线裁定](documents/20260905_claude_novelty_decision_excerpt.md) | 2026-09-05 最终回答中 novelty 部分的原文摘录 |
+| [v28最终closure N01/N02增量复核](documents/20260917_v28_closure_N01_N02.md) | 2026-09-17；设计继续/实验延期，Owner更急切后续范围优先 |
 | [v28 G1停止点N01/N02复核](documents/20260914_v28_g1_closure_N01_N02.md) | 2026-09-14；两项继续有界立项设计、实验DEFER；方法收益未建立 |
 | [当前路线与证据状态](documents/20260910_novelty_status.md) | 2026-09-10 基于已有记录的状态整理；不构成新的实验授权 |
 

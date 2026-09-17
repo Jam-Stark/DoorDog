@@ -2,7 +2,7 @@
 
 本 subsystem 记录 A2_Piper branch/worktree 的开发约定、robot migration、reward design、workspace routing、experiment progress 与当前 TODO/DONE。不要把这些施工状态写入 `origin-reference`。
 
-- [base-v28-camera-aware-rebaseline/description.md](base-v28-camera-aware-rebaseline/description.md)：D058 Owner提前停止A284（日志5167，保存5000），固定A282@6000主/A284@5000备进入Wave B；原三seed6000 reach1/3，6000条件臂取消独立披露，待资格/render/closure。
+- [base-v28-camera-aware-rebaseline/description.md](base-v28-camera-aware-rebaseline/description.md)：v28于2026-09-17 closure；原三seedreach1/3，固定主/备DEV clean123/47、69/52均未双侧过门，CONF未运行；A284提前停止、render按Owner复用，N01/N02设计继续/实验延期。
 - [novelty-research/description.md](novelty-research/description.md): 2026-09-14 — v28 G1停止点N01/N02回收已完成；两项继续有界立项设计、实验DEFER，X05复核义务关闭；方法收益未建立。
 ## Entries
 

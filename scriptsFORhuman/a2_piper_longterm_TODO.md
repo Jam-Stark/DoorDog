@@ -2,7 +2,7 @@
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
 创建:2026-07-21;最近更新:2026-09-05(v25/v26 收口归档;三条 novelty 路线裁定入册为 R 节;v27 排期;force-feasibility 主线 C 节降级为背景与 v28 输入;规则 19-21 入册)。
-当前入口更新：2026-09-17 16:58 HKT；修改：-codex Main；依据：-owner D058。Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（D058）。A284最后完整日志迭代5167、最新保存checkpoint5000，6000训练终点与双侧评估取消；按原D039排序冻结主候选A_S282@6000（weak clean12、总73）和备选A_S284@5000（12、总38），身份在DEV启动前落锁。原三seed终点reach1/3（REACH_SEED_UNSTABLE）保持；资格门、C_T和固定DEV→CONF程序不变。 N01/N02设计继续、实验DEFER，下一阶段范围按Owner更急切改动另定。
+当前入口更新：2026-09-17 17:35 HKT；修改：-codex Main；依据：-owner D058/D059。v28已收尾：原三seed6000 reach1/3（REACH_SEED_UNSTABLE）；固定主A282@6000与备A284@5000均未通过双侧exact128 DEV，clean分别123/47与69/52，CONF均NOT_RUN，资格为QUALIFICATION_NOT_CONFIRMED。A284按Owner D058于已打印5167迭代提前停止；D059复用既有render/三相机观察。 N01/N02增量复核完成，设计继续、实验DEFER；更急切的v29范围由Owner另定。
 
 ## Worktree 分工(2026-09-05 修订)
 
@@ -71,8 +71,8 @@
 | latch/handle 几何进一步 randomization(hook 概率、handle 长径、latch 行程) | lr 镜像之后 | v13 §2.5、门生成器已有参数 |
 | privileged obs 加门动力学参数(输入层扩展手术保 warm-start) | 仅当分桶显示策略对门参数自适应失败 | v14 plan M20.4(v14/v15 均未触发) |
 | Phase3 student bootstrapping / GRPO | distillation 之后 | memory `phase3-student-bootstrapping` |
-| **N-01 恢复图：继续有界pilot立项设计（CONTINUE）** | 2026-09-14 closure已回收：先定义非计划失抓和重设计扰动，保留sham/nominal/全部注入分母；在明确asset/checkpoint、可进入交互窗口及新小预算授权后执行。实验DEFER；有效暴露及完整endpoint后再决定多seed，不等待旧PROMISING或最终合格Teacher | R节方向2；v28 D045；[复核](novelty/documents/20260914_v28_g1_closure_N01_N02.md) |
-| **N-02 交互历史：继续传感/可辨识性立项设计（CONTINUE）** | 2026-09-14已复核：明确proprio/action history/夹爪qpos及effort可读性，保留短集和失败集；按物理质量/摩擦、侧别和暴露分层。有限域pilot须独立范围/预算授权，执行DEFER；最终相机/CAD不是立项前置，在线适应收益未验证 | R节方向1；v28 D045；[复核](novelty/documents/20260914_v28_g1_closure_N01_N02.md) |
+| **N-01 恢复图：继续有界pilot立项设计（CONTINUE）** | 2026-09-17恢复执行后的closure再次回收：先定义非计划失抓/有效扰动，保留sham/nominal/全部注入分母；明确asset/checkpoint、交互窗口及独立小预算后执行。实验DEFER；不自动排入v29，Owner更急切改动优先 | R节方向2；v28 D045/D059；[增量复核](novelty/documents/20260917_v28_closure_N01_N02.md) |
+| **N-02 交互历史：继续传感/可辨识性立项设计（CONTINUE）** | 2026-09-17增量复核：明确proprio/action history/qpos/effort可读性，保留短集/失败集并按物理质量/摩擦、侧别、暴露分层。有限域pilot须独立范围/预算，执行DEFER；v28资格未确认不否定该方法，最终相机/CAD不作无限前置 | R节方向1；v28 D045/D059；[增量复核](novelty/documents/20260917_v28_closure_N01_N02.md) |
 | **N-03 同一 actor 的 push/pull × LEFT/RIGHT** | PULL-01 建立 pull 双侧全链路;共同 135/140-D 语义;四格分别报告,不以平均掩盖单格失效 | R 节方向 2(a) |
 | **N-04 hold / controlled-swing 策略选择** | 两种策略均在质量规则下成立;由风险/回弹预测决定,不按门重硬编码 | R 节方向 1 三层门的正确形式 |
 | **N-05 多次打断、动态障碍与 Stage0/1 站位 repair** | N-01 之后;独立预算与恢复窗口 | R 节方向 2(c) |
@@ -81,6 +81,8 @@
 | ~~按 LEFT/RIGHT 等外部条件长出独立策略树~~ | **否决**:v26-7 证明条件化单一 actor 已覆盖;树比条件策略更不通用 | R 节方向 2(a) |
 
 ## E. 维护性挂账(小,勿丢)
+
+2026-09-17归档：v28恢复执行后的X05/N01/N02增量复核完成（D059），原三seed1/3、固定主备资格未确认；两方法设计继续/实验延期，下一阶段范围服从Owner更急切需求。
 
 2026-09-14归档：v28 X05的本次N01/N02 closure复核义务已完成（D045）；两项方法的立项/实验仍按D节开放条目处理，不等同方法完成。
 

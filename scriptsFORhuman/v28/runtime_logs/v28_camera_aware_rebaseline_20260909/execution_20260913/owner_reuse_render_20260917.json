@@ -1,0 +1,185 @@
+{
+  "schema": "v28_owner_render_reuse_v1",
+  "decision_log_id": "V28-D059",
+  "recorded_at": "2026-09-17T09:29:18+00:00",
+  "owner_instruction": "render的话，我已经进行过了，这部分可以跳过，你可以查找我进行了多次render，包括3camera的视野观察，closure可以直接用现成的。",
+  "action": "Reuse listed existing Owner renders; stop queued/repeated renders. Keep completed primary-left lane generated before cancellation.",
+  "reused_artifacts": [
+    {
+      "directory": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/owner_left_fourview_20260917",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+      "side": "LEFT",
+      "purpose": "Owner-completed visual evidence reused in closure; no replacement of DEV/CONF statistical evidence",
+      "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/owner_left_fourview_20260917/delivery_manifest.json",
+      "composite": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/owner_left_fourview_20260917/LEFT_clean_complete_four_views.mp4",
+      "views": [
+        "door_front",
+        "handle_top",
+        "handle_side",
+        "door_rear"
+      ],
+      "selection": "lowest env_id satisfying actual rendered clean_complete",
+      "scope": "Owner-requested demonstration only; not a new exact64 qualification result."
+    },
+    {
+      "directory": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_rgbd_a282_6000_20260917",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+      "side": "LEFT",
+      "purpose": "Owner-completed visual evidence reused in closure; no replacement of DEV/CONF statistical evidence",
+      "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_rgbd_a282_6000_20260917/RESULT.json",
+      "readme": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_rgbd_a282_6000_20260917/README.md",
+      "rig": "U3_F39_H140 140mm/38.76deg, base+15deg",
+      "actual_handle_heights_m": [
+        0.8500000238418579,
+        0.949999988079071
+      ],
+      "views": [
+        "base_left_rgb_depth",
+        "base_right_rgb_depth",
+        "wrist_rgb_depth"
+      ],
+      "representative_images": [
+        "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_rgbd_a282_6000_20260917/height_0.85_exact/view_step_0072_stage_2.jpg",
+        "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_rgbd_a282_6000_20260917/height_0.95_exact/view_step_0091_stage_2.jpg"
+      ],
+      "depth": "Ideal renderer optical-Z, near clip0.01m; no stereo reconstruction/noise/distortion"
+    },
+    {
+      "directory": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+      "side": "LEFT",
+      "purpose": "Owner-completed visual evidence reused in closure; no replacement of DEV/CONF statistical evidence",
+      "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/video_manifest.json",
+      "composite": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/three_camera_rgb_depth.mp4",
+      "camera_install": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/camera_install.json",
+      "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/side_eval_h180_f45_a284_4000_20260917/asset_r1/camera_rig.json",
+      "optical_rig": "U3_F45_H180_SWAP 180mm/45deg optical extrinsics; physical main tower remains140mm",
+      "handle_height_m": 1.1,
+      "duration_s": 8.92,
+      "frame_count": 223,
+      "fps": 25,
+      "optical_extrinsics_only": true,
+      "views": [
+        "base_left_rgb_depth",
+        "base_right_rgb_depth",
+        "wrist_rgb_depth"
+      ],
+      "depth": "Ideal renderer optical-Z; near clip0.01m; no real sensor qualification"
+    },
+    {
+      "directory": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/run_r2",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+      "side": "LEFT",
+      "purpose": "Owner-completed visual evidence reused in closure; no replacement of DEV/CONF statistical evidence",
+      "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/run_r2/video_manifest.json",
+      "composite": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/run_r2/three_camera_rgb_depth.mp4",
+      "camera_install": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/run_r2/camera_install.json",
+      "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/side_eval_h180_f45_a284_4000_20260917/asset_r1/camera_rig.json",
+      "optical_rig": "U3_F45_H180_SWAP 180mm/45deg optical extrinsics; physical main tower remains140mm",
+      "handle_height_m": 1.1,
+      "duration_s": 9.6,
+      "frame_count": 240,
+      "fps": 25,
+      "optical_extrinsics_only": true,
+      "views": [
+        "base_left_rgb_depth",
+        "base_right_rgb_depth",
+        "wrist_rgb_depth"
+      ],
+      "depth": "Ideal renderer optical-Z; near clip0.01m; no real sensor qualification"
+    },
+    {
+      "directory": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_camera_visual_only_20260917",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+      "side": "LEFT",
+      "purpose": "Owner-completed visual evidence reused in closure; no replacement of DEV/CONF statistical evidence",
+      "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_camera_visual_only_20260917/video_manifest.json",
+      "composite": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_camera_visual_only_20260917/three_camera_rgb_depth.mp4",
+      "camera_install": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_camera_visual_only_20260917/camera_install.json",
+      "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/side_eval_h180_f45_a284_4000_20260917/asset_r1/camera_rig.json",
+      "optical_rig": "U3_F45_H180_SWAP 180mm/45deg optical extrinsics; physical main tower remains140mm",
+      "handle_height_m": 1.1,
+      "duration_s": 9.6,
+      "frame_count": 240,
+      "fps": 25,
+      "optical_extrinsics_only": true,
+      "views": [
+        "base_left_rgb_depth",
+        "base_right_rgb_depth",
+        "wrist_rgb_depth"
+      ],
+      "depth": "Ideal renderer optical-Z; near clip0.01m; no real sensor qualification",
+      "readme": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_camera_visual_only_20260917/README.md",
+      "visual_override": "13 camera housing/support visuals hidden in preview; collision retained; main asset/config unchanged per source README"
+    }
+  ],
+  "first_frame_decode_checks": [
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/owner_left_fourview_20260917/LEFT_clean_complete_four_views.mp4",
+      "decoded_first_frame": true,
+      "frames": 441,
+      "fps": 20.0,
+      "width": 2560,
+      "height": 1440
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_camera_visual_only_20260917/three_camera_rgb_depth.mp4",
+      "decoded_first_frame": true,
+      "frames": 240,
+      "fps": 25.0,
+      "width": 1920,
+      "height": 848
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/three_camera_rgb_depth.mp4",
+      "decoded_first_frame": true,
+      "frames": 223,
+      "fps": 25.0,
+      "width": 1920,
+      "height": 848
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/run_r2/three_camera_rgb_depth.mp4",
+      "decoded_first_frame": true,
+      "frames": 240,
+      "fps": 25.0,
+      "width": 1920,
+      "height": 848
+    }
+  ],
+  "reuse_limits": [
+    "Existing material is A282@6000 LEFT demonstration/coverage; it does not stand in for missing bilateral fixed-seed render lanes or qualification population.",
+    "H180/45deg optical preview is not the H140/38.76deg training contract or a hardware acceptance.",
+    "No backup-specific render was required after this explicit Owner waiver."
+  ],
+  "cancellation_proofs": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/render_cancel_process_proof_20260917.json",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/render_cancel_final_process_proof_20260917.json"
+  ],
+  "scheduled_render_outcomes": [
+    {
+      "id": "render_0_a_s282_step6000_left",
+      "status": "COMPLETE",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_render_0_a_s282_step6000_left_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1"
+    },
+    {
+      "id": "render_0_a_s282_step6000_right",
+      "status": "CANCELLED_BY_OWNER",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_render_0_a_s282_step6000_right_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_right/attempt1"
+    },
+    {
+      "id": "render_1_a_s284_step5000_left",
+      "status": "NOT_RUN_OWNER_REUSE",
+      "receipt": null,
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_1_a_s284_step5000_left/attempt1"
+    },
+    {
+      "id": "render_1_a_s284_step5000_right",
+      "status": "NOT_RUN_OWNER_REUSE",
+      "receipt": null,
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_1_a_s284_step5000_right/attempt1"
+    }
+  ]
+}

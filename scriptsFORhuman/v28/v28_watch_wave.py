@@ -581,7 +581,8 @@ def execution_terminal(state: dict[str, Any]) -> bool:
         return False
     renders = [task for task in state["tasks"].values() if task["kind"] == "render"]
     return all(task["status"] in {"COMPLETE", "INVALID", "STOPPED_POLICY_READOUT",
-                                  "STOPPED_INFRA_ATTEMPTS_EXHAUSTED", "NOT_COMPLETED_RENDER_BUDGET"} for task in renders)
+                                  "STOPPED_INFRA_ATTEMPTS_EXHAUSTED", "NOT_COMPLETED_RENDER_BUDGET",
+                                  "CANCELLED_BY_OWNER", "NOT_RUN_OWNER_REUSE"} for task in renders)
 
 
 def tick(path: Path) -> tuple[dict[str, Any], bool]:

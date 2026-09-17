@@ -1,0 +1,79 @@
+{
+  "schema": "a2_piper_v28_render_v1",
+  "status": "RENDER_COMPLETED",
+  "evidence_level": "RUNTIME",
+  "candidate": {
+    "cell": "A_S282",
+    "step": 6000,
+    "seed": 282,
+    "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+    "driver_target_stage": 4,
+    "weak_clean": 12,
+    "clean_sum": 73
+  },
+  "endpoint_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/wave_a_endpoint_lock.json",
+  "side": "left",
+  "seed": 280303,
+  "episode_ids": [
+    0,
+    1,
+    2
+  ],
+  "videos": [
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1/renderings/2026-09-17_17-21-08_env0000_episode0000_handle_side_len436_reason-complete.mp4",
+      "env_id": 0,
+      "episode_index": 0,
+      "camera": "handle_side"
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1/renderings/2026-09-17_17-21-08_env0000_episode0000_handle_top_len436_reason-complete.mp4",
+      "env_id": 0,
+      "episode_index": 0,
+      "camera": "handle_top"
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1/renderings/2026-09-17_17-21-08_env0000_episode0000_len436_reason-complete.mp4",
+      "env_id": 0,
+      "episode_index": 0,
+      "camera": "main"
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1/renderings/2026-09-17_17-21-08_env0001_episode0000_handle_side_len438_reason-complete.mp4",
+      "env_id": 1,
+      "episode_index": 0,
+      "camera": "handle_side"
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1/renderings/2026-09-17_17-21-08_env0001_episode0000_handle_top_len438_reason-complete.mp4",
+      "env_id": 1,
+      "episode_index": 0,
+      "camera": "handle_top"
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1/renderings/2026-09-17_17-21-08_env0001_episode0000_len438_reason-complete.mp4",
+      "env_id": 1,
+      "episode_index": 0,
+      "camera": "main"
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1/renderings/2026-09-17_17-21-08_env0002_episode0000_handle_side_len429_reason-complete.mp4",
+      "env_id": 2,
+      "episode_index": 0,
+      "camera": "handle_side"
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1/renderings/2026-09-17_17-21-08_env0002_episode0000_handle_top_len429_reason-complete.mp4",
+      "env_id": 2,
+      "episode_index": 0,
+      "camera": "handle_top"
+    },
+    {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/render_0_a_s282_step6000_left/attempt1/renderings/2026-09-17_17-21-08_env0002_episode0000_len429_reason-complete.mp4",
+      "env_id": 2,
+      "episode_index": 0,
+      "camera": "main"
+    }
+  ],
+  "scope": "Third-person main/handle views for QA; not a G2 optical or CAD acceptance."
+}

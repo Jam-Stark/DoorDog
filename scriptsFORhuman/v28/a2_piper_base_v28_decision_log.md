@@ -2,7 +2,7 @@
 
 更新：2026-09-12 17:18 HKT；本次修改：-codex planner；依据：-owner 已同意规划裁决并要求修改 plan、做好记录。历史执行记录保留各自时点与作者。
 
-当前更新（2026-09-17 16:58 HKT）：Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（D058）。A284最后完整日志迭代5167、最新保存checkpoint5000，6000训练终点与双侧评估取消；按原D039排序冻结主候选A_S282@6000（weak clean12、总73）和备选A_S284@5000（12、总38），身份在DEV启动前落锁。原三seed终点reach1/3（REACH_SEED_UNSTABLE）保持；资格门、C_T和固定DEV→CONF程序不变。
+当前更新（2026-09-17 17:35 HKT）：D059记录v28已收尾：原三seed6000 reach1/3（REACH_SEED_UNSTABLE）；固定主A282@6000与备A284@5000均未通过双侧exact128 DEV，clean分别123/47与69/52，CONF均NOT_RUN，资格为QUALIFICATION_NOT_CONFIRMED。A284按Owner D058于已打印5167迭代提前停止；D059复用既有render/三相机观察。
 
 以下 D018–D037 保留原讨论、暂停、事后修订与执行过程；末尾 D038–D040 为本次新决定，不回写原评审或旧运行结果。
 
@@ -387,3 +387,16 @@ Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（
 原reducer给出的完整历史条件仍为false、缺失项仅A284@6000。Owner本次授权覆盖等待条件；endpoint lock披露该例外和原始选择结果，候选顺序保持weak clean→clean总和→较晚milestone→较小seed，未因DEV结果重排。A284@4000为已入池但未进入固定前二的第三项，不追加资格搜索。主候选双侧DEV seed280101、exact128已于16:56HKT在GPU7/4启动；双侧通过才做seed280201 CONF，主候选未确认才验固定备选，最多八条lane。预定render和N01/N02增量复核仍须在实际closure交付；v29仅作为后续方向，未启动其实现或方法实验。
 
 证据：[Owner裁决与终止记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/owner_stop_training_wave_b_20260917.json)、[endpoint lock](runtime_logs/v28_camera_aware_rebaseline_20260909/wave_a_endpoint_lock.json)、[Wave B启动记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/wave_b_launch_receipt_20260917.json)。
+
+
+## V28-D059：固定Wave B结束、复用Owner render与v28 closure
+
+2026-09-17 17:35 HKT；修改：-codex Main；依据：-owner要求“render的话，我已经进行过了，这部分可以跳过，你可以查找我进行了多次render，包括3camera的视野观察，closure可以直接用现成的”，以及既定Wave B真实结果。
+
+主A282@6000的LEFT/RIGHT complete126/128、clean123/47；备A284@5000的complete128/126、clean69/52。四条自然exact128 DEV、seed280101均V28_COMPLETE、invalid_cells为空、integrity0、exit0。主LEFT通过，另外三条clean不足112；其complete集合内hinge不足分别81、59、74集。主LEFT身体接触3集，其余0；low-height/overspeed1/0/0/1，塔架>5N0/0/0/1。两个固定候选均未双侧通过DEV，CONF均按合同NOT_RUN；只使用4/8资格lane，未找第三名。资格结论QUALIFICATION_NOT_CONFIRMED，原三seed1/3保持。
+
+四条相机均CAMERA_UNMET、report-only；回位observed/censored为120/6、9/119、2/126、0/126，观测分位数只用于对应观察集，最后一条为null。完整阶段、quality、camera26字段及删失见[结构化结果](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/closure_evidence_20260917/qualification_summary.json)。
+
+已找到Owner的A282@6000 LEFT四视角、主线140mm/38.76°高低把手三相机帧、独立180mm/45°光学预览及隐藏visual包络视频。按原manifest/README标注配置与选择口径，只用于视觉材料；不替代资格统计。主LEFT固定render在取消处理前已完成9视频，保留；交接窗口启动的RIGHT已实际取消，备选两侧NOT_RUN_OWNER_REUSE。watcher/terminal等待取消并转入直接closure。终态识别增加Owner取消/素材复用两个状态；以当前实际state确认terminal，无训练/评估语义改动。
+
+N01/N02均CONTINUE有界立项设计、实验DEFER；本次X05增量回收完成。Owner更急切的后续改动优先，v29具体范围未定义。历史G1 closure和原始过程证据保留；旧canonical closure receipt归档后更新当前指针。[实际closure](a2_piper_base_v28_execution_closure_20260917.md)、[候选manifest](a2_piper_base_v28_teacher_candidate_manifest_20260917.json)、[render复用决定](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/owner_reuse_render_20260917.json)。

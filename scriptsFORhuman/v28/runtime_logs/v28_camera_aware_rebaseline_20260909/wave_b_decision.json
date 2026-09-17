@@ -1,12 +1,41 @@
 {
-  "schema": "a2_piper_base_v28_wave_b_decision_v1",
+  "schema": "a2_piper_base_v28_wave_b_decision_v2",
   "run_id": "v28_camera_aware_rebaseline_20260909",
-  "status": "NOT_STARTED",
-  "outcome": "PREREQUISITE_PENDING",
-  "source_state": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json",
   "source_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/source_lock_wave_a_20260914/source_lock.json",
-  "endpoint_lock": null,
-  "route_authority": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/owner_resume_wave_a_20260914.json",
-  "decision_log_id": "V28-D046",
-  "prior_stop_decision": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/archives/resume_wave_a_20260914T025619Z/wave_b_decision_before_resume.json"
+  "endpoint_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/wave_a_endpoint_lock.json",
+  "status": "QUALIFICATION_NOT_CONFIRMED",
+  "outcome": "QUALIFICATION_NOT_CONFIRMED",
+  "candidates": [
+    {
+      "cell": "A_S282",
+      "step": 6000,
+      "seed": 282,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+      "driver_target_stage": 4,
+      "weak_clean": 12,
+      "clean_sum": 73
+    },
+    {
+      "cell": "A_S284",
+      "step": 5000,
+      "seed": 284,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s284/attempt1/model_step_005000.pt",
+      "driver_target_stage": 5,
+      "weak_clean": 12,
+      "clean_sum": 38
+    }
+  ],
+  "qualified_candidate": null,
+  "source_reducers": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/reducers/qualification_0_dev.json",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/reducers/qualification_1_dev.json"
+  ],
+  "selection_rule": "Frozen primary then backup; bilateral DEV required for CONF",
+  "exact128_lanes": 4,
+  "route_authority": "plan §8.4 / V28-D039",
+  "decision_log_id": "V28-D039",
+  "updated_at": "2026-09-17T09:19:12+00:00",
+  "owner_render_reuse": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/owner_reuse_render_20260917.json",
+  "closure": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/a2_piper_base_v28_execution_closure_20260917.md",
+  "qualification_summary": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/closure_evidence_20260917/qualification_summary.json"
 }

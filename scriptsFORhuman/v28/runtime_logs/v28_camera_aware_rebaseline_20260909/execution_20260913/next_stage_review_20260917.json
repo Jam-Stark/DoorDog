@@ -1,0 +1,44 @@
+{
+  "schema": "a2_piper_v28_next_stage_review_v1",
+  "recorded_at": "2026-09-17 17:31 HKT",
+  "review_scope": "Resumed v28 closure after Owner D058/D059; focused scope_planner recommendation integrated by Main.",
+  "evidence_level": "INSPECTED with completed Wave B experiment references; no method experiment",
+  "v28_context": {
+    "qualification": "QUALIFICATION_NOT_CONFIRMED",
+    "original_three_seed_endpoint": "1/3 REACH_SEED_UNSTABLE",
+    "primary": "A_S282@6000 DEV clean123/128 LEFT,47/128 RIGHT",
+    "backup": "A_S284@5000 DEV clean69/128 LEFT,52/128 RIGHT",
+    "CONF": "NOT_RUN_DEV_DID_NOT_PASS_BILATERALLY",
+    "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/closure_evidence_20260917/qualification_summary.json"
+  },
+  "decisions": {
+    "N01": {
+      "disposition": "CONTINUE",
+      "scope": "Bounded pilot design only",
+      "experiment_execution": "DEFER",
+      "rationale": "Old recovery pilot remains UNRESOLVED: R1 endpoint absent, R2 loss exposure onlyLEFT5/64 RIGHT2/64. V28 nominal reach/completion does not establish induced-loss recovery benefit.",
+      "next_steps": [
+        "Distinguish unplanned grasp loss from planned release and define duration.",
+        "Design perturbation timing/magnitude and sham/nominal controls with all-injection denominator.",
+        "Specify asset/checkpoint, reachable interaction window and separate small budget before execution; only then decide multiseed."
+      ]
+    },
+    "N02": {
+      "disposition": "CONTINUE",
+      "scope": "Deployable sensing and identifiability design only",
+      "experiment_execution": "DEFER",
+      "rationale": "Offline shadow estimator excluded51 short-window episodes; neither failure/short-episode validity nor online adaptation benefit established. V28 qualification outcome does not settle this method question.",
+      "next_steps": [
+        "Define proprio/action history/gripper qpos and actual effort availability; do not equate simulator door state/hand_force to deployable input.",
+        "Stratify physical mass/friction, side and exposure including short/failed episodes and v27 unconverged domains.",
+        "Propose finite-domain pilot with separate scope/budget after informative interaction window is specified."
+      ]
+    }
+  },
+  "priority": "Owner urgent next-stage changes take priority. No automatic assignment to v29 and no new experiment authorization.",
+  "prior_review": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/next_stage_review.json",
+  "references": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/novelty/documents/20260914_v28_g1_closure_N01_N02.md",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/a2_piper_longterm_TODO.md"
+  ]
+}

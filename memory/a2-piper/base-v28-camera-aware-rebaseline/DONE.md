@@ -1,5 +1,7 @@
 # DONE
 
+- 2026-09-17 17:35 HKT：D059完成固定主备双侧exact128 DEV（4lane），主clean123/47、备69/52，均未通过双侧门，CONF按合同NOT_RUN。按Owner复用已有render/3camera材料并取消余下重复render；完成候选manifest、closure、N01/N02增量复核及deferred同步，原三seed1/3和A284提前停止分别披露。
+
 - 2026-09-17 16:58 HKT：D058按Owner指示实际终止A284及旧watcher/6000等待，清除本任务遗留Isaac子进程。已观察5167迭代、保存至5000；取消6000并披露完整历史未达成，按原排序冻结A282@6000主、A284@5000备；主候选双侧exact128 DEV已启动。
 
 - 2026-09-17 15:54 HKT：完成A284@5000双侧有效exact64；complete64/63、clean26/12，hinge失败38/51、RIGHT1集超速、tower0/0。相机失败、回位观测1/0及删失63/63、K末值.2已记录D057。持久wait因实际readout提前返回；继续6000，候选未冻结。

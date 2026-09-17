@@ -1,0 +1,29 @@
+{
+  "schema": "v28_execution_cleanup_v1",
+  "recorded_at": "2026-09-17T09:37:20+00:00",
+  "state": "COMPLETE",
+  "qualification": "QUALIFICATION_NOT_CONFIRMED",
+  "observations": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/closure_evidence_20260917/process_cleanup_observation.json",
+  "active_owned_processes": [],
+  "active_owned_tmux_sessions": [],
+  "active_owned_GPU_jobs": [],
+  "output_lease": {
+    "task": "v28_execution",
+    "status": "RELEASED"
+  },
+  "team_task": "done",
+  "legacy_v13_events": "Untouched; no training verdict inferred",
+  "acknowledged_v14_events": [
+    "v28_eval_qualification_0_dev_a_s282_left_a1--completion",
+    "v28_eval_qualification_0_dev_a_s282_right_a1--completion",
+    "v28_eval_qualification_1_dev_a_s284_left_a1--completion",
+    "v28_eval_qualification_1_dev_a_s284_right_a1--completion",
+    "v28_render_0_a_s282_step6000_left_a1--completion",
+    "v28_render_0_a_s282_step6000_right_a1--completion",
+    "v28_execution_20260913_watcher_a4--completion",
+    "v28_main_wait_terminal_owner_stop_20260917--completion"
+  ],
+  "unrelated_resources": "Unchanged",
+  "checkpoints_and_original_evidence": "Preserved",
+  "final_local_commit_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/final_local_commit_receipt_20260917.json"
+}

@@ -1,0 +1,12 @@
+{
+  "milestone": "wave_a_endpoint_lock",
+  "state": "COMMITTED",
+  "subject": "Freeze v28 candidates after owner training cutoff",
+  "committed_at": "2026-09-17T16:59:40+08:00",
+  "branch": "A2_Piper",
+  "write_set": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/endpoint_commit_write_set_20260917.json",
+  "scope_check": "PASS",
+  "diff_check": "PASS",
+  "push": false,
+  "live_state_policy": "Watcher owns live state; actual local commit tracked by this receipt until terminal closure."
+}

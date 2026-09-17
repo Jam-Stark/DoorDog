@@ -2,7 +2,7 @@
 name: novelty-research
 status: active
 scope: novelty选题、跨版本路线裁定、讨论来源与文档维护
-last_verified: 2026-09-14
+last_verified: 2026-09-17
 evidence: INSPECTED — 原会话、人类可读导出、现有plan与实验readout
 read_when:
   - 讨论或裁定novelty、恢复图、交互历史适应、coupling critic或Teacher shaping
@@ -20,6 +20,8 @@ related_entries:
 ---
 
 # Novelty 讨论与路线
+
+2026-09-17：v28恢复执行后的closure已完成N01/N02增量复核（D059/X05）。原三seedreach1/3，固定主备DEV均未双侧过门；两方法仍设计CONTINUE、实验DEFER，Owner更急切后续改动优先，未自动定义v29方法排期。[增量复核](../../../scriptsFORhuman/novelty/documents/20260917_v28_closure_N01_N02.md)。
 
 2026-09-14：v28 G1停止点已按D045完成N01/N02回收；两项CONTINUE仅指有界立项设计，实验执行DEFER。N01先建立扰动/失抓有效暴露与完整endpoint，N02先明确可部署输入及含短集/失败集的可辨识门域。X05本次复核义务关闭，方法条目仍开放；无新实验或收益确认。[证据与下次动作](../../../scriptsFORhuman/novelty/documents/20260914_v28_g1_closure_N01_N02.md)。
 

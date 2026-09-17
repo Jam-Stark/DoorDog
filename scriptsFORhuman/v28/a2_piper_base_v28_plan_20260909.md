@@ -1,9 +1,9 @@
 # `base_v28`：camera-aware bilateral Teacher re-baseline（MERGED、新姿态与分期相机合同）预注册计划
 
 日期：2026-09-09 HKT
-最近修订：2026-09-17 16:58 HKT；修改：-codex Main；依据：-owner D058提前终止训练并直接进入Wave B。
-运行入口状态：`WAVE_B_ACTIVE_OWNER_CUTOFF`。Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（D058）。A284最后完整日志迭代5167、最新保存checkpoint5000，6000训练终点与双侧评估取消；按原D039排序冻结主候选A_S282@6000（weak clean12、总73）和备选A_S284@5000（12、总38），身份在DEV启动前落锁。原三seed终点reach1/3（REACH_SEED_UNSTABLE）保持；资格门、C_T和固定DEV→CONF程序不变。 主候选双侧exact128 DEV已在GPU7/4启动；后续固定资格与render完成后closure。
-合同实现状态：D038–D040、G1续训/条件warm、固定主备DEV→CONF及readout/render/closure已同步；G1、原三seed6000及A284至5000已有实际证据。D058通过显式Owner记录裁剪A284剩余执行，未改reducer或训练/评估源码；原D040完整历史条件未达成，提前冻结依据单列。G1 PARTIAL未运行、warm取消；Wave B已启动。
+最近修订：2026-09-17 17:35 HKT；修改：-codex Main；依据：-owner D058/D059及固定Wave B实际结果。
+运行入口状态：`V28_EXECUTION_CLOSED_QUALIFICATION_NOT_CONFIRMED`。v28已收尾：原三seed6000 reach1/3（REACH_SEED_UNSTABLE）；固定主A282@6000与备A284@5000均未通过双侧exact128 DEV，clean分别123/47与69/52，CONF均NOT_RUN，资格为QUALIFICATION_NOT_CONFIRMED。A284按Owner D058于已打印5167迭代提前停止；D059复用既有render/三相机观察。 详见[a2_piper_base_v28_execution_closure_20260917.md](a2_piper_base_v28_execution_closure_20260917.md)。
+合同实现状态：G1、原三seed全六milestone、A284前五milestone、固定主备DEV、一个固定LEFT render及closure链已有实际证据。原A2846000和剩余重复render由Owner提前终止/豁免；历史条件未冒充达成。G1 PARTIAL、warm、CONF未运行原因单列；未新增测试套件或push。
 Owner 授权：当前可用GPU4–7（D046，受外部占用约束，见 §10）；G0/G1/Wave A/Wave B 按 §9及D046续行决定自主推进；四个本地 commit 点预授权；push、Teacher/Student G7 binding 更新、hardware 动作未授权。
 上游：v27 plan（`scriptsFORhuman/v27/a2_piper_base_v27_plan_20260905.md`）及其 Wave A/B 冻结结论；Wave C endpoint 是 v28 的条件输入（§8.3）。
 路线依据：`scriptsFORhuman/a2_piper_longterm_TODO.md` R 节（2026-09-05）与本文件 §1 决策记录（2026-09-09）。
@@ -15,6 +15,8 @@ run_id：`v28_camera_aware_rebaseline_20260909`
 本文件定义 Owner 批准的 v28 合同。Codex 开工 prompt 与本文件冲突时以本文件为准；实际行为以当前 source / resolved config 为证据。二者不一致时记录实现差距并同步已批准改动，不得把旧代码行为冒充新合同已实现，也不得静默改判。
 
 ---
+
+本轮render执行修订（Owner D059，2026-09-17）：closure复用已完成的行为视频与三相机视野材料，剩余重复render取消/NOT_RUN；主候选LEFT已完成的固定render保留，详见closure素材索引。
 
 ## 0. 结论与范围
 

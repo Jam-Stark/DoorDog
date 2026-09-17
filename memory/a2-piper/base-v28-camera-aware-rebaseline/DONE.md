@@ -1,5 +1,29 @@
 # DONE
 
+- 2026-09-17 16:58 HKT：D058按Owner指示实际终止A284及旧watcher/6000等待，清除本任务遗留Isaac子进程。已观察5167迭代、保存至5000；取消6000并披露完整历史未达成，按原排序冻结A282@6000主、A284@5000备；主候选双侧exact128 DEV已启动。
+
+- 2026-09-17 15:54 HKT：完成A284@5000双侧有效exact64；complete64/63、clean26/12，hinge失败38/51、RIGHT1集超速、tower0/0。相机失败、回位观测1/0及删失63/63、K末值.2已记录D057。持久wait因实际readout提前返回；继续6000，候选未冻结。
+
+- 2026-09-17 08:46 HKT：完成A284@4000双侧有效exact64，首次双侧complete64、clean13/12；hinge失败50/52与body1/0、相机失败、回位19/17观测及45/47删失、K末值.294086已记录D056。持久wait因实际readout提前返回；继续5000/6000，候选未冻结。
+
+- 2026-09-17 01:42 HKT：完成A284@3000双侧有效exact64；LEFT complete0、RIGHT complete64/clean32，RIGHT不clean为hinge32集，双侧tower0。相机失败、回位删失0/64和K过程量已记录D055；原3000到期后实际readout在本次follow-up处理。继续既定6000，候选未冻结。
+
+- 2026-09-16 18:26 HKT：完成A284@2000双侧有效exact64；S4各64、S5为9/1、complete0，身体/hinge/camera删失与K=1.0已记录。D054保持既定6000合同；实际续期参数遗漏已纠正并由readout验证等待路径。原三seed终点1/3单列，候选未冻结。
+
+- 2026-09-16 11:06 HKT：完成A284@1000双侧有效exact64，早期Stage3/4与无完成、camera null、K=1.0均记录；D053维持原6000合同，首个独立等待路径实际验证。原三seed终点1/3单列，资格尚未执行。
+
+- 2026-09-16 10:30 HKT：完成原三seed6000六条有效exact64及终点可靠性1/3（REACH_SEED_UNSTABLE）判定；质量/camera/K分量与删失已记录。D052确认A284已在GPU5从scratch实际启动，候选冻结待其完整六milestone，未提前运行资格或新增commit。
+
+- 2026-09-16 00:11 HKT：D051触发后的A284独立milestone等待目标已接入；逐个匹配watcher既有readout路径，实际等待验证留待首个A284 milestone。原6000等待与训练配置未改；未新增测试或实验。
+
+- 2026-09-15 21:59 HKT：完成原三seed step5000六条有效exact64与readout；281超速、282身体接触/hinge、283塔架与无完成分量及camera/K证据已记录。D051确认283在4000/5000触发D31，A284按原合同排队，原三seed继续6000；候选冻结待实际A284完整证据。未新增commit节点。
+
+- 2026-09-15 14:45 HKT：完成原三seed step4000双侧共6条exact64与readout，全部有效。281完成64/64、clean47/38，282完成36/33、clean3/2，283无完成；塔架、身体接触、相机逐stage与回位删失、K trace分量已报告。D050记录相邻条件未满足、不启动A284、继续原6000及下一等待依据；未新增commit节点。
+
+- 2026-09-15 07:41 HKT：完成原三seed step3000双侧共6条exact64与readout，全部有效。281完成5/64、clean1/40，282/283无完成；塔架、身体接触、相机逐stage与回位删失、K trace分量已报告。D049记录相邻条件未满足、不启动A284、继续原6000及下一等待依据；未新增commit节点。
+
+- 2026-09-15 00:48 HKT：完成原三seed step2000双侧共6条exact64与readout，全部有效。281双侧到Stage4但所有seed complete/clean仍0；相机、塔架/身体接触、回位删失及K trace已报告。D048记录A284尚未满足相邻两时点条件、继续原6000及下一等待依据；未新增commit节点。
+
 - 2026-09-14 18:14 HKT：完成原三seed step1000双侧共6条exact64与readout；全部有效，实际scratch/4096/Ktarget4/reset合同成立。早期D/S4+/complete为0，按D046继续6000，不提前给终点结论；D047记录预算、A284未触发和下一等待依据。
 
 - 2026-09-14 10:54 HKT：记录Owner D046明确批准原三seed scratch续行；G1不改判、warm取消、500纳入总账。完成一次G1科学source/config/asset与当前字节连续性比对；授权与STATIC事实不等于Wave A已运行。

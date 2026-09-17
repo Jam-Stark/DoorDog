@@ -1,0 +1,16 @@
+{
+  "schema": "a2_piper_v28_main_wait_v1",
+  "target": "a284_step5000",
+  "state": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json",
+  "wait_until_epoch": 1789632835.716304,
+  "created_at": "2026-09-17T00:47:21+00:00",
+  "notifications_seen": 2,
+  "status": "RETURNED",
+  "waiter_pid": 454796,
+  "returned_at": "2026-09-17T07:50:11+00:00",
+  "return_reason": "MILESTONE_READOUT_READY",
+  "g1_status": "FAIL",
+  "wave_a_status": "ACTIVE",
+  "wave_b_status": "NOT_STARTED",
+  "watcher_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher_a3/RUN_RECEIPT.json"
+}

@@ -1,0 +1,136 @@
+{
+  "recorded_at": "2026-09-15 21:59 HKT",
+  "source_state": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json",
+  "wave_a_status": "A284_PENDING_GPU",
+  "wave_b_status": "NOT_STARTED",
+  "stop": null,
+  "budget": {
+    "cap_batches": 36500,
+    "scheduled_batches": 6000,
+    "active_reserved_batches": 18000,
+    "actual_consumed_batches": 500
+  },
+  "watcher_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher_a3/RUN_RECEIPT.json",
+  "allowed_gpus": [
+    4,
+    5,
+    6,
+    7
+  ],
+  "training_gpus": [
+    4,
+    5,
+    6
+  ],
+  "tasks": {
+    "wave_a_s281": {
+      "kind": "train",
+      "cell": "A_S281",
+      "step": 6000,
+      "status": "LAUNCHED",
+      "attempt": 1,
+      "gpu": 4,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_wave_a_s281_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1"
+    },
+    "wave_a_s282": {
+      "kind": "train",
+      "cell": "A_S282",
+      "step": 6000,
+      "status": "LAUNCHED",
+      "attempt": 1,
+      "gpu": 5,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_wave_a_s282_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1"
+    },
+    "wave_a_s283": {
+      "kind": "train",
+      "cell": "A_S283",
+      "step": 6000,
+      "status": "LAUNCHED",
+      "attempt": 1,
+      "gpu": 6,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_wave_a_s283_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1"
+    },
+    "eval_milestone_wave_a_s282_5000_a_s282_left": {
+      "kind": "eval",
+      "cell": "A_S282",
+      "step": 5000,
+      "status": "COMPLETE",
+      "attempt": 1,
+      "gpu": 7,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s282_5000_a_s282_left_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s282_5000_a_s282_left/attempt1"
+    },
+    "eval_milestone_wave_a_s282_5000_a_s282_right": {
+      "kind": "eval",
+      "cell": "A_S282",
+      "step": 5000,
+      "status": "COMPLETE",
+      "attempt": 1,
+      "gpu": 7,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s282_5000_a_s282_right_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s282_5000_a_s282_right/attempt1"
+    },
+    "eval_milestone_wave_a_s283_5000_a_s283_left": {
+      "kind": "eval",
+      "cell": "A_S283",
+      "step": 5000,
+      "status": "COMPLETE",
+      "attempt": 1,
+      "gpu": 7,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s283_5000_a_s283_left_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_5000_a_s283_left/attempt1"
+    },
+    "eval_milestone_wave_a_s283_5000_a_s283_right": {
+      "kind": "eval",
+      "cell": "A_S283",
+      "step": 5000,
+      "status": "COMPLETE",
+      "attempt": 1,
+      "gpu": 7,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s283_5000_a_s283_right_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_5000_a_s283_right/attempt1"
+    },
+    "wave_a_s284": {
+      "kind": "train",
+      "cell": "A_S284",
+      "step": 6000,
+      "status": "PENDING_GPU",
+      "attempt": 1,
+      "gpu": null,
+      "receipt": null,
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s284/attempt1"
+    },
+    "eval_milestone_wave_a_s281_5000_a_s281_left": {
+      "kind": "eval",
+      "cell": "A_S281",
+      "step": 5000,
+      "status": "COMPLETE",
+      "attempt": 1,
+      "gpu": 7,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s281_5000_a_s281_left_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_5000_a_s281_left/attempt1"
+    },
+    "eval_milestone_wave_a_s281_5000_a_s281_right": {
+      "kind": "eval",
+      "cell": "A_S281",
+      "step": 5000,
+      "status": "COMPLETE",
+      "attempt": 1,
+      "gpu": 7,
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s281_5000_a_s281_right_a1/RUN_RECEIPT.json",
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_5000_a_s281_right/attempt1"
+    }
+  },
+  "handled_event_ids": [
+    "v28_eval_milestone_wave_a_s282_5000_a_s282_left_a1--completion",
+    "v28_eval_milestone_wave_a_s282_5000_a_s282_right_a1--completion",
+    "v28_eval_milestone_wave_a_s283_5000_a_s283_left_a1--completion",
+    "v28_eval_milestone_wave_a_s283_5000_a_s283_right_a1--completion",
+    "v28_eval_milestone_wave_a_s281_5000_a_s281_left_a1--completion",
+    "v28_eval_milestone_wave_a_s281_5000_a_s281_right_a1--completion",
+    "v28_main_wait_step5000_20260915--completion"
+  ]
+}

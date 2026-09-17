@@ -1,0 +1,971 @@
+{
+  "schema": "a2_piper_v28_milestone_handling_v1",
+  "step": 4000,
+  "recorded_at": "2026-09-15 14:45 HKT",
+  "decision_log_id": "V28-D050",
+  "status": "V28_COMPLETE",
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/aggregates/wave_a_step4000_reducer.json",
+  "source_manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/aggregates/wave_a_step4000_manifest.json",
+  "source_readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step4000_aggregate.md",
+  "summary": {
+    "A_S281": {
+      "left": {
+        "episodes": 64,
+        "D": 64,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 64,
+        "complete": 64,
+        "clean_complete": 47,
+        "hold_through": 64,
+        "crossing_while_holding": 64,
+        "post_release_body_force_p95": 0.0,
+        "first_crossing_hinge_p50": 1.1176317930221558,
+        "episode_length_p50": 466.0,
+        "arm_j4_limit_residence_step_share": 0.011708732622486166,
+        "terminal_reasons": {
+          "complete": 64
+        },
+        "integrity_violations": 0,
+        "clean_complete_components": {
+          "complete": 64,
+          "clean_complete": 47,
+          "hinge_below_1p0472": 17,
+          "body_contact_above_5N": 0,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 0,
+        "wrist_tower_contact_step_share": 0.0,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_004000.pt"
+      },
+      "right": {
+        "episodes": 64,
+        "D": 28,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 64,
+        "complete": 64,
+        "clean_complete": 38,
+        "hold_through": 63,
+        "crossing_while_holding": 63,
+        "post_release_body_force_p95": 603.2662353515625,
+        "first_crossing_hinge_p50": 1.4167760610580444,
+        "episode_length_p50": 433.0,
+        "arm_j4_limit_residence_step_share": 0.011519988443898739,
+        "terminal_reasons": {
+          "complete": 64
+        },
+        "integrity_violations": 0,
+        "clean_complete_components": {
+          "complete": 64,
+          "clean_complete": 38,
+          "hinge_below_1p0472": 0,
+          "body_contact_above_5N": 26,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 0,
+        "wrist_tower_contact_step_share": 0.0,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_004000.pt"
+      }
+    },
+    "A_S282": {
+      "left": {
+        "episodes": 64,
+        "D": 62,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 61,
+        "complete": 36,
+        "clean_complete": 3,
+        "hold_through": 61,
+        "crossing_while_holding": 61,
+        "post_release_body_force_p95": 1009.9810791015625,
+        "first_crossing_hinge_p50": 1.1132110357284546,
+        "episode_length_p50": 955.0,
+        "arm_j4_limit_residence_step_share": 0.0002676525201157597,
+        "terminal_reasons": {
+          "stage_overtime": 28,
+          "complete": 36
+        },
+        "integrity_violations": 0,
+        "clean_complete_components": {
+          "complete": 36,
+          "clean_complete": 3,
+          "hinge_below_1p0472": 17,
+          "body_contact_above_5N": 33,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 13,
+        "wrist_tower_contact_step_share": 0.0048010170795764395,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_004000.pt"
+      },
+      "right": {
+        "episodes": 64,
+        "D": 64,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 33,
+        "complete": 33,
+        "clean_complete": 2,
+        "hold_through": 64,
+        "crossing_while_holding": 64,
+        "post_release_body_force_p95": 94.43220520019531,
+        "first_crossing_hinge_p50": 0.873809278011322,
+        "episode_length_p50": 806.0,
+        "arm_j4_limit_residence_step_share": 0.0,
+        "terminal_reasons": {
+          "stage_overtime": 31,
+          "complete": 33
+        },
+        "integrity_violations": 0,
+        "clean_complete_components": {
+          "complete": 33,
+          "clean_complete": 2,
+          "hinge_below_1p0472": 30,
+          "body_contact_above_5N": 8,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 0,
+        "wrist_tower_contact_step_share": 0.0,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_004000.pt"
+      }
+    },
+    "A_S283": {
+      "left": {
+        "episodes": 64,
+        "D": 64,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 0,
+        "complete": 0,
+        "clean_complete": 0,
+        "hold_through": 64,
+        "crossing_while_holding": 64,
+        "post_release_body_force_p95": 0.0,
+        "first_crossing_hinge_p50": 0.9862214922904968,
+        "episode_length_p50": 754.0,
+        "arm_j4_limit_residence_step_share": 0.0,
+        "terminal_reasons": {
+          "stage_overtime": 64
+        },
+        "integrity_violations": 0,
+        "clean_complete_components": {
+          "complete": 0,
+          "clean_complete": 0,
+          "hinge_below_1p0472": 0,
+          "body_contact_above_5N": 0,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 0,
+        "wrist_tower_contact_step_share": 0.0,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/model_step_004000.pt"
+      },
+      "right": {
+        "episodes": 64,
+        "D": 64,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 7,
+        "complete": 0,
+        "clean_complete": 0,
+        "hold_through": 63,
+        "crossing_while_holding": 63,
+        "post_release_body_force_p95": 649.7294311523438,
+        "first_crossing_hinge_p50": 1.3749700784683228,
+        "episode_length_p50": 754.0,
+        "arm_j4_limit_residence_step_share": 0.0,
+        "terminal_reasons": {
+          "stage_overtime": 64
+        },
+        "integrity_violations": 0,
+        "clean_complete_components": {
+          "complete": 0,
+          "clean_complete": 0,
+          "hinge_below_1p0472": 0,
+          "body_contact_above_5N": 0,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 26,
+        "wrist_tower_contact_step_share": 0.051003765378652116,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/model_step_004000.pt"
+      }
+    }
+  },
+  "evidence_level": "RUNTIME_OBSERVATION",
+  "disposition": "CONTINUE_ORIGINAL_6000_BATCH_CONTRACT",
+  "a284_triggered": false,
+  "a284_reason": "No same-seed adjacent milestone pair qualifies. A_S281 complete64/64 and A_S282 complete36/33 at4000 exceed4; A_S283 first reaches bilateral S4+64/64 with complete0/0 at4000, while3000 right S4+=0. No A_S284 task exists.",
+  "original_three_seed_endpoint": "NOT_YET_EVALUATED",
+  "G1": "WARM_FAIL_PRESERVED",
+  "warm_arm": "CANCELLED",
+  "camera": {
+    "A_S281": {
+      "left": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 319.201123420418,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 164.22704451608982,
+            "limit": 250,
+            "pass": true
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 169.7524449085292,
+            "limit": 150,
+            "pass": false
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": 377.55944340172266,
+            "limit": 90,
+            "pass": false
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.01223990208078322,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": 0.5212121212120957,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 5.292792792792879,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 3.952785012181013,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 3.131986737251281,
+            "limit": 0.5,
+            "pass": false
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.23373184626494423,
+            "limit": 0.05,
+            "pass": false
+          },
+          "post_release_return_p50_s": {
+            "value": null,
+            "limit": 2.0,
+            "pass": null
+          },
+          "post_release_return_p95_s": {
+            "value": null,
+            "limit": 4.0,
+            "pass": null
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 12463,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 0,
+          "right_censored_episodes": 64,
+          "observed": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "censor_duration": {
+            "min": 2.24,
+            "p5": 2.28,
+            "p50": 2.620000000000001,
+            "p95": 2.9970000000000008,
+            "max": 3.500000000000001
+          }
+        }
+      },
+      "right": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 256.06109207878626,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 227.52843133436656,
+            "limit": 250,
+            "pass": true
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 138.39699765169925,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": 226.05613739997887,
+            "limit": 90,
+            "pass": false
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.03419972640218891,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": 0.48802129547463374,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 1.3189448441247213,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 2.005057803468303,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 4.848754324763988,
+            "limit": 0.5,
+            "pass": false
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.12462578999889123,
+            "limit": 0.05,
+            "pass": false
+          },
+          "post_release_return_p50_s": {
+            "value": 1.8200000000000003,
+            "limit": 2.0,
+            "pass": true
+          },
+          "post_release_return_p95_s": {
+            "value": 2.42,
+            "limit": 4.0,
+            "pass": true
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 18038,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 41,
+          "right_censored_episodes": 20,
+          "observed": {
+            "min": 1.2800000000000002,
+            "p5": 1.6399999999999997,
+            "p50": 1.8200000000000003,
+            "p95": 2.42,
+            "max": 2.5200000000000005
+          },
+          "censor_duration": {
+            "min": 3.9399999999999995,
+            "p5": 3.959,
+            "p50": 4.130000000000001,
+            "p95": 4.662,
+            "max": 4.7
+          }
+        }
+      }
+    },
+    "A_S282": {
+      "left": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 114.16499021404366,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 306.4856438655177,
+            "limit": 250,
+            "pass": false
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 59.51546511165658,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": 204.1499261227114,
+            "limit": 90,
+            "pass": false
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.03864983251739158,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": 0.35516605166060694,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 2.4858757062147303,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 1.5853743148552948,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 4.655685447156429,
+            "limit": 0.5,
+            "pass": false
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.09405902047808144,
+            "limit": 0.05,
+            "pass": false
+          },
+          "post_release_return_p50_s": {
+            "value": 0.7299999999999995,
+            "limit": 2.0,
+            "pass": true
+          },
+          "post_release_return_p95_s": {
+            "value": 1.907000000000001,
+            "limit": 4.0,
+            "pass": true
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 25686,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 32,
+          "right_censored_episodes": 0,
+          "observed": {
+            "min": 0.40000000000000036,
+            "p5": 0.41999999999999993,
+            "p50": 0.7299999999999995,
+            "p95": 1.907000000000001,
+            "max": 2.1799999999999997
+          },
+          "censor_duration": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        }
+      },
+      "right": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 260.80506051510656,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 174.25296870971775,
+            "limit": 250,
+            "pass": true
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 141.77712785082664,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": 295.29636778272237,
+            "limit": 90,
+            "pass": false
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.05319148936170059,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": 0.1175180194296584,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 7.421875000000117,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 4.697568635947645,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 4.035311585664752,
+            "limit": 0.5,
+            "pass": false
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.3090145522023635,
+            "limit": 0.05,
+            "pass": false
+          },
+          "post_release_return_p50_s": {
+            "value": 1.42,
+            "limit": 2.0,
+            "pass": true
+          },
+          "post_release_return_p95_s": {
+            "value": 4.12,
+            "limit": 4.0,
+            "pass": false
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 10239,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 17,
+          "right_censored_episodes": 17,
+          "observed": {
+            "min": 1.0999999999999996,
+            "p5": 1.1639999999999997,
+            "p50": 1.42,
+            "p95": 4.12,
+            "max": 4.280000000000001
+          },
+          "censor_duration": {
+            "min": 0.2400000000000002,
+            "p5": 2.5760000000000005,
+            "p50": 3.700000000000001,
+            "p95": 4.4879999999999995,
+            "max": 5.0
+          }
+        }
+      }
+    },
+    "A_S283": {
+      "left": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 132.5604792063063,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 294.7066251680909,
+            "limit": 250,
+            "pass": false
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 97.88187910255385,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": null,
+            "limit": 90,
+            "pass": null
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.05372011818425833,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": null,
+            "limit": 1.5,
+            "pass": null
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 0.7853403141361379,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 2.3395413267674683,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 0.16816163538023826,
+            "limit": 0.5,
+            "pass": true
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.0,
+            "limit": 0.05,
+            "pass": true
+          },
+          "post_release_return_p50_s": {
+            "value": null,
+            "limit": 2.0,
+            "pass": null
+          },
+          "post_release_return_p95_s": {
+            "value": null,
+            "limit": 4.0,
+            "pass": null
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 3787,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 0,
+          "right_censored_episodes": 3,
+          "observed": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "censor_duration": {
+            "min": 2.540000000000001,
+            "p5": 2.674000000000001,
+            "p50": 3.880000000000001,
+            "p95": 3.880000000000001,
+            "max": 3.880000000000001
+          }
+        }
+      },
+      "right": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 116.33461438154828,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 265.7190271484035,
+            "limit": 250,
+            "pass": false
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 102.75443421862515,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": 138.84854975590903,
+            "limit": 90,
+            "pass": false
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.04061738424045357,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": 0.08535336292250195,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 2.4463007159904926,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 3.8381538634530497,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 2.526148549625941,
+            "limit": 0.5,
+            "pass": false
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.41132526520245033,
+            "limit": 0.05,
+            "pass": false
+          },
+          "post_release_return_p50_s": {
+            "value": null,
+            "limit": 2.0,
+            "pass": null
+          },
+          "post_release_return_p95_s": {
+            "value": null,
+            "limit": 4.0,
+            "pass": null
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 6693,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 0,
+          "right_censored_episodes": 19,
+          "observed": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "censor_duration": {
+            "min": 0.20000000000000107,
+            "p5": 1.262000000000001,
+            "p50": 5.460000000000001,
+            "p95": 10.005999999999998,
+            "max": 11.320000000000002
+          }
+        }
+      }
+    }
+  },
+  "k_driver_trace": {
+    "A_S281": {
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/a2_v26_8_penalty_curriculum_trace.jsonl",
+      "through_batch": 4000,
+      "updates": 255919,
+      "first": {
+        "update_index": 0,
+        "common_step": 0,
+        "scale_before": 1.0,
+        "scale_after": 1.0,
+        "driver_left": null,
+        "driver_right": null,
+        "natural_sample_left": 0,
+        "natural_sample_right": 0,
+        "natural_reached_left": 0,
+        "natural_reached_right": 0,
+        "consumed": false,
+        "skipped": true
+      },
+      "last": {
+        "update_index": 255918,
+        "common_step": 256000,
+        "scale_before": 0.20000000298023224,
+        "scale_after": 0.20000000298023224,
+        "driver_left": 1.0,
+        "driver_right": null,
+        "natural_sample_left": 2,
+        "natural_sample_right": 0,
+        "natural_reached_left": 2,
+        "natural_reached_right": 0,
+        "consumed": false,
+        "skipped": true
+      },
+      "scale_min": 0.20000000298023224,
+      "scale_max": 1.0,
+      "scope": "Observed training curriculum updates through the requested batch; not an independent causal comparison."
+    },
+    "A_S282": {
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/a2_v26_8_penalty_curriculum_trace.jsonl",
+      "through_batch": 4000,
+      "updates": 255955,
+      "first": {
+        "update_index": 0,
+        "common_step": 0,
+        "scale_before": 1.0,
+        "scale_after": 1.0,
+        "driver_left": null,
+        "driver_right": null,
+        "natural_sample_left": 0,
+        "natural_sample_right": 0,
+        "natural_reached_left": 0,
+        "natural_reached_right": 0,
+        "consumed": false,
+        "skipped": true
+      },
+      "last": {
+        "update_index": 255954,
+        "common_step": 256000,
+        "scale_before": 0.20000000298023224,
+        "scale_after": 0.20000000298023224,
+        "driver_left": 1.0,
+        "driver_right": 0.75,
+        "natural_sample_left": 1,
+        "natural_sample_right": 4,
+        "natural_reached_left": 1,
+        "natural_reached_right": 3,
+        "consumed": true,
+        "skipped": false
+      },
+      "scale_min": 0.20000000298023224,
+      "scale_max": 1.0,
+      "scope": "Observed training curriculum updates through the requested batch; not an independent causal comparison."
+    },
+    "A_S283": {
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/a2_v26_8_penalty_curriculum_trace.jsonl",
+      "through_batch": 4000,
+      "updates": 255952,
+      "first": {
+        "update_index": 0,
+        "common_step": 0,
+        "scale_before": 1.0,
+        "scale_after": 1.0,
+        "driver_left": null,
+        "driver_right": null,
+        "natural_sample_left": 0,
+        "natural_sample_right": 0,
+        "natural_reached_left": 0,
+        "natural_reached_right": 0,
+        "consumed": false,
+        "skipped": true
+      },
+      "last": {
+        "update_index": 255951,
+        "common_step": 256000,
+        "scale_before": 0.20000000298023224,
+        "scale_after": 0.20000000298023224,
+        "driver_left": 1.0,
+        "driver_right": 1.0,
+        "natural_sample_left": 1,
+        "natural_sample_right": 5,
+        "natural_reached_left": 1,
+        "natural_reached_right": 5,
+        "consumed": true,
+        "skipped": false
+      },
+      "scale_min": 0.20000000298023224,
+      "scale_max": 1.0,
+      "scope": "Observed training curriculum updates through the requested batch; not an independent causal comparison."
+    }
+  },
+  "progress_snapshot_from_main": {
+    "A_S281": {
+      "completed_iteration_lower_bound": 4050,
+      "last_four_iteration_seconds": [
+        24.4,
+        24.24,
+        23.93,
+        23.92
+      ],
+      "mean_iteration_seconds": 24.1225,
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/runtime.log"
+    },
+    "A_S282": {
+      "completed_iteration_lower_bound": 4177,
+      "last_four_iteration_seconds": [
+        23.04,
+        23.06,
+        23.02,
+        23.07
+      ],
+      "mean_iteration_seconds": 23.0475,
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/runtime.log"
+    },
+    "A_S283": {
+      "completed_iteration_lower_bound": 4169,
+      "last_four_iteration_seconds": [
+        23.84,
+        23.86,
+        23.83,
+        23.84
+      ],
+      "mean_iteration_seconds": 23.8425,
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/runtime.log"
+    }
+  },
+  "eval_runtime_from_main": {
+    "lanes": [
+      {
+        "task": "eval_milestone_wave_a_s282_4000_a_s282_left",
+        "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s282_4000_a_s282_left_a1/RUN_RECEIPT.json",
+        "gpu": 7,
+        "exit_code": 0,
+        "launched_epoch": 1789450181.472082,
+        "finished_epoch": 1789450827.391356,
+        "process_seconds": 645.9192740917206
+      },
+      {
+        "task": "eval_milestone_wave_a_s282_4000_a_s282_right",
+        "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s282_4000_a_s282_right_a1/RUN_RECEIPT.json",
+        "gpu": 7,
+        "exit_code": 0,
+        "launched_epoch": 1789450832.8557522,
+        "finished_epoch": 1789451369.9379442,
+        "process_seconds": 537.0821919441223
+      },
+      {
+        "task": "eval_milestone_wave_a_s283_4000_a_s283_left",
+        "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s283_4000_a_s283_left_a1/RUN_RECEIPT.json",
+        "gpu": 7,
+        "exit_code": 0,
+        "launched_epoch": 1789451576.8784091,
+        "finished_epoch": 1789452051.9232624,
+        "process_seconds": 475.0448532104492
+      },
+      {
+        "task": "eval_milestone_wave_a_s283_4000_a_s283_right",
+        "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s283_4000_a_s283_right_a1/RUN_RECEIPT.json",
+        "gpu": 7,
+        "exit_code": 0,
+        "launched_epoch": 1789452098.9556305,
+        "finished_epoch": 1789452623.6096406,
+        "process_seconds": 524.6540100574493
+      },
+      {
+        "task": "eval_milestone_wave_a_s281_4000_a_s281_left",
+        "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s281_4000_a_s281_left_a1/RUN_RECEIPT.json",
+        "gpu": 7,
+        "exit_code": 0,
+        "launched_epoch": 1789453346.3312187,
+        "finished_epoch": 1789453686.83833,
+        "process_seconds": 340.50711131095886
+      },
+      {
+        "task": "eval_milestone_wave_a_s281_4000_a_s281_right",
+        "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s281_4000_a_s281_right_a1/RUN_RECEIPT.json",
+        "gpu": 7,
+        "exit_code": 0,
+        "launched_epoch": 1789453740.7548888,
+        "finished_epoch": 1789454074.3224614,
+        "process_seconds": 333.56757259368896
+      }
+    ],
+    "return_codes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "total_process_seconds": 2856.7750132083893,
+    "serial_wall_seconds": 3892.8503794670105,
+    "gpu": 7
+  },
+  "budget_accounting": {
+    "closed_invocations_actual_batches": 500,
+    "active_reserved_batches": 18000,
+    "scheduled_batches": 0,
+    "cap_batches": 36500,
+    "progress_lower_bound_from_saved_checkpoints_including_G1": 12500,
+    "note": "Closed-invocation actual remains500 while original training invocations are active; it is not current total training progress."
+  },
+  "next_wait": {
+    "target": "step5000",
+    "until_epoch": 1789482631.352475,
+    "until_hkt": "2026-09-15T22:30:31+08:00",
+    "eta_basis": "Single bounded runtime observation: slowest A_S281 completed iteration4050, 950 remaining at mean24.1225s (~6.37h), plus observed six-lane step4000 serial eval wall3892.9s (64.9min) and scheduling/readout margin. Wait7h45 from handling. Stable GPU availability/throughput assumed; actual readout/failure returns early."
+  },
+  "commit": "NO_NEW_COMMIT_NODE_AT_STEP4000; next authorized node is endpoint lock. Step1000 commit already recorded separately.",
+  "limitations": [
+    "This is a milestone observation, not the original three-seed6000 endpoint verdict or DEV/CONF qualification.",
+    "Camera motion is report-only; null and right-censored return events are retained. Geometric camera proxies do not establish optical/hardware validity or X25 base-pose instability.",
+    "K trace is observed curriculum behavior, not a causal comparison."
+  ]
+}

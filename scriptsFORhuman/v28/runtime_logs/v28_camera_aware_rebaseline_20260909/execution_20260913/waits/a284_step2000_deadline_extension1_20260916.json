@@ -1,0 +1,68 @@
+{
+  "schema": "a2_piper_v28_wait_extension_v1",
+  "recorded_at": "2026-09-16T10:08:59.448121+00:00",
+  "reason": "FIXED_DECISION_DEADLINE_WITH_BILATERAL_EVAL_PENDING",
+  "previous_wait": {
+    "schema": "a2_piper_v28_main_wait_v1",
+    "target": "a284_step2000",
+    "state": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json",
+    "wait_until_epoch": 1789553205.549945,
+    "created_at": "2026-09-16T03:07:31+00:00",
+    "notifications_seen": 2,
+    "status": "RETURNED",
+    "waiter_pid": 3085979,
+    "returned_at": "2026-09-16T10:06:45+00:00",
+    "return_reason": "FIXED_DECISION_DEADLINE",
+    "g1_status": "FAIL",
+    "wave_a_status": "ACTIVE",
+    "wave_b_status": "NOT_STARTED",
+    "watcher_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher_a3/RUN_RECEIPT.json"
+  },
+  "previous_handoff": {
+    "schema": "a2_piper_v28_main_wait_handoff_v1",
+    "target": "a284_step2000",
+    "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_a284_step2000_20260916/RUN_RECEIPT.json",
+    "tmux_session": "v28_main_wait_a284_step2000_20260916",
+    "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python -B /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/v28_wait.py --state /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json --target a284_step2000 --until-epoch 1789553205.549945",
+    "next_wait": {
+      "target": "a284_step2000",
+      "until_epoch": 1789553205.549945,
+      "until_hkt": "2026-09-16T18:06:45+08:00",
+      "eta_basis": "A284 iteration1026 observed11:04:42HKT,974 batches remaining to2000; last four times24.26/24.48/25.07/23.51s mean24.33s gives6.58h training. First bilateral evaluation ran in parallel onGPU7/4, max401.4s plus readout. Allow7h from handling for training, evaluation and scheduling margin; actual readout/failure returns early."
+    },
+    "milestone_record": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/a284_step1000.json",
+    "watcher_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher_a3/RUN_RECEIPT.json"
+  },
+  "observation": {
+    "observed_at": "2026-09-16T10:07:29.495541+00:00",
+    "iteration": 2017,
+    "last_iteration_seconds": [
+      24.51,
+      25.1,
+      24.86,
+      24.88
+    ],
+    "mean_iteration_seconds": 24.8375,
+    "left_eval": "LAUNCHED_GPU7",
+    "right_eval": "PENDING_GPU",
+    "bilateral_readout_exists": false
+  },
+  "next_wait": {
+    "target": "a284_step2000",
+    "until_epoch": 1789555139.448121,
+    "until_hkt": "2026-09-16T18:38:59+08:00",
+    "eta_basis": "At18:07:29HKT actual A284 iteration2017 and model_step_002000 exists via registered eval tasks; last four iteration times24.51/25.10/24.86/24.88s,mean24.8375s. LEFT exact64 launched18:00:45 onGPU7,RIGHT pendingGPU; bilateral readout absent. Prior exact64 lanes took377–401s. Allow30min for remaining sequential evaluation plus scheduler/readout margin, conditional on admitted GPU availability. Same logical target; actual readout/failure returns early."
+  },
+  "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_a284_step2000_renew1_20260916/RUN_RECEIPT.json",
+  "milestone_assessment": "PENDING; no D054 milestone decision yet",
+  "handled_event_ids": [
+    "v28_main_wait_a284_step2000_20260916--completion",
+    "v28_main_wait_a284_step2000_ext1_20260916--completion"
+  ],
+  "initial_extension_invocation": {
+    "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_a284_step2000_ext1_20260916/RUN_RECEIPT.json",
+    "result": "RETURNED_PRIOR_DEADLINE",
+    "cause": "existing --renew-reason parameter omitted",
+    "correction": "explicit --renew-reason; same extension deadline"
+  }
+}

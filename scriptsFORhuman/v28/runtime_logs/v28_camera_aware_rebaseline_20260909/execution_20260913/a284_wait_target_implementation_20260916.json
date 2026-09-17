@@ -1,0 +1,63 @@
+{
+  "schema": "a2_piper_v28_harness_implementation_v1",
+  "recorded_at": "2026-09-16 00:11 HKT",
+  "authority": "Owner D046 continuation and D31/D040 conditional A284 milestone reporting",
+  "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/v28_wait.py",
+  "source_path_evidence": "v28_watch_wave.py milestone_evaluations creates milestone_wave_a_s284_<step>; write_completed_readouts writes readouts/<group>.md",
+  "change": "Add a284_step1000 through a284_step6000 targets, each with a separate persisted waits/<target>.json and its exact A284 readout path.",
+  "targets": {
+    "a284_step1000": "readouts/milestone_wave_a_s284_1000.md",
+    "a284_step2000": "readouts/milestone_wave_a_s284_2000.md",
+    "a284_step3000": "readouts/milestone_wave_a_s284_3000.md",
+    "a284_step4000": "readouts/milestone_wave_a_s284_4000.md",
+    "a284_step5000": "readouts/milestone_wave_a_s284_5000.md",
+    "a284_step6000": "readouts/milestone_wave_a_s284_6000.md"
+  },
+  "evidence_level": "RUNTIME_PASS_ACTUAL_A284_STEP1000_WAIT",
+  "runtime_verification": {
+    "verified_at": "2026-09-16 11:06 HKT",
+    "target": "a284_step1000",
+    "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_a284_step1000_20260916/RUN_RECEIPT.json",
+    "business_plan": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/waits/a284_step1000.json",
+    "return_reason": "MILESTONE_READOUT_READY",
+    "readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_1000.md",
+    "scope": "Actual first A284 wait readiness verified; later targets share implementation and are not separately exercised yet."
+  },
+  "active_original_wait": "v28_main_wait_step6000_20260915 remains running with its original receipt/deadline; no waiter or watcher restart",
+  "scientific_source_config_and_run_state_changed": false,
+  "new_tests_or_training_runs": false,
+  "additional_actual_waits": [
+    {
+      "target": "a284_step2000",
+      "return_reason": "MILESTONE_READOUT_READY",
+      "returned_at": "2026-09-16T10:22:31+00:00",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_a284_step2000_renew1_20260916/RUN_RECEIPT.json",
+      "readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_2000.json",
+      "explicit_renewal_record": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/waits/a284_step2000_deadline_extension1_20260916.json"
+    },
+    {
+      "target": "a284_step3000",
+      "return_reason": "FIXED_DECISION_DEADLINE",
+      "returned_at": "2026-09-16T17:37:29+00:00",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_a284_step3000_20260916/RUN_RECEIPT.json",
+      "readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_3000.json",
+      "resolution": "Fixed deadline returned01:37:29HKT; actual bilateral readout recorded01:38HKT and observed01:39:06HKT during this follow-up. No renewal or new3000 waiter required."
+    },
+    {
+      "target": "a284_step4000",
+      "return_reason": "MILESTONE_READOUT_READY",
+      "returned_at": "2026-09-17T00:43:00+00:00",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_a284_step4000_20260917/RUN_RECEIPT.json",
+      "readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_4000.json",
+      "resolution": "Actual bilateral4000 readout returned the persistent wait08:43HKT before its09:09:06HKT deadline."
+    },
+    {
+      "target": "a284_step5000",
+      "return_reason": "MILESTONE_READOUT_READY",
+      "returned_at": "2026-09-17T07:50:11+00:00",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_main_wait_a284_step5000_20260917/RUN_RECEIPT.json",
+      "readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_5000.json",
+      "resolution": "Actual5000 bilateral readout returned the persistent wait15:50:11HKT, before16:13:55HKT deadline."
+    }
+  ]
+}

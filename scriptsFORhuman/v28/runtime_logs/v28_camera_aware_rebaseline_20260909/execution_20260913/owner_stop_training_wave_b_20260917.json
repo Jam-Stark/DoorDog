@@ -1,0 +1,90 @@
+{
+  "schema": "v28_owner_stop_and_wave_b_v1",
+  "decision_log_id": "V28-D058",
+  "recorded_at": "2026-09-17T08:55:55+00:00",
+  "owner_instruction": "先终止训练，直接进入Wave B。v28阶段我准备收尾了，因为有了更急切的改动需求，可能得进入v29了",
+  "scope": "Cancel remaining A284 training and step6000 evaluation, freeze existing completed registered exact64 assessments and execute original fixed Wave B plus closure. No v29 implementation authorized.",
+  "cancelled_task": "wave_a_s284",
+  "observed_last_iteration": 5167,
+  "checkpoint_latest_saved": 5000,
+  "budget_basis": "Last fully printed iteration5167; any in-flight interrupted work beyond that counter is unquantified. No6000 completion claim.",
+  "termination": {
+    "supervisor": "CANCELLED",
+    "owned_trainer_pid": 2808391,
+    "owned_process_group": 2808390,
+    "sigterm_left_child_running": true,
+    "sigkill_group_then_pid_absent": true,
+    "raw_process_receipt_stale": "RUNNING; preserved as interrupted wrapper artifact, superseded for process status by supervisor and this observed cancellation record"
+  },
+  "cancelled_evaluations": [
+    {
+      "cell": "A_S284",
+      "step": 6000,
+      "reason": "CANCELLED_BY_OWNER_BEFORE_CHECKPOINT"
+    }
+  ],
+  "unchanged": "C_T, original-three endpoint denominator, reach/quality/hinge/tower thresholds, D039 ranking, DEV/CONF seeds/populations and eight-lane cap, fixed renders",
+  "selection_before_exception": {
+    "outcome": "REACH_SEED_UNSTABLE",
+    "endpoint_reliability": {
+      "outcome": "REACH_SEED_UNSTABLE",
+      "passed": 1,
+      "denominator": 3,
+      "cells": {
+        "A_S281": false,
+        "A_S282": true,
+        "A_S283": false
+      }
+    },
+    "history_reach": {
+      "exists": true,
+      "earliest_milestone": 4000
+    },
+    "eligible_cells": [
+      "A_S281",
+      "A_S282",
+      "A_S283",
+      "A_S284"
+    ],
+    "history_complete": false,
+    "missing_evaluations": [
+      {
+        "cell": "A_S284",
+        "step": 6000
+      }
+    ],
+    "ranked_candidates": [
+      {
+        "cell": "A_S282",
+        "step": 6000,
+        "seed": 282,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+        "driver_target_stage": 4,
+        "weak_clean": 12,
+        "clean_sum": 73
+      },
+      {
+        "cell": "A_S284",
+        "step": 5000,
+        "seed": 284,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s284/attempt1/model_step_005000.pt",
+        "driver_target_stage": 5,
+        "weak_clean": 12,
+        "clean_sum": 38
+      },
+      {
+        "cell": "A_S284",
+        "step": 4000,
+        "seed": 284,
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s284/attempt1/model_step_004000.pt",
+        "driver_target_stage": 5,
+        "weak_clean": 12,
+        "clean_sum": 25
+      }
+    ],
+    "candidates": [],
+    "freeze_ready": false,
+    "a284_separate": true
+  },
+  "source_state_archive": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/archives/owner_stop_training_20260917/state_before_owner_stop.json"
+}

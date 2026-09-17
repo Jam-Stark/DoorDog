@@ -2,7 +2,7 @@
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
 创建:2026-07-21;最近更新:2026-09-05(v25/v26 收口归档;三条 novelty 路线裁定入册为 R 节;v27 排期;force-feasibility 主线 C 节降级为背景与 v28 输入;规则 19-21 入册)。
-当前入口更新：2026-09-14 18:14 HKT；修改：-codex Main；依据：-owner D046及D047实际milestone。三seed scratch step1000共6条exact64完整，早期两侧D/S4+/complete为0，训练按原6000继续；A284未触发，终点/候选/资格尚未评估。G1 WARM_FAIL与500保留、warm取消；C_T/门/预算不变。N01/N02立项设计继续、实验DEFER。
+当前入口更新：2026-09-17 16:58 HKT；修改：-codex Main；依据：-owner D058。Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（D058）。A284最后完整日志迭代5167、最新保存checkpoint5000，6000训练终点与双侧评估取消；按原D039排序冻结主候选A_S282@6000（weak clean12、总73）和备选A_S284@5000（12、总38），身份在DEV启动前落锁。原三seed终点reach1/3（REACH_SEED_UNSTABLE）保持；资格门、C_T和固定DEV→CONF程序不变。 N01/N02设计继续、实验DEFER，下一阶段范围按Owner更急切改动另定。
 
 ## Worktree 分工(2026-09-05 修订)
 

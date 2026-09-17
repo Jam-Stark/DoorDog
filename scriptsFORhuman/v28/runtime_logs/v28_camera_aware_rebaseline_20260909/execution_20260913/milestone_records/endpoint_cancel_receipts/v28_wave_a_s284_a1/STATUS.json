@@ -1,0 +1,14 @@
+{
+  "acceptance_state": "BLOCKED_MISSING_CHECKPOINT",
+  "backend": "tmux",
+  "checkpoint_state": "MISSING",
+  "exit_code": -15,
+  "finished_at": "2026-09-17T08:53:04+00:00",
+  "finished_epoch": 1789635184.6036665,
+  "launched_at": "2026-09-15T19:52:14+00:00",
+  "launched_epoch": 1789501934.9829886,
+  "process_state": "CANCELLED",
+  "supervisor_pid": 2808387,
+  "updated_at": "2026-09-17T08:53:04+00:00",
+  "wait_until_epoch": 1789667534.9829886
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "a2_piper_v28_main_wait_v1",
+  "target": "a284_step6000",
+  "state": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json",
+  "wait_until_epoch": 1789658501.4469244,
+  "created_at": "2026-09-17T07:55:34+00:00",
+  "notifications_seen": 2,
+  "status": "CANCELLED_BY_OWNER",
+  "waiter_pid": 809392,
+  "cancelled_at": "2026-09-17T08:55:55+00:00",
+  "return_reason": "OWNER_DIRECTED_WAVE_B",
+  "owner_stop_record": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/owner_stop_training_wave_b_20260917.json"
+}

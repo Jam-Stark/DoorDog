@@ -1,0 +1,47 @@
+{
+  "at": "2026-09-17T08:56:34+00:00",
+  "decision": "V28-D058",
+  "watcher_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher_a4/RUN_RECEIPT.json",
+  "endpoint_lock": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/wave_a_endpoint_lock.json",
+  "candidates": [
+    {
+      "cell": "A_S282",
+      "step": 6000,
+      "seed": 282,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_006000.pt",
+      "driver_target_stage": 4,
+      "weak_clean": 12,
+      "clean_sum": 73
+    },
+    {
+      "cell": "A_S284",
+      "step": 5000,
+      "seed": 284,
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s284/attempt1/model_step_005000.pt",
+      "driver_target_stage": 5,
+      "weak_clean": 12,
+      "clean_sum": 38
+    }
+  ],
+  "command": [
+    "env",
+    "http_proxy=http://127.0.0.1:18889",
+    "https_proxy=http://127.0.0.1:18889",
+    "HTTP_PROXY=http://127.0.0.1:18889",
+    "HTTPS_PROXY=http://127.0.0.1:18889",
+    "no_proxy=localhost,127.0.0.1",
+    "NO_PROXY=localhost,127.0.0.1",
+    "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+    "-B",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/v28_watch_wave.py",
+    "--state",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/state.json"
+  ],
+  "allowlist": [
+    4,
+    5,
+    6,
+    7
+  ],
+  "training_stopped": true
+}

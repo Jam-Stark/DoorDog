@@ -1,0 +1,3756 @@
+{
+  "schema": "a2_piper_v28_readout_v1",
+  "recorded_at": "2026-09-15 07:35 HKT",
+  "status": "V28_COMPLETE",
+  "evidence_level": "RUNTIME_OBSERVATION",
+  "source_reducer": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/aggregates/wave_a_step3000_reducer.json",
+  "source_manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/aggregates/wave_a_step3000_manifest.json",
+  "step": 3000,
+  "expected_n": 64,
+  "rows": [
+    {
+      "cell": "A_S281",
+      "stratum": "nominal",
+      "side": "left",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_003000.pt",
+      "seed": 280001,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_3000_a_s281_left/attempt1",
+      "summary": {
+        "episodes": 64,
+        "D": 64,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 5,
+        "complete": 5,
+        "clean_complete": 1,
+        "hold_through": 64,
+        "crossing_while_holding": 64,
+        "post_release_body_force_p95": 0.0,
+        "first_crossing_hinge_p50": 0.913486123085022,
+        "episode_length_p50": 754.0,
+        "arm_j4_limit_residence_step_share": 0.02899030210293418,
+        "terminal_reasons": {
+          "complete": 5,
+          "stage_overtime": 59
+        },
+        "integrity_violations": 0,
+        "runtime_contract": {
+          "seed": 280001,
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_003000.pt",
+          "checkpoint_load_mode": "full",
+          "auto_load_latest": false,
+          "num_envs": 64,
+          "algo.config.eval.num_eval_episodes": 64,
+          "algo.config.eval.eval_num_envs_episodes": true,
+          "env.config.a2_v26_door_open_lr": "left",
+          "env.config.enable_staged_reset": false,
+          "rewards.reward_penalty_curriculum": false,
+          "env.config.a2_v26_8_penalty_driver": null
+        },
+        "clean_complete_components": {
+          "complete": 5,
+          "clean_complete": 1,
+          "hinge_below_1p0472": 4,
+          "body_contact_above_5N": 0,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 0,
+        "wrist_tower_contact_step_share": 0.0,
+        "camera_telemetry": {
+          "schema": "a2_piper_base_v28_camera_metrics_v2",
+          "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_3000_a_s281_left/attempt1/stage2_5_step_trace.json",
+          "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+          "population": "first_episode_active && episode_index == 0",
+          "native_calibration": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/d435_native_sim_parameters_20260907.json",
+          "projection": "measured SDK K and RGB-to-depth extrinsics; depth-module mounting transform from the nominal rig; pinhole visibility without occlusion or stereo reconstruction",
+          "geometry": "wrist support + housing box surface samples at 10mm pitch; panel local AABB x=+/-0.02, y=+/-width/2, z=[0,height]; sampled trace result is an upper bound, not exact or hardware clearance",
+          "orientation_definition": "bearings are horizontal relative to trunk yaw; reported quantiles use absolute signed angles; crossing yaw is latched at the existing first root-X crossing and counted once per episode; vy clip is physical +/-0.5 m/s",
+          "sample_counts": {
+            "all": 48361,
+            "stage0_2": 6068,
+            "stage5": 778,
+            "stage2_4": 42578,
+            "stage0_5": 5016,
+            "crossing_episodes": 64
+          },
+          "plan_fields": {
+            "wrist_cam_ang_speed_p50_deg_s": 67.73782701823552,
+            "wrist_cam_ang_speed_p95_deg_s": 156.56623865551336,
+            "wrist_cam_axis_sweep_p95_deg_s": 117.05724724343672,
+            "base_cam_ang_speed_p95_deg_s": 50.6267868949109,
+            "wrist_cam_axis_elev_p5_deg": -39.81606987747574,
+            "wrist_cam_axis_elev_p50_deg": -28.45083281290662,
+            "wrist_cam_axis_elev_p95_deg": -15.558735370354645,
+            "arm_posture_l1_p50_rad": 0.13145256508141756,
+            "post_release_return_time_p50_s": null,
+            "handle_bearing_deg_p50_stage0_2": 10.00781774520874,
+            "crossing_yaw_deg_p50": 176.82917022705078,
+            "arm_posture_l1_p95_rad": 1.7815534475880668,
+            "post_release_return_time_p95_s": null,
+            "handle_bearing_deg_p95_stage0_2": 32.02792320251464,
+            "crossing_yaw_deg_p95": 179.38659057617187,
+            "wrist_cam_share_axis_sweep_gt_60": 0.3548934058435516,
+            "arm_j6_reversals_per_s": 3.9785079818646616,
+            "arm_j6_abs_dev_from_1p57_p95": 0.4748978579044342,
+            "wrist_tower_panel_min_clearance_m": 0.05801841275090033,
+            "wrist_tower_contact_step_share": 0.0,
+            "wrist_tower_contact_episodes_gt_5N": 0,
+            "handle_bearing_gt_30deg_share_stage0_2": 0.06723796967699407,
+            "doorway_bearing_deg_p95_stage5": 167.2033935546875,
+            "stage0_2_vy_cmd_at_clip_share": 0.3951878707976269,
+            "handle_in_wrist_depth_share_stage2_4": 0.9977922870966227,
+            "handle_in_wrist_rgb_share_stage2_4": 0.7543567100380477
+          },
+          "overall": {
+            "wrist_cam_ang_speed_deg_s": {
+              "min": 1.0429048889715065,
+              "p5": 20.75611069455593,
+              "p50": 67.73782701823552,
+              "p95": 156.56623865551336,
+              "max": 579.0880273034059
+            },
+            "wrist_cam_axis_sweep_deg_s": {
+              "min": 0.04466389331789678,
+              "p5": 11.3951688859234,
+              "p50": 47.44422845502556,
+              "p95": 117.05724724343672,
+              "max": 464.13404213280575
+            },
+            "wrist_cam_axis_elev_deg": {
+              "min": -53.06278059615815,
+              "p5": -39.81606987747574,
+              "p50": -28.45083281290662,
+              "p95": -15.558735370354645,
+              "max": 16.318644730610586
+            },
+            "base_cam_ang_speed_deg_s": {
+              "min": 0.7463071887413799,
+              "p5": 10.789994236046711,
+              "p50": 26.70822211717574,
+              "p95": 50.6267868949109,
+              "max": 136.30172668595787
+            },
+            "arm_j6_abs_dev_from_1p57_rad": {
+              "min": 7.820129395152975e-07,
+              "p5": 0.0018921566009522106,
+              "p50": 0.20161432743072516,
+              "p95": 0.6762809228897095,
+              "max": 0.9995011758804322
+            },
+            "arm_posture_l1_rad": {
+              "min": 0.009943417855538428,
+              "p5": 0.12952965591102839,
+              "p50": 6.190788321197033,
+              "p95": 7.315656319260597,
+              "max": 8.117383167147636
+            },
+            "wrist_tower_panel_sampled_clearance_m": {
+              "min": 0.05801841275090033,
+              "p5": 0.08269317725175511,
+              "p50": 0.12405675593815542,
+              "p95": 0.7392099361520069,
+              "max": 1.4574228129256857
+            },
+            "wrist_cam_share_axis_sweep_gt_60": 0.3548934058435516,
+            "arm_j6_reversals": {
+              "count": 3843,
+              "consecutive_pairs": 48297,
+              "observed_contiguous_duration_s": 965.939999999409,
+              "per_s": 3.9785079818646616
+            },
+            "handle_in_wrist_depth_share": 0.9800459047579662,
+            "handle_in_wrist_rgb_share": 0.7584623973863237,
+            "wrist_tower_contact_step_share_gt_1N": 0.0,
+            "wrist_tower_contact_episodes_gt_5N": 0,
+            "records": 48361,
+            "post_release_return_time_s": {
+              "threshold_l1_rad": 0.5,
+              "observed_episodes": 0,
+              "right_censored_episodes": 6,
+              "observed": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              },
+              "censor_duration": {
+                "min": 2.58,
+                "p5": 2.735,
+                "p50": 3.670000000000001,
+                "p95": 6.539999999999999,
+                "max": 7.42
+              }
+            }
+          },
+          "stages": {
+            "0": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 4.025840372044199,
+                "p5": 17.44805242187417,
+                "p50": 53.470042315165,
+                "p95": 98.59600238716212,
+                "max": 158.4302593951284
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.941302900440819,
+                "p5": 9.078454622369868,
+                "p50": 38.87852165951269,
+                "p95": 89.4498458914825,
+                "max": 150.2584412054719
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -34.54212827057821,
+                "p5": -25.066718784357413,
+                "p50": -17.655734069392988,
+                "p95": -11.606168680902412,
+                "max": -5.560803771262096
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 2.473910650377684,
+                "p5": 15.855941754361321,
+                "p50": 37.78829327756627,
+                "p95": 65.9375741120872,
+                "max": 105.86977099896329
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 2.0790100097034525e-06,
+                "p5": 0.0002181837558745903,
+                "p50": 0.0018138813972472523,
+                "p95": 0.0052036690711974466,
+                "max": 0.010724492073059144
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.009943417855538428,
+                "p5": 0.03576749999192544,
+                "p50": 0.12463666378243943,
+                "p95": 0.1725735748921579,
+                "max": 0.22297726492979564
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.47408521458957836,
+                "p5": 0.5711761339288124,
+                "p50": 0.7507643856957608,
+                "p95": 1.0893815720975224,
+                "max": 1.183288797926616
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.22133081642284097,
+              "arm_j6_reversals": {
+                "count": 0,
+                "consecutive_pairs": 4174,
+                "observed_contiguous_duration_s": 83.48000000000053,
+                "per_s": 0.0
+              },
+              "handle_in_wrist_depth_share": 0.9808872109485607,
+              "handle_in_wrist_rgb_share": 0.9178857951864087,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 4238
+            },
+            "1": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 9.838512958026257,
+                "p5": 53.24382533138443,
+                "p50": 209.71207863905505,
+                "p95": 368.38373925579316,
+                "max": 480.3819296006088
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 7.9575654073903035,
+                "p5": 31.54212609302028,
+                "p50": 152.67282860678952,
+                "p95": 336.79484219523295,
+                "max": 463.6590293500605
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -53.06278059615815,
+                "p5": -48.31429518422732,
+                "p50": -31.448965502758735,
+                "p95": -11.809619049013353,
+                "max": -2.9815488745841705
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 4.137573371196139,
+                "p5": 17.219200270314996,
+                "p50": 45.57763608606159,
+                "p95": 84.07162514678787,
+                "max": 108.49007659553028
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.00015301227569586295,
+                "p5": 0.0060008673667907965,
+                "p50": 0.05138056755065912,
+                "p95": 0.20130114841461175,
+                "max": 0.42306978225708014
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.0921574323438108,
+                "p5": 0.15683730831369758,
+                "p50": 1.050747737288475,
+                "p95": 2.199380575120448,
+                "max": 2.5991556756198406
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.2757429223914578,
+                "p5": 0.3090090902433589,
+                "p50": 0.4704263304209745,
+                "p95": 0.6065416474974469,
+                "max": 0.6532878857005202
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.8500651890482399,
+              "arm_j6_reversals": {
+                "count": 43,
+                "consecutive_pairs": 703,
+                "observed_contiguous_duration_s": 14.059999999999787,
+                "per_s": 3.058321479374157
+              },
+              "handle_in_wrist_depth_share": 0.9674054758800521,
+              "handle_in_wrist_rgb_share": 0.8591916558018253,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 767
+            },
+            "2": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 10.325086941382915,
+                "p5": 24.96145039498881,
+                "p50": 76.66597296839977,
+                "p95": 287.1043573296443,
+                "max": 389.94089384764317
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 4.481422317197541,
+                "p5": 17.230429191801267,
+                "p50": 65.93444252525309,
+                "p95": 200.42099289612995,
+                "max": 279.9013216217276
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -51.01052944777964,
+                "p5": -48.11915207485301,
+                "p50": -42.80480055732128,
+                "p95": -36.70100654480058,
+                "max": -33.04790132288201
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 2.4835789702609885,
+                "p5": 13.831629748142472,
+                "p50": 38.3963732530171,
+                "p95": 61.197986614568386,
+                "max": 81.26864043200003
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.00020462989807135123,
+                "p5": 0.056693417072296096,
+                "p50": 0.4238070917129517,
+                "p95": 0.6901243340969087,
+                "max": 0.7960761857032777
+              },
+              "arm_posture_l1_rad": {
+                "min": 2.0294745452702045,
+                "p5": 2.424930989742279,
+                "p50": 3.853955313563347,
+                "p95": 4.781253410875797,
+                "max": 5.340728670358658
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.0997138791199615,
+                "p5": 0.11545981372571042,
+                "p50": 0.16226967698791442,
+                "p95": 0.27755893314731267,
+                "max": 0.3150657902502814
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.5465663217309501,
+              "arm_j6_reversals": {
+                "count": 120,
+                "consecutive_pairs": 999,
+                "observed_contiguous_duration_s": 19.97999999999966,
+                "per_s": 6.006006006006109
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.9905926622765757,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 1063
+            },
+            "3": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 2.2561676457210322,
+                "p5": 20.619718975060348,
+                "p50": 58.49927771754081,
+                "p95": 204.53303489615504,
+                "max": 387.4170505270609
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.20490469669095887,
+                "p5": 10.145053344195805,
+                "p50": 39.528227767612904,
+                "p95": 103.7132463088332,
+                "max": 268.55014811058334
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -48.420509733919516,
+                "p5": -43.55829904014679,
+                "p50": -36.164256785392,
+                "p95": -26.448568265492874,
+                "max": -18.424046362528724
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 1.7223064243270616,
+                "p5": 10.543542607750702,
+                "p50": 25.907634337887124,
+                "p95": 49.956166704837045,
+                "max": 83.93891761547098
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.2566093873977662,
+                "p5": 0.44580665349960336,
+                "p50": 0.6893237304687501,
+                "p95": 0.8833041560649872,
+                "max": 0.9995011758804322
+              },
+              "arm_posture_l1_rad": {
+                "min": 4.385036006569862,
+                "p5": 4.962374682724476,
+                "p50": 6.801016271114349,
+                "p95": 7.572781851887703,
+                "max": 8.117383167147636
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.08362486266396345,
+                "p5": 0.09310402779215801,
+                "p50": 0.10947765358433284,
+                "p95": 0.13253220761160364,
+                "max": 0.1628968422817694
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.2339152119700748,
+              "arm_j6_reversals": {
+                "count": 529,
+                "consecutive_pairs": 3946,
+                "observed_contiguous_duration_s": 78.92000000000115,
+                "per_s": 6.702990369994834
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.7214463840399002,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 4010
+            },
+            "4": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 1.0429048889715065,
+                "p5": 20.80334922113349,
+                "p50": 69.61077726270581,
+                "p95": 144.46802925646935,
+                "max": 579.0880273034059
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.04466389331789678,
+                "p5": 11.700312146902968,
+                "p50": 48.201330365524335,
+                "p95": 110.30257490454943,
+                "max": 464.13404213280575
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -48.77951903792315,
+                "p5": -36.49108917184161,
+                "p50": -28.516491006677516,
+                "p95": -17.516482240883402,
+                "max": -10.398930366202354
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.7463071887413799,
+                "p5": 10.29655826321623,
+                "p50": 25.483160111406203,
+                "p95": 44.03504646528283,
+                "max": 79.93216786261607
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 7.820129395152975e-07,
+                "p5": 0.01853410434722904,
+                "p50": 0.2015538883209229,
+                "p95": 0.5041426610946655,
+                "max": 0.845327742099762
+              },
+              "arm_posture_l1_rad": {
+                "min": 3.666107729077339,
+                "p5": 4.142013302445411,
+                "p50": 6.433915667235851,
+                "p95": 7.291079404950142,
+                "max": 7.861164793372154
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.05801841275090033,
+                "p5": 0.08053852589910768,
+                "p50": 0.12186291784651664,
+                "p95": 0.15083836503844153,
+                "max": 0.18746653430115684
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.36048526863084923,
+              "arm_j6_reversals": {
+                "count": 3114,
+                "consecutive_pairs": 37441,
+                "observed_contiguous_duration_s": 748.8199999996053,
+                "per_s": 4.158542773966563
+              },
+              "handle_in_wrist_depth_share": 0.9974936675109985,
+              "handle_in_wrist_rgb_share": 0.7511798426876416,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 37505
+            },
+            "5": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 6.036645449055762,
+                "p5": 42.57422100303801,
+                "p50": 108.48264515055476,
+                "p95": 256.5525688924415,
+                "max": 466.2806773259165
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 4.327956913295351,
+                "p5": 19.454594793991465,
+                "p50": 81.0039937499153,
+                "p95": 206.1690187561162,
+                "max": 380.5812297417195
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -48.92739195358575,
+                "p5": -35.12388249925562,
+                "p50": -8.188352868558932,
+                "p95": 8.818060404908307,
+                "max": 16.318644730610586
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 5.3973533406653935,
+                "p5": 13.50233331824582,
+                "p50": 32.86520406511042,
+                "p95": 65.33910196467258,
+                "max": 136.30172668595787
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.0008695650100707386,
+                "p5": 0.03133817195892328,
+                "p50": 0.3479048538208007,
+                "p95": 0.5234858202934265,
+                "max": 0.5882600021362305
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.7925224283844727,
+                "p5": 1.010253953008578,
+                "p50": 1.523170525034402,
+                "p95": 4.883630491793154,
+                "max": 6.62016886472702
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.12259976562062609,
+                "p5": 0.2055183014925836,
+                "p50": 0.577099774610034,
+                "p95": 1.1910764620045506,
+                "max": 1.4574228129256857
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.6863753213367609,
+              "arm_j6_reversals": {
+                "count": 6,
+                "consecutive_pairs": 773,
+                "observed_contiguous_duration_s": 15.459999999999999,
+                "per_s": 0.38809831824062097
+              },
+              "handle_in_wrist_depth_share": 0.016709511568123392,
+              "handle_in_wrist_rgb_share": 0.015424164524421594,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 778
+            }
+          }
+        },
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_003000.pt"
+      },
+      "camera_assessment": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 287.1043573296443,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 204.53303489615504,
+            "limit": 250,
+            "pass": true
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 144.46802925646935,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": 256.5525688924415,
+            "limit": 90,
+            "pass": false
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.0,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": 0.38809831824062097,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 6.006006006006109,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 4.158542773966563,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 1.7815534475880668,
+            "limit": 0.5,
+            "pass": false
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.08971291866028708,
+            "limit": 0.05,
+            "pass": false
+          },
+          "post_release_return_p50_s": {
+            "value": null,
+            "limit": 2.0,
+            "pass": null
+          },
+          "post_release_return_p95_s": {
+            "value": null,
+            "limit": 4.0,
+            "pass": null
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 5016,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 0,
+          "right_censored_episodes": 6,
+          "observed": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "censor_duration": {
+            "min": 2.58,
+            "p5": 2.735,
+            "p50": 3.670000000000001,
+            "p95": 6.539999999999999,
+            "max": 7.42
+          }
+        }
+      }
+    },
+    {
+      "cell": "A_S281",
+      "stratum": "nominal",
+      "side": "right",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_003000.pt",
+      "seed": 280001,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_3000_a_s281_right/attempt1",
+      "summary": {
+        "episodes": 64,
+        "D": 53,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 64,
+        "complete": 64,
+        "clean_complete": 40,
+        "hold_through": 42,
+        "crossing_while_holding": 42,
+        "post_release_body_force_p95": 1080.723876953125,
+        "first_crossing_hinge_p50": 1.6443006992340088,
+        "episode_length_p50": 755.0,
+        "arm_j4_limit_residence_step_share": 0.01612304647231042,
+        "terminal_reasons": {
+          "complete": 64
+        },
+        "integrity_violations": 0,
+        "runtime_contract": {
+          "seed": 280001,
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_003000.pt",
+          "checkpoint_load_mode": "full",
+          "auto_load_latest": false,
+          "num_envs": 64,
+          "algo.config.eval.num_eval_episodes": 64,
+          "algo.config.eval.eval_num_envs_episodes": true,
+          "env.config.a2_v26_door_open_lr": "right",
+          "env.config.enable_staged_reset": false,
+          "rewards.reward_penalty_curriculum": false,
+          "env.config.a2_v26_8_penalty_driver": null
+        },
+        "clean_complete_components": {
+          "complete": 64,
+          "clean_complete": 40,
+          "hinge_below_1p0472": 0,
+          "body_contact_above_5N": 24,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 0,
+        "wrist_tower_contact_step_share": 0.0,
+        "camera_telemetry": {
+          "schema": "a2_piper_base_v28_camera_metrics_v2",
+          "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_3000_a_s281_right/attempt1/stage2_5_step_trace.json",
+          "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+          "population": "first_episode_active && episode_index == 0",
+          "native_calibration": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/d435_native_sim_parameters_20260907.json",
+          "projection": "measured SDK K and RGB-to-depth extrinsics; depth-module mounting transform from the nominal rig; pinhole visibility without occlusion or stereo reconstruction",
+          "geometry": "wrist support + housing box surface samples at 10mm pitch; panel local AABB x=+/-0.02, y=+/-width/2, z=[0,height]; sampled trace result is an upper bound, not exact or hardware clearance",
+          "orientation_definition": "bearings are horizontal relative to trunk yaw; reported quantiles use absolute signed angles; crossing yaw is latched at the existing first root-X crossing and counted once per episode; vy clip is physical +/-0.5 m/s",
+          "sample_counts": {
+            "all": 48502,
+            "stage0_2": 5924,
+            "stage5": 15921,
+            "stage2_4": 27620,
+            "stage0_5": 20122,
+            "crossing_episodes": 64
+          },
+          "plan_fields": {
+            "wrist_cam_ang_speed_p50_deg_s": 53.428676271733245,
+            "wrist_cam_ang_speed_p95_deg_s": 178.50638527635445,
+            "wrist_cam_axis_sweep_p95_deg_s": 140.3057044535099,
+            "base_cam_ang_speed_p95_deg_s": 61.1137770407306,
+            "wrist_cam_axis_elev_p5_deg": -46.71959758589576,
+            "wrist_cam_axis_elev_p50_deg": -38.957700419660654,
+            "wrist_cam_axis_elev_p95_deg": -15.083270526207048,
+            "arm_posture_l1_p50_rad": 0.5780307263557916,
+            "post_release_return_time_p50_s": 0.8599999999999994,
+            "handle_bearing_deg_p50_stage0_2": 6.221484661102295,
+            "crossing_yaw_deg_p50": 160.58513641357422,
+            "arm_posture_l1_p95_rad": 3.2290423993021298,
+            "post_release_return_time_p95_s": 1.4540000000000004,
+            "handle_bearing_deg_p95_stage0_2": 26.74001550674438,
+            "crossing_yaw_deg_p95": 171.89054489135742,
+            "wrist_cam_share_axis_sweep_gt_60": 0.3003381303863758,
+            "arm_j6_reversals_per_s": 0.668896321070644,
+            "arm_j6_abs_dev_from_1p57_p95": 0.2740726833343507,
+            "wrist_tower_panel_min_clearance_m": 0.040490365946884585,
+            "wrist_tower_contact_step_share": 0.0,
+            "wrist_tower_contact_episodes_gt_5N": 0,
+            "handle_bearing_gt_30deg_share_stage0_2": 0.03308575286968265,
+            "doorway_bearing_deg_p95_stage5": 174.2041778564453,
+            "stage0_2_vy_cmd_at_clip_share": 0.17302498311951384,
+            "handle_in_wrist_depth_share_stage2_4": 0.9984793627805938,
+            "handle_in_wrist_rgb_share_stage2_4": 0.6623461259956553
+          },
+          "overall": {
+            "wrist_cam_ang_speed_deg_s": {
+              "min": 1.2769887407787477,
+              "p5": 16.5383936016201,
+              "p50": 53.428676271733245,
+              "p95": 178.50638527635445,
+              "max": 677.5839851214415
+            },
+            "wrist_cam_axis_sweep_deg_s": {
+              "min": 0.2326584431142554,
+              "p5": 9.41917497304609,
+              "p50": 39.447840125292956,
+              "p95": 140.3057044535099,
+              "max": 656.2078121712949
+            },
+            "wrist_cam_axis_elev_deg": {
+              "min": -62.9091248938435,
+              "p5": -46.71959758589576,
+              "p50": -38.957700419660654,
+              "p95": -15.083270526207048,
+              "max": 18.3169210389366
+            },
+            "base_cam_ang_speed_deg_s": {
+              "min": 0.5242798570126402,
+              "p5": 8.675681390710594,
+              "p50": 25.322963332997045,
+              "p95": 61.1137770407306,
+              "max": 228.0162158073423
+            },
+            "arm_j6_abs_dev_from_1p57_rad": {
+              "min": 2.2125244141246725e-06,
+              "p5": 0.00255978155136114,
+              "p50": 0.9209949147701264,
+              "p95": 1.404707782417535,
+              "max": 2.003837801218033
+            },
+            "arm_posture_l1_rad": {
+              "min": 0.010317915526684374,
+              "p5": 0.1350373324348766,
+              "p50": 8.452407501172274,
+              "p95": 9.751251561939716,
+              "max": 10.338598862290382
+            },
+            "wrist_tower_panel_sampled_clearance_m": {
+              "min": 0.040490365946884585,
+              "p5": 0.09520669339239916,
+              "p50": 0.12796672449993274,
+              "p95": 1.4544860127942505,
+              "max": 2.394543847524736
+            },
+            "wrist_cam_share_axis_sweep_gt_60": 0.3003381303863758,
+            "arm_j6_reversals": {
+              "count": 648,
+              "consecutive_pairs": 48438,
+              "observed_contiguous_duration_s": 968.7599999994063,
+              "per_s": 0.668896321070644
+            },
+            "handle_in_wrist_depth_share": 0.7072285678941075,
+            "handle_in_wrist_rgb_share": 0.49175291740546784,
+            "wrist_tower_contact_step_share_gt_1N": 0.0,
+            "wrist_tower_contact_episodes_gt_5N": 0,
+            "records": 48502,
+            "post_release_return_time_s": {
+              "threshold_l1_rad": 0.5,
+              "observed_episodes": 64,
+              "right_censored_episodes": 0,
+              "observed": {
+                "min": 0.5,
+                "p5": 0.5999999999999996,
+                "p50": 0.8599999999999994,
+                "p95": 1.4540000000000004,
+                "max": 2.0999999999999996
+              },
+              "censor_duration": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              }
+            }
+          },
+          "stages": {
+            "0": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 3.84926737208264,
+                "p5": 17.486567495661845,
+                "p50": 52.0677411535747,
+                "p95": 107.04889681005866,
+                "max": 162.4171504480129
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 1.5424854763325082,
+                "p5": 8.510222193432297,
+                "p50": 36.25685532906931,
+                "p95": 84.535281313448,
+                "max": 137.13473185562196
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -31.747530610461062,
+                "p5": -26.17628809433343,
+                "p50": -19.276198120381792,
+                "p95": -13.01722374083925,
+                "max": -8.119458278656555
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 2.569092601210532,
+                "p5": 12.789717109147992,
+                "p50": 37.47666192443465,
+                "p95": 75.00283865710114,
+                "max": 130.8375044181397
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 2.2125244141246725e-06,
+                "p5": 0.0002599287033080433,
+                "p50": 0.0024048614501952503,
+                "p95": 0.005978770256042543,
+                "max": 0.010309510231018004
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.010317915526684374,
+                "p5": 0.043242670595645905,
+                "p50": 0.13055489282123744,
+                "p95": 0.18197894655168056,
+                "max": 0.21630627078411635
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.46169033393173864,
+                "p5": 0.5374710990697001,
+                "p50": 0.7383241389563662,
+                "p95": 1.0990330018977377,
+                "max": 1.1804967467391159
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.2144727445846227,
+              "arm_j6_reversals": {
+                "count": 5,
+                "consecutive_pairs": 4137,
+                "observed_contiguous_duration_s": 82.74000000000068,
+                "per_s": 0.06043026347594826
+              },
+              "handle_in_wrist_depth_share": 0.9926208045703404,
+              "handle_in_wrist_rgb_share": 0.9240656986431802,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 4201
+            },
+            "1": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 6.979583957279849,
+                "p5": 37.150220665312254,
+                "p50": 174.03159084217197,
+                "p95": 302.6457313869697,
+                "max": 419.17336794922346
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 3.3184220609164936,
+                "p5": 20.82715540910471,
+                "p50": 131.34967533535553,
+                "p95": 270.6841320320345,
+                "max": 374.5783434041457
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -52.15216605583059,
+                "p5": -44.83757902955564,
+                "p50": -34.98982580056986,
+                "p95": -19.088313569750113,
+                "max": -3.69143491002623
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 4.957760675208708,
+                "p5": 18.971072489688687,
+                "p50": 45.93003140690939,
+                "p95": 81.23188671374625,
+                "max": 109.34318291342704
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.00033979892730706673,
+                "p5": 0.02331349968910224,
+                "p50": 0.12152773857116705,
+                "p95": 0.29297573089599616,
+                "max": 0.47501379966735846
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.09859953308477998,
+                "p5": 0.18460722342133523,
+                "p50": 1.1141422430519015,
+                "p95": 2.313629093021154,
+                "max": 2.8046966046094894
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.2058266878825107,
+                "p5": 0.29856955631219884,
+                "p50": 0.4450351901084372,
+                "p95": 0.5555462372386868,
+                "max": 0.5936134501784017
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.7947368421052632,
+              "arm_j6_reversals": {
+                "count": 17,
+                "consecutive_pairs": 696,
+                "observed_contiguous_duration_s": 13.919999999999789,
+                "per_s": 1.2212643678161106
+              },
+              "handle_in_wrist_depth_share": 0.975,
+              "handle_in_wrist_rgb_share": 0.8578947368421053,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 760
+            },
+            "2": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 2.2461036062502164,
+                "p5": 27.363632980888827,
+                "p50": 79.44156308968049,
+                "p95": 239.48346591841397,
+                "max": 296.7047617715415
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 1.1522507086048517,
+                "p5": 16.17895432679103,
+                "p50": 60.793932486134786,
+                "p95": 119.30628773774912,
+                "max": 288.19030561200077
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -50.79791071222741,
+                "p5": -46.05327487365433,
+                "p50": -40.44177428277068,
+                "p95": -33.91285892536872,
+                "max": -31.435409476429978
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 1.348545897888177,
+                "p5": 11.69128915127145,
+                "p50": 32.741366907650125,
+                "p95": 61.23834392979377,
+                "max": 90.60199925290614
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.1244331073760987,
+                "p5": 0.22733289718627936,
+                "p50": 0.5282535028457642,
+                "p95": 0.8832779359817505,
+                "max": 1.0772006583213807
+              },
+              "arm_posture_l1_rad": {
+                "min": 2.1356328800320625,
+                "p5": 2.472983784228563,
+                "p50": 3.6186849176883698,
+                "p95": 4.254094329476357,
+                "max": 4.712029471993446
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.07825910533563717,
+                "p5": 0.09757491820405574,
+                "p50": 0.1489580084032341,
+                "p95": 0.2693676908518442,
+                "max": 0.3054807241377102
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.5088265835929388,
+              "arm_j6_reversals": {
+                "count": 7,
+                "consecutive_pairs": 899,
+                "observed_contiguous_duration_s": 17.979999999999702,
+                "per_s": 0.3893214682981155
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.9501557632398754,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 963
+            },
+            "3": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 2.459260177881548,
+                "p5": 28.640506562003733,
+                "p50": 87.03649533774562,
+                "p95": 227.94101139024997,
+                "max": 349.56652796076025
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.8139265297072652,
+                "p5": 14.569248665271589,
+                "p50": 66.18972201988313,
+                "p95": 146.46303033508934,
+                "max": 228.2068701923625
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -52.530333505348075,
+                "p5": -41.52011996081578,
+                "p50": -31.08144491315502,
+                "p95": -22.283876040955494,
+                "max": -16.592789614948053
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 2.70108421234436,
+                "p5": 9.898612858205947,
+                "p50": 25.177924441781784,
+                "p95": 49.86992857656738,
+                "max": 95.39166569146153
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.7706699442863465,
+                "p5": 1.026203615665436,
+                "p50": 1.6132719513773919,
+                "p95": 1.7920167875289919,
+                "max": 2.003837801218033
+              },
+              "arm_posture_l1_rad": {
+                "min": 3.8721274062991142,
+                "p5": 4.343702718615532,
+                "p50": 7.0470730029046535,
+                "p95": 8.8481279656291,
+                "max": 9.422558277845383
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.040490365946884585,
+                "p5": 0.052469572866692564,
+                "p50": 0.0775039276593587,
+                "p95": 0.11704623380779951,
+                "max": 0.1400729642173122
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.5653097345132744,
+              "arm_j6_reversals": {
+                "count": 151,
+                "consecutive_pairs": 2761,
+                "observed_contiguous_duration_s": 55.2200000000028,
+                "per_s": 2.734516479536261
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.4987610619469027,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 2825
+            },
+            "4": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 1.2769887407787477,
+                "p5": 13.072815529729581,
+                "p50": 38.47369576303174,
+                "p95": 95.480314474566,
+                "max": 677.5839851214415
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.2326584431142554,
+                "p5": 7.519179659339817,
+                "p50": 28.209052668254923,
+                "p95": 74.21911524822924,
+                "max": 656.2078121712949
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -53.897272264686116,
+                "p5": -47.25156947063693,
+                "p50": -43.356798508330584,
+                "p95": -33.867231233069724,
+                "max": 4.602429274027564
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.5242798570126402,
+                "p5": 7.023477775824554,
+                "p50": 18.66233294883585,
+                "p95": 38.29430522401397,
+                "max": 228.0162158073423
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.013788752555847106,
+                "p5": 0.8488946211338044,
+                "p50": 1.1494843584299088,
+                "p95": 1.293153428733349,
+                "max": 1.735441557765007
+              },
+              "arm_posture_l1_rad": {
+                "min": 1.3366594314575195,
+                "p5": 8.925791912875138,
+                "p50": 9.525818027555943,
+                "p95": 9.814495708793402,
+                "max": 10.338598862290382
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.07232321095133047,
+                "p5": 0.1031387187767716,
+                "p50": 0.11726336365813188,
+                "p95": 0.13361697022772384,
+                "max": 0.5479945272632349
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.09243873783148708,
+              "arm_j6_reversals": {
+                "count": 326,
+                "consecutive_pairs": 23768,
+                "observed_contiguous_duration_s": 475.35999999985586,
+                "per_s": 0.6857960282735166
+              },
+              "handle_in_wrist_depth_share": 0.9982376636455186,
+              "handle_in_wrist_rgb_share": 0.6701074185968445,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 23832
+            },
+            "5": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 2.3293198711634133,
+                "p5": 29.929845141888,
+                "p50": 81.7828739413268,
+                "p95": 238.49954394073254,
+                "max": 571.0263782281135
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 1.0582680863307818,
+                "p5": 17.404925860492092,
+                "p50": 64.86356509726869,
+                "p95": 203.0646001942746,
+                "max": 551.5117590090509
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -62.9091248938435,
+                "p5": -44.25258565761114,
+                "p50": -27.33130140804097,
+                "p95": -12.87101585403616,
+                "max": 18.3169210389366
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.820935581839593,
+                "p5": 16.24218024967232,
+                "p50": 32.671581037539596,
+                "p95": 80.98044489568153,
+                "max": 217.7355179853281
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 2.3059844970640953e-05,
+                "p5": 0.01047212600708014,
+                "p50": 0.10685294151306146,
+                "p95": 0.2940061759948731,
+                "max": 1.0479881238937379
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.1383255931432359,
+                "p5": 0.345797645741186,
+                "p50": 0.6715066749384278,
+                "p95": 4.356412544846535,
+                "max": 9.68275086581707
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.09365490652271098,
+                "p5": 0.37198056488352566,
+                "p50": 0.9595875554577034,
+                "p95": 1.6811595757003979,
+                "max": 2.394543847524736
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.5509704164311287,
+              "arm_j6_reversals": {
+                "count": 135,
+                "consecutive_pairs": 15857,
+                "observed_contiguous_duration_s": 317.139999999996,
+                "per_s": 0.4256795106262272
+              },
+              "handle_in_wrist_depth_share": 0.11387475661076565,
+              "handle_in_wrist_rgb_share": 0.06425475786696816,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 15921
+            }
+          }
+        },
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/model_step_003000.pt"
+      },
+      "camera_assessment": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 239.48346591841397,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 227.94101139024997,
+            "limit": 250,
+            "pass": true
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 95.480314474566,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": 238.49954394073254,
+            "limit": 90,
+            "pass": false
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.06043026347594826,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": 0.4256795106262272,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 0.3893214682981155,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 0.6857960282735166,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 3.2290423993021298,
+            "limit": 0.5,
+            "pass": false
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.03767021170857768,
+            "limit": 0.05,
+            "pass": true
+          },
+          "post_release_return_p50_s": {
+            "value": 0.8599999999999994,
+            "limit": 2.0,
+            "pass": true
+          },
+          "post_release_return_p95_s": {
+            "value": 1.4540000000000004,
+            "limit": 4.0,
+            "pass": true
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 20122,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 64,
+          "right_censored_episodes": 0,
+          "observed": {
+            "min": 0.5,
+            "p5": 0.5999999999999996,
+            "p50": 0.8599999999999994,
+            "p95": 1.4540000000000004,
+            "max": 2.0999999999999996
+          },
+          "censor_duration": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        }
+      }
+    },
+    {
+      "cell": "A_S282",
+      "stratum": "nominal",
+      "side": "left",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_003000.pt",
+      "seed": 280001,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s282_3000_a_s282_left/attempt1",
+      "summary": {
+        "episodes": 64,
+        "D": 64,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 20,
+        "complete": 0,
+        "clean_complete": 0,
+        "hold_through": 58,
+        "crossing_while_holding": 58,
+        "post_release_body_force_p95": 0.0,
+        "first_crossing_hinge_p50": 0.7857616543769836,
+        "episode_length_p50": 754.0,
+        "arm_j4_limit_residence_step_share": 0.0,
+        "terminal_reasons": {
+          "stage_overtime": 64
+        },
+        "integrity_violations": 0,
+        "runtime_contract": {
+          "seed": 280001,
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_003000.pt",
+          "checkpoint_load_mode": "full",
+          "auto_load_latest": false,
+          "num_envs": 64,
+          "algo.config.eval.num_eval_episodes": 64,
+          "algo.config.eval.eval_num_envs_episodes": true,
+          "env.config.a2_v26_door_open_lr": "left",
+          "env.config.enable_staged_reset": false,
+          "rewards.reward_penalty_curriculum": false,
+          "env.config.a2_v26_8_penalty_driver": null
+        },
+        "clean_complete_components": {
+          "complete": 0,
+          "clean_complete": 0,
+          "hinge_below_1p0472": 0,
+          "body_contact_above_5N": 0,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 0,
+        "wrist_tower_contact_step_share": 0.0,
+        "camera_telemetry": {
+          "schema": "a2_piper_base_v28_camera_metrics_v2",
+          "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s282_3000_a_s282_left/attempt1/stage2_5_step_trace.json",
+          "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+          "population": "first_episode_active && episode_index == 0",
+          "native_calibration": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/d435_native_sim_parameters_20260907.json",
+          "projection": "measured SDK K and RGB-to-depth extrinsics; depth-module mounting transform from the nominal rig; pinhole visibility without occlusion or stereo reconstruction",
+          "geometry": "wrist support + housing box surface samples at 10mm pitch; panel local AABB x=+/-0.02, y=+/-width/2, z=[0,height]; sampled trace result is an upper bound, not exact or hardware clearance",
+          "orientation_definition": "bearings are horizontal relative to trunk yaw; reported quantiles use absolute signed angles; crossing yaw is latched at the existing first root-X crossing and counted once per episode; vy clip is physical +/-0.5 m/s",
+          "sample_counts": {
+            "all": 52276,
+            "stage0_2": 5771,
+            "stage5": 5877,
+            "stage2_4": 41488,
+            "stage0_5": 9905,
+            "crossing_episodes": 58
+          },
+          "plan_fields": {
+            "wrist_cam_ang_speed_p50_deg_s": 37.496784461806115,
+            "wrist_cam_ang_speed_p95_deg_s": 180.0460635470721,
+            "wrist_cam_axis_sweep_p95_deg_s": 150.54642607204318,
+            "base_cam_ang_speed_p95_deg_s": 58.13837184932915,
+            "wrist_cam_axis_elev_p5_deg": -63.04689646934302,
+            "wrist_cam_axis_elev_p50_deg": -44.686840957585595,
+            "wrist_cam_axis_elev_p95_deg": -7.713444076494994,
+            "arm_posture_l1_p50_rad": 1.0820951184505248,
+            "post_release_return_time_p50_s": null,
+            "handle_bearing_deg_p50_stage0_2": 6.94678258895874,
+            "crossing_yaw_deg_p50": 156.85086822509766,
+            "arm_posture_l1_p95_rad": 4.353728208132086,
+            "post_release_return_time_p95_s": null,
+            "handle_bearing_deg_p95_stage0_2": 31.497522354125977,
+            "crossing_yaw_deg_p95": 159.08298950195314,
+            "wrist_cam_share_axis_sweep_gt_60": 0.17114928456653147,
+            "arm_j6_reversals_per_s": 2.338542863710977,
+            "arm_j6_abs_dev_from_1p57_p95": 0.4014281558990476,
+            "wrist_tower_panel_min_clearance_m": 0.05508813938289957,
+            "wrist_tower_contact_step_share": 0.0,
+            "wrist_tower_contact_episodes_gt_5N": 0,
+            "handle_bearing_gt_30deg_share_stage0_2": 0.061861029284352796,
+            "doorway_bearing_deg_p95_stage5": 95.8793960571289,
+            "stage0_2_vy_cmd_at_clip_share": 0.3165829145728643,
+            "handle_in_wrist_depth_share_stage2_4": 0.9966978403393753,
+            "handle_in_wrist_rgb_share_stage2_4": 0.7090483995372155
+          },
+          "overall": {
+            "wrist_cam_ang_speed_deg_s": {
+              "min": 0.9150819389681173,
+              "p5": 12.293239809289359,
+              "p50": 37.496784461806115,
+              "p95": 180.0460635470721,
+              "max": 501.52775358823203
+            },
+            "wrist_cam_axis_sweep_deg_s": {
+              "min": 0.13832086301394916,
+              "p5": 6.379392280756811,
+              "p50": 28.255371710988694,
+              "p95": 150.54642607204318,
+              "max": 501.4883705184433
+            },
+            "wrist_cam_axis_elev_deg": {
+              "min": -68.64349075289523,
+              "p5": -63.04689646934302,
+              "p50": -44.686840957585595,
+              "p95": -7.713444076494994,
+              "max": 73.69643130678024
+            },
+            "base_cam_ang_speed_deg_s": {
+              "min": 0.45312026165344843,
+              "p5": 6.765771223111824,
+              "p50": 21.343495223908704,
+              "p95": 58.13837184932915,
+              "max": 142.98195434850402
+            },
+            "arm_j6_abs_dev_from_1p57_rad": {
+              "min": 4.10079955992515e-07,
+              "p5": 0.0019208717346190785,
+              "p50": 0.24053484201431274,
+              "p95": 0.5060863423347473,
+              "max": 0.6298067045211793
+            },
+            "arm_posture_l1_rad": {
+              "min": 0.009482269844738767,
+              "p5": 0.12880226181005128,
+              "p50": 4.21798924729228,
+              "p95": 6.648819794179872,
+              "max": 7.672276616096497
+            },
+            "wrist_tower_panel_sampled_clearance_m": {
+              "min": 0.05508813938289957,
+              "p5": 0.06834419208813924,
+              "p50": 0.10808387074377594,
+              "p95": 0.7569403990805754,
+              "max": 1.1825596038321984
+            },
+            "wrist_cam_share_axis_sweep_gt_60": 0.17114928456653147,
+            "arm_j6_reversals": {
+              "count": 2442,
+              "consecutive_pairs": 52212,
+              "observed_contiguous_duration_s": 1044.239999999337,
+              "per_s": 2.338542863710977
+            },
+            "handle_in_wrist_depth_share": 0.9814255107506312,
+            "handle_in_wrist_rgb_share": 0.734486188690795,
+            "wrist_tower_contact_step_share_gt_1N": 0.0,
+            "wrist_tower_contact_episodes_gt_5N": 0,
+            "records": 52276,
+            "post_release_return_time_s": {
+              "threshold_l1_rad": 0.5,
+              "observed_episodes": 0,
+              "right_censored_episodes": 0,
+              "observed": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              },
+              "censor_duration": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              }
+            }
+          },
+          "stages": {
+            "0": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 1.9605494908965668,
+                "p5": 14.75514540484228,
+                "p50": 47.394022316431716,
+                "p95": 112.00490832484631,
+                "max": 182.10236564653871
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.911852136245862,
+                "p5": 8.499294023849474,
+                "p50": 38.10693459323372,
+                "p95": 98.7131249194519,
+                "max": 162.66163579579376
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -29.59943522832931,
+                "p5": -21.684984185955173,
+                "p50": -14.05468092565908,
+                "p95": -4.82238606740585,
+                "max": -0.22622766749802448
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 3.4491978929802927,
+                "p5": 13.993310549594163,
+                "p50": 34.133990657357,
+                "p95": 76.09972252867405,
+                "max": 142.98195434850402
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 4.10079955992515e-07,
+                "p5": 0.0001982369422912412,
+                "p50": 0.0015337467193603516,
+                "p95": 0.004709731340408263,
+                "max": 0.010023169517517028
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.009482269844738767,
+                "p5": 0.03261068066931331,
+                "p50": 0.119937140843831,
+                "p95": 0.16606219805689754,
+                "max": 0.20220741420052946
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.5706028837153018,
+                "p5": 0.6477290537400484,
+                "p50": 0.8134507015494228,
+                "p95": 1.1000402192384358,
+                "max": 1.1825596038321984
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.23808341608738828,
+              "arm_j6_reversals": {
+                "count": 1,
+                "consecutive_pairs": 3964,
+                "observed_contiguous_duration_s": 79.28000000000137,
+                "per_s": 0.0126135216952571
+              },
+              "handle_in_wrist_depth_share": 0.9893247269116187,
+              "handle_in_wrist_rgb_share": 0.9451340615690169,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 4028
+            },
+            "1": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 15.128493269763652,
+                "p5": 50.0903907903214,
+                "p50": 157.75092392743062,
+                "p95": 325.9919931909514,
+                "max": 464.99995287938185
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 5.093556574354616,
+                "p5": 42.79660659669006,
+                "p50": 141.6862615392551,
+                "p95": 264.4617564645278,
+                "max": 323.6845647271191
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -49.72891326465051,
+                "p5": -45.83723234280703,
+                "p50": -33.92696363030249,
+                "p95": -12.209165804776188,
+                "max": -3.469853212068155
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 2.1531415683500166,
+                "p5": 11.439627417602063,
+                "p50": 45.49039585611938,
+                "p95": 103.54139919730552,
+                "max": 127.9484990833307
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.015571408271789489,
+                "p5": 0.048213486671447696,
+                "p50": 0.19863789558410638,
+                "p95": 0.28755255222320547,
+                "max": 0.3491997051239013
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.08619517832994461,
+                "p5": 0.16925392751581966,
+                "p50": 1.3847713489085436,
+                "p95": 2.542529918253422,
+                "max": 2.9195726439356804
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.25260830702801784,
+                "p5": 0.2950084197646399,
+                "p50": 0.46130284877458755,
+                "p95": 0.6408070342121569,
+                "max": 0.7056465748058747
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.8844847112117781,
+              "arm_j6_reversals": {
+                "count": 0,
+                "consecutive_pairs": 819,
+                "observed_contiguous_duration_s": 16.37999999999974,
+                "per_s": 0.0
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.9977349943374858,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 883
+            },
+            "2": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 5.620121465453626,
+                "p5": 19.459231139231758,
+                "p50": 60.35018433646575,
+                "p95": 122.46245056447945,
+                "max": 275.5841100669636
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 1.5218682899802445,
+                "p5": 10.041644025129399,
+                "p50": 43.38517549142364,
+                "p95": 89.04470191892935,
+                "max": 153.88174910955442
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -52.09972916755749,
+                "p5": -49.32654224761479,
+                "p50": -42.908034301975206,
+                "p95": -37.51840339122671,
+                "max": -32.910514435114635
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 1.898848386161218,
+                "p5": 26.15728010414408,
+                "p50": 51.47443866200625,
+                "p95": 73.52769923577664,
+                "max": 87.70464225027719
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.13115268230438226,
+                "p5": 0.1840535449981689,
+                "p50": 0.23373972654342645,
+                "p95": 0.29926578879356375,
+                "max": 0.3561269569396972
+              },
+              "arm_posture_l1_rad": {
+                "min": 2.414939571171999,
+                "p5": 2.712220802810043,
+                "p50": 3.698857970535755,
+                "p95": 4.2507207520306105,
+                "max": 4.706736639142036
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.10826106861799135,
+                "p5": 0.12816556101486248,
+                "p50": 0.16153832625629005,
+                "p95": 0.26441573197368756,
+                "max": 0.3024194845019752
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.2569767441860465,
+              "arm_j6_reversals": {
+                "count": 16,
+                "consecutive_pairs": 796,
+                "observed_contiguous_duration_s": 15.919999999999746,
+                "per_s": 1.0050251256281568
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 1.0,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 860
+            },
+            "3": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 2.378235424672844,
+                "p5": 16.46996653668311,
+                "p50": 46.72368576301356,
+                "p95": 264.3729528183312,
+                "max": 406.18472131557866
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.43959127813681875,
+                "p5": 9.521593041621244,
+                "p50": 37.70356493661549,
+                "p95": 173.9209496770723,
+                "max": 252.41181828172537
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -53.2236408049716,
+                "p5": -45.4175348810419,
+                "p50": -30.853655283029944,
+                "p95": -25.842724608721262,
+                "max": -21.664278578048087
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 1.194793691134863,
+                "p5": 8.909095532215138,
+                "p50": 21.41981174548098,
+                "p95": 47.574288207790666,
+                "max": 69.33055223750273
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.09882002353668207,
+                "p5": 0.24351220607757562,
+                "p50": 0.505047492980957,
+                "p95": 0.5126985359191893,
+                "max": 0.5251809883117675
+              },
+              "arm_posture_l1_rad": {
+                "min": 3.8032493218779564,
+                "p5": 4.648527992516756,
+                "p50": 6.543913638219237,
+                "p95": 6.900667326152325,
+                "max": 7.2587650418281555
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.08657264441703667,
+                "p5": 0.09873952778820445,
+                "p50": 0.11339882836722291,
+                "p95": 0.1365622573306231,
+                "max": 0.16642112998351896
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.2529274004683841,
+              "arm_j6_reversals": {
+                "count": 79,
+                "consecutive_pairs": 4633,
+                "observed_contiguous_duration_s": 92.65999999999848,
+                "per_s": 0.8525793222534136
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.19544390036193315,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 4697
+            },
+            "4": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 0.9150819389681173,
+                "p5": 11.168645942640925,
+                "p50": 31.584427188976747,
+                "p95": 79.03956149739042,
+                "max": 382.2902336928072
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.13832086301394916,
+                "p5": 5.550025135089367,
+                "p50": 23.05865100729097,
+                "p95": 60.648488725777916,
+                "max": 379.62516140122057
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -68.64349075289523,
+                "p5": -63.81812523551481,
+                "p50": -51.85902488833553,
+                "p95": -35.16919387693059,
+                "max": -5.515418474921901
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.45312026165344843,
+                "p5": 6.233996880204852,
+                "p50": 19.180461824609036,
+                "p95": 49.72155746481857,
+                "max": 104.72789353005913
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 1.5683174133362954e-05,
+                "p5": 0.04471092700958246,
+                "p50": 0.2526033449172973,
+                "p95": 0.45116000652313226,
+                "max": 0.6298067045211793
+              },
+              "arm_posture_l1_rad": {
+                "min": 1.2000594213604927,
+                "p5": 3.4754184633493423,
+                "p50": 4.499859377741814,
+                "p95": 6.4097058437764645,
+                "max": 7.672276616096497
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.05508813938289957,
+                "p5": 0.06652051046526697,
+                "p50": 0.09772782506766317,
+                "p95": 0.12219258652414072,
+                "max": 0.35690703539947144
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.05171022237065487,
+              "arm_j6_reversals": {
+                "count": 2245,
+                "consecutive_pairs": 35867,
+                "observed_contiguous_duration_s": 717.3399999996344,
+                "per_s": 3.1296177544834305
+              },
+              "handle_in_wrist_depth_share": 0.9961871364559851,
+              "handle_in_wrist_rgb_share": 0.7692243466644402,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 35931
+            },
+            "5": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 3.256146459841,
+                "p5": 27.235767845385592,
+                "p50": 117.7828963891209,
+                "p95": 312.8218804059776,
+                "max": 501.52775358823203
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.36455481306091825,
+                "p5": 16.056401046399806,
+                "p50": 96.53807549942276,
+                "p95": 293.2308511336369,
+                "max": 501.4883705184433
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -62.78678509751903,
+                "p5": -49.377209769875016,
+                "p50": -20.86740743627814,
+                "p95": 29.855219434015098,
+                "max": 73.69643130678024
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.46572002334783785,
+                "p5": 7.112525032630507,
+                "p50": 24.1138993365236,
+                "p95": 59.55269653644941,
+                "max": 121.20112315545246
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 7.4577331543590475e-06,
+                "p5": 0.015645484924316347,
+                "p50": 0.166029281616211,
+                "p95": 0.43864324569702134,
+                "max": 0.5246807861328124
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.269363759085536,
+                "p5": 0.8318830409210932,
+                "p50": 1.7682153433561325,
+                "p95": 4.905818048119544,
+                "max": 6.50474388897419
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.0911864063583274,
+                "p5": 0.11261428108656611,
+                "p50": 0.32634829525813874,
+                "p95": 0.44322450320333445,
+                "max": 0.5149062977760248
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.6704100731665816,
+              "arm_j6_reversals": {
+                "count": 92,
+                "consecutive_pairs": 5857,
+                "observed_contiguous_duration_s": 117.13999999998799,
+                "per_s": 0.7853850093905534
+              },
+              "handle_in_wrist_depth_share": 0.865407520843968,
+              "handle_in_wrist_rgb_share": 0.7301344223243151,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 5877
+            }
+          }
+        },
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_003000.pt"
+      },
+      "camera_assessment": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 122.46245056447945,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 264.3729528183312,
+            "limit": 250,
+            "pass": false
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 79.03956149739042,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": 312.8218804059776,
+            "limit": 90,
+            "pass": false
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.0126135216952571,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": 0.7853850093905534,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 1.0050251256281568,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 3.1296177544834305,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 4.353728208132086,
+            "limit": 0.5,
+            "pass": false
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.13568904593639575,
+            "limit": 0.05,
+            "pass": false
+          },
+          "post_release_return_p50_s": {
+            "value": null,
+            "limit": 2.0,
+            "pass": null
+          },
+          "post_release_return_p95_s": {
+            "value": null,
+            "limit": 4.0,
+            "pass": null
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 9905,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 0,
+          "right_censored_episodes": 0,
+          "observed": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "censor_duration": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        }
+      }
+    },
+    {
+      "cell": "A_S282",
+      "stratum": "nominal",
+      "side": "right",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_003000.pt",
+      "seed": 280001,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s282_3000_a_s282_right/attempt1",
+      "summary": {
+        "episodes": 64,
+        "D": 64,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 0,
+        "complete": 0,
+        "clean_complete": 0,
+        "hold_through": 64,
+        "crossing_while_holding": 64,
+        "post_release_body_force_p95": 0.0,
+        "first_crossing_hinge_p50": 0.7961211204528809,
+        "episode_length_p50": 754.0,
+        "arm_j4_limit_residence_step_share": 0.0,
+        "terminal_reasons": {
+          "stage_overtime": 64
+        },
+        "integrity_violations": 0,
+        "runtime_contract": {
+          "seed": 280001,
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_003000.pt",
+          "checkpoint_load_mode": "full",
+          "auto_load_latest": false,
+          "num_envs": 64,
+          "algo.config.eval.num_eval_episodes": 64,
+          "algo.config.eval.eval_num_envs_episodes": true,
+          "env.config.a2_v26_door_open_lr": "right",
+          "env.config.enable_staged_reset": false,
+          "rewards.reward_penalty_curriculum": false,
+          "env.config.a2_v26_8_penalty_driver": null
+        },
+        "clean_complete_components": {
+          "complete": 0,
+          "clean_complete": 0,
+          "hinge_below_1p0472": 0,
+          "body_contact_above_5N": 0,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 10,
+        "wrist_tower_contact_step_share": 0.0010983090185676392,
+        "camera_telemetry": {
+          "schema": "a2_piper_base_v28_camera_metrics_v2",
+          "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s282_3000_a_s282_right/attempt1/stage2_5_step_trace.json",
+          "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+          "population": "first_episode_active && episode_index == 0",
+          "native_calibration": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/d435_native_sim_parameters_20260907.json",
+          "projection": "measured SDK K and RGB-to-depth extrinsics; depth-module mounting transform from the nominal rig; pinhole visibility without occlusion or stereo reconstruction",
+          "geometry": "wrist support + housing box surface samples at 10mm pitch; panel local AABB x=+/-0.02, y=+/-width/2, z=[0,height]; sampled trace result is an upper bound, not exact or hardware clearance",
+          "orientation_definition": "bearings are horizontal relative to trunk yaw; reported quantiles use absolute signed angles; crossing yaw is latched at the existing first root-X crossing and counted once per episode; vy clip is physical +/-0.5 m/s",
+          "sample_counts": {
+            "all": 48256,
+            "stage0_2": 5684,
+            "stage5": 0,
+            "stage2_4": 43392,
+            "stage0_5": 3948,
+            "crossing_episodes": 64
+          },
+          "plan_fields": {
+            "wrist_cam_ang_speed_p50_deg_s": 69.12657772155441,
+            "wrist_cam_ang_speed_p95_deg_s": 138.50315262521838,
+            "wrist_cam_axis_sweep_p95_deg_s": 112.9444594857911,
+            "base_cam_ang_speed_p95_deg_s": 52.45332640089356,
+            "wrist_cam_axis_elev_p5_deg": -41.65740074803909,
+            "wrist_cam_axis_elev_p50_deg": -31.12936740247165,
+            "wrist_cam_axis_elev_p95_deg": -13.309374307103212,
+            "arm_posture_l1_p50_rad": 0.1271379254758358,
+            "post_release_return_time_p50_s": null,
+            "handle_bearing_deg_p50_stage0_2": 4.855095386505127,
+            "crossing_yaw_deg_p50": 158.06160736083984,
+            "arm_posture_l1_p95_rad": 0.17127785601187498,
+            "post_release_return_time_p95_s": null,
+            "handle_bearing_deg_p95_stage0_2": 26.202727127075196,
+            "crossing_yaw_deg_p95": 159.9111587524414,
+            "wrist_cam_share_axis_sweep_gt_60": 0.2999005305039788,
+            "arm_j6_reversals_per_s": 2.5533283532552127,
+            "arm_j6_abs_dev_from_1p57_p95": 0.005620168447494444,
+            "wrist_tower_panel_min_clearance_m": -0.00018018571893172602,
+            "wrist_tower_contact_step_share": 0.0010983090185676392,
+            "wrist_tower_contact_episodes_gt_5N": 10,
+            "handle_bearing_gt_30deg_share_stage0_2": 0.0300844475721323,
+            "doorway_bearing_deg_p95_stage5": null,
+            "stage0_2_vy_cmd_at_clip_share": 0.12297677691766362,
+            "handle_in_wrist_depth_share_stage2_4": 1.0,
+            "handle_in_wrist_rgb_share_stage2_4": 0.7650949483775811
+          },
+          "overall": {
+            "wrist_cam_ang_speed_deg_s": {
+              "min": 1.403527145399181,
+              "p5": 25.448202305453655,
+              "p50": 69.12657772155441,
+              "p95": 138.50315262521838,
+              "max": 428.72557002025354
+            },
+            "wrist_cam_axis_sweep_deg_s": {
+              "min": 0.02198494581390192,
+              "p5": 10.534292994230082,
+              "p50": 43.2435064471144,
+              "p95": 112.9444594857911,
+              "max": 424.6871640555863
+            },
+            "wrist_cam_axis_elev_deg": {
+              "min": -53.908395955616314,
+              "p5": -41.65740074803909,
+              "p50": -31.12936740247165,
+              "p95": -13.309374307103212,
+              "max": -4.757851617029227
+            },
+            "base_cam_ang_speed_deg_s": {
+              "min": 0.6991598824427798,
+              "p5": 8.723485699553432,
+              "p50": 24.121884429552644,
+              "p95": 52.45332640089356,
+              "max": 123.95121804962504
+            },
+            "arm_j6_abs_dev_from_1p57_rad": {
+              "min": 2.450942993226235e-06,
+              "p5": 0.002672787904739349,
+              "p50": 0.3568646836280822,
+              "p95": 0.5230613279342651,
+              "max": 0.5244187641143798
+            },
+            "arm_posture_l1_rad": {
+              "min": 0.011148475736263208,
+              "p5": 0.13307656504912302,
+              "p50": 4.501802071928978,
+              "p95": 7.540259480476379,
+              "max": 8.450226083397865
+            },
+            "wrist_tower_panel_sampled_clearance_m": {
+              "min": -0.00018018571893172602,
+              "p5": 0.0158572826794069,
+              "p50": 0.07228132181536337,
+              "p95": 0.7642016629994446,
+              "max": 1.1808138841800941
+            },
+            "wrist_cam_share_axis_sweep_gt_60": 0.2999005305039788,
+            "arm_j6_reversals": {
+              "count": 2461,
+              "consecutive_pairs": 48192,
+              "observed_contiguous_duration_s": 963.8399999994109,
+              "per_s": 2.5533283532552127
+            },
+            "handle_in_wrist_depth_share": 0.999523375331565,
+            "handle_in_wrist_rgb_share": 0.7846278183023873,
+            "wrist_tower_contact_step_share_gt_1N": 0.0010983090185676392,
+            "wrist_tower_contact_episodes_gt_5N": 10,
+            "records": 48256,
+            "post_release_return_time_s": {
+              "threshold_l1_rad": 0.5,
+              "observed_episodes": 0,
+              "right_censored_episodes": 0,
+              "observed": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              },
+              "censor_duration": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              }
+            }
+          },
+          "stages": {
+            "0": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 1.7419265481667583,
+                "p5": 13.774517143872481,
+                "p50": 46.32499324038311,
+                "p95": 94.19984010418064,
+                "max": 147.64708078449812
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.9671622639956104,
+                "p5": 7.690942313344641,
+                "p50": 33.98547858492424,
+                "p95": 75.63247897183884,
+                "max": 142.04058042504943
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -22.090090592460083,
+                "p5": -16.966529811252975,
+                "p50": -12.028350113768864,
+                "p95": -7.335200565579933,
+                "max": -4.757851617029227
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 1.3434219999616803,
+                "p5": 11.096006445649879,
+                "p50": 33.72048246000414,
+                "p95": 67.72417153316024,
+                "max": 123.95121804962504
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 2.450942993226235e-06,
+                "p5": 0.00023597264289854092,
+                "p50": 0.0021734237670898438,
+                "p95": 0.005620168447494444,
+                "max": 0.009066634178161559
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.011148475736263208,
+                "p5": 0.04009867839049549,
+                "p50": 0.1271379254758358,
+                "p95": 0.17127785601187498,
+                "max": 0.20516483765095472
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.5602398341218021,
+                "p5": 0.63083840311853,
+                "p50": 0.8095429192160866,
+                "p95": 1.1091926408249713,
+                "max": 1.1808138841800941
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.1514690982776089,
+              "arm_j6_reversals": {
+                "count": 4,
+                "consecutive_pairs": 3884,
+                "observed_contiguous_duration_s": 77.68000000000168,
+                "per_s": 0.051493305870235755
+              },
+              "handle_in_wrist_depth_share": 0.9941742654508612,
+              "handle_in_wrist_rgb_share": 0.9521276595744681,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 3948
+            },
+            "1": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 14.323082714011912,
+                "p5": 42.51657931057022,
+                "p50": 147.69810958594738,
+                "p95": 294.9245861589831,
+                "max": 428.72557002025354
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 6.203573453727857,
+                "p5": 34.069465887777255,
+                "p50": 130.16666948587033,
+                "p95": 279.2706832335192,
+                "max": 424.6871640555863
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -53.5762801641165,
+                "p5": -48.639745320223454,
+                "p50": -35.56127542586252,
+                "p95": -13.445360657172342,
+                "max": -9.940939116965117
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 5.873351315307801,
+                "p5": 15.65232210010099,
+                "p50": 38.57447790177804,
+                "p95": 80.67599604882906,
+                "max": 115.07846476594435
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.0005368661880493786,
+                "p5": 0.02661191701889032,
+                "p50": 0.18606769323348993,
+                "p95": 0.29269170045852655,
+                "max": 0.3313338088989257
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.06449188501574099,
+                "p5": 0.13649237784557045,
+                "p50": 1.2966390976216644,
+                "p95": 2.5285126001108438,
+                "max": 3.162599876523018
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.21739059658807464,
+                "p5": 0.2695725484002338,
+                "p50": 0.4416748476995609,
+                "p95": 0.6059381117218194,
+                "max": 0.6497533451270616
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.8362445414847162,
+              "arm_j6_reversals": {
+                "count": 0,
+                "consecutive_pairs": 852,
+                "observed_contiguous_duration_s": 17.039999999999726,
+                "per_s": 0.0
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.9879912663755459,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 916
+            },
+            "2": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 6.762162066239991,
+                "p5": 20.463282782227477,
+                "p50": 67.45257215413825,
+                "p95": 143.2062514435471,
+                "max": 215.5395277569768
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 1.590460992330353,
+                "p5": 10.370793983609524,
+                "p50": 44.01594048821162,
+                "p95": 94.53786141322342,
+                "max": 142.0067446071937
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -53.908395955616314,
+                "p5": -50.555100465380896,
+                "p50": -43.96875215654236,
+                "p95": -38.007563718060965,
+                "max": -34.61716909473719
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 9.512204966907552,
+                "p5": 20.70274919309372,
+                "p50": 37.20422496344072,
+                "p95": 67.16660365770642,
+                "max": 82.40013507922268
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.1935992765426635,
+                "p5": 0.2537482488155364,
+                "p50": 0.3304813432693481,
+                "p95": 0.39255971193313594,
+                "max": 0.417261414527893
+              },
+              "arm_posture_l1_rad": {
+                "min": 2.131096389144659,
+                "p5": 2.6814099881914446,
+                "p50": 3.7793155536055565,
+                "p95": 4.235813960433006,
+                "max": 4.478283241391182
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.10554516470307711,
+                "p5": 0.11645470538902275,
+                "p50": 0.14622796179054345,
+                "p95": 0.24921263217454828,
+                "max": 0.28001991924685066
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.28292682926829266,
+              "arm_j6_reversals": {
+                "count": 58,
+                "consecutive_pairs": 756,
+                "observed_contiguous_duration_s": 15.119999999999763,
+                "per_s": 3.835978835978896
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 1.0,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 820
+            },
+            "3": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 5.669309489513084,
+                "p5": 21.237927769144143,
+                "p50": 58.53286810813273,
+                "p95": 211.37871033806928,
+                "max": 315.45867280199377
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.3591126157417032,
+                "p5": 8.991463158786509,
+                "p50": 34.16696871737593,
+                "p95": 100.05849718580286,
+                "max": 201.35715192590496
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -45.012702452747206,
+                "p5": -39.368325827130015,
+                "p50": -30.603298099433726,
+                "p95": -23.905898449558773,
+                "max": -18.403200728976696
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 1.490739212034369,
+                "p5": 10.096854721869327,
+                "p50": 22.458233374838073,
+                "p95": 40.20012357099755,
+                "max": 58.98449757804751
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.0006371212005615856,
+                "p5": 0.07987528324127191,
+                "p50": 0.36123853206634515,
+                "p95": 0.5105186271667479,
+                "max": 0.5243586826324462
+              },
+              "arm_posture_l1_rad": {
+                "min": 3.68596500903368,
+                "p5": 4.154159972071648,
+                "p50": 6.2590002566576,
+                "p95": 7.225170657038689,
+                "max": 7.879659369587898
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.07459649919344094,
+                "p5": 0.08896463746270433,
+                "p50": 0.1069139202119007,
+                "p95": 0.12528026632693268,
+                "max": 0.15183301318577092
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.19812484579323958,
+              "arm_j6_reversals": {
+                "count": 260,
+                "consecutive_pairs": 3989,
+                "observed_contiguous_duration_s": 79.78000000000097,
+                "per_s": 3.258962145901189
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.16753022452504318,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 4053
+            },
+            "4": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 1.403527145399181,
+                "p5": 29.128283391420513,
+                "p50": 71.99723967289687,
+                "p95": 132.79004310789807,
+                "max": 241.18616250281298
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.02198494581390192,
+                "p5": 11.213989338658063,
+                "p50": 44.55625995596301,
+                "p95": 110.47442680075653,
+                "max": 221.33268476282873
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -46.504431176768755,
+                "p5": -41.011899109472246,
+                "p50": -31.813185048880165,
+                "p95": -24.51466941971151,
+                "max": -16.204715880754705
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.6991598824427798,
+                "p5": 8.401183480429271,
+                "p50": 23.31030901800881,
+                "p95": 47.67909356729382,
+                "max": 95.89538757956963
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.015927724838256774,
+                "p5": 0.19387065649032587,
+                "p50": 0.3771077919006347,
+                "p95": 0.5242414045333862,
+                "max": 0.5244187641143798
+              },
+              "arm_posture_l1_rad": {
+                "min": 3.4427079455927014,
+                "p5": 3.9217846403364094,
+                "p50": 4.548307493329048,
+                "p95": 7.601489606499672,
+                "max": 8.450226083397865
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": -0.00018018571893172602,
+                "p5": 0.014168752137792768,
+                "p50": 0.06396172885973042,
+                "p95": 0.10103545243559034,
+                "max": 0.1287887935786164
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.31342973597445417,
+              "arm_j6_reversals": {
+                "count": 2130,
+                "consecutive_pairs": 38455,
+                "observed_contiguous_duration_s": 769.0999999995869,
+                "per_s": 2.769470810039194
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.822970482099743,
+              "wrist_tower_contact_step_share_gt_1N": 0.001375944339157299,
+              "wrist_tower_contact_episodes_gt_5N": 10,
+              "records": 38519
+            }
+          }
+        },
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/model_step_003000.pt"
+      },
+      "camera_assessment": {
+        "outcome": "CAMERA_UNMET",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 143.2062514435471,
+            "limit": 105,
+            "pass": false
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 211.37871033806928,
+            "limit": 250,
+            "pass": true
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 132.79004310789807,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": null,
+            "limit": 90,
+            "pass": null
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.051493305870235755,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": null,
+            "limit": 1.5,
+            "pass": null
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 3.835978835978896,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 2.769470810039194,
+            "limit": 2.5,
+            "pass": false
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 0.17127785601187498,
+            "limit": 0.5,
+            "pass": true
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.0,
+            "limit": 0.05,
+            "pass": true
+          },
+          "post_release_return_p50_s": {
+            "value": null,
+            "limit": 2.0,
+            "pass": null
+          },
+          "post_release_return_p95_s": {
+            "value": null,
+            "limit": 4.0,
+            "pass": null
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 3948,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 0,
+          "right_censored_episodes": 0,
+          "observed": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "censor_duration": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        }
+      }
+    },
+    {
+      "cell": "A_S283",
+      "stratum": "nominal",
+      "side": "left",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/model_step_003000.pt",
+      "seed": 280001,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_3000_a_s283_left/attempt1",
+      "summary": {
+        "episodes": 64,
+        "D": 62,
+        "S3+": 64,
+        "S4+": 64,
+        "open_hold": 64,
+        "S5+": 0,
+        "complete": 0,
+        "clean_complete": 0,
+        "hold_through": 35,
+        "crossing_while_holding": 35,
+        "post_release_body_force_p95": 0.0,
+        "first_crossing_hinge_p50": 1.1130520105361938,
+        "episode_length_p50": 754.0,
+        "arm_j4_limit_residence_step_share": 0.0,
+        "terminal_reasons": {
+          "stage_overtime": 64
+        },
+        "integrity_violations": 0,
+        "runtime_contract": {
+          "seed": 280001,
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/model_step_003000.pt",
+          "checkpoint_load_mode": "full",
+          "auto_load_latest": false,
+          "num_envs": 64,
+          "algo.config.eval.num_eval_episodes": 64,
+          "algo.config.eval.eval_num_envs_episodes": true,
+          "env.config.a2_v26_door_open_lr": "left",
+          "env.config.enable_staged_reset": false,
+          "rewards.reward_penalty_curriculum": false,
+          "env.config.a2_v26_8_penalty_driver": null
+        },
+        "clean_complete_components": {
+          "complete": 0,
+          "clean_complete": 0,
+          "hinge_below_1p0472": 0,
+          "body_contact_above_5N": 0,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 3,
+        "wrist_tower_contact_step_share": 0.0005387931034482759,
+        "camera_telemetry": {
+          "schema": "a2_piper_base_v28_camera_metrics_v2",
+          "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_3000_a_s283_left/attempt1/stage2_5_step_trace.json",
+          "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+          "population": "first_episode_active && episode_index == 0",
+          "native_calibration": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/d435_native_sim_parameters_20260907.json",
+          "projection": "measured SDK K and RGB-to-depth extrinsics; depth-module mounting transform from the nominal rig; pinhole visibility without occlusion or stereo reconstruction",
+          "geometry": "wrist support + housing box surface samples at 10mm pitch; panel local AABB x=+/-0.02, y=+/-width/2, z=[0,height]; sampled trace result is an upper bound, not exact or hardware clearance",
+          "orientation_definition": "bearings are horizontal relative to trunk yaw; reported quantiles use absolute signed angles; crossing yaw is latched at the existing first root-X crossing and counted once per episode; vy clip is physical +/-0.5 m/s",
+          "sample_counts": {
+            "all": 48256,
+            "stage0_2": 6103,
+            "stage5": 0,
+            "stage2_4": 43568,
+            "stage0_5": 3808,
+            "crossing_episodes": 35
+          },
+          "plan_fields": {
+            "wrist_cam_ang_speed_p50_deg_s": 40.01494619230968,
+            "wrist_cam_ang_speed_p95_deg_s": 102.00706621975752,
+            "wrist_cam_axis_sweep_p95_deg_s": 79.68875704091758,
+            "base_cam_ang_speed_p95_deg_s": 50.812745838846226,
+            "wrist_cam_axis_elev_p5_deg": -40.39571962725747,
+            "wrist_cam_axis_elev_p50_deg": -25.80877040976108,
+            "wrist_cam_axis_elev_p95_deg": -13.955841371748576,
+            "arm_posture_l1_p50_rad": 0.12543849926441908,
+            "post_release_return_time_p50_s": null,
+            "handle_bearing_deg_p50_stage0_2": 8.355619430541992,
+            "crossing_yaw_deg_p50": 157.89224243164062,
+            "arm_posture_l1_p95_rad": 0.16616881601512432,
+            "post_release_return_time_p95_s": null,
+            "handle_bearing_deg_p95_stage0_2": 31.48480415344238,
+            "crossing_yaw_deg_p95": 158.34138031005858,
+            "wrist_cam_share_axis_sweep_gt_60": 0.11039041777188328,
+            "arm_j6_reversals_per_s": 1.6133383134140007,
+            "arm_j6_abs_dev_from_1p57_p95": 0.005555059671401991,
+            "wrist_tower_panel_min_clearance_m": -5.3970308199469824e-05,
+            "wrist_tower_contact_step_share": 0.0005387931034482759,
+            "wrist_tower_contact_episodes_gt_5N": 3,
+            "handle_bearing_gt_30deg_share_stage0_2": 0.062100606259216776,
+            "doorway_bearing_deg_p95_stage5": null,
+            "stage0_2_vy_cmd_at_clip_share": 0.27232508602326727,
+            "handle_in_wrist_depth_share_stage2_4": 0.9987835108336394,
+            "handle_in_wrist_rgb_share_stage2_4": 0.5549256334924716
+          },
+          "overall": {
+            "wrist_cam_ang_speed_deg_s": {
+              "min": 0.5796131011059878,
+              "p5": 12.766294582962237,
+              "p50": 40.01494619230968,
+              "p95": 102.00706621975752,
+              "max": 469.83206844792994
+            },
+            "wrist_cam_axis_sweep_deg_s": {
+              "min": 0.1708791204456966,
+              "p5": 7.008321405562604,
+              "p50": 28.862926630856297,
+              "p95": 79.68875704091758,
+              "max": 408.10455690893093
+            },
+            "wrist_cam_axis_elev_deg": {
+              "min": -62.647137557005436,
+              "p5": -40.39571962725747,
+              "p50": -25.80877040976108,
+              "p95": -13.955841371748576,
+              "max": -1.3093231497025153
+            },
+            "base_cam_ang_speed_deg_s": {
+              "min": 0.14480382293955915,
+              "p5": 8.297566660791713,
+              "p50": 26.12075312777535,
+              "p95": 50.812745838846226,
+              "max": 106.73721356920763
+            },
+            "arm_j6_abs_dev_from_1p57_rad": {
+              "min": 1.8596649176139124e-07,
+              "p5": 0.0019322073459625555,
+              "p50": 0.06518948078155518,
+              "p95": 0.2273430454730987,
+              "max": 0.49787538528442377
+            },
+            "arm_posture_l1_rad": {
+              "min": 0.009129823418334126,
+              "p5": 0.1328714662231505,
+              "p50": 6.302334643900394,
+              "p95": 7.145439601503313,
+              "max": 7.874126840848476
+            },
+            "wrist_tower_panel_sampled_clearance_m": {
+              "min": -5.3970308199469824e-05,
+              "p5": 0.030974457519235526,
+              "p50": 0.08531496172964115,
+              "p95": 0.7709564263716828,
+              "max": 1.1841946703155515
+            },
+            "wrist_cam_share_axis_sweep_gt_60": 0.11039041777188328,
+            "arm_j6_reversals": {
+              "count": 1555,
+              "consecutive_pairs": 48192,
+              "observed_contiguous_duration_s": 963.8399999994109,
+              "per_s": 1.6133383134140007
+            },
+            "handle_in_wrist_depth_share": 0.9982800066312998,
+            "handle_in_wrist_rgb_share": 0.593045424403183,
+            "wrist_tower_contact_step_share_gt_1N": 0.0005387931034482759,
+            "wrist_tower_contact_episodes_gt_5N": 3,
+            "records": 48256,
+            "post_release_return_time_s": {
+              "threshold_l1_rad": 0.5,
+              "observed_episodes": 0,
+              "right_censored_episodes": 0,
+              "observed": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              },
+              "censor_duration": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              }
+            }
+          },
+          "stages": {
+            "0": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 2.8428705516839616,
+                "p5": 15.169769044803289,
+                "p50": 49.77620641710178,
+                "p95": 103.44248721067639,
+                "max": 154.95974296093638
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.37750725406860963,
+                "p5": 8.589220940830131,
+                "p50": 37.13751705406128,
+                "p95": 91.76278462284965,
+                "max": 149.33545643767533
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -27.74305732604126,
+                "p5": -19.90759788514397,
+                "p50": -12.849526880919118,
+                "p95": -4.9440619812134114,
+                "max": -1.3093231497025153
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 1.99456819234427,
+                "p5": 15.298691077986012,
+                "p50": 36.78112507034518,
+                "p95": 67.51155959380817,
+                "max": 101.83120642801487
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 1.8596649176139124e-07,
+                "p5": 0.00021484112739564854,
+                "p50": 0.0019805431365966797,
+                "p95": 0.005555059671401991,
+                "max": 0.009562320709228578
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.009129823418334126,
+                "p5": 0.03020851134788245,
+                "p50": 0.12543849926441908,
+                "p95": 0.16616881601512432,
+                "max": 0.19798948522657156
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.5750067763312448,
+                "p5": 0.6616210075434528,
+                "p50": 0.8185147445779797,
+                "p95": 1.1059345505506606,
+                "max": 1.1841946703155515
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.21323529411764705,
+              "arm_j6_reversals": {
+                "count": 3,
+                "consecutive_pairs": 3744,
+                "observed_contiguous_duration_s": 74.88000000000224,
+                "per_s": 0.04006410256410137
+              },
+              "handle_in_wrist_depth_share": 0.9921218487394958,
+              "handle_in_wrist_rgb_share": 0.9424894957983193,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 3808
+            },
+            "1": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 17.849452521708063,
+                "p5": 44.03916678684436,
+                "p50": 116.29643564541266,
+                "p95": 332.52567504487956,
+                "max": 410.1140742989193
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 7.607273208459531,
+                "p5": 27.43715634702628,
+                "p50": 105.07308383683296,
+                "p95": 321.07060099469743,
+                "max": 408.10455690893093
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -48.03344201648281,
+                "p5": -44.39177881730247,
+                "p50": -34.26707424138852,
+                "p95": -12.93279048543499,
+                "max": -4.731105897604979
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 1.8714886894907772,
+                "p5": 10.683124192137972,
+                "p50": 32.25278242321716,
+                "p95": 73.0748520967704,
+                "max": 99.90463822912064
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.0009580326080322887,
+                "p5": 0.013180226564407406,
+                "p50": 0.12383269548416131,
+                "p95": 0.22975615143775935,
+                "max": 0.27906387329101556
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.09743836335837841,
+                "p5": 0.16816851422190668,
+                "p50": 1.2491130665875971,
+                "p95": 2.413921179063618,
+                "max": 2.8401053994894028
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.26938494017934544,
+                "p5": 0.311422657820176,
+                "p50": 0.47139172358007664,
+                "p95": 0.6427129567034013,
+                "max": 0.6946600411322588
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.7897727272727273,
+              "arm_j6_reversals": {
+                "count": 1,
+                "consecutive_pairs": 816,
+                "observed_contiguous_duration_s": 16.31999999999974,
+                "per_s": 0.061274509803922544
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.9681818181818181,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 880
+            },
+            "2": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 3.327168474082485,
+                "p5": 12.77196852317431,
+                "p50": 38.507726286684374,
+                "p95": 94.20036946922117,
+                "max": 185.9496013772503
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.42461803945810256,
+                "p5": 7.913342539860934,
+                "p50": 30.9984242884445,
+                "p95": 91.7169121293452,
+                "max": 185.74228588070656
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -47.7998505837441,
+                "p5": -43.50303483639154,
+                "p50": -37.156656246473894,
+                "p95": -32.41312836378584,
+                "max": -27.050778603935626
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 2.7430364891382526,
+                "p5": 10.986852967634652,
+                "p50": 25.371945975472865,
+                "p95": 43.35960682138284,
+                "max": 55.02040828719211
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.0002810287475585316,
+                "p5": 0.03273085832595819,
+                "p50": 0.10480874061584466,
+                "p95": 0.1871237683296203,
+                "max": 0.27760928153991693
+              },
+              "arm_posture_l1_rad": {
+                "min": 2.287858948111534,
+                "p5": 2.743571497499943,
+                "p50": 3.7798181027173996,
+                "p95": 4.075662767887115,
+                "max": 4.26228030025959
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.12823833494014128,
+                "p5": 0.13369048253855123,
+                "p50": 0.15068243757066788,
+                "p95": 0.2633790266018244,
+                "max": 0.30331563984437426
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.18657243816254418,
+              "arm_j6_reversals": {
+                "count": 24,
+                "consecutive_pairs": 1351,
+                "observed_contiguous_duration_s": 27.01999999999951,
+                "per_s": 0.8882309400444277
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 1.0,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 1415
+            },
+            "3": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 3.0150778254508266,
+                "p5": 15.225679926464835,
+                "p50": 45.776767198511806,
+                "p95": 197.48310693130006,
+                "max": 412.2820352147395
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.30426951260943064,
+                "p5": 7.593523768359247,
+                "p50": 32.522058554957006,
+                "p95": 140.78035392725695,
+                "max": 240.5166632214129
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -49.137492544373174,
+                "p5": -41.68803076778941,
+                "p50": -27.288198166358896,
+                "p95": -19.300632932229757,
+                "max": -13.113156610495244
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.6357620043161778,
+                "p5": 5.4168222866223,
+                "p50": 16.515206430993636,
+                "p95": 45.12930530453302,
+                "max": 69.1396891478688
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 1.042366027825814e-05,
+                "p5": 0.010500712394714418,
+                "p50": 0.10595321655273438,
+                "p95": 0.40294459342956535,
+                "max": 0.49787538528442377
+              },
+              "arm_posture_l1_rad": {
+                "min": 3.6039212122559547,
+                "p5": 4.113868692563846,
+                "p50": 6.387660093605518,
+                "p95": 7.198366540670395,
+                "max": 7.798919662833214
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.09441935695911377,
+                "p5": 0.10341112513130778,
+                "p50": 0.1156027581973065,
+                "p95": 0.13784198149836316,
+                "max": 0.1548699698662787
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.1516650579150579,
+              "arm_j6_reversals": {
+                "count": 320,
+                "consecutive_pairs": 8224,
+                "observed_contiguous_duration_s": 164.48000000001002,
+                "per_s": 1.9455252918286752
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.8471283783783784,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 8288
+            },
+            "4": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 0.5796131011059878,
+                "p5": 12.065386226139617,
+                "p50": 37.20172933196245,
+                "p95": 87.45712346568503,
+                "max": 469.83206844792994
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.1708791204456966,
+                "p5": 6.632322091129306,
+                "p50": 26.755344698812447,
+                "p95": 64.67817261893272,
+                "max": 298.49985444542807
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -62.647137557005436,
+                "p5": -38.409572459252175,
+                "p50": -25.857280393327354,
+                "p95": -19.33177099611426,
+                "max": -12.240218899021214
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.14480382293955915,
+                "p5": 9.926294756102092,
+                "p50": 26.870861704372647,
+                "p95": 48.37703248382436,
+                "max": 106.73721356920763
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 3.271102905211265e-06,
+                "p5": 0.006343729972839318,
+                "p50": 0.06391782283782965,
+                "p95": 0.19597061157226556,
+                "max": 0.4677416610717773
+              },
+              "arm_posture_l1_rad": {
+                "min": 2.9958408176898956,
+                "p5": 5.533927536010742,
+                "p50": 6.3912684097886086,
+                "p95": 7.164220448955893,
+                "max": 7.874126840848476
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": -5.3970308199469824e-05,
+                "p5": 0.025130860102303546,
+                "p50": 0.07031658374857573,
+                "p95": 0.1141848738035939,
+                "max": 0.39374925393957383
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.06788719917318765,
+              "arm_j6_reversals": {
+                "count": 1202,
+                "consecutive_pairs": 33801,
+                "observed_contiguous_duration_s": 676.0199999996717,
+                "per_s": 1.7780539037315224
+              },
+              "handle_in_wrist_depth_share": 0.9984349623505093,
+              "handle_in_wrist_rgb_share": 0.4648161818987155,
+              "wrist_tower_contact_step_share_gt_1N": 0.0007677543186180423,
+              "wrist_tower_contact_episodes_gt_5N": 3,
+              "records": 33865
+            }
+          }
+        },
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/model_step_003000.pt"
+      },
+      "camera_assessment": {
+        "outcome": "CAMERA_PARTIAL",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 94.20036946922117,
+            "limit": 105,
+            "pass": true
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 197.48310693130006,
+            "limit": 250,
+            "pass": true
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": 87.45712346568503,
+            "limit": 150,
+            "pass": true
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": null,
+            "limit": 90,
+            "pass": null
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.04006410256410137,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": null,
+            "limit": 1.5,
+            "pass": null
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 0.8882309400444277,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": 1.7780539037315224,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 0.16616881601512432,
+            "limit": 0.5,
+            "pass": true
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.0,
+            "limit": 0.05,
+            "pass": true
+          },
+          "post_release_return_p50_s": {
+            "value": null,
+            "limit": 2.0,
+            "pass": null
+          },
+          "post_release_return_p95_s": {
+            "value": null,
+            "limit": 4.0,
+            "pass": null
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 3808,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 0,
+          "right_censored_episodes": 0,
+          "observed": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "censor_duration": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        }
+      }
+    },
+    {
+      "cell": "A_S283",
+      "stratum": "nominal",
+      "side": "right",
+      "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/model_step_003000.pt",
+      "seed": 280001,
+      "artifact_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_3000_a_s283_right/attempt1",
+      "summary": {
+        "episodes": 64,
+        "D": 17,
+        "S3+": 17,
+        "S4+": 0,
+        "open_hold": 0,
+        "S5+": 0,
+        "complete": 0,
+        "clean_complete": 0,
+        "hold_through": 0,
+        "crossing_while_holding": 0,
+        "post_release_body_force_p95": null,
+        "first_crossing_hinge_p50": null,
+        "episode_length_p50": 552.0,
+        "arm_j4_limit_residence_step_share": 0.0,
+        "terminal_reasons": {
+          "stage_overtime": 64
+        },
+        "integrity_violations": 0,
+        "runtime_contract": {
+          "seed": 280001,
+          "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/model_step_003000.pt",
+          "checkpoint_load_mode": "full",
+          "auto_load_latest": false,
+          "num_envs": 64,
+          "algo.config.eval.num_eval_episodes": 64,
+          "algo.config.eval.eval_num_envs_episodes": true,
+          "env.config.a2_v26_door_open_lr": "right",
+          "env.config.enable_staged_reset": false,
+          "rewards.reward_penalty_curriculum": false,
+          "env.config.a2_v26_8_penalty_driver": null
+        },
+        "clean_complete_components": {
+          "complete": 0,
+          "clean_complete": 0,
+          "hinge_below_1p0472": 0,
+          "body_contact_above_5N": 0,
+          "low_height_or_overspeed": 0
+        },
+        "wrist_tower_contact_episodes_gt_5N": 0,
+        "wrist_tower_contact_step_share": 0.0,
+        "camera_telemetry": {
+          "schema": "a2_piper_base_v28_camera_metrics_v2",
+          "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_3000_a_s283_right/attempt1/stage2_5_step_trace.json",
+          "rig": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+          "population": "first_episode_active && episode_index == 0",
+          "native_calibration": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/camera/d435_native_sim_parameters_20260907.json",
+          "projection": "measured SDK K and RGB-to-depth extrinsics; depth-module mounting transform from the nominal rig; pinhole visibility without occlusion or stereo reconstruction",
+          "geometry": "wrist support + housing box surface samples at 10mm pitch; panel local AABB x=+/-0.02, y=+/-width/2, z=[0,height]; sampled trace result is an upper bound, not exact or hardware clearance",
+          "orientation_definition": "bearings are horizontal relative to trunk yaw; reported quantiles use absolute signed angles; crossing yaw is latched at the existing first root-X crossing and counted once per episode; vy clip is physical +/-0.5 m/s",
+          "sample_counts": {
+            "all": 37045,
+            "stage0_2": 34899,
+            "stage5": 0,
+            "stage2_4": 32432,
+            "stage0_5": 3676,
+            "crossing_episodes": 0
+          },
+          "plan_fields": {
+            "wrist_cam_ang_speed_p50_deg_s": 28.291766967317823,
+            "wrist_cam_ang_speed_p95_deg_s": 88.57575120126361,
+            "wrist_cam_axis_sweep_p95_deg_s": 77.04189259881296,
+            "base_cam_ang_speed_p95_deg_s": 46.936039494238756,
+            "wrist_cam_axis_elev_p5_deg": -37.037491767391806,
+            "wrist_cam_axis_elev_p50_deg": -30.17725972037474,
+            "wrist_cam_axis_elev_p95_deg": -13.0004674917641,
+            "arm_posture_l1_p50_rad": 0.12719155990635045,
+            "post_release_return_time_p50_s": null,
+            "handle_bearing_deg_p50_stage0_2": 1.8489025831222534,
+            "crossing_yaw_deg_p50": null,
+            "arm_posture_l1_p95_rad": 0.17470781648080447,
+            "post_release_return_time_p95_s": null,
+            "handle_bearing_deg_p95_stage0_2": 12.17130279541015,
+            "crossing_yaw_deg_p95": null,
+            "wrist_cam_share_axis_sweep_gt_60": 0.09939263058442435,
+            "arm_j6_reversals_per_s": 0.3623482328765304,
+            "arm_j6_abs_dev_from_1p57_p95": 0.005995236635208068,
+            "wrist_tower_panel_min_clearance_m": 0.07038224705792571,
+            "wrist_tower_contact_step_share": 0.0,
+            "wrist_tower_contact_episodes_gt_5N": 0,
+            "handle_bearing_gt_30deg_share_stage0_2": 0.005157740909481647,
+            "doorway_bearing_deg_p95_stage5": null,
+            "stage0_2_vy_cmd_at_clip_share": 0.02790910914352847,
+            "handle_in_wrist_depth_share_stage2_4": 1.0,
+            "handle_in_wrist_rgb_share_stage2_4": 0.9893315244203256
+          },
+          "overall": {
+            "wrist_cam_ang_speed_deg_s": {
+              "min": 0.8403584090933364,
+              "p5": 11.17719557548796,
+              "p50": 28.291766967317823,
+              "p95": 88.57575120126361,
+              "max": 499.6147547157916
+            },
+            "wrist_cam_axis_sweep_deg_s": {
+              "min": 0.11874703476822605,
+              "p5": 6.6873727054346865,
+              "p50": 20.2859607638747,
+              "p95": 77.04189259881296,
+              "max": 461.56315214741403
+            },
+            "wrist_cam_axis_elev_deg": {
+              "min": -53.98974392846388,
+              "p5": -37.037491767391806,
+              "p50": -30.17725972037474,
+              "p95": -13.0004674917641,
+              "max": -0.48085713649457684
+            },
+            "base_cam_ang_speed_deg_s": {
+              "min": 0.1381840653648078,
+              "p5": 1.860673843529351,
+              "p50": 5.7458267025866885,
+              "p95": 46.936039494238756,
+              "max": 134.15325134849957
+            },
+            "arm_j6_abs_dev_from_1p57_rad": {
+              "min": 5.245208734017126e-08,
+              "p5": 0.002060111045837365,
+              "p50": 0.32998316764831537,
+              "p95": 0.404358749389648,
+              "max": 0.5215007591247558
+            },
+            "arm_posture_l1_rad": {
+              "min": 0.011772615136578679,
+              "p5": 0.12710598804987966,
+              "p50": 4.8522927314043045,
+              "p95": 5.456780164688825,
+              "max": 7.1056504510343075
+            },
+            "wrist_tower_panel_sampled_clearance_m": {
+              "min": 0.07038224705792571,
+              "p5": 0.11037433358783164,
+              "p50": 0.14630577800874278,
+              "p95": 0.8086620693152502,
+              "max": 1.1811487670595147
+            },
+            "wrist_cam_share_axis_sweep_gt_60": 0.09939263058442435,
+            "arm_j6_reversals": {
+              "count": 268,
+              "consecutive_pairs": 36981,
+              "observed_contiguous_duration_s": 739.6199999996153,
+              "per_s": 0.3623482328765304
+            },
+            "handle_in_wrist_depth_share": 0.998596301795114,
+            "handle_in_wrist_rgb_share": 0.9785936023754893,
+            "wrist_tower_contact_step_share_gt_1N": 0.0,
+            "wrist_tower_contact_episodes_gt_5N": 0,
+            "records": 37045,
+            "post_release_return_time_s": {
+              "threshold_l1_rad": 0.5,
+              "observed_episodes": 0,
+              "right_censored_episodes": 0,
+              "observed": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              },
+              "censor_duration": {
+                "min": null,
+                "p5": null,
+                "p50": null,
+                "p95": null,
+                "max": null
+              }
+            }
+          },
+          "stages": {
+            "0": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 1.976753387546812,
+                "p5": 17.468791733124696,
+                "p50": 56.53083975167077,
+                "p95": 111.86783102248938,
+                "max": 190.29518893476464
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.5888089017864657,
+                "p5": 10.068162251936442,
+                "p50": 44.396909964639526,
+                "p95": 96.47104640003042,
+                "max": 143.69293904557688
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -23.185032896390418,
+                "p5": -19.20517078074804,
+                "p50": -13.365255674295067,
+                "p95": -5.341964412647307,
+                "max": -0.48085713649457684
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 3.536636519367428,
+                "p5": 15.234574360748761,
+                "p50": 39.38524417949073,
+                "p95": 74.82504209320834,
+                "max": 134.15325134849957
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 5.245208734017126e-08,
+                "p5": 0.0001868534088134144,
+                "p50": 0.0020560026168823242,
+                "p95": 0.005995236635208068,
+                "max": 0.010943346023559508
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.011772615136578679,
+                "p5": 0.03906259255018085,
+                "p50": 0.12719155990635045,
+                "p95": 0.17470781648080447,
+                "max": 0.20775985673390096
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.534307545402798,
+                "p5": 0.6541672106450693,
+                "p50": 0.8102382257593086,
+                "p95": 1.1109052571532612,
+                "max": 1.1811487670595147
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.28618063112078346,
+              "arm_j6_reversals": {
+                "count": 2,
+                "consecutive_pairs": 3612,
+                "observed_contiguous_duration_s": 72.24000000000277,
+                "per_s": 0.027685492801770812
+              },
+              "handle_in_wrist_depth_share": 0.9918389553862894,
+              "handle_in_wrist_rgb_share": 0.941240478781284,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 3676
+            },
+            "1": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 8.391389017948804,
+                "p5": 39.337357297010215,
+                "p50": 103.77173639405034,
+                "p95": 372.5190863829132,
+                "max": 499.6147547157916
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 5.787625918806814,
+                "p5": 27.124843254696465,
+                "p50": 88.71799355480586,
+                "p95": 358.0082969741084,
+                "max": 461.56315214741403
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -53.98974392846388,
+                "p5": -49.23636896235652,
+                "p50": -39.39620052297775,
+                "p95": -11.845456680888672,
+                "max": -3.38288958522142
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 2.0178056578955808,
+                "p5": 18.207961966587753,
+                "p50": 42.867687845433096,
+                "p95": 69.91878300071268,
+                "max": 102.06873807183592
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.0038641023635863636,
+                "p5": 0.022571020126342715,
+                "p50": 0.12517433643341058,
+                "p95": 0.22769196510314935,
+                "max": 0.27814715385437006
+              },
+              "arm_posture_l1_rad": {
+                "min": 0.07697094418108463,
+                "p5": 0.1693024454638362,
+                "p50": 1.1357549354434013,
+                "p95": 2.412678127922118,
+                "max": 3.3716859370470047
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.21674374655917494,
+                "p5": 0.29461712342899626,
+                "p50": 0.4779796128443059,
+                "p95": 0.6520502737722627,
+                "max": 0.7060930074922966
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.7086446104589115,
+              "arm_j6_reversals": {
+                "count": 1,
+                "consecutive_pairs": 873,
+                "observed_contiguous_duration_s": 17.459999999999717,
+                "per_s": 0.05727376861397573
+              },
+              "handle_in_wrist_depth_share": 0.9765208110992529,
+              "handle_in_wrist_rgb_share": 0.7534685165421559,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 937
+            },
+            "2": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 0.8403584090933364,
+                "p5": 11.281758303865988,
+                "p50": 26.930008476211043,
+                "p95": 71.57612502744962,
+                "max": 199.0176378500092
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.11874703476822605,
+                "p5": 6.577949314916587,
+                "p50": 19.18228346794198,
+                "p95": 63.796758739103424,
+                "max": 198.72319907731782
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -52.63047090977415,
+                "p5": -36.130633826801414,
+                "p50": -30.724077238590954,
+                "p95": -26.098961626833447,
+                "max": -23.03309765034135
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.1381840653648078,
+                "p5": 1.9725873582700886,
+                "p50": 5.352039602786156,
+                "p95": 11.657539909086228,
+                "max": 88.59314689515885
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.13321547985076898,
+                "p5": 0.2728989350795745,
+                "p50": 0.34118949651718133,
+                "p95": 0.4079114425182342,
+                "max": 0.5215007591247558
+              },
+              "arm_posture_l1_rad": {
+                "min": 2.439055446535349,
+                "p5": 4.399545270949602,
+                "p50": 4.881538443267345,
+                "p95": 5.275694129988551,
+                "max": 5.512979276478291
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.12263750471528657,
+                "p5": 0.13486797679358214,
+                "p50": 0.1456306601251497,
+                "p95": 0.1564463515122553,
+                "max": 0.2958151184501629
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.058839067555966455,
+              "arm_j6_reversals": {
+                "count": 121,
+                "consecutive_pairs": 30222,
+                "observed_contiguous_duration_s": 604.4399999997386,
+                "per_s": 0.2001852954802004
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.9993726474278545,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 30286
+            },
+            "3": {
+              "wrist_cam_ang_speed_deg_s": {
+                "min": 1.221052127904461,
+                "p5": 6.766032392483859,
+                "p50": 20.806377144027145,
+                "p95": 185.0696452272637,
+                "max": 352.03639145782853
+              },
+              "wrist_cam_axis_sweep_deg_s": {
+                "min": 0.2924068856268596,
+                "p5": 3.9470414527602165,
+                "p50": 16.253555483476262,
+                "p95": 124.33600409767763,
+                "max": 232.1568610168814
+              },
+              "wrist_cam_axis_elev_deg": {
+                "min": -46.39395073442734,
+                "p5": -39.57217003374863,
+                "p50": -22.849542792969974,
+                "p95": -15.518169111887218,
+                "max": -9.915766074329406
+              },
+              "base_cam_ang_speed_deg_s": {
+                "min": 0.17314102363259773,
+                "p5": 0.9339168439869051,
+                "p50": 3.032978724473254,
+                "p95": 15.260442139352584,
+                "max": 30.837211583999977
+              },
+              "arm_j6_abs_dev_from_1p57_rad": {
+                "min": 0.00022130489349359017,
+                "p5": 0.026537649631500182,
+                "p50": 0.09234195232391351,
+                "p95": 0.31895091414451593,
+                "max": 0.49997704505920404
+              },
+              "arm_posture_l1_rad": {
+                "min": 4.343118818476796,
+                "p5": 4.929633856751025,
+                "p50": 6.263177897781134,
+                "p95": 6.953192885499448,
+                "max": 7.1056504510343075
+              },
+              "wrist_tower_panel_sampled_clearance_m": {
+                "min": 0.07038224705792571,
+                "p5": 0.07994344509626326,
+                "p50": 0.09565288313247633,
+                "p95": 0.13153897870927744,
+                "max": 0.1560348144485111
+              },
+              "wrist_cam_share_axis_sweep_gt_60": 0.08574091332712022,
+              "arm_j6_reversals": {
+                "count": 142,
+                "consecutive_pairs": 2129,
+                "observed_contiguous_duration_s": 42.579999999999494,
+                "per_s": 3.3348990136214582
+              },
+              "handle_in_wrist_depth_share": 1.0,
+              "handle_in_wrist_rgb_share": 0.84762348555452,
+              "wrist_tower_contact_step_share_gt_1N": 0.0,
+              "wrist_tower_contact_episodes_gt_5N": 0,
+              "records": 2146
+            }
+          }
+        },
+        "checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/model_step_003000.pt"
+      },
+      "camera_assessment": {
+        "outcome": "CAMERA_PARTIAL",
+        "report_only": true,
+        "checks": {
+          "stage2_wrist_speed_p95_deg_s": {
+            "value": 71.57612502744962,
+            "limit": 105,
+            "pass": true
+          },
+          "stage3_wrist_speed_p95_deg_s": {
+            "value": 185.0696452272637,
+            "limit": 250,
+            "pass": true
+          },
+          "stage4_wrist_speed_p95_deg_s": {
+            "value": null,
+            "limit": 150,
+            "pass": null
+          },
+          "stage5_wrist_speed_p95_deg_s": {
+            "value": null,
+            "limit": 90,
+            "pass": null
+          },
+          "stage0_j6_reversals_per_s": {
+            "value": 0.027685492801770812,
+            "limit": 1.5,
+            "pass": true
+          },
+          "stage5_j6_reversals_per_s": {
+            "value": null,
+            "limit": 1.5,
+            "pass": null
+          },
+          "stage2_j6_reversals_per_s": {
+            "value": 0.2001852954802004,
+            "limit": 2.5,
+            "pass": true
+          },
+          "stage4_j6_reversals_per_s": {
+            "value": null,
+            "limit": 2.5,
+            "pass": null
+          },
+          "stage0_5_arm_posture_l1_p95_rad": {
+            "value": 0.17470781648080447,
+            "limit": 0.5,
+            "pass": true
+          },
+          "stage0_5_j6_deviation_gt_0p3_frame_share": {
+            "value": 0.0,
+            "limit": 0.05,
+            "pass": true
+          },
+          "post_release_return_p50_s": {
+            "value": null,
+            "limit": 2.0,
+            "pass": null
+          },
+          "post_release_return_p95_s": {
+            "value": null,
+            "limit": 4.0,
+            "pass": null
+          }
+        },
+        "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+        "posture_frame_denominator": 3676,
+        "release_censoring": {
+          "threshold_l1_rad": 0.5,
+          "observed_episodes": 0,
+          "right_censored_episodes": 0,
+          "observed": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "censor_duration": {
+            "min": null,
+            "p5": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        }
+      }
+    }
+  ],
+  "typed_outcomes": null,
+  "invalid_cells": {},
+  "k_driver_trace": {
+    "A_S281": {
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s281/attempt1/a2_v26_8_penalty_curriculum_trace.jsonl",
+      "through_batch": 3000,
+      "updates": 191951,
+      "first": {
+        "update_index": 0,
+        "common_step": 0,
+        "scale_before": 1.0,
+        "scale_after": 1.0,
+        "driver_left": null,
+        "driver_right": null,
+        "natural_sample_left": 0,
+        "natural_sample_right": 0,
+        "natural_reached_left": 0,
+        "natural_reached_right": 0,
+        "consumed": false,
+        "skipped": true
+      },
+      "last": {
+        "update_index": 191950,
+        "common_step": 192000,
+        "scale_before": 0.20000000298023224,
+        "scale_after": 0.20000000298023224,
+        "driver_left": 1.0,
+        "driver_right": 1.0,
+        "natural_sample_left": 3,
+        "natural_sample_right": 1,
+        "natural_reached_left": 3,
+        "natural_reached_right": 1,
+        "consumed": true,
+        "skipped": false
+      },
+      "scale_min": 0.20000000298023224,
+      "scale_max": 1.0,
+      "scope": "Observed training curriculum updates through the requested batch; not an independent causal comparison."
+    },
+    "A_S282": {
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s282/attempt1/a2_v26_8_penalty_curriculum_trace.jsonl",
+      "through_batch": 3000,
+      "updates": 191977,
+      "first": {
+        "update_index": 0,
+        "common_step": 0,
+        "scale_before": 1.0,
+        "scale_after": 1.0,
+        "driver_left": null,
+        "driver_right": null,
+        "natural_sample_left": 0,
+        "natural_sample_right": 0,
+        "natural_reached_left": 0,
+        "natural_reached_right": 0,
+        "consumed": false,
+        "skipped": true
+      },
+      "last": {
+        "update_index": 191976,
+        "common_step": 192000,
+        "scale_before": 0.20000000298023224,
+        "scale_after": 0.20000000298023224,
+        "driver_left": 1.0,
+        "driver_right": 1.0,
+        "natural_sample_left": 1,
+        "natural_sample_right": 2,
+        "natural_reached_left": 1,
+        "natural_reached_right": 2,
+        "consumed": true,
+        "skipped": false
+      },
+      "scale_min": 0.20000000298023224,
+      "scale_max": 1.0,
+      "scope": "Observed training curriculum updates through the requested batch; not an independent causal comparison."
+    },
+    "A_S283": {
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/a2_v26_8_penalty_curriculum_trace.jsonl",
+      "through_batch": 3000,
+      "updates": 191973,
+      "first": {
+        "update_index": 0,
+        "common_step": 0,
+        "scale_before": 1.0,
+        "scale_after": 1.0,
+        "driver_left": null,
+        "driver_right": null,
+        "natural_sample_left": 0,
+        "natural_sample_right": 0,
+        "natural_reached_left": 0,
+        "natural_reached_right": 0,
+        "consumed": false,
+        "skipped": true
+      },
+      "last": {
+        "update_index": 191972,
+        "common_step": 192000,
+        "scale_before": 1.0,
+        "scale_after": 1.0,
+        "driver_left": 1.0,
+        "driver_right": 0.0,
+        "natural_sample_left": 3,
+        "natural_sample_right": 4,
+        "natural_reached_left": 3,
+        "natural_reached_right": 0,
+        "consumed": true,
+        "skipped": false
+      },
+      "scale_min": 1.0,
+      "scale_max": 1.0,
+      "scope": "Observed training curriculum updates through the requested batch; not an independent causal comparison."
+    }
+  },
+  "limitations": [
+    "Counts describe the evaluated checkpoints and first episodes only.",
+    "Absent events are null; camera targets are report-only.",
+    "Projection is a pinhole geometric proxy without occlusion or stereo reconstruction.",
+    "Sampled clearance is an upper bound, not exact clearance or hardware evidence.",
+    "A284 changes seed and driver and is not a driver causal comparison."
+  ]
+}

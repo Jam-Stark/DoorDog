@@ -2,7 +2,7 @@
 name: base-v28-camera-aware-rebaseline
 status: active
 scope: v28 re-baseline — MERGED asset, wrist tower and PiPER posture, staged camera contract, camera-aware bundle, three-seed reachability and qualification-oriented Teacher selection
-last_verified: 2026-09-14
+last_verified: 2026-09-17
 read_when:
   - implementing or resuming base_v28
   - changing the robot asset, default posture, camera mounts or A2_Base contract
@@ -20,7 +20,7 @@ related_entries:
 
 # base_v28 camera-aware re-baseline
 
-运行证据更新（2026-09-14 18:14 HKT，D047）：原三seed已完成1000时点的六条exact64；实际scratch配置/GPU分配成立。两侧D/S4+/complete为0，少量RIGHT到S3；相机CAMERA_PARTIAL，无事件保持null。它不是6000终点结论，训练按D046继续，A284尚未触发；统计与commit从runtime milestone_records/step1000.json路由。
+运行证据更新（2026-09-17 16:58 HKT，D058）：Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（D058）。A284最后完整日志迭代5167、最新保存checkpoint5000，6000训练终点与双侧评估取消；按原D039排序冻结主候选A_S282@6000（weak clean12、总73）和备选A_S284@5000（12、总38），身份在DEV启动前落锁。原三seed终点reach1/3（REACH_SEED_UNSTABLE）保持；资格门、C_T和固定DEV→CONF程序不变。 主候选DEV已启动，实际资格/render与closure待收回。运行指针见owner_stop_training_wave_b_20260917.json、wave_a_endpoint_lock.json及wave_b_launch_receipt_20260917.json。
 
 当前路由（2026-09-14 10:54 HKT，D046）：Owner已批准G1失败后继续原三seed各6000 scratch，原C_T/门值/预算不变；WARM_FAIL与500消耗保留，warm附加臂取消。按原milestone、条件A284及固定资格合同推进，实际任务和资源仅由execution_20260913的state/receipts路由。下方G1停止点是历史时点，不再要求重复成本批准。
 
@@ -31,6 +31,8 @@ related_entries:
 当前批准合同（2026-09-12 17:18 HKT；修改：-codex planner；依据：-owner）：保持 MERGED、140 mm/38.76°、reset `[0,0.10,-0.10,0,-0.415,1.57]`、D17、bundle/K、原三 seed 各6000与固定 staged reset。D038 将原三 seed 的6000 reach可靠性与历史候选分列；D039 改用既定exact64 milestone的弱侧clean、双侧clean总和、较晚milestone、较小seed排序，DEV/CONF前固定最多两个不同checkpoint，主候选未确认才验备选，最多八条exact128 lane，不搜索第三名。D040 使实际按D31触发并启动的A_S284具有条件入池资格，待其既定评估完成后冻结候选池；其结果单列，不计原三seed分母，不证明driver因果收益。
 
 实现状态（2026-09-13 01:47 HKT）：D038–D040 reducer/contract/manifest已同步；`v28_orchestrate.py`、`v28_watch_wave.py`、readout/render/closure及`v28_wait.py`形成实际入口。G1 full延长只执行额外500至累计1000，保存训练状态但不保存完整simulator/RNG轨迹；条件A_W281为独立旧C_S2 policy_only+actor RMS、seed281、6000批。对应CPU检查通过，该时点G1尚待真实运行；2026-09-14实际结论见顶部停止点。D16实际输出路径缺陷已修复，原G0 checkpoint旁exported副作用保留历史；新路径已于2026-09-14双侧eval得到实际证据。决策入口D041/D042；运行/等待从runtime的`execution_20260913/`读取。
+
+等待入口补充（2026-09-16 00:11 HKT，D051条件臂执行接线）：`v28_wait.py`增加`a284_step1000`至`a284_step6000`，对应独立的`milestone_wave_a_s284_<step>.md`，不复用原三seed汇总。首个a284_step1000已于09-16 11:04HKT实际返回对应readout，后续目标按同一实现逐次使用；证据见runtime的`execution_20260913/a284_wait_target_implementation_20260916.json`。
 
 后续回收：v28 closure成功或失败均触发N01/N02重新立项复核；X24在下一次asset/A2_Base变更立项时复核真实随机校准需求，X25保留Stage2/3位姿不稳触发。base单/双、真实光学/CAD、Student传感与安装件交换仍归C_S/G2。无事件指标保留null，投影为几何代理，学习失败不证明E_T几何无解。
 

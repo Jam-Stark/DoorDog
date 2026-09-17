@@ -2,7 +2,7 @@
 
 更新：2026-09-12 17:18 HKT；本次修改：-codex planner；依据：-owner 已同意规划裁决并要求修改 plan、做好记录。历史执行记录保留各自时点与作者。
 
-当前更新（2026-09-14 18:14 HKT）：D047记录step1000六条exact64有效评估与预注册继续训练。D046续行有效，G1 WARM_FAIL和warm取消保留；三训练仍在运行，6000终点和资格未评估。
+当前更新（2026-09-17 16:58 HKT）：Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（D058）。A284最后完整日志迭代5167、最新保存checkpoint5000，6000训练终点与双侧评估取消；按原D039排序冻结主候选A_S282@6000（weak clean12、总73）和备选A_S284@5000（12、总38），身份在DEV启动前落锁。原三seed终点reach1/3（REACH_SEED_UNSTABLE）保持；资格门、C_T和固定DEV→CONF程序不变。
 
 以下 D018–D037 保留原讨论、暂停、事后修订与执行过程；末尾 D038–D040 为本次新决定，不回写原评审或旧运行结果。
 
@@ -222,3 +222,168 @@ N01=CONTINUE有界pilot立项设计：重设计扰动和失抓事件定义，区
 一次runtime快照见iteration1104/1134/1118，约22.85/22.2/22.0秒每迭代；六条step1000评估在GPU7串行墙钟约44.9分钟，与GPU4/5/6训练并行。按最慢训练剩余与实际eval成本，下一2000汇总预计约6.5小时；绝对等待截止见milestone记录，真实结果/故障提前返回。账本已结算500、在途预留18000；保存的checkpoint已证明至少3500累计训练批（含G1），不把已结算计数冒充实时总进度。
 
 证据：[step1000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step1000_aggregate.md)、[有界核对记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/step1000.json)。执行本地step1000 commit，实际receipt在execution目录；训练与watcher持续，未push或追加评估。
+
+## V28-D048：Wave A step2000分化与继续训练（2026-09-15 00:48 HKT）
+
+修改：-codex Main；依据：-owner D046、plan §8.2/§8.3/§9.7。状态：ACCEPTED（执行预注册继续，无新实验合同）。
+
+原三seed的6/6自然exact64 lane全部完成、integrity=0、invalid为空。A_S281 LEFT/RIGHT的D=64/59、S4+=64/64、S5+=8/9；A_S282 D=63/63、S4+=0/0；A_S283 D=1/0、S4+=0/0。所有lane的complete/clean均0、stage_overtime均64。塔架>5N集数仅281 RIGHT为1，接触步占比0.00041945，其余0；281松手后身体力p95为340.39/173.84 N，crossing hinge p50为1.0325/1.3976 rad。到达进展尚未形成完成能力，当前无格过reach门；不外推6000终点可靠性或因果结论。
+
+相机281双侧及282 LEFT为CAMERA_UNMET，282 RIGHT与283双侧为PARTIAL。281回位观测0/0集、右删失8/26集，回位分位数仍null；其他seed缺crossing/Stage5/release事件，相应字段保持null。相机是report-only；腕部速度/反转失败本身不证明X25的base位姿耦合问题。既有K trace至2000显示281 scale约0.301、282/283仍1.0，仅作训练过程观测。281仅在2000满足双侧S4+≥56且complete≤4，1000未满足，故不触发相邻两milestone的D31/A284；既有训练配方保持不变。
+
+一次runtime快照下界为iteration2073/2149/2127，281当前约24.23秒每迭代；六条step2000评估在GPU7串行墙钟50.4分钟，与GPU4/5/6训练并行。下一3000汇总估计约7小时15分，固定等待边界为2026-09-15 08:03:31 HKT，真实结果/故障提前返回。账本已结算500、在途预留18000；step2000 checkpoint证明至少6500累计批（含G1）。1000本地commit已完成，本时点没有新commit节点；下一节点仍为endpoint冻结。
+
+证据：[step2000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step2000_aggregate.md)、[分量与等待依据](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/step2000.json)。训练与watcher持续，无额外评估或源码改动。
+
+## V28-D049：Wave A step3000完成行为与质量分量（2026-09-15 07:41 HKT）
+
+修改：-codex Main；依据：-owner D046、plan §8.2/§8.3/§9.7。状态：ACCEPTED（执行预注册继续，无新实验合同）。
+
+原三seed的6/6自然exact64 lane全部完成、integrity=0、invalid为空。A_S281 LEFT/RIGHT D=64/53、S4+=64/64、S5+=5/64、complete=5/64、clean=1/40；LEFT四次完成hinge<1.0472，RIGHT24次完成body>5N，松手后身体力p95=0/1080.724 N，crossing hinge p50=0.91349/1.6443 rad。A_S282 D=64/64、S4+=64/64、S5+=20/0，A_S283 D=62/17、S4+=64/0，两者complete/clean均0。塔架>5N集数282 RIGHT=10（步占比0.001098309）、283 LEFT=3（0.000538793），其余0；两处超过现行64样本塔架门。281 LEFT终止complete5/overtime59、RIGHT complete64，其余lane均overtime64。完成行为出现但双侧能力与质量尚不足；这不是6000终点可靠性或资格结论。
+
+相机281/282双侧CAMERA_UNMET，283双侧PARTIAL，完整逐stage失败/缺失分量见readout。281回位观测LEFT/RIGHT=0/64，右删失6/0；LEFT回位分位数null，RIGHT分位数有实际观测。282/283回位观测和删失均0，相应事件缺失保持null；不把282 LEFT的Stage5到达20等同有效回位事件。相机仍report-only，不能仅凭腕部失败宣称X25 base位姿失稳。K trace至3000：281/282 scale均0.2、driver两侧1/1；283 scale1.0、driver1/0，仅作过程观测。
+
+D31不触发：281在2000满足数值条件，但3000 complete=5/64不满足每侧≤4；282仅3000首次双侧到S4，283仍非双侧。不存在合格相邻两milestone及A284任务；不改已运行格的driver或配方。
+
+一次runtime快照下界iteration3055/3161/3159，慢侧281约24.02秒每迭代；六条step3000评估在GPU7串行墙钟62.1分钟、process总和2869.0秒，均exit0。下一4000汇总估计约7小时45分，固定等待边界为2026-09-15 15:26:40 HKT；真实结果/故障提前返回。账本已结算500、在途预留18000；step3000 checkpoint证明至少9500累计批（含G1）。1000本地commit已完成，本时点没有新commit节点，下一节点仍为endpoint。
+
+证据：[step3000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step3000_aggregate.md)、[分量与等待依据](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/step3000.json)。训练与watcher持续，无额外评估或源码改动。
+
+## V28-D050：Wave A step4000实际读数与继续原6000
+
+2026-09-15 14:45 HKT；修改：-codex Main；依据：-owner D046及§9.3既定milestone路由；状态ACCEPTED。
+
+原三seed step4000的6条自然exact64评估完整且integrity=0。281 LEFT/RIGHT complete=64/64、clean=47/38；LEFT完成中17集门角不足，RIGHT26集身体接触。282 complete=36/33、clean=3/2；283 complete/clean=0/0。塔架>5N集数为282 LEFT=13、283 RIGHT=26，其余0；六条相机报告均UNMET，回位null与右删失单列。D31仍无合格相邻对，A284未触发。原6000继续，终点/候选/资格未评估；G1 WARM_FAIL与500保留、warm取消。
+
+281 D=64/28、S4+/S5+/complete均64/64；松手后身体力p95=0/603.266N，crossing hinge p50=1.117632/1.416776rad。282 D=62/64、S4+=64/64、S5+=61/33；完成分量：门角不足17/30、身体接触33/8，分量可能重叠；终止complete36/33、overtime28/31。283 D/S4+=64/64、S5+=0/7、overtime64/64，松手后身体力p95=0/649.729N。不能由本milestone预判6000终点或Teacher资格。
+
+D31：281/282在4000的complete均超过4；283首次在4000满足双侧S4+=64且complete=0，但3000 RIGHT S4+=0，所以没有相邻两次满足的seed，不启动A284。
+
+相机：六lane均有实测失败，按report-only规则记UNMET。回位已观察/右删失：281 LEFT0/64、RIGHT41/20（已观察p50=1.82s、p95=2.42s）；282 LEFT32/0（.73s/1.907s）、RIGHT17/17（1.42s/4.12s）；283 LEFT0/3、RIGHT0/19。未观察分位数保留null；这些条件分位数不能代表所有episode已回位。逐stage失败、事件分母与完整26字段从readout读取。K三seed在4000的scale均0.2；281末次更新缺RIGHT natural sample、skipped=true，282/283末次consumed=true，非因果证据。
+
+三训练日志一次观测的已完成iteration下界4050/4177/4169，近四次均值24.1225/23.0475/23.8425s。六条eval均GPU7、exit0，process总和2856.8s、串行墙钟3892.9s。closed invocation实际500、active reservation18000、scheduled0；4000 checkpoint证明总进度至少12500批含G1，不混作closed counter。下一真实step5000等待截止2026-09-15T22:30:31+08:00，依据最慢seed剩950批、实测评估耗时与调度余量；readout/故障可提前返回。
+
+证据：`runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/step4000.json`及同目录`step4000_state_snapshot.json`；原始reducer/readout与六eval receipts保留。继续5000/6000、条件A284、固定WaveB与render/closure。4000没有新commit节点，本次仅更新实际证据与记录。
+
+## V28-D051：Wave A step5000质量分量与A284条件触发
+
+2026-09-15 21:59 HKT；修改：-codex Main；依据：-owner D046及§8.3/§9既定条件；状态ACCEPTED。
+
+原三seed step5000的6条自然exact64均有效、integrity=0。281 LEFT/RIGHT complete=52/0、clean=51/0，上肢超速终止12/64；282 complete=63/64、clean=12/7，LEFT身体接触51集、RIGHT门角不足57集；283 complete=0/0，RIGHT塔架>5N为16集。六条相机均UNMET，回位null与右删失保留。283在4000/5000连续双侧S4+=64、complete=0，触发D31；A284已按原合同排队，尚未实际启动。原三seed继续6000，候选冻结需等实际启动的A284完成既定证据；G1 WARM_FAIL/500与warm取消保持。
+
+281 D=54/14、S4+=55/44、S5+=54/42；LEFT完成52、超速12，RIGHT超速64、无完成。松手后身体力p95=0/155.073N，crossing hinge p50=1.332701/1.420162rad。282 D=53/64、S4+/S5+/complete=63/64，LEFT overtime1；松手后身体力p95=846.134/0N，crossing hinge p50=1.723882/.921548rad。283 D=64/61、S4+=64/64、S5+/complete=0/0，双侧overtime64，RIGHT塔架步占比.011853448；其余塔架集数0。low_height/overspeed分量按所有评估集计，不能把281的12/64解释为已完成子群。当前没有新增双侧reach合格checkpoint，不预判6000终点或冻结资格排序。
+
+D31证据为A_S283同一seed的相邻4000/5000，两次每侧S4+=64且complete=0，满足≥56/≤4；watcher已创建wave_a_s284，状态PENDING_GPU。保持scratch、seed284、target_stage=5、4096env、6000及原六milestone；不修改原三seed，A284不入其分母、不构成driver因果比较。预算closed实际500、active预留18000、scheduled6000，总承诺24500≤36500；5000 checkpoint证明至少15500累计批含G1。继续既有GPU4–6训练队列，GPU7与后续释放卡推进评估；本时点不把queued记为实际启动或已具入池资格。
+
+相机六lane均UNMET。回位已观察/右删失：281 LEFT0/55、RIGHT0/36；282 LEFT63/0（已观察p50=.42s、p95=.738s）、RIGHT33/31（.86s/1.072s）；283 LEFT0/1、RIGHT0/5。无回位的分位数保持null，282条件分位数不代表所有episode。逐stage失败、事件分母与26字段保留在readout；腕部失败不独自证明X25 base位姿不稳。K在common_step320000均scale≈.2、consumed=true，末次driver281=5/6与2/3、282/283=1/1，仅过程观测。
+
+已完成iteration下界5025/5167/5113，最近四次均值35.5625/33.9625/25.625s；六条eval均GPU7、exit0，process总和2217.1s、串行墙钟4650.6s。下一原三seed6000等待截止2026-09-16T09:14:50+08:00，按这次较慢训练速度、既有eval耗时与调度余量估计11h15；真实readout/异常提前返回。A284触发不改变原三seed6000单独报告要求，候选池冻结仍依D040等待实际启动的A284全套结果。
+
+证据：[step5000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step5000_aggregate.md)、[分量与等待依据](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/step5000.json)及step5000_state_snapshot.json。5000没有新commit节点；本次仅处理实际milestone与预注册条件，不改实验配方。
+
+
+## V28-D052：原三seed6000可靠性与A284实际启动
+
+2026-09-16 10:30 HKT；修改：-codex Main；依据：-owner D046与既定D038/D040；状态ACCEPTED。
+
+原三seed各6000已完成；终点6条自然exact64均有效、integrity=0。双侧reach为1/3，仅A282通过，结论REACH_SEED_UNSTABLE。281 LEFT/RIGHT complete=62/63、clean=59/43，RIGHT松手后身体力p95=536.013N；282 complete=62/64、clean=61/12，RIGHT门角不足52集；283 complete=64/4、clean=29/2，RIGHT塔架>5N为24集。六lane相机均UNMET。A284已于09-16 03:52HKT在GPU5按原scratch/target_stage5/6000合同实际启动，待其六个milestone齐全后依D040冻结候选；G1 WARM_FAIL/500与warm取消保持。
+
+D038的原三seed6000分母固定为3：281 LEFT通过、RIGHT因松手后身体力p95>5N失败；282双侧通过；283 LEFT通过、RIGHT因complete4<60及塔架24>2失败。该reach门不含crossing hinge质量门，故282入池资格不消除RIGHT的52集hinge失败，也不等于Teacher通过。现有历史中仅A282@6000满足双侧reach，弱侧clean12、总clean73；这是尚未冻结的观察，主备候选依D040等待实际启动的A284全部六个milestone，不提前运行DEV/CONF。
+
+原三seed进程均exit0、actual_batches各6000。281 D58/2、S4+62/63、open_hold62/51、S5+62/63；超速2/1，塔架1/0，crossing hinge p50=1.198090/1.365353rad。282 D56/64、S4+63/64、S5+62/64；LEFT超速2，身体接触1/0，塔架0/0，hinge p50=1.561679/.954489rad。283 D61/55、S4+64/64、S5+64/4；RIGHT overtime60，hinge p50=1.031354/1.404117rad；LEFT hinge不足34、身体接触1集，RIGHT身体接触2集。low_height/overspeed分量按全部评估集计；身体接触与hinge分量可重叠。除281 RIGHT外，松手后身体力p95均0。
+
+相机六lane均UNMET，逐stage失败和26字段保留readout。回位观察/右删失：281为0/61、0/49且分位数null；282为58/5（已观察p50=.72s、p95=1.029s）和3/61（.76s/.85s）；283为18/46（.92s/.96s）和1/7（.60s/.60s）。这些条件分位数不代表全部episode；腕部失败不独自触发X25。K末次common_step384000均scale≈.2，281 driver1/.5且consumed，282 driver null/1、LEFT零natural样本所以skipped，283 driver1/1且consumed；不构成因果比较。
+
+A284的process receipt证明fresh counters/start_global_step0、checkpoint null、full、seed284、4096env、6000与target_stage5，固定reset [.5,.1,.1,.1,.1,.1]成立；03:52HKT在GPU5启动。单次日志观察iteration933，最近四次均值23.6225s。预算closed实际18500、active预留6000、scheduled0，总承诺24500≤36500；未把A284在训进度记成闭合消耗。其首个milestone等待目标为a284_step1000，截止2026-09-16T11:15:07+08:00；按67个剩余batch约26.4min、单lane评估5.2–8.4min且可并行及调度余量估计45min，真实readout/异常提前返回。
+
+证据：[step6000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step6000_aggregate.md)、[分量、终点判定和等待依据](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/step6000.json)及step6000_state_snapshot.json。候选endpoint lock尚未触发，不在本节点提前commit；原三seed训练及六lane评估、旧Main等待的10个完成事件在处理后单独ack。
+
+
+## V28-D053：A284首个milestone与独立等待路径
+
+2026-09-16 11:06 HKT；修改：-codex Main；依据：-owner D046与既定D31/D040；状态ACCEPTED。
+
+A284@1000双侧自然exact64均有效、integrity=0；LEFT/RIGHT D=0/2、S3+=0/3，S4+/S5+/complete/clean均0，双侧stage_overtime64、塔架接触0。相机均CAMERA_PARTIAL，晚阶段与回位无事件的指标保留null。按原合同继续A284至6000；原三seed6000的reach1/3（REACH_SEED_UNSTABLE）保持独立，候选冻结及资格待条件臂完整证据。 首个checkpoint不支持A284终点失败或driver因果结论。
+
+双侧松手后身体力p95、crossing hinge和回位分位数均null；回位观察/右删失均0/0。LEFT未到Stage3，缺少Stage3–5角速度、Stage4/5反转与回位；RIGHT有3集到Stage3，缺少Stage4/5及回位。已测目标没有失败，故CAMERA_PARTIAL，不写MET。26字段和事件分母保留原readout。K末次common_step64000，scale1.0，driver左右0、natural样本4/3、reached0/0、consumed=true。
+
+A284仍在GPU5训练，11:04:42HKT单次日志观察iteration1026，四次均值24.33s。双侧eval分别GPU7/4，exit0，耗时377.4/401.4s，实际并行。预算closed18500、active预留6000、scheduled0、cap36500；已保存A284@1000证明累计至少19500，但不把在训cell写成闭合预算。下一a284_step2000截止2026-09-16T18:06:45+08:00，按剩余974批约6.58h、双侧评估约7min及调度余量给出7h，真实readout/异常提前返回。
+
+`a284_step1000`于11:04:07HKT实际返回MILESTONE_READOUT_READY，与独立readout一致，首个等待目标的runtime路径已验证。仅确认这次实际功能，后续五个目标尚未单独运行。证据：[A284@1000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_1000.md)、[milestone记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/a284_step1000.json)及a284_wait_target_implementation_20260916.json。处理后只ack双侧eval与本次Main等待三个完成事件；没有新增commit节点、测试或实验。
+
+## V28-D054：A284@2000 评估与等待续期
+
+2026-09-16 18:26 HKT；修改：-codex Main；依据：-owner D046与既定D31/D040；状态ACCEPTED。
+
+A284@2000双侧自然exact64均有效、integrity=0；LEFT/RIGHT D、S3+、S4+、open_hold均64，S5+=9/1，complete/clean=0/0，双侧stage_overtime64，塔架接触0/1。相机均CAMERA_UNMET，回位observed=0/0、censored=37/1且分位数null。按原合同继续A284至6000；原三seed终点reach1/3保持独立，候选冻结及资格待A284完整证据。
+
+LEFT/RIGHT post-release身体接触p95=220.326/0N，首次crossing hinge p50=1.067583/0.819901rad。双侧complete为0，clean分量不能据此声称所有episode均无接触或hinge问题。相机LEFT未达S5速度、S4反向、姿态与j6偏离份额；RIGHT未达S2/S5速度及S4反向。回位无观测成功，删失37/1；26字段和原始缺失口径保留。该读数不触发对X25 base pose或真实光学/硬件的归因。
+
+K最后common_step128000，scale1.0，driver0/0，自然样本2/3、reached0/0，consumed=true/skipped=false；只作过程观察。双侧eval均GPU7、exit0，实际顺序运行549.2/514.0s。预算closed18500、active预留6000、scheduled0、cap36500；A284@2000 checkpoint证明累计至少20500，不闭合在训cell预算。
+
+原2000等待于18:06:45HKT到期；一次日志观察18:07:29HKT为iteration2017。首次续期漏传既有--renew-reason，按旧deadline立即返回；补齐调用参数后保留18:38:59HKT截止，18:22:31HKT由实际双侧readout提前返回。没有source/config修改或训练重启，详情见runtime waits/a284_step2000_deadline_extension1_20260916.json。下一3000截止2026-09-17T01:37:29+08:00；18:07:29HKT single actual training observation: iteration2017, remaining983 to3000, last four iteration times24.51/25.10/24.86/24.88s mean24.8375s (~6.78h training). Step2000 bilateral eval actually ran sequentially onGPU7, process549.2/514.0s (~18min) plus scheduling/readout. Set7h30 from observation including margin, conditional on throughput/admission; actual readout/failure returns early. No second progress poll.
+
+证据：[A284@2000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_2000.md)、[milestone记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/a284_step2000.json)。本节点仅处理对应完成事件；无新增commit节点、测试或实验。
+
+
+## V28-D055：A284@3000 单侧完成与继续既定训练
+
+2026-09-17 01:42 HKT；修改：-codex Main；依据：-owner D046与既定D31/D040；状态ACCEPTED。
+
+A284@3000双侧自然exact64均有效、integrity=0；LEFT/RIGHT D、S3+、S4+、open_hold均64，S5+/complete=0/64，clean=0/32。LEFT stage_overtime64；RIGHT完成64，其中32集因crossing hinge低于1.0472rad不clean。双侧塔架接触0，相机均CAMERA_UNMET；回位observed=0/0、censored=0/64且分位数null。按原合同继续A284至6000；原三seed终点reach1/3保持独立，候选冻结及资格待A284完整证据。
+
+LEFT/RIGHT post-release body force p95=228.260/0N，first crossing hinge p50=1.000044/1.047061rad；hold_through/crossing_while_holding均64。LEFT clean-complete分量全0来自complete0分母，不代表所有episode无接触或hinge问题。RIGHT不clean的32集均为hinge分量，body/low-height-or-overspeed分量0。
+
+相机LEFT失败于S2/S3腕机速度106.545/314.098deg/s与S2 j6反转2.614/s；S5没有样本，保持null。RIGHT失败于S2/S5速度123.466/191.110deg/s、S2反转3.437/s、stage0/5姿态p95=2.120rad及q6偏差frame share=.12979。回位observed0/0、censored0/64，RIGHT删失时长p50/p95=2.030/2.678s；这些不是回位完成时间。完整26字段及分母见readout/record；相机report-only，不独自证明X25 base位姿失稳、真实光学或hardware结论。
+
+K最后common_step192000，scale1.0，driver0/.6，自然样本2/5、reached0/3，consumed=true/skipped=false；全程scale范围[.9998999834,1]，仅过程观察。两条eval均GPU7顺序运行、exit0，耗时509.99/478.73s。预算closed18500、active预留6000、scheduled0、cap36500；A284@3000 checkpoint证明累计至少21500，不闭合在训cell预算。
+
+原3000等待于01:37:29HKT到期；双侧readout实际记录01:38HKT并于01:39:06HKT在本次follow-up观察到，无需续期。单次训练日志观察iteration3048，下一4000截止2026-09-17T09:09:06+08:00。01:39:06HKT single actual training observation: iteration3048, remaining952 to4000; last four iteration times24.57/24.67/24.92/24.73s mean24.7225s (~6.54h training). Step3000 bilateral eval actually ran sequentially onGPU7, process509.99/478.73s (~16.5min), plus scheduling/readout. Recent whole-milestone interval was slower than four-iteration estimate; set7h30 from observation including margin, conditional on throughput/admission. Actual readout/failure returns early; no second progress poll.
+
+证据：[A284@3000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_3000.md)、[milestone记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/a284_step3000.json)。本节点仅处理对应完成事件，无新增commit节点、测试或实验。
+
+
+## V28-D056：A284@4000 双侧完成与clean质量分量
+
+2026-09-17 08:46 HKT；修改：-codex Main；依据：-owner D046与既定D31/D040；状态ACCEPTED。
+
+A284@4000双侧自然exact64均有效、integrity=0；LEFT/RIGHT D、S3+、S4+、open_hold、S5+及complete均64，clean=13/12。clean失败分量：hinge50/52、身体接触1/0、low-height/overspeed0/0；双侧塔架接触0。相机均CAMERA_UNMET；回位observed=19/17、censored=45/47，已观察回位p50/p95分别1.080/1.746s与.900/1.224s，不能代表全部episode。继续A284既定5000/6000证据后冻结候选；原三seed终点reach1/3保持独立。
+
+双侧hold_through/crossing_while_holding均64，post-release body force p95均0N，first crossing hinge p50 LEFT/RIGHT=.956957/.955887rad。p95为0不否定LEFT另有1集>5N身体接触；完整episode分量保留。episode length p50=796/426，arm_j4限位step share=.0000196974/0。
+
+相机LEFT失败于S2/S5腕速186.187/363.337deg/s、S2/S4 j6反转9.152/2.686/s和stage0/5姿态p95=3.818rad；RIGHT失败于S2/S3/S5腕速105.598/335.628/296.654deg/s、S4反转3.208/s和姿态p95=3.393rad。两侧q6偏差frame share=.001637/.023933均过对应report-only目标。回位观测19/17、右删失45/47；删失时长p50/p95 LEFT2.820/3.012s、RIGHT1.860/2.142s，不是回位完成时间。完整26字段、stage分母与条件分位数见record/readout。上述腕部指标不独自证明X25 base位姿失稳或硬件/真实光学结论。
+
+K最后common_step256000，scale_before=.2941158414、after=.2940864265，driver1/1，自然样本1/2、reached1/2，consumed=true/skipped=false；全程scale范围[.2940864265,1]，只作训练过程观察。此次eval在GPU7/4真实并行、均exit0，耗时511.43/324.75s。预算closed18500、active预留6000、scheduled0、cap36500；A284@4000 checkpoint证明累计至少22500，不闭合在训cell预算。
+
+4000readout实际记录08:42HKT，持久wait08:43HKT提前返回。单次训练观察08:43:55HKT为iteration4031；下一5000截止2026-09-17T16:13:55+08:00。08:43:55HKT single actual training observation: iteration4031, remaining969 to5000; last four times23.98/24.08/24.08/24.14s mean24.07s (~6.48h training). Step4000 eval actually ran in parallel onGPU7/4, process511.43/324.75s (~8.5min parallel, ~14min if serialized). Whole-milestone throughput has been slower than a four-iteration estimate; set7h30 from observation for evaluation, scheduling/readout and throughput margin, conditional on admission. Actual readout/failure returns early; no further progress poll.
+
+证据：[A284@4000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_4000.md)、[milestone记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/a284_step4000.json)。本节点仅处理对应完成事件，无新增commit节点、测试或实验。
+
+## V28-D057：A284@5000 完成、clean与回位删失
+
+2026-09-17 15:54 HKT；修改：-codex Main；依据：-owner D046与既定D31/D040；状态ACCEPTED。
+
+A284@5000双侧自然exact64有效、integrity=0；LEFT/RIGHT D=63/62，S3+、S4+、open_hold、S5+及complete=64/63，clean=26/12。clean失败分量hinge38/51、身体接触0/0、low-height/overspeed0/1；RIGHT有1集upper_dof_overspeed终止，双侧塔架接触0。相机均CAMERA_UNMET；回位仅LEFT观察1集、RIGHT0集，右删失63/63，LEFT观测p50/p95=.5/.5s、RIGHT为null，不能代表全部episode。继续既定6000证据后冻结候选，原三seed终点reach1/3保持独立。
+
+LEFT/RIGHT hold_through与crossing_while_holding=64/63；post-release body force p95均0N，first crossing hinge p50=1.029170/.978494rad，episode length p50=454/382，arm_j4限位step share均0。
+
+相机LEFT失败于S2/S5腕速196.069/316.751deg/s、S2/S4 j6反转18.854/3.576/s、stage0/5姿态p95=4.318rad，以及q6偏差frame share=.538855（上限.05）。RIGHT失败于S2/S3/S4/S5腕速246.006/258.060/170.723/344.691deg/s、S2/S4反转22.739/5.088/s和姿态p95=2.545rad；RIGHT q6偏差share=.022177过对应目标。回位LEFT仅1集观测，其.5/.5s分位数不能代表总体；RIGHT0集观测、分位数null。两侧各63集右删失，删失时长p50/p95 LEFT2.680/3.072s、RIGHT1.540/1.760s，不是完成时间；RIGHT超速终止的一集不构成额外release样本。完整26字段及stage分母见record/readout；不外推X25 base位姿不稳、硬件或真实光学结论。
+
+K最后common_step320000，scale_before/after=.20000000298，driver1/1，自然样本4/6、reached4/6，consumed=true/skipped=false；319941次updates、scale范围[.20000000298,1]，只作过程观察。此次eval在GPU7/4实际并行、均exit0，耗时349.76/326.65s。预算closed18500、active预留6000、scheduled0、cap36500；5000checkpoint证明累计至少23500，不闭合在训cell预算。
+
+5000readout记录15:49HKT，持久wait15:50:11HKT提前返回。单次训练观察15:51:41HKT为iteration5023；下一6000截止2026-09-17T23:21:41+08:00。15:51:41HKT single training observation: iteration5023, remaining977 to6000; last four times24.36/23.77/23.61/23.79s mean23.8825s (~6.48h training). Step5000 eval actually ran in parallel onGPU7/4, process349.76/326.65s (~5.83min parallel, ~11.27min serialized). Actual4000-to5000 checkpoint/eval launch interval was7h11min, slower than four-iteration extrapolation. Set7h30 from observation for training, final process exit, bilateral eval, scheduling/readout and endpoint lock margin, conditional on admission; readiness/failure returns early with no further progress poll.
+
+证据：[A284@5000 readout](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_5000.md)、[milestone记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/milestone_records/a284_step5000.json)。本节点仅处理对应完成事件，无新增commit节点、测试或实验。
+
+
+## V28-D058：Owner提前终止训练并进入固定Wave B
+
+2026-09-17 16:58 HKT；修改：-codex Main；依据：-owner“先终止训练，直接进入Wave B。v28阶段我准备收尾了，因为有了更急切的改动需求，可能得进入v29了”。
+
+Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（D058）。A284最后完整日志迭代5167、最新保存checkpoint5000，6000训练终点与双侧评估取消；按原D039排序冻结主候选A_S282@6000（weak clean12、总73）和备选A_S284@5000（12、总38），身份在DEV启动前落锁。原三seed终点reach1/3（REACH_SEED_UNSTABLE）保持；资格门、C_T和固定DEV→CONF程序不变。
+
+停止使用既有supervisor取消watcher_a3、A284训练及a284_step6000等待；训练wrapper退出后其Isaac子进程仍存活，Main对已确认属于本任务的PGID2808390发送SIGKILL，并确认PID2808391消失。保留原process_receipt的中断状态与supervisor CANCELLED，补充实际终止记录，不把SIGTERM退出或缺失6000 checkpoint当作policy失败。原三seed已自然完成6000；训练累计已记录23667 batches（G1 500+原三seed18000+A284已打印5167），中断中的额外计算量未知，6000预留已释放。
+
+原reducer给出的完整历史条件仍为false、缺失项仅A284@6000。Owner本次授权覆盖等待条件；endpoint lock披露该例外和原始选择结果，候选顺序保持weak clean→clean总和→较晚milestone→较小seed，未因DEV结果重排。A284@4000为已入池但未进入固定前二的第三项，不追加资格搜索。主候选双侧DEV seed280101、exact128已于16:56HKT在GPU7/4启动；双侧通过才做seed280201 CONF，主候选未确认才验固定备选，最多八条lane。预定render和N01/N02增量复核仍须在实际closure交付；v29仅作为后续方向，未启动其实现或方法实验。
+
+证据：[Owner裁决与终止记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/owner_stop_training_wave_b_20260917.json)、[endpoint lock](runtime_logs/v28_camera_aware_rebaseline_20260909/wave_a_endpoint_lock.json)、[Wave B启动记录](runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/wave_b_launch_receipt_20260917.json)。

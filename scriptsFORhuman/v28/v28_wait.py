@@ -23,6 +23,10 @@ def ready(state, target, root):
         return "COMMIT_MILESTONE_REACHED"
     if target.startswith("step") and (root / "readouts" / f"wave_a_{target}_aggregate.md").is_file():
         return "MILESTONE_READOUT_READY"
+    if target.startswith("a284_step"):
+        step = target.removeprefix("a284_step")
+        if (root / "readouts" / f"milestone_wave_a_s284_{step}.md").is_file():
+            return "MILESTONE_READOUT_READY"
     if execution_terminal(state):
         return "EXECUTION_TERMINAL"
     return None
@@ -31,7 +35,9 @@ def ready(state, target, root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state", type=Path, required=True)
-    parser.add_argument("--target", choices=("g1", *(f"step{step}" for step in MILESTONES), "endpoint", "terminal"), required=True)
+    parser.add_argument("--target", choices=("g1", *(f"step{step}" for step in MILESTONES),
+                                            *(f"a284_step{step}" for step in MILESTONES),
+                                            "endpoint", "terminal"), required=True)
     parser.add_argument("--until-epoch", type=float)
     parser.add_argument("--renew-reason")
     args = parser.parse_args()

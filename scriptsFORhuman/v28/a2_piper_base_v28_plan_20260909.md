@@ -1,10 +1,10 @@
 # `base_v28`：camera-aware bilateral Teacher re-baseline（MERGED、新姿态与分期相机合同）预注册计划
 
 日期：2026-09-09 HKT
-最近修订：2026-09-14 18:14 HKT；修改：-codex Main；依据：-owner D046及既定milestone路由。step1000真实结果与继续训练记录见D047。
-运行入口状态：`WAVE_A_ACTIVE_STEP1000_REPORTED`。原三seed的step1000六条自然exact64评估完整：两侧D/S4+/complete/clean均0，RIGHT S3+仅A_S282=1、A_S283=4；塔架>5N集数均0。相机均CAMERA_PARTIAL，无事件保持null。三条6000批训练继续，A284尚未触发；6000终点/候选/DEVCONF尚未评估，不能写为本轮0/3失败。G1 WARM_FAIL与500已耗保留、warm取消；源配置与实际GPU4/5/6运行合同均已核对。详见D047和runtime execution_20260913的milestone_records/step1000.json。
-合同实现状态：D038–D040、G1续训/条件warm、固定主备DEV→CONF及readout/render/closure已同步；对应CPU检查完成。本次G1训练、双侧eval、归约/readout、停止路由和D16输出目录修复已有真实运行证据；PARTIAL续训及Wave A/B分支未运行。本轮不新增永久测试套件，未push。
-Owner 授权：GPU0–7 可用于 v28（受外部占用约束，见 §10）；G0/G1/Wave A/Wave B 按 §9 自主推进；四个本地 commit 点预授权；push、Teacher/Student G7 binding 更新、hardware 动作未授权。
+最近修订：2026-09-17 16:58 HKT；修改：-codex Main；依据：-owner D058提前终止训练并直接进入Wave B。
+运行入口状态：`WAVE_B_ACTIVE_OWNER_CUTOFF`。Owner因更急切的后续改动要求提前停止训练并直接进入Wave B（D058）。A284最后完整日志迭代5167、最新保存checkpoint5000，6000训练终点与双侧评估取消；按原D039排序冻结主候选A_S282@6000（weak clean12、总73）和备选A_S284@5000（12、总38），身份在DEV启动前落锁。原三seed终点reach1/3（REACH_SEED_UNSTABLE）保持；资格门、C_T和固定DEV→CONF程序不变。 主候选双侧exact128 DEV已在GPU7/4启动；后续固定资格与render完成后closure。
+合同实现状态：D038–D040、G1续训/条件warm、固定主备DEV→CONF及readout/render/closure已同步；G1、原三seed6000及A284至5000已有实际证据。D058通过显式Owner记录裁剪A284剩余执行，未改reducer或训练/评估源码；原D040完整历史条件未达成，提前冻结依据单列。G1 PARTIAL未运行、warm取消；Wave B已启动。
+Owner 授权：当前可用GPU4–7（D046，受外部占用约束，见 §10）；G0/G1/Wave A/Wave B 按 §9及D046续行决定自主推进；四个本地 commit 点预授权；push、Teacher/Student G7 binding 更新、hardware 动作未授权。
 上游：v27 plan（`scriptsFORhuman/v27/a2_piper_base_v27_plan_20260905.md`）及其 Wave A/B 冻结结论；Wave C endpoint 是 v28 的条件输入（§8.3）。
 路线依据：`scriptsFORhuman/a2_piper_longterm_TODO.md` R 节（2026-09-05）与本文件 §1 决策记录（2026-09-09）。
 规划证据：`scriptsFORhuman/v28/planner_evidence_20260909/`（五个只读调查 lane 的报告与 CPU 计算输出；全部为 INSPECTED / STATIC / COMPUTED 级，未运行 Isaac）。
@@ -356,7 +356,7 @@ cells `A_S281/A_S282/A_S283`：`checkpoint: null`、`full`、4096 env、6000 bat
 **资格候选筛选（D-39，独立于标签修复）**：
 1. 基础池仅为 A_S281–283 在 1000/2000/3000/4000/5000/6000 的既定双侧 exact64 结果；A_S284 仅在 D-31 实际触发并启动后按 D-40 纳入同样六个 milestone。warm/A2_Base 附加臂继续单列，本次不自动纳入该池。
 2. checkpoint 必须双侧通过现行 reach 门才入池。按 `min(clean_LEFT, clean_RIGHT)` 降序、`clean_LEFT + clean_RIGHT` 降序、milestone 降序、训练 seed 升序依次排序；不新增权重或质量入池阈值。取最多两个不同 checkpoint，第一名为主候选、第二名为备选；允许两者来自同一 seed。
-3. 原三 seed 的既定 milestone 评估完成后冻结候选池；若 A_S284 已启动，等待它完成既定训练/评估后再冻结。既有非零退出、INVALID 与不重跑规则不变，实际未完成项如实报告。候选身份与顺序必须在读取任何 DEV/CONF 结果前写入 `wave_a_endpoint_lock.json`；不根据 DEV/CONF 重排、换人或追加第三名。
+3. 原三 seed 的既定 milestone 评估完成后冻结候选池；若 A_S284 已启动，等待它完成既定训练/评估后再冻结。 **本轮执行例外（Owner D058，2026-09-17）：提前停止A284，在既有完整双侧milestone上按原排序冻结；A284@6000记CANCELLED_BY_OWNER，不能将完整历史条件写为通过。**既有非零退出、INVALID 与不重跑规则不变，实际未完成项如实报告。候选身份与顺序必须在读取任何 DEV/CONF 结果前写入 `wave_a_endpoint_lock.json`；不根据 DEV/CONF 重排、换人或追加第三名。
 4. 池为空 → Wave B `NOT_RUN`；只有一名 → 只验该名；有两名 → 按 §8.4 固定顺序执行。`wave_a_decision.json` / readout 分列原三 seed 终点可靠性、历史 reach、完整排序及主/备身份、实际 Wave B 评估对象；候选资格不反向升级原三 seed 可靠性。
 
 **硬件反馈分支（D-38 再收窄归因，触发保持）**：若 `REACH_NOT_ESTABLISHED` 且失败集中在 RIGHT 侧、伴随 `wrist_tower_contact_step_share` 高或 Stage2→3 停滞，closure 写明“在本配方与预算下未建立，训练包络 E_T 的几何干涉是待区分解释”，列出接触/阶段证据。优化、reward 或 locomotion 耦合也可能产生该现象，不能据此证明 E_T 不存在可行抓握轨迹，更不能否定较小最终安装件。X-01 仍升级为硬件决策请求，不追加预算；此报告不删除历史 reach 候选或替代 §8.4 的资格结论。
@@ -452,6 +452,8 @@ v28 是带大量取舍与待办的 re-baseline，记录纪律是交付物的一�
 ---
 
 ## 12. 实现范围（最小充分）与交付物
+
+**2026-09-16 00:11 HKT 条件臂等待接线**：D051触发A284后，`v28_wait.py`已增加`a284_step1000`至`a284_step6000`，直接等待watcher的`milestone_wave_a_s284_<step>.md`；每个目标使用独立持久receipt。1000/2000/4000已分别于09-16 11:04/18:22、09-17 08:43HKT因实际readout返回；3000于09-17 01:37:29HKT到期后在同次follow-up处理01:38HKT生成的readout。事实见D053–D056；5000–6000待后续实际结果。原三seed6000等待已于09-16 05:02HKT因实际readout返回；D052接续A284独立milestone等待。
 
 **2026-09-13 执行实现**：D038–D040、G1 PARTIAL和warm附加臂已接入；`v28_orchestrate.py` / `v28_watch_wave.py`负责supervisor/tmux、资源排队、active-cell评估和固定资格顺序，`v28_readout.py` / `v28_render.py` / `v28_closure.py`交付结果，`v28_wait.py`维持一个按绝对截止的安静逻辑等待。已修复`eval_agent_trl.py`覆盖`experiment_dir`及checkpoint旁导出的实际路径缺陷；metadata仍从checkpoint旁读取，loader语义未改。新增A_W281从同一旧C_S2以policy_only+actor RMS启动，seed281、独立6000批、fresh counters；仅G1 PASS且未被既有SC1000比较取消时启用。实现与对应CPU检查完成；未将其升级为新实验PASS。Owner本轮授权覆盖下方旧的新增测试清单：复用G0证据，不追加永久测试、全面回归或重复审计。
 

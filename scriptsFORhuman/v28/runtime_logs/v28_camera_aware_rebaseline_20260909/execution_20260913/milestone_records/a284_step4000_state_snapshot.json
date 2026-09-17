@@ -1,0 +1,106 @@
+{
+  "state_updated_at": "2026-09-17T00:43:52+00:00",
+  "wave_a": {
+    "status": "ACTIVE",
+    "endpoint_lock": null,
+    "warm_arm_cancelled": true,
+    "resume_authority": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/owner_resume_wave_a_20260914.json",
+    "a284_trigger": {
+      "outcome": "K_REACH_WITHOUT_COMPLETE",
+      "triggers": [
+        {
+          "cell": "A_S283",
+          "milestones": [
+            4000,
+            5000
+          ],
+          "outcome": "K_REACH_WITHOUT_COMPLETE"
+        }
+      ],
+      "reserve_cell": "A_S284"
+    }
+  },
+  "budget": {
+    "cap_batches": 36500,
+    "scheduled_batches": 0,
+    "active_reserved_batches": 6000,
+    "actual_consumed_batches": 18500
+  },
+  "watcher_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_execution_20260913_watcher_a3/RUN_RECEIPT.json",
+  "stop": null,
+  "tasks": {
+    "wave_a_s284": {
+      "id": "wave_a_s284",
+      "kind": "train",
+      "step": 6000,
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s284/attempt1",
+      "status": "LAUNCHED",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_wave_a_s284_a1/RUN_RECEIPT.json",
+      "gpu": 5,
+      "launched_at": "2026-09-15T19:52:15+00:00"
+    },
+    "eval_milestone_wave_a_s284_4000_a_s284_left": {
+      "id": "eval_milestone_wave_a_s284_4000_a_s284_left",
+      "kind": "eval",
+      "step": 4000,
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s284_4000_a_s284_left/attempt1",
+      "status": "COMPLETE",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s284_4000_a_s284_left_a1/RUN_RECEIPT.json",
+      "gpu": 7,
+      "launched_at": "2026-09-17T00:31:39+00:00",
+      "completed_at": "2026-09-17T00:40:56+00:00"
+    },
+    "eval_milestone_wave_a_s284_4000_a_s284_right": {
+      "id": "eval_milestone_wave_a_s284_4000_a_s284_right",
+      "kind": "eval",
+      "step": 4000,
+      "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s284_4000_a_s284_right/attempt1",
+      "status": "COMPLETE",
+      "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v28_eval_milestone_wave_a_s284_4000_a_s284_right_a1/RUN_RECEIPT.json",
+      "gpu": 4,
+      "launched_at": "2026-09-17T00:31:39+00:00",
+      "completed_at": "2026-09-17T00:37:50+00:00"
+    }
+  },
+  "reducer": {
+    "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/manifests/milestone_wave_a_s284_4000.json",
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/reducers/milestone_wave_a_s284_4000.json",
+    "status": "V28_COMPLETE",
+    "task_ids": [
+      "eval_milestone_wave_a_s284_4000_a_s284_left",
+      "eval_milestone_wave_a_s284_4000_a_s284_right"
+    ],
+    "readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/milestone_wave_a_s284_4000.md"
+  },
+  "observed_hkt": "2026-09-17T08:43:55.716304+08:00",
+  "eval_status_at_observation": {
+    "left": {
+      "acceptance_state": "UNASSESSED",
+      "backend": "tmux",
+      "checkpoint_state": "NOT_DECLARED",
+      "exit_code": 0,
+      "finished_at": "2026-09-17T00:40:11+00:00",
+      "finished_epoch": 1789605611.0523372,
+      "launched_at": "2026-09-17T00:31:39+00:00",
+      "launched_epoch": 1789605099.6222522,
+      "process_state": "PROCESS_COMPLETED",
+      "supervisor_pid": 447175,
+      "updated_at": "2026-09-17T00:40:11+00:00",
+      "wait_until_epoch": 1789605999.6222522
+    },
+    "right": {
+      "acceptance_state": "UNASSESSED",
+      "backend": "tmux",
+      "checkpoint_state": "NOT_DECLARED",
+      "exit_code": 0,
+      "finished_at": "2026-09-17T00:37:04+00:00",
+      "finished_epoch": 1789605424.629492,
+      "launched_at": "2026-09-17T00:31:39+00:00",
+      "launched_epoch": 1789605099.8763945,
+      "process_state": "PROCESS_COMPLETED",
+      "supervisor_pid": 447185,
+      "updated_at": "2026-09-17T00:37:04+00:00",
+      "wait_until_epoch": 1789605999.8763945
+    }
+  }
+}

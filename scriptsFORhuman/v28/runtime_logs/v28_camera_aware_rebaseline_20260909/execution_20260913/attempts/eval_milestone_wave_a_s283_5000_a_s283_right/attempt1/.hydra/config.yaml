@@ -1,0 +1,138 @@
+checkpoint: /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/wave_a_s283/attempt1/model_step_005000.pt
+checkpoint_load_mode: full
+algo:
+  config:
+    eval:
+      num_eval_episodes: 64
+      save_videos: false
+      video_save_prob: 1.0
+      save_goal_reached_only: true
+      save_trajectories: false
+      num_save_episodes: 200
+      a2_eval_p2_posture_axis: none
+      a2_eval_m41_strict_telemetry: false
+      a2_eval_v20_strict_telemetry: false
+      a2_diagnostic_trace_enabled: true
+      a2_diagnostic_reward_terms:
+      - stage
+      - success_save_time
+      - a2_stage3_handle_creation
+      - a2_stage3_unlatch_hold
+      - push_door_hinge
+      - a2_stage3_stage4_hold_and_drive
+      - penalty_a2_wrist_motion_l2
+      - penalty_a2_wrist_tower_contact
+      - penalty_a2_stage4_arm_default_pose_l1
+      a2_forced_gripper_close_enabled: false
+      a2_forced_gripper_close_value: -1.0
+      a2_forced_gripper_close_stages:
+      - 3
+      - 4
+      a2_hold_oracle_enabled: false
+      a2_v20_arc_probe_enabled: false
+      a2_v20_arc_probe_mode: F0
+      a2_v20_arc_probe_target_hinge_rad: 0.9
+      a2_v20_arc_probe_timeout_steps: 1200
+      a2_v20_arc_probe_lead_rad: 0.008
+      a2_v20_arc_probe_max_orientation_step_rad: 0.02
+      a2_v20_arc_probe_joint_target_step_max_rad: 0.001
+      a2_v20_arc_probe_terminal_window_steps: 10
+      a2_v20_arc_probe_orientation_tolerance_rad: 0.2
+      a2_v20_arc_probe_relief_translation_max_m: 0.1
+      a2_v20_arc_probe_relief_yaw_max_rad: 0.15
+      a2_v20_arc_probe_handoff_root_speed_max_mps: 0.2
+      a2_v20_arc_probe_handoff_root_yaw_rate_max_radps: 0.2
+      a2_v20_arc_probe_handoff_streak_steps: 5
+      a2_v20_arc_probe_relief_min_residual_m: 0.002
+      a2_v20_arc_probe_relief_min_yaw_residual_rad: 0.002
+      a2_v20_arc_probe_relief_yaw_gain: 5.0
+      a2_v20_arc_probe_relief_yaw_speed_max_radps: 0.1
+      a2_v20_arc_probe_root_hold_translation_gain: 10.0
+      a2_v20_arc_probe_root_hold_translation_damping_gain: 2.0
+      a2_v20_arc_probe_root_hold_translation_speed_max_mps: 0.5
+      a2_v20_arc_probe_root_hold_yaw_gain: 40.0
+      a2_v20_arc_probe_root_hold_yaw_damping_gain: 2.0
+      a2_v20_arc_probe_root_hold_yaw_speed_max_radps: 1.0
+      a2_v20_arc_probe_f1_root_hold_scale: 1.0
+      a2_hold_oracle_center_timeout_steps: 80
+      a2_hold_oracle_center_position_tolerance_m: 0.005
+      a2_hold_oracle_center_orientation_tolerance_rad: 0.1
+      a2_hold_oracle_depress_timeout_steps: 100
+      a2_hold_oracle_push_timeout_steps: 150
+      a2_hold_oracle_depress_offset_m: 0.012
+      a2_hold_oracle_push_offset_m: 0.012
+      a2_hold_oracle_offset_ramp_steps: 20
+      a2_hold_oracle_sign_smoke_steps: 10
+      a2_hold_oracle_sign_min_delta: 0.005
+      a2_hold_oracle_handle_target_rad: 0.5
+      a2_hold_oracle_hinge_progress_target_rad: 0.2
+      a2_hold_oracle_contact_slip_grace_steps: 5
+      a2_hold_oracle_dls_lambda: 0.01
+      a2_hold_oracle_max_position_step_m: 0.002
+      a2_hold_oracle_max_orientation_step_rad: 0.02
+      a2_hold_oracle_jacobian_condition_max: 1000000.0
+      a2_hold_oracle_joint_limit_margin: 0.0001
+      a2_hold_oracle_soft_limit_progress_tolerance: 1.0e-06
+      a2_hold_oracle_raw_action_abs_max: 10.0
+      a2_hold_oracle_base_relief_speed_mps: 0.15
+      a2_hold_oracle_base_relief_sign_window_steps: 20
+      a2_hold_oracle_base_relief_min_residual_decrease_m: 0.001
+      a2_hold_oracle_base_relief_timeout_steps: 60
+      a2_hold_oracle_base_relief_max_displacement_m: 0.1
+      a2_hold_oracle_base_relief_min_solvable_horizontal_error_m: 0.002
+      a2_hold_oracle_static_clamp_enabled: false
+      a2_hold_oracle_static_clamp_steps: 40
+      a2_hold_oracle_static_clamp_stiffness: 80.0
+      a2_hold_oracle_static_clamp_damping: 3.0
+      a2_hold_oracle_static_clamp_offset_probe_enabled: false
+      a2_hold_oracle_static_clamp_offset_m: 0.0
+      a2_hold_oracle_static_clamp_offset_placement_steps: 20
+      a2_hold_oracle_static_clamp_offset_position_tolerance_m: 0.0005
+      a2_hold_oracle_static_clamp_offset_orientation_tolerance_rad: 0.02
+      a2_hold_oracle_open_stabilization_preflight_enabled: false
+      a2_hold_oracle_open_stabilization_steps: 40
+      a2_hold_oracle_open_stabilization_quiet_window_steps: 5
+      a2_hold_oracle_open_stabilization_root_linear_speed_max_mps: 0.01
+      a2_hold_oracle_open_stabilization_root_angular_speed_max_radps: 0.02
+      a2_hold_oracle_open_stabilization_pose_per_call_translation_max_m: 0.0005
+      a2_hold_oracle_open_stabilization_pose_per_call_rotation_max_rad: 0.0005
+      a2_hold_oracle_open_stabilization_pose_window_translation_max_m: 0.001
+      a2_hold_oracle_open_stabilization_pose_window_rotation_max_rad: 0.002
+      a2_hold_oracle_open_stabilization_contact_force_max_n: 1.0
+      a2_hold_oracle_matched_clean_reacquisition_preflight_enabled: false
+      a2_hold_oracle_matched_clean_retreat_timeout_steps: 80
+      a2_hold_oracle_matched_clean_release_qualification_steps: 5
+      a2_hold_oracle_matched_clean_pregrasp_position_tolerance_m: 0.005
+      a2_hold_oracle_matched_clean_pregrasp_orientation_tolerance_rad: 0.1
+      eval_num_envs_episodes: true
+      dump_to_log_metrics: true
+      a2_stage2_close_gate_forced_gripper_close_enabled: false
+    num_mini_batches: 1
+eval_timestamp: ${now:%Y%m%d_%H%M%S}
+eval_name: V28_A_S283_right
+eval_base_dir: logs_eval
+eval_output_dir: /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_5000_a_s283_right/attempt1
+eval_log_dir: ${eval_output_dir}
+env:
+  config:
+    save_rendering_dir: /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_5000_a_s283_right/attempt1/renderings
+    enable_staged_reset: false
+    a2_v26_8_penalty_driver: null
+    a2_v26_2_telemetry_enabled: true
+    a2_v26_3_telemetry_enabled: true
+    a2_v28_camera_telemetry_enabled: true
+    a2_v26_door_open_lr: right
+    a2_v26_side_permutation_seed: 280001
+    experiment_dir: /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_5000_a_s283_right/attempt1
+rewards:
+  reward_penalty_curriculum: false
+auto_load_latest: false
+seed: 280001
+num_envs: 64
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+experiment_dir: /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_5000_a_s283_right/attempt1
+output_dir: /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_5000_a_s283_right/attempt1/output

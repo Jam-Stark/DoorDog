@@ -1,0 +1,18 @@
+# @package _global_
+defaults:
+- /ablation/wbmanip/base_v26_7_common
+- _self_
+v26_schema: a2_piper_base_v27_bilateral_hardening_v1
+v26_plan_id: base_v27_bilateral_hardening_20260905
+v26_phase: V27_BILATERAL_HARDENING
+v26_cell: V27_UNASSIGNED
+checkpoint_load_mode: policy_only
+policy_only_load_actor_rms: true
+auto_load_latest: false
+num_envs: 4096
+algo:
+  trl:
+    num_total_batches: 3000
+callbacks:
+  model_save:
+    save_frequency: 250

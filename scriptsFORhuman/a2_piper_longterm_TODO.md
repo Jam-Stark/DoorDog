@@ -1,11 +1,16 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-09-05(v25/v26 收口归档;三条 novelty 路线裁定入册为 R 节;v27 排期;force-feasibility 主线 C 节降级为背景与 v28 输入;规则 19-21 入册)。
+创建:2026-07-21;最近更新:2026-09-12(v28 D038–D040 planner finalize，见下方当前入口)。上次更新:2026-09-09(v28 定位为 camera-aware re-baseline 并排期;N-01/N-02 顺延 v29;新增 N-07a/b、N-08 与 v28 待办登记指针;规则 22-24 入册)。上一次:2026-09-05(v25/v26 收口归档;三条 novelty 路线裁定入册为 R 节;v27 排期;force-feasibility 主线 C 节降级为背景与 v28 输入;规则 19-21 入册)。
+
+当前方向更新：2026-09-17 21:13 HKT；依据：-owner 当前 v29 讨论。Owner 已明确 v29 为 push 优秀稳定 baseline、pull 同步及 N01/N02 四条方向，push/pull 各 2 seed；GPU0/1、4/5分别用于两条baseline，GPU2/3用于N01/N02，GPU6动态、GPU7监控/eval等。N01/N02在baseline落地后各自checkout独立branch/worktree。当前先逐项讨论六项baseline议题，Owner确认整体clean后再落地正式文档；旧排期不自动续用。详见[v29总体安排](v29/a2_piper_base_v29_overall_arrangement.md)与[baseline TODO](v29/a2_piper_base_v29_baseline_TODO.md)。下方17:35记录保留为此前closure状态。
+
+当前入口更新：2026-09-17 17:35 HKT；修改：-codex Main；依据：-owner D058/D059。v28已收尾：原三seed6000 reach1/3（REACH_SEED_UNSTABLE）；固定主A282@6000与备A284@5000均未通过双侧exact128 DEV，clean分别123/47与69/52，CONF均NOT_RUN，资格为QUALIFICATION_NOT_CONFIRMED。A284按Owner D058于已打印5167迭代提前停止；D059复用既有render/三相机观察。 N01/N02增量复核完成，设计继续、实验DEFER；更急切的v29范围由Owner另定。
 
 ## Worktree 分工(2026-09-05 修订)
 
-- **推门主 worktree(本仓库)= 方法与可靠性主线**:v27 做 bilateral Teacher hardening(LEFT 行为对齐、门侧负载/摩擦分布、seed/从零可靠性)与"单次失抓恢复环"pilot(R 节方向 2 的最小切口);v28 起以"交互历史→有效交互状态估计"(R 节方向 1 的重构版)为科学主线。共同 obs/action/capability 语义由本仓库维护,pull 分支只能 additive 扩展。
+- **推门主 worktree(本仓库)= 方法与可靠性主线**:v27 做 bilateral Teacher hardening(LEFT 行为对齐、门侧负载/摩擦分布、seed/从零可靠性)与"单次失抓恢复环"pilot(R 节方向 2 的最小切口);**v28(2026-09-09 修订)为 camera-aware re-baseline**(新 asset、新 reset 姿态、三相机几何合同、塔架碰撞体、从零重建双侧 Teacher 并做 sim 资格认定);下一阶段先按v28 closure回收N01 pilot与N02交互历史状态估计议题，再明确科学立项范围；不将两条方法自动同时排期。共同 obs/action/capability 语义由本仓库维护,pull 分支只能 additive 扩展。
+- **Teacher / Student / sim2sim 三环节并行且各自疏通堵点**(Owner 2026-09-09；D30 后更新):主线产出 Teacher 并按资格程序固化特定 checkpoint；蒸馏分支使用最终 C_S rig/传感合同与新 asset 生成数据；sim2sim 验证已有 Student。可用 policy 不同步是常态，base 单/双尚未最终决定；当前名义 rig 为 `U3_F39_H140`，proprio 的夹爪 qpos/effort 代理见 X-09。
 - **拉门 worktree(`DoorDog-A2_Piper_pull_v0`,训练在另一台 4×3090 机器)**:迁入主线 v26-7/v26-8 bilateral backbone,先重建双侧 unlatch→opening 全链路;计划见 `scriptsFORhuman/pull_v26_8_alignment/a2_piper_pull_v26_8_backbone_migration_plan_20260905.md`(canonical 副本在 pull 分支 `scriptsFORhuman/pull_task/`)。Stage0–3 与主线同语义,Stage3→4 起按 pull 物理分叉。
 - **蒸馏 worktree(并行)**:student distillation 稳定路线探索;bilateral Teacher 的 G7 binding 更新须待 v27.0 资格认定与 Owner 裁决。
 - GPU lease 是外部动态调度事实,worktree 间分配以用户当轮指令为准,不写 durable memory。
@@ -24,18 +29,28 @@
 
 由此形成的阶段图:**v27** = v26 资格认定(v27.0)+ LEFT 行为对齐(v27.1)+ 门侧负载/摩擦分布(v27.2)+ seed/从零可靠性含 K 修正 guard 对照(v27.3)+ 单次失抓恢复环 pilot(v27.4);**v28 候选** = 恢复图多 seed 确认(N-01)与交互历史自适应(N-02)的 2×2 消融;**条件路线** = push/pull 合一(N-03)、hold/swing 策略选择(N-04)、多次打断与站位 repair(N-05)、coupling critic(N-06)。plan:`scriptsFORhuman/v27/a2_piper_base_v27_plan_20260905.md`。
 
+**2026-09-09 修订:v28 改为 camera-aware re-baseline,N-01/N-02 顺延 v29。** 触发原因是三项基建同时变更(新 robot asset `a2_piper_vpiper_final_20260906` 含相机安装件与腕机塔架碰撞体、PiPER reset 姿态 `[0,0,0,0,-0.52,1.57]`、三台 D435i 的几何合同),v27 的任何数字都不再是 baseline,方法问题骑在上面无法归因。v28 的方法性内容只有一条埋点:"observability-aware 的 Teacher shaping 是否提高 Student 蒸馏成功率"需要配对蒸馏,登入 N-07b 停车场,v28 只训练带 bundle 的版本。规划期两条 COMPUTED 硬结论已进 R 节的物理约束:(a) 腕机塔架在手指开合轴上,任何倾角都看不到 TCP/指垫(只见把手条两端 24–52%),"腕机看 gripper"需侧移塔架 ≥0.08–0.11 m(N-07a);(b) v27 RIGHT 门抓握姿态会让 180 mm 塔架穿过门板(Stage4 帧 41–65%),塔架碰撞体强制进入 v28 asset,v26/v27 RIGHT 策略不可上实机。plan:`scriptsFORhuman/v28/a2_piper_base_v28_plan_20260909.md`;待办登记:`scriptsFORhuman/v28/a2_piper_base_v28_deferred_register.md`(X-01…X-14,与本文件 D/E 节双向同步)。
+
 ---
 
 ## A. 已排期(进行中的 round,2026-09-05)
 
+2026-09-17（HKT）更新：v29三项基础改动已实现，静态几何核对及64-env/1-batch PPO接线通过；完整执行方案与正式预算待后续制定。见 [v29入口](v29/README.md)与[决定记录](v29/a2_piper_base_v29_decision_log.md)。不将下方历史排期或v28剩余预算自动迁入v29。
+
 | 条目 | 排期 | 出处 |
 |---|---|---|
+| **V29-BASE Owner基础改进**：Stage5 goal保持`[2,0,0.5]`，新增朝向/直立reward；handle高度0.90–1.20m；MERGED腕机180mm/45°、隐藏相机外壳visual盒、arm reset恢复`[0,.10,-.10,0,-.52,1.57]` | 代码/config/asset已实施；64-env/1-batch接线通过，行为效果待正式训练评估 | v29 V29-D001–D003 |
 | **V27-00 v26 资格认定(v26 收尾动作)**:r3a step3000 C_S2/W_S2/K_S2 的 DEV(exact128/side)+ CONF 集质量门、render QA、候选 manifest;Teacher/G7 binding 由 Owner 裁决 | v27 第一步,GPU0–1 只评估 | v27 plan §3 |
 | **V27-01 LEFT 行为对齐**:C / Q1(event_v17 body-contact 计价)/ Q2(Q1 + v17 G5 corridor/release 制度)配对,判 `clean_complete` | Wave A,GPU2–7 | v27 plan §4;v17 G5 先例 |
 | **V27-02 门侧负载/摩擦分布收敛**:mass 80–160 + native hinge friction {0,2,5} N·m;report-only 本体感知 telemetry 与离线 shadow estimator(v28 N-02 入口证据) | Wave B,GPU2–4 | v27 plan §5.1;v24 friction backend、v16 mass 结论 |
 | **V27-04 单次失抓恢复环 pilot**:R0 单调状态机 / R1 恢复环 / R2 恢复环 + 失效边界快照采样;注入式扰动评估 | Wave B,GPU5–7 | v27 plan §5.2;R 节方向 2 |
-| **V27-03 seed 与从零可靠性**:C-scratch ×3 seed 对 K-scratch ×3 seed(K 用 S4+/open_hold 作 NO_REGRESS guard,不再用握把时长 D) | Wave C,GPU2–7 | v27 plan §6;v26-8 K_REGRESSED 的 guard 教训 |
-| **PULL-01 pull backbone 迁移**:镜像目标修复、能力窗口 30/55、135/140-D plain actor、v26-7 scratch 范式;Stage3→4 起保留 pull 物理 | pull 机 GPU0–3 | pull 迁移 plan |
+| **V27-03 seed 与从零可靠性**:C-scratch ×3 seed 对 K-scratch ×3 seed(K 用 S4+/open_hold 作 NO_REGRESS guard,不再用握把时长 D) | Wave C 进行中(2026-09-09:4/6 格到 6000,SC_S201/202 预计 09-11 endpoint);其 `sc_outcome/sk_outcome` 是 v28 的条件输入 | v27 plan §6;v26-8 K_REGRESSED 的 guard 教训 |
+| **V28-G0 已完成狭义准入**：MERGED、140 mm/38.76°、新姿态、D37 数值门、PPO 5-batch 与26字段接线；首 commit 完成。原 FAIL/C3 与 X24 随机校准限制保留；CAD/光学/渲染与安装件交换在 G2 | G0 完成；G2 蒸馏前 | v28 acceptance；plan §3–§5 |
+| **V28-G1 warm-start probe**:C_S2 step3000 policy_only 在新 asset/新姿态/bundle 上 500 batches,`WARM_PASS/PARTIAL/FAIL` 预注册 | Wave C endpoint 后,1 GPU ≈3.5 h | v28 plan §8.1 |
+| **V28-A from-scratch 3 seed(camera bundle)**：A_S281–283各6000、六次exact64 milestone；6000可靠性与历史reach分列。A_S284仅按D31触发并单列，不计原三seed；固定reset不变 | 原三seed6000已判定1/3；A284已启动、六milestone待齐 | v28 plan §8.1–§8.3；D38/D40/D52 |
+| **V28-B 资格认定**：reach入池后按弱侧clean、clean总和、较晚milestone、较小seed选最多两个checkpoint；DEV/CONF前固定主/备，最多八条exact128 lane。主候选未确认才验备选，不搜第三名；G7仍由Owner裁决 | 代码已接入；等待A284既定证据后冻结主备并运行 | v28 plan §8.2/§8.4；D39/D40 |
+| ~~PULL-01 pull backbone 迁移~~ **已完成(2026-09-08 closure:`PULL_BILATERAL_UNLATCH_SUPPORTED@4500`、`PULL_OPENING_BILATERAL@5250`,E6/E7 未观测;actor 实为 133/138 维)**;v7 P0/P1 定位 release-ready 为 0 的结构原因是累积臂目标 clip ±3.75 rad 造成的 posture trap(共享层缺陷,见 v28 D-17) | 已收口;m5 v7 P2训练及18条评估已封存(2026-09-13，见PULL-02) | pull v26-8 closure;v7 plan §1 |
+| **PULL-02 pull v28 baseline 同步**：2026-09-14 m5 P2 18/18、G0 10/32已完成；D016切换三独立4096 scratch×6000。旧1024三格1284/1280/1296已停止，原始输出保留；新S1初始化按Owner最新prompt-only要求取消、S2/S3未启动，由m5 AI接手 | GPU1/2/3训练、GPU0单评估队列；新18000预算，旧3860单列；4096 ETA待实测，无commit/push | [方案](pull_v28_alignment/a2_piper_pull_v28_baseline_sync_plan_20260909.md)；[重启prompt](pull_v28_alignment/a2_piper_pull_v28_4096_team_restart_prompt_20260914.md) |
 | LT-23-12 源码版本隔离重构 + 根目录垃圾清理(用户自查清单已有) | 轮间窗口 | v23 owner 决策:mid-round 禁清理 |
 
 ## B. 下一批候选(状态更新 2026-08-16)
@@ -70,16 +85,29 @@
 | latch/handle 几何进一步 randomization(hook 概率、handle 长径、latch 行程) | lr 镜像之后 | v13 §2.5、门生成器已有参数 |
 | privileged obs 加门动力学参数(输入层扩展手术保 warm-start) | 仅当分桶显示策略对门参数自适应失败 | v14 plan M20.4(v14/v15 均未触发) |
 | Phase3 student bootstrapping / GRPO | distillation 之后 | memory `phase3-student-bootstrapping` |
-| **N-01 恢复图多 seed 确认** | v27.4 pilot 判 `RECOVERY_PILOT_PROMISING`;3 seed 同预算,与普通 RNN 扰动训练比较 | R 节方向 2 |
-| **N-02 交互历史 latent / 在线适应(方向 1 重构版)** | v27.2 门域含 arm-only 失败层且 shadow estimator 显示可辨识;冻结可部署传感合同;对照 = 同传感预算 recurrent DR、+history latent、oracle 上界;含 episode 内阻力变化 | R 节方向 1 |
+| **N-01 恢复图：继续有界pilot立项设计（CONTINUE）** | 2026-09-17恢复执行后的closure再次回收：先定义非计划失抓/有效扰动，保留sham/nominal/全部注入分母；明确asset/checkpoint、交互窗口及独立小预算后执行。实验DEFER；不自动排入v29，Owner更急切改动优先 | R节方向2；v28 D045/D059；[增量复核](novelty/documents/20260917_v28_closure_N01_N02.md) |
+| **N-02 交互历史：继续传感/可辨识性立项设计（CONTINUE）** | 2026-09-17增量复核：明确proprio/action history/qpos/effort可读性，保留短集/失败集并按物理质量/摩擦、侧别、暴露分层。有限域pilot须独立范围/预算，执行DEFER；v28资格未确认不否定该方法，最终相机/CAD不作无限前置 | R节方向1；v28 D045/D059；[增量复核](novelty/documents/20260917_v28_closure_N01_N02.md) |
 | **N-03 同一 actor 的 push/pull × LEFT/RIGHT** | PULL-01 建立 pull 双侧全链路;共同 135/140-D 语义;四格分别报告,不以平均掩盖单格失效 | R 节方向 2(a) |
 | **N-04 hold / controlled-swing 策略选择** | 两种策略均在质量规则下成立;由风险/回弹预测决定,不按门重硬编码 | R 节方向 1 三层门的正确形式 |
 | **N-05 多次打断、动态障碍与 Stage0/1 站位 repair** | N-01 之后;独立预算与恢复窗口 | R 节方向 2(c) |
 | **N-06 coupling critic / branch PPO / 联动 reward(方向 3)** | v27.2 或 v28 门域出现 arm-only 失败层,且 LT-23-05 matched-intervention 测得跨场景稳定、可预测的 interaction residual;先 shadow、后干预监督、最后 branch PPO | R 节方向 3;LT-23-05/06/07 |
-| **K scaffold-decay curriculum 的第二次检验** | v27.3 K-scratch 对照;guard 用 S4+/open_hold 而非 D;若仍 `K_SCRATCH_INFERIOR` 则关闭该路线 | v26-8 `K_REGRESSED` + 下游正读数 |
+| **K scaffold-decay curriculum 的第二次检验** | v27.3 K-scratch 对照;guard 用 S4+/open_hold 而非 D;若仍 `K_SCRATCH_INFERIOR` 则关闭该路线;若 `K_SCRATCH_SUPERIOR` 则 v28 配方直接纳入(v28 plan §8.3) | v26-8 `K_REGRESSED` + 下游正读数 |
+| **N-07a 腕机塔架侧移/后移**(沿 F x ≥0.081 m @开度 35 mm / ≥0.108 m @20 mm,使腕机能看到 TCP/指垫并降低对门板倾入) | v28 Wave A 出现 RIGHT 侧 `REACH_NOT_ESTABLISHED` 伴随塔架接触,或 Owner 决定改硬件 | v28 plan D-04/D-07;deferred X-01 |
+| **N-07b camera bundle 配对消融 + 配对蒸馏**("observability-aware Teacher shaping 是否提高 Student 蒸馏成功率") | v28 Teacher 资格通过且 Student lane 有两条蒸馏预算 | v28 plan D-08;deferred X-02 |
+| **N-08 A2_Base 替换为 LMP Stage2 导出策略**(`44:50` = TCP 球坐标) | Owner 交付 TorchScript + metadata `gripper_position` 字段 + 训练覆盖说明,通过 v28 plan §5.2 G0-L-swap;DoorDog 行走相 TCP l 0.14–0.33 m 目前在 Stage2 采样盒外 97–100% | v28 plan D-14;deferred X-03/X-11 |
+| **N-09 G0-L 随机校准需求复核** | 下一次asset/A2_Base变更立项时复核真实随机暴露需求；具体运行另行授权。seed282自比精确相同但harness无新随机消费者，仅为确定性复现，X24保持OPEN，不声称统计标定，也不新增当前STOP | v28 D37/D38；deferred X24 |
+| **N-10 臂前伸时base耦合残余** | pitch/roll/yaw较旧asset增16–23%，绝对量级仍在任务死区内4.5–7倍；若Wave A遥测出现Stage2/3 base位姿不稳，作为已知贡献因素与X-19朝向/可观测性shaping共同分析。 | v28 D-37; deferred X-25; 修改：-codex worker；依据：-owner |
+| **v28 让出的三项行为问题（planner 自省 2026-09-11）**:X-21 `clean_complete` hinge 代理判据重审（Wave A endpoint 后）;X-22 越门偏航与窄门通过性（v27 越门 yaw 中位 12.5°/19.8°,p5 窄门碰撞份额 23–28% 上界,相机代价 0 mm）;X-23 LEFT Stage2 发现失败 seed 型（v26-7 S0、v27 SC_S201 同型）。详见 `scriptsFORhuman/v28/a2_piper_base_v28_planner_self_review_20260911.md` §3.3 | Wave A endpoint / v29 立项 | v28 deferred register |
+| **C_S/G2承接**：X07真实CAD/自身遮挡、X09最终rig与proprio、X20 base单/双布局及安装件交换；当前名义rig为`U3_F39_H140`，不是最终光学验收。X18源CAD/STL干涉保留为独立可选议题 | 蒸馏plan起草/G2；具体硬件动作另授权 | v28 D30/D35/D38；deferred register |
+| **DIST-02 Student 相机条件化(Plücker 射线图)**:Jiang et al. 2025(arXiv 2510.02268,ICRA 2026 Best Paper on Robot Learning)证明把每像素的 6 维 Plücker 射线(相机内外参在机器人基座系下)作为输入条件可显著提高 BC 策略对视角/安装变化的鲁棒性,并揭示不带外参的策略会从静态背景线索偷学相机位姿;Video2DoorTraversal(arXiv 2608.20251,A2-W + Z1,head + wrist 双 depth,无 RGB)在开门穿门任务中采用了它并配合相机外参随机化。对我们的意义:让 Student 对支架公差/标定误差鲁棒,并使"Teacher 按碰撞包络训练、光学安装蒸馏时再定"成立。蒸馏 plan 冻结前讨论:是否采用、6 通道/相机与现有 `vision_obs` 8 通道的拼接、随机裁剪与射线图联动、外参随机化范围 | 蒸馏分支,蒸馏 plan 起草时 | v28 deferred X-17;Owner 2026-09-11 |
+| **DIST-01 门 asset 空洞面板的生成方式与采样占比(蒸馏前,归蒸馏分支;主线 v28 不负责)**。事实(sim2sim 排查已确认):Isaac 侧沿用的 Doorman `door.py:1174 build_frame` 在 `num_subpanels = np.random.randint(0, 5)` 非零时把实心门板的 USD purpose 设为 `guide`(不参与正常渲染),只画四周边框条,中间没有任何填充几何,但**实心板的完整碰撞体保留**——RGB 与 Depth 都"看穿",物理不能穿过。两条需修正的旧记忆:(a) 没有玻璃/折射材质,是几何空洞,不能说"只影响 Depth 不影响 RGB";(b) 理论占比 4/5 = 80%,历史 384 样本 315/384 ≈ 82%,不是 50%;固定配置可能不同。此前只做了 MuJoCo 复现源端空洞与隐藏碰撞体以对齐 sim2sim 输入,未改 Isaac 源资产、未降占比;降占比是否改善策略表现尚无实验结论。**下一轮蒸馏的数据生成或训练配置冻结之前,蒸馏分支必须主动向 Owner 确认**:1. 空洞门目标采样比例;2. 门板是否补可见填充几何,以及预期的 RGB/Depth/碰撞行为;3. 或修复"有碰撞填充却不被 Depth 识别"的问题(理论上碰撞填充应被 Depth 正常看到);4. 确认后的源资产定义同步到训练、验证与 sim2sim 配置 | 蒸馏分支,下一轮蒸馏数据生成前 | `DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/SIM2SIM_FIX_SESSION_HISTORY_20260901.md` §2.4;`logs_eval/sim2sim/depthadd_v3_20260831/panel_source_random_384_analysis_r1/REPORT.md`;Owner 2026-09-11 |
 | ~~按 LEFT/RIGHT 等外部条件长出独立策略树~~ | **否决**:v26-7 证明条件化单一 actor 已覆盖;树比条件策略更不通用 | R 节方向 2(a) |
 
 ## E. 维护性挂账(小,勿丢)
+
+2026-09-17归档：v28恢复执行后的X05/N01/N02增量复核完成（D059），原三seed1/3、固定主备资格未确认；两方法设计继续/实验延期，下一阶段范围服从Owner更急切需求。
+
+2026-09-14归档：v28 X05的本次N01/N02 closure复核义务已完成（D045）；两项方法的立项/实验仍按D节开放条目处理，不等同方法完成。
 
 - [ ] formal launcher natural-exit 复核习惯化(v13.1 起多轮 NOT RECORDED);
 - [ ] git push(截至 v15 交付 push_status=NOT PUSHED);
@@ -88,9 +116,18 @@
 - [ ] eval 汇报:strict_trace_topology FAIL 时(缺 env trace)在报告中给出缺失原因归类(v15 step500/1000/2000 曾出现)。
 - [ ] 若未来宣布任何正式 release:v20 G4@2500 仅有 Route A 证据,Route B(pooled48/holdout64/final analysis)未跑(2026-08-16 自 A 表降级挂账);
 - [ ] v23 保留物 POST-v23 复核:F8 失败尝试日志、78 个非 episode0 render 额外媒体、6 个已撤销 GPU 兼容 diff 的记录(轮间窗口与 LT-23-12 一并处理)。
+- [ ] (v28 X-13)`isaacsim.py:791-804` `disable_gravity_for_arms` 分支按 config 顺序索引 physx view,与 30 体 asset 的 PhysX 顺序不一致;分支未启用,启用前必须改为按名映射。
+- [ ] (v28 X-14)工具默认 USD 仍指旧 asset:`smoke_a2_base_flat_walk.py:18`、`preview_a2_piper_door_scene.py:18-19`、`a2_piper_v14_reachability_map.py:26`。
+- [ ] (v28 X-10,归 sim2sim lane)动作低通 / `randomize_ctrl_delay` 的部署侧决定;Teacher lane 不单独引入控制接口变更。
 
 ## 归档(已完成/已否决)
 
+- [x] v28 X-04：2026-09-09已按Owner授权将默认j2/j3定为+0.10/−0.10，见D-03a及deferred CLOSED记录；2026-09-12只同步待办状态，不重新改配置。
+- [x] v28 X-08：2026-09-09两个camera worktree的diff/status已归档并完成关闭，见deferred CLOSED及student的`logs_eval/d435_camera_regression_20260908/worktree_diffs_20260909/`记录；2026-09-12只同步入口，不重复删除或重验其他worktree。
+- [x] 2026-09-11:**规则 25(容差型 guard 在基线为 0 或饱和时退化)**——"同号 seed 基线 − 容差"形式的 NO_REGRESS guard,当基线为 0（−8 恒真）或饱和于 63/64（容差从未被触及）时不再有否决力,且对"到达 Stage4 却从不完成"的失败型（v27 SK_S212：open_hold 64/64、complete 0）完全不敏感。v27 Wave C 的 `K_SCRATCH_SUPERIOR` 合规但 guard 退化。后续预注册 guard 必须同时含上限侧约束（如 complete/clean 不低于基线 − 容差）并在基线饱和时切换到绝对阈值。
+- [x] 2026-09-09:**规则 22(硬件几何进入仿真碰撞模型的时点)**——任何将随策略上实机的刚性附件(相机塔架、支架、外壳),必须在其存在的第一个训练阶段就进入 asset 碰撞模型并配接触惩罚,而不是先训练再报告间隙。v27 RIGHT 门抓握姿态(`arm_j5` 顶 1.22 rad 限位、法兰向下扎 39°)使 180 mm 腕机塔架在 Stage4 穿门板 41–65% 帧,与倾角无关;策略在没有约束的仿真里学到的姿态与实机附件不相容,事后无法用倾角或惩罚修正。
+- [x] 2026-09-09:**规则 23(相机取景与遮挡分开核查)**——针孔视场表只回答"目标点是否在锥内",不回答"是否被自身几何挡住";腕机安装在手指开合轴上时,倾角改变取景却不改变上指对 TCP 的遮挡(24–52% 把手条两端可见,指垫 0–8%)。相机需求必须以真实 mesh 的射线核查为准,并写成可达的观测量(把手条两端、上指尖外侧),不写成几何上不可达的量(TCP 点、双指垫)。
+- [x] 2026-09-09:**规则 24(watcher 的 pending 语义)**——里程碑评估 watcher 对已产生 checkpoint 的格必须独立推进,任何格的 pending/等待资源都不能挂起整体;v27 Wave C 因两格等 GPU 而 41 小时零评估,后由 `v27_watch_c_ready.py` 分段修复。同族教训:reducer 的 `INVALID` 只是 artifact 判定,不得自动停训练(v27 R1 误停 644)。
 - [x] 2026-09-05:**v26 收口(`V26_SCOPED_TARGET_ACHIEVED`,资格认定移交 v27.0)**——v26-7 以几何 offset 修复(LEFT 目标偏 180°)+ 45 N/1300/32/M39 bundle 从零建立单一 actor 双侧 unlatch(Q20 step2000、Q05 step3000 各 2/3 seed);v26-8 r3a 六格 warm continuation 3000 batches、72 lane exact64、integrity 0:C 自身达 Stage3→4 entry 与 consolidation(C_S2 双侧 complete 64/64),`W_NOT_DIFFERENT`,`K_REGRESSED`(RIGHT durable −16/−9 触发 guard;但 S4+ 仅 −3/−1、Stage4 停留缩短、K_S2 LEFT 握门穿过 61/64——guard 与机制目标不匹配,记为规则 19)。RIGHT 达 v25 计数水平且行为干净;LEFT 计数达标但以"1.2 rad 松手后身体顶门"完成(四分之一到三分之一集有数百牛身体接触),seed0 谱系 LEFT 停 Stage2。Teacher/Student/G7 未更新。
 - [x] 2026-09-05:**规则 19(guard 必须与干预机制的目标量正交)**——衡量"是否回退"的 guard 不能是干预本身要减少的量。v26-8 K 的目标是减少 Stage3 握把租金,guard 却用握把时长 D,导致机制按设计生效即被判回退;opening 已形成后应以 S4+/open_hold 作 NO_REGRESS。
 - [x] 2026-09-05:**规则 20(stage 边界收益断层的谷形变体)**——除已知的"边界前后收益断层"(2026-07-22 规则)外,还要检查两项收益的定义域之间是否留有两头都不付钱的区间:v26 的 `unlatch_hold` 止于 hinge 0.1、Stage4 收益始于 0.25,[0.1,0.25) 是收益谷;W 轴(0.1→0.25)对齐后 `W_NOT_DIFFERENT`,因为 C 自己已越过,但 S1 谱系 RIGHT 下游 +11/+17 说明谷仍有代价。

@@ -1,0 +1,8 @@
+# @package _global_
+
+env:
+  config:
+    enable_staged_reset: false
+    a2_v26_8_penalty_driver: null
+rewards:
+  reward_penalty_curriculum: false

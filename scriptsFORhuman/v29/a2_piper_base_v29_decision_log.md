@@ -96,3 +96,114 @@ Owner 要求组建研究 team，先登记六项议题，再逐项交付意见、
 Owner要求按workflow打包baseline TODO给Pro：先独立判断B01–B06，再调研现实门从轻质到防盗/防火门的动力学/铰链/质量范围、latch范围与随机化方法、保持两指夹握且grasp frame随几何变化的把手形状族；随后追加v28阶段独立验收和v29方向建议。完整要求见[Owner问题](pro_handoff/20260918/OWNER_REQUEST.md)与[研究说明](pro_handoff/20260918/RESEARCH_BRIEF.md)。
 
 本次workflow授权限于相关材料的review分支commit/push、选择性打包与新Drive目录上传；不提交工作区无关改动，不启动训练或修改六项实现。按Owner不生成哈希的约定，用专用review分支、时间目录、文件清单和远端一致性结果定位交付；不生成校验和清单。Pro返回的判断仍需与Owner讨论，不自动划掉TODO或形成正式计划。
+
+## V29-D007：Pro原包接收与本地只读解析
+
+2026-09-18 10:41 HKT。状态：**RECEIVED_AND_RECONCILED / SIX_ITEMS_OPEN**。
+
+Owner上传`pro_delivery__full_review (2).zip`并要求保留原包/原文，先读报告、来源、参数和独立附件，再重点核对驱动单位/饱和、解闩几何、相机参考系、形状grasp frame及v28事件窗口/分母；只将结果追加TODO供Owner决定。
+
+本次原包与12份原始文件已存[独立归档目录](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/README.md)。相关source/config与原交付一致，512条既有DEV记录的核心算术与Pro相符；语义修正及local-only范围见[本地核对](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/LOCAL_RECONCILIATION.md)。尤其补清不同env的相机投影、三种安装连线、release gate/身体力/回位三套窗口及当前45N finger配置。
+
+六项TODO均未确认。Pro工程初值、产品锚点与现实分布分开记录；v28原科学结论、Teacher/G7和render豁免不变。本次没有代码/配置/资产实施、训练/仿真/评估、预算制定、硬件或Git操作；等待Owner后续明确决定。
+
+## V29-D008：B06当前init/reset setup确认PASS
+
+2026-09-18 11:48 HKT。决定：-owner；记录：-codex planner。状态：**OWNER_ACCEPTED / B06_PASS**。
+
+Owner同意Pro对当前init/reset setup的判断。保留现有MERGED H180/F45、三台相机、arm init/reset=`[0,.10,-.10,0,-.52,1.57]`及对应光路定义，不为安装连线夹角凑零修改几何。baseline TODO B06勾选并划掉。
+
+PASS范围是当前setup接受；不追溯改Pro原文，不把它写成新的实机/成像质量结果。B03倾角及已有Student归属议题独立处理。
+
+## V29-D009：承接side window已落地的时间配置
+
+2026-09-18 11:48 HKT。依据：-owner转述side window已实施结果；本地已核对current config。状态：**ACCEPTED / IMPLEMENTED_IN_SIDE_WINDOW**。
+
+| 项目 | 当前配置 |
+|---|---:|
+| 整集时限 | 30s |
+| Stage0 | 525步 / 10.5s |
+| Stage1–4 | 各150步 / 3s |
+| Stage5 | 300步 / 6s |
+
+控制周期为200Hz物理步×4 decimation，即控制dt=.02s。此前最终smoke resolved为整集20s、stage `[350,100,100,100,100,200]`，各stage现增加50%。保留`award_remaining_time_on_advance=true`及既有剩余时间结转实现。本轮只核对并记录，不覆盖side window已完成改动。
+
+## V29-D010：B07自然起点扩域与朝把手联合yaw
+
+2026-09-18 11:48 HKT。范围认可/实施授权：-owner；实现与记录：-codex planner。状态：**ACCEPTED / IMPLEMENTED / B07_PASS**。
+
+Owner认可side window建议，并授权本地认同后直接落地。采用门root坐标中的法向距离`[1.2,4.0]m`、横向偏移`[−.5,.5]m`；yaw围绕闭门主握杆中心的水平方位±10°，同时在门法向±35°以内。三相机保持本次原setup，base上仰15°。
+
+实施：v29 common更新现有distance/lateral/relative-yaw范围，增加`a2_v29_natural_start_handle_yaw_jitter_rad=π/18`。先采位置，再计算β并在`[β−π/18,β+π/18]∩[−7π/36,7π/36]`均匀取yaw；不独立组合、不事后裁剪。在当前门宽/杆长/轴长/把手边距域内，最大|β|约39.88°，最窄交集约5.12°。
+
+reset生命周期先robot后door，因此不用实时FrameTransformer或上轮handle body pose计算朝向。初始化时沿现有USD变换API缓存闭门`grasp_target`在door坐标系的位置，在自然reset使用；门root固定，仅在最终放置时合成世界姿态。这样跟随已生成抓握几何，不在reset另写一套直杆尺寸公式。显式target-state与staged恢复不改变；natural eval继承当前范围，Student观察接口没有增加目标真值。
+
+既有依据为Owner提供的side window静态投影摘要：覆盖双侧及门宽/把手尺寸/高度边界，body height0.47–0.55m、pitch±3°网格仍由至少同一台相机的RGB/depth覆盖主握杆包络，最差约10%边缘余量；没有声称已含自身遮挡、Student裁剪/降采样或真实深度噪声。本轮未重算该视场网格。
+
+本地证据：[resolved config](implementation_evidence/init_range_20260918/resolved_config.yaml)、[CPU实施读数](implementation_evidence/init_range_20260918/implementation_readout.json)。CPU调用真实配置解析路径及生产yaw分支，1218个几何边界网格样本符合角窗、shape/dtype/device与区间非空；未启动Isaac/训练/render，不声称定位成功率或策略质量通过。Stage0远距0.5m/s仍是建议，本次保持原0.3m/s。
+
+## V29-D011：按最远起点的时间预算提高Stage0目标速度
+
+2026-09-18 14:44 HKT。授权：-owner要求判断0.3m/s是否够用，不够则直接改0.5；判断与实施：-codex planner。状态：**AUTHORIZED_DECISION / IMPLEMENTED / STATIC_PASS**。
+
+决定将Stage0走近门的速度奖励目标提高到0.5m/s。最远门法向4m起点，到距离把手约0.7m的站位仍需约3.2–3.4m（视把手偏移/横移而变）；0.3m/s理想匀速需要约10.7–11.3s，已无起步、纠偏和停稳余量。Stage0预算只有10.5s，剩余时间结转只能继承前一stage剩余时间，不能从后续阶段预借。按3.3m举例，0.5m/s理想匀速为6.6s，留约3.9s余量。这是运动学预算判断，不是实际策略速度/成功率证据。
+
+实际路径：`_reward_walk_to_door`直接读取独立的`a2_stage0_target_root_vel`；基础env声明0.3，v29 common覆盖0.5。该参数是速度跟踪奖励目标，不是强制写入root速度或新增Student观察。进入站位带后，原有target_dir归零，Stage0→1仍要求base command停稳和arm默认姿态。`_reward_target_root_distance`继续使用原`target_root_vel=0.3`，只作用Stage4/5；没有把开门/过门一起提速，也没有新增距离分段速度曲线。natural eval沿用checkpoint配置继承路径。
+
+验证：运行真实训练入口的`--cfg job --resolve`，确认Stage0=0.5、Stage4/5=0.3、Stage0预算10.5s、`award_remaining_time_on_advance=true`；source一次AST解析通过。现有指令映射使用0.25 scale，forward/lateral物理clip均为0.5m/s，0.5目标在既有范围内；未修改底盘限幅。没有新增测试、训练、仿真、render或Git操作。B01仅将三项讨论建议写入TODO，未修改门动力学或勾选B01。
+
+## V29-D012：B01范围确认并开始落地baseline plan
+
+2026-09-18 15:08 HKT。范围决定：-owner；联合工程设计：-codex planner。状态：**OWNER_SCOPE_ACCEPTED / B01_DECISION_PASS / PHYSICS_IMPLEMENTATION_PENDING**。
+
+Owner选择门板质量30–80与80–120kg各1/2；有/无闭门器各1/2，有闭门器含不同回关强度；门轴松紧加入并与已有hinge drive随机化联合设计。取代14:44提出的三档各1/3建议。Owner同时要求开始落地v29 baseline plan，因此[新plan](a2_piper_base_v29_baseline_plan.md)先收录已确认部分，B02–B05继续讨论，整体未冻结。
+
+本地联合设计在plan §2维护：质量×闭门器形成四个等权组合；复用native drive，用回关力矩T与参考速度omega_ref构造SI k/d，再转USD degree口径；无闭门器drive置零但保留native摩擦；温和static/dynamic/viscous摩擦作为独立耗散项。全部工程初值与Owner范围决定区分，不生成新的试验预算。B01物理代码未修改。
+
+Owner询问回关是否很快、baseline能否学会或留N02。本地公开回答：回关表示存在持续关门方向的负载，快慢由完整动力学决定；建议纳入baseline共同门域，N02研究额外交互历史适应。当前LSTM与门角/接触反馈支持该设计判断，但不保证学会；Teacher质量真值输入不等于Student可部署感知。实际source与证据边界见plan §3；讨论摘录保存在[novelty记录](../novelty/conversations/20260918_codex_b01_n02_excerpt.md)。没有改N02实现/资格结论或启动方法实验。
+
+## V29-D013：Stage0以2m为中心平滑切换0.5/0.3m/s
+
+2026-09-18 15:08 HKT。行为要求与速度澄清：-owner；实施：-codex planner。状态：**OWNER_ACCEPTED / IMPLEMENTED / STATIC_PASS**。
+
+Owner明确“指0.5 / 0.3 m/s，在2米附近平滑过渡”。以door root固定yaw坐标下的法向距离为准，1.8m内目标0.3，2.2m外0.5；中间使用`smoothstep(u)=3u²−2u³`，2m处0.4，两个端点斜率为0。过渡带0.4m是本地实现选择。`target_speed (N,)`广播乘原`target_dir (N,3)`，保留站位带内目标方向归零及原stage0→1条件。未改变Stage4/5目标0.3、奖励权重、时限或动作上限。
+
+实施：[v29 common](../../gr00t/rl/config/ablation/wbmanip/base_v29_common.yaml)追加近距目标与过渡距离；基础env提供明确默认配置；`_reward_walk_to_door`使用现有`get_task_root_state`、`yaw_quat`、`quat_apply_inverse`路径。真实入口`--cfg job --resolve`和一次source AST解析通过；未添加测试、进行仿真/训练或验证实际步态加减速。B01仅落地计划，不能与本项速度代码实现混淆。
+
+## V29-D014：B01增加120–160kg第三档并更新联合配方
+
+2026-09-18 15:27 HKT。质量域决定：-owner；联合设计更新：-codex planner。状态：**OWNER_ACCEPTED / PLAN_UPDATED / PHYSICS_IMPLEMENTATION_PENDING**。
+
+Owner要求增加120–160kg，三档各1/3。当前质量域为30–80、80–120、120–160kg；替代D012的两档各半。有/无闭门器仍各半，因此质量×闭门器从四格改为六格、各1/6，左右侧目标配比一致。有限env数使用尽量平衡的整数分配，等权指采样设计而非要求改变env总数。
+
+联合适配见[plan §2](a2_piper_base_v29_baseline_plan.md)：先选质量档、再档内uniform，实际惯量沿质量/几何生成；新增薄板近似量级说明，120–160kg档约25.60–64.53kg·m²（宽0.8–1.1m，非PhysX读回）。三档共享T=2.5–12N·m、omega_ref=.15–.40rad/s及已有温和摩擦域，k/d仍由T与参考速度联动；不按质量自动抬高drive或强制速度来抵消重门响应。参考速度仍是忽略惯性/摩擦的准静态设计量，不能承诺重档与轻档具有相同回关时长。
+
+本轮仅更新plan、TODO、当前入口与memory；source、训练配置及物理资产未修改，未新增测试、训练、仿真、预算或Git操作。原D012保留为历史决定，后续实施以D014及当前plan为准。
+
+## V29-D015：B02选择软件虚拟锁闩方向，角度建议待决定
+
+2026-09-18 16:45 HKT。建模方向：-owner；source澄清与方案整合：-codex planner及两路只读team。状态：**SOFTWARE_LATCH_DIRECTION / ANGLE_DISCUSSION_OPEN / NOT_IMPLEMENTED**。
+
+Owner询问当前handle角度如何解锁、随机范围0–45°或20–60°及学习难度，并明确希望软件定义解锁、不仿真实体锁舌内部机构。本地澄清当前是高位cone碰撞锁舌+mimic，确实通过handle联动与门框接触决定解闩；“没有布尔开关”不表示latch不锁门。软件方案需要替换现有代理，不是保留一个已存在的软件解锁分支。
+
+team比较了维持45°行程的小幅方案与扩展角度域；Main推荐解锁`U(20°,60°)`、机械止挡=`解锁角+5°`，每门固定。该推荐未获Owner最终确认。角度逻辑上保证到止挡前已经允许开门，baseline可采用压到底再试推；推不动还可能来自B01重门/闭门器/摩擦，不能作为未解锁真值。参数/锁态留在环境内部，不加入actor/Student，不硬编码试推动作。
+
+软件锁闩建议用原生门轴有限游隙约束与正常限位切换，保持门的动力学/接触反馈；PhysX普通limit要求low<high，不能声称`[0,0]`已可用。半开门不因handle回位被锁住，回关后的复锁语义仍待具体确定。自然/staged reset、锁态恢复和删除旧第三DOF假定必须随实现同步。奖励需同步当前0.6rad尺度及creation路径固定45°截断，不能仅改配置中的一项。具体建议与API/Pro出处见[plan §5](a2_piper_base_v29_baseline_plan.md)。
+
+本轮只读source/API及更新讨论文档；B02未标PASS，未改source/config/asset、添加测试或启动仿真/训练/方法实验。B01三档与D013速度决定不变。
+
+## V29-D016：B02重新开放二选一，交Pro独立决策
+
+2026-09-18 17:04 HKT。授权与范围：-owner。状态：**OWNER_PRO_HANDOFF_AUTHORIZED / DECISION_PENDING**。
+
+Owner要求B02打包给Pro，在软件约束A与保留当前物理解锁B之间二选一，列优劣、给出明确选择和对应设计。D015的软件偏好与本地20–60°/+5°候选不再作为预设结论；原讨论保留为背景。本次按项目handoff流程授权相关review分支提交/发布、选择性打包与新Drive目录上传，不涉及主工作分支合并、训练或B02实现。
+
+具体范围以[Owner任务](pro_handoff/20260918_b02_b04/OWNER_REQUEST.md)、[研究说明](pro_handoff/20260918_b02_b04/REVIEW_BRIEF.md)为准。新交付只包含B02/B04有关的source/config/静态依赖依据和明确标记日期的旧接线证据，不重开v28验收。按Owner约定不生成哈希清单，采用专用分支、提交主题/时间与文件清单定位。
+
+## V29-D017：B03后置，Pro同包追加B04限位设计
+
+2026-09-18 17:04 HKT。决定：-owner。状态：**B03_DEFERRED / B04_PRO_REVIEW_PENDING**。
+
+B03保持base双D435i上仰15°，等待v29 baseline出来后再微调；不作为当前baseline前置。TODO勾选并标DEFERRED，只表示处置决定，不是角度/成像质量PASS。
+
+Owner同时要求Pro细化B04最大张开角随机化的“软件限制还是物理限制”。交付要求先区分强制角度裁剪/状态重写、原生hinge joint limit、实体stopper碰撞；当前150°属于原生物理约束。Pro须明确推荐实现、90–150°候选域及其与B02临时锁定/解锁限位的配合，分开最大角、release gate、实际松手和过门质量。B04仍未实施，未因此改奖励或启动运行。

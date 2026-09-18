@@ -124,6 +124,9 @@ env:
 
     pregrasp_target_vel: 0.3
     target_root_vel: 0.3
+    a2_stage0_target_root_vel: 0.3
+    a2_stage0_near_target_root_vel: 0.3
+    a2_stage0_speed_transition_distance_range: [1.8, 2.2]
 
     a2_stage0_staging_x_min: 0.55
     a2_stage0_staging_x_max: 0.60

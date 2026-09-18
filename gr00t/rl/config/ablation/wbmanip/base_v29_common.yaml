@@ -26,14 +26,14 @@ callbacks:
     save_frequency: 250
 env:
   config:
-    max_episode_length_s: 20
+    max_episode_length_s: 30
     max_stage_time:
-    - 350
-    - 100
-    - 100
-    - 100
-    - 100
-    - 200
+    - 525
+    - 150
+    - 150
+    - 150
+    - 150
+    - 300
     a2_v26_door_open_lr: bilateral
     a2_v26_side_permutation_seed: 281
     a2_v26_8_penalty_driver: side_min_natural_stage_reach_rate
@@ -49,20 +49,25 @@ env:
     - 120.0
     a2_v26_natural_start_enabled: true
     a2_v26_natural_start_door_normal_distance_range:
-    - 0.9
-    - 1.4
+    - 1.2
+    - 4.0
     a2_v26_natural_start_lateral_offset_range:
-    - -0.25
-    - 0.25
+    - -0.5
+    - 0.5
+    # Door-relative +/-35 deg, intersected with handle bearing +/-10 deg.
     a2_v26_natural_start_relative_yaw_range:
-    - -0.3
-    - 0.3
+    - -0.6108652381980153
+    - 0.6108652381980153
+    a2_v29_natural_start_handle_yaw_jitter_rad: 0.17453292519943295
     a2_v26_bilateral_metrics_enabled: true
     a2_v23_d1_sampler_enabled: false
     a2_v24_friction_enabled: false
     a2_stage0_staging_x_min: 0.68
     a2_stage0_staging_x_max: 0.72
     a2_stage0_staging_y_tol: 0.15
+    a2_stage0_target_root_vel: 0.5
+    a2_stage0_near_target_root_vel: 0.3
+    a2_stage0_speed_transition_distance_range: [1.8, 2.2]
     a2_stage1_stage2_base_forward_creep_deadband: 0.02
     a2_grasp_gate_mode: control_streak
     a2_grasp_streak_control_steps: 5

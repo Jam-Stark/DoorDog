@@ -5466,6 +5466,9 @@ class DoorPregrasp(
     A2_V26_NATURAL_START_YAW_RANGE_CONFIG_KEY = (
         "a2_v26_natural_start_relative_yaw_range"
     )
+    A2_V29_NATURAL_START_HANDLE_YAW_JITTER_CONFIG_KEY = (
+        "a2_v29_natural_start_handle_yaw_jitter_rad"
+    )
     A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY = (
         "a2_stage3_to4_door_hinge_threshold"
     )
@@ -7651,6 +7654,8 @@ class DoorPregrasp(
 
     def _init_door_metadata(self):
         stage: Usd.Stage = omni.usd.get_context().get_stage()
+        xform_cache = UsdGeom.XformCache()
+        closed_grasp_positions = []
         self.door_width = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.door_height = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.door_handle_height = torch.zeros(
@@ -7708,6 +7713,18 @@ class DoorPregrasp(
             ]
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
             self.door_open_io[env_id] = door_metadata["doorOpenIO"]
+
+            # Robot reset precedes door reset. Cache the authored closed-door
+            # target instead of reading the previous episode's moving handle.
+            grasp_prim = stage.GetPrimAtPath(f"{door_prim_path}/grasp_target")
+            if not grasp_prim.IsValid():
+                raise RuntimeError(f"Natural start requires {door_prim_path}/grasp_target")
+            grasp_to_door, _ = xform_cache.ComputeRelativeTransform(grasp_prim, door_prim)
+            closed_grasp_positions.append(tuple(grasp_to_door.ExtractTranslation()))
+
+        self._a2_closed_grasp_pos_door = torch.tensor(
+            closed_grasp_positions, dtype=torch.float32, device=self.device
+        )
 
         if not torch.all((self.door_open_lr == 1.0) | (self.door_open_lr == -1.0)):
             raise RuntimeError("A2 door metadata requires doorOpenLR values in {-1, +1}.")
@@ -15888,7 +15905,24 @@ class DoorPregrasp(
         )
         current_root_vel = self.simulator.robot_root_states[:, 7:10].clone()
 
-        target_vel = self.config.get("target_root_vel", 0.3) * target_dir
+        # Smooth the approach speed around the fixed door plane, using the same
+        # door-normal distance convention as the natural-start sampler.
+        door_root_state = self.simulator.get_task_root_state("door")
+        root_offset_door = quat_apply_inverse(
+            yaw_quat(door_root_state[:, 3:7]),
+            current_root_pos - door_root_state[:, :3],
+        )
+        door_distance = -root_offset_door[:, 0]
+        transition_near, transition_far = self.config.a2_stage0_speed_transition_distance_range
+        blend = (
+            (door_distance - transition_near) / (transition_far - transition_near)
+        ).clamp(0.0, 1.0)
+        blend = blend.square() * (3.0 - 2.0 * blend)
+        near_speed = self.config.a2_stage0_near_target_root_vel
+        target_speed = near_speed + (
+            self.config.a2_stage0_target_root_vel - near_speed
+        ) * blend
+        target_vel = target_speed[:, None] * target_dir
 
         return self._tracking_reward_util(
             torch.linalg.norm(current_root_vel - target_vel, dim=-1),
@@ -29319,12 +29353,29 @@ class DoorPregrasp(
                 )
                 target_pos = door_pos + quat_apply(door_yaw, local_offset)
                 target_pos[:, 2] = door_pos[:, 2] + self.base_init_state[2]
-                relative_yaw = torch_rand_float(
-                    yaw_range[0],
-                    yaw_range[1],
-                    (len(env_ids), 1),
-                    device=str(self.device),
-                )[:, 0]
+                if self.config.get(self.A2_V29_NATURAL_START_HANDLE_YAW_JITTER_CONFIG_KEY) is None:
+                    relative_yaw = torch_rand_float(
+                        yaw_range[0],
+                        yaw_range[1],
+                        (len(env_ids), 1),
+                        device=str(self.device),
+                    )[:, 0]
+                else:
+                    jitter = self._get_required_positive_float_config(
+                        self.A2_V29_NATURAL_START_HANDLE_YAW_JITTER_CONFIG_KEY,
+                        "v29 natural-start handle heading jitter",
+                    )
+                    grasp_local = self._a2_closed_grasp_pos_door[env_ids]
+                    handle_bearing = torch.atan2(
+                        grasp_local[:, 1] - lateral, grasp_local[:, 0] + distance
+                    )
+                    # Intersect the two angular windows before uniform sampling;
+                    # do not clip sampled headings onto the door-normal limits.
+                    yaw_low = (handle_bearing - jitter).clamp_min(yaw_range[0])
+                    yaw_high = (handle_bearing + jitter).clamp_max(yaw_range[1])
+                    if torch.any(yaw_low >= yaw_high):
+                        raise ValueError("Natural-start handle and door yaw windows do not overlap")
+                    relative_yaw = yaw_low + torch.rand_like(handle_bearing) * (yaw_high - yaw_low)
                 zeros = torch.zeros_like(relative_yaw)
                 self.target_robot_root_states[env_ids, :3] = target_pos
                 self.target_robot_root_states[env_ids, 3:7] = quat_mul(

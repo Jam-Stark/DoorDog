@@ -1,6 +1,6 @@
 # v29 总体安排
 
-更新：2026-09-17 21:13 HKT。记录：-codex planner；方向与资源安排：-owner。
+更新：2026-09-18 15:08 HKT。记录：-codex planner；方向与资源安排：-owner。
 
 状态：Owner 已确定阶段方向与 GPU 分工；baseline 正在逐项讨论。本文记录总体安排，不是正式训练方案、实验矩阵或启动脚本。
 
@@ -19,7 +19,7 @@
 
 ## 基础版本与独立工作时机
 
-- 当前先共同讨论 baseline，维护 [baseline TODO](a2_piper_base_v29_baseline_TODO.md)。Owner 确认一项结论后划掉一项；Owner 确认整体 clean 后再完成 baseline 正式文档落地。
+- 当前逐项讨论并维护[baseline TODO](a2_piper_base_v29_baseline_TODO.md)。Owner于2026-09-18要求开始落地[baseline plan](a2_piper_base_v29_baseline_plan.md)：先收录B01/B06/B07及已有基础决定，整体clean后完成全文与执行安排；B01讨论确认不等于物理代码已实施。
 - N01/N02 已由本次 Owner 决定纳入 v29 大方向，取代此前“是否纳入 v29 尚未决定”的状态；旧 pilot/shadow 的证据限制仍然成立。
 - N01/N02 涉及 Doorman 范式、状态机或网络等较大变化，按 Owner 要求等待任务 1 的 v29 baseline 落地后，再 checkout 到各自独立 branch/worktree 开展工作。先期研究讨论可以并行，当前不创建分支/worktree、不修改方法实现。
 - pull 承接共同 baseline 改进；同步时分别辨认共同 obs/action/capability 与 pull 的任务动力学/阶段语义。当前只记录方向，尚未修改 pull 工作区。

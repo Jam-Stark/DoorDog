@@ -1,10 +1,16 @@
 # base_v29：Owner 基础改动
 
-Pro交付（2026-09-18）：Owner要求六项独立判断、现实门/latch/把手调研，以及v28验收与v29方向建议。任务从[Owner问题](pro_handoff/20260918/OWNER_REQUEST.md)与[研究说明](pro_handoff/20260918/RESEARCH_BRIEF.md)进入；当前六项仍待确认。
+当前决定（2026-09-18 15:27 HKT）：[baseline plan](a2_piper_base_v29_baseline_plan.md)的B01已更新为30–80/80–120/120–160kg三档各1/3，与有/无闭门器各半组成六个等权组合；联合配方补充重档惯量影响，闭门器/摩擦仍跨三档覆盖。B01讨论PASS，物理代码待实施。B06/B07已PASS；Stage0在门法向1.8–2.2m间平滑过渡0.3→0.5m/s，Stage4/5仍0.3；30s时限与结转逻辑沿用。见[决策D008–D014](a2_piper_base_v29_decision_log.md)。B02–B05继续讨论，尚无新训练。
 
-当前讨论入口（2026-09-17 21:13 HKT）：[v29 总体安排](a2_piper_base_v29_overall_arrangement.md)记录 Owner 的八卡分工、push/pull 各 2 seed 与 N01/N02 独立工作时机；[baseline TODO](a2_piper_base_v29_baseline_TODO.md)维护六项待讨论议题。Owner 确认整体 clean 后再落地正式 baseline 文档。
+最新范围（2026-09-18 17:04 HKT，D016–D017）：B02重新开放“软件约束/当前物理解锁”二选一，与B04最大开角限位方案同包交Pro独立选择及设计；旧软件偏好不预设结论。B03保持base15°，后置到v29 baseline出来后微调，不作前置。[本次任务与材料入口](pro_handoff/20260918_b02_b04/OWNER_REQUEST.md)；B02/B04尚未实施。
+
+Pro回传（2026-09-18 10:41 HKT）：已保存原包/原文并完成定向本地解析。[归档与核对入口](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/README.md)；原文中的未决状态保留为当时记录，后续决定见上方当前入口。原[交付入口](pro_handoff/20260918/README.md)保留。
+
+当前讨论入口：[v29 总体安排](a2_piper_base_v29_overall_arrangement.md)记录八卡分工、push/pull各2 seed与N01/N02独立工作时机；[baseline TODO](a2_piper_base_v29_baseline_TODO.md)保留各项讨论。按Owner最新指示，plan先收录确认部分，整体clean后完成全文与执行安排。
 
 更新：2026-09-17（HKT）。三项基础改动已实施到 source、配置及实体 URDF/USD，并完成一次 64-env / 1-batch PPO 运行。完整决定与证据边界见 [决策记录](a2_piper_base_v29_decision_log.md)。
+
+上述one-batch运行对应9月17日基础配置；9月18日时间/自然起点的新改动仅有配置解析和CPU采样核对，尚无新仿真/训练/成像验证。
 
 | 决定 | 已实现行为 |
 |---|---|

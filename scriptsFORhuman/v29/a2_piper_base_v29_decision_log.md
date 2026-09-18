@@ -207,3 +207,117 @@ Owner要求B02打包给Pro，在软件约束A与保留当前物理解锁B之间�
 B03保持base双D435i上仰15°，等待v29 baseline出来后再微调；不作为当前baseline前置。TODO勾选并标DEFERRED，只表示处置决定，不是角度/成像质量PASS。
 
 Owner同时要求Pro细化B04最大张开角随机化的“软件限制还是物理限制”。交付要求先区分强制角度裁剪/状态重写、原生hinge joint limit、实体stopper碰撞；当前150°属于原生物理约束。Pro须明确推荐实现、90–150°候选域及其与B02临时锁定/解锁限位的配合，分开最大角、release gate、实际松手和过门质量。B04仍未实施，未因此改奖励或启动运行。
+
+## V29-D018：B02/B04 Pro输入交付完成
+
+2026-09-18（HKT）。状态：**PUBLISHED_AND_UPLOADED / PRO_DECISION_PENDING**。
+
+按D016–D017完成[独立交付](pro_handoff/20260918_b02_b04/README.md)：review分支`codex/v29-b02-b04-pro-20260918`已发布；提交主题`Prepare v29 B02 and B04 Pro decision handoff`，时间`2026-09-18T17:14:54+08:00`，本地review ref、remote-tracking和remote ref一致。使用独立index提交本轮选定14个变化路径，没有使用主工作分支index或合并其他改动。
+
+[Drive任务目录](https://drive.google.com/drive/folders/1RfrGhpw4hsi-FElR7Fc9L4UIrWjuuOBt)包含source/config ZIP（438863 bytes、35文件）、参考/证据ZIP（63988 bytes、10文件）及三份索引/manifest/handoff；五文件已按名称、字节数及父目录读回。无checkpoint，当前配置只执行Hydra解析，旧one-batch明确为历史证据。本地最终[Pro prompt](pro_handoff/20260918_b02_b04/PRO_REVIEW_PROMPT.md)在发布/上传核对后生成；回包要求FULL_REVIEW、DESIGN_SPEC与LOCAL_WORKER_PARSE_PROMPT，由Owner以附件传回，不由Pro上传Drive。
+
+本次完成的是交付，未替Pro选择B02/B04、未实现新门动力学或启动训练。B03后置保持15°。源码快照后的交付收据和当前文档记录不回写已上传的不可变输入包。
+
+## V29-D019：两份B02/B04独立Pro回包归档与定向核对
+
+2026-09-18 19:47 HKT。范围：-owner；整合：-codex planner及两路只读source/API核对。状态：**DUAL_PRO_ARCHIVED / TARGETED_SOURCE_RECONCILED / OWNER_DECISION_PENDING / NOT_IMPLEMENTED**。
+
+Owner上传`pro_delivery__full_review-1.zip`及`pro_delivery__full_revie-2.zip`，要求独立保留原包/原文、对照当前source/config/本机IsaacLab/已有runtime，仅解析并更新plan/TODO。两包分别归档于[新目录](../pro_reviews/v29/20260918_192550__B02_B04_dual_pro_review/README.md)的pro_1/pro_2，未猜测具体模型身份、未去Drive寻找答案。来源review分支仍为`codex/v29-b02-b04-pro-20260918`，提交主题`Prepare v29 B02 and B04 Pro decision handoff`，时间`2026-09-18T17:14:54+08:00`。本轮文档更新前34个输入路径逐字节对照：全部受核source/config一致，只有本地README/decision log的较新交付记录不同，未覆盖它们。
+
+两份均选择B02 A虚拟锁闩与B04原生门轴限位M~U(90°,150°)、每门固定；均删除旧实体latch/mimic/第三DOF，不用每步重写q/qdot。选择共同但参数不同：Pro1 H45°/u25–40°、raw USD饱和回位、PRE；Pro2 H40–60°/u=ρH支持26–51°、SI渐增回位、POST。Main建议以Pro2为讨论基案，Pro1为完整保留的窄行程备选；D015的20–60°/+5°不继续作为默认。全部工程初值与采用意见仍待Owner确认。
+
+关键本地核对：native API支持所需rad tensor和选中env，但CPU传输/承载未运行；正常M须独立于epsilon。R/E迟滞状态、时相和snapshot validator不能混搭；Pro2不能把capture外/epsilon内的合法已锁状态判错。staged与recovery原本per-env，可复用tracked bool；最终reset限位/target提交必须晚于所有recovery恢复。删除第三DOF须同步直接消费者并解耦build_latch与self-collision。0.6rad helper和creation固定45°均活跃，下压用u、止挡用H。
+
+当前reset的15π/180写入effort目标是源码事实；作者层−15°被runtime零position-target覆盖是完整链路支持的静态推断，实际读回未做。显式负回位目标是有效负载改变，不能称已证明保留旧行为。source还支持三处post-gate收入路径；Main建议Pro2整项hinge/hold mask及去正grasp，明确连负关门项也去掉、恢复行为效果未知。Pro1新增3control双指断触的Stage4→5/回臂门槛及近闭门回柄mask另列，本地不自动采纳；保留当前阶段条件的Pro2基案待Owner确认。
+
+完整出处、参数差异、采用/调整意见与LOCAL_ONLY未知统一见[LOCAL_RECONCILIATION](../pro_reviews/v29/20260918_192550__B02_B04_dual_pro_review/LOCAL_RECONCILIATION.md)，当前计划见[plan §5–6](a2_piper_base_v29_baseline_plan.md)。两包静态PASS仅为云端静态材料，旧9月17日64env/one-batch只证明当时接线，不证明新B01/B02/B04。B02/B04未勾选、未PASS；B03保持15°并后置到baseline出来后，B01三档各1/3与closer有无各半不变。未改source/config/asset、添加测试、启动训练/仿真/render、提交Git或更新Teacher/G7，未重开v28验收；无本轮活动资源。
+
+## V29-D020：B02后置独立ablation，B04进入当前baseline设计
+
+2026-09-18 20:00 HKT。安排决定：-owner；B04工程整合：-codex planner。状态：**B02_DEFERRED_TO_ABLATION / B04_BASELINE_PLAN_DESIGNED / NOT_IMPLEMENTED**。
+
+Owner明确：“这里先不做B02，等待其他baseline项确定后，再单开一个apply B02的分支做ablation。B04参照两份pro feedback设计baseline plan。”该决定覆盖D019将B02/B04联合列为当前候选的安排，不否定或改写两份Pro原结论。
+
+当前baseline保留实体latch/mimic、三DOF、handle固定45°及既有handle动力学/target和0.6rad/45°奖励消费者；不加入R/E虚拟锁态、epsilon临时约束、两DOF迁移或Pro2 handle负载。已知handle effort/position target问题保留在B02资料中，不以B04名义顺带改动；B01设置hinge目标须维持关节边界。B02本轮清单标DEFERRED_TO_ABLATION，独立分支实际工作仍为未完成。其他baseline项确定后再安排`codex/v29-apply-b02`等独立分支，当前未创建；对照共享B01/B04等域及训练/评估设置，B02若包含机制/行程/负载多项，结论按整组改动解释。
+
+[plan §6](a2_piper_base_v29_baseline_plan.md)按两份共同意见选择每门生成时M~U(90°,150°)、native hinge limit [0,M]，与B01分组独立采样、跨episode/stage/reset固定。当前实体锁舌继续负责解锁，B04无动态限位切换依赖；沿既有生成器→metadata/deterministic配置→逐env场景→per-env bank路径，训练/自然评估同域，不新增policy真值。
+
+B04奖励工程设计采用Pro2：hinge整个位置＋速度及最终hold_and_drive用Stage3/Stage4未gate收入mask，Stage4 gate后grasp只保留负值，原scales 6/8/.2不变。明确连gate后hinge负关门项也取消，以容纳B01正常回关；重开恢复的学习效果未知。保留当前阶段/回臂条件，不采纳Pro1新增3control双指断触晋级门槛或近闭门回柄mask。Pro2的2control断触确认只用于独立事件记录，不改变成功门。角度随机与收入修改不保证实际提前松手或90°成功通行。
+
+同步plan/TODO/总体安排/README与memory；B04保留未勾选并标PLAN_DESIGNED，未将工程建议记为Owner逐参数批准。B01三档等权及closer各半不变，B03仍保持15°并后置到baseline出来后，B05继续讨论。只更新计划文档，未实施source/config/asset、创建分支、运行训练/仿真/render或新增测试；未改Teacher/G7或v28验收。
+
+## V29-D021：直接修复释放许可后的开门与握持收入
+
+后续状态：本项代码已按Owner的D023决定精确回退；以下保留当时实施/CPU核对记录。
+
+2026-09-18 20:19 HKT。决定：-owner；实施：-codex planner。状态：**OWNER_AUTHORIZED / IMPLEMENTED / CPU_TEST_PASS**。
+
+Owner确认当前仍有release gate后的hinge速度与hold_and_drive收入，并要求“直接先修复这个，决策纳入记录”。本次实施D020 plan §6.3的三处修复，不等待B02 ablation、不扩展为B04最大角实施。
+
+在`gr00t/rl/envs/door/door_open_a2_base.py`的共享A2奖励路径中：`_reward_push_door_hinge`将位置＋速度先按原方式合成/clamp，再整体乘已有Stage3或Stage4未release的收入mask；`_get_a2_grasp_gated_door_reward_components`对最终覆盖后的`hold_and_drive`乘同一mask；`_reward_grasp`仅对Stage4且release gate已置位的env去掉正值、保留负值。mask为device上(N,) bool，转换后与(N,)浮点奖励逐env相乘；grasp使用同shape的where。没有新增配置开关、fallback或观察输入。
+
+gate前保留抓握推动激励，防止退回只压把手不推门的奖励结构。gate后也取消该hinge项的负关门值，容纳B01闭门器正常回关；其他碰撞/过力/稳定/通行收益照旧。保持1.2rad gate、OR锁存、阶段转换/回臂条件、reward权重和动作/观察合同，不强制松手或禁止再接触。
+
+本次直接修正共享A2公式，不添加历史版本兼容开关；已有冻结run及其v28裁定不回写。B02实体latch/mimic/三DOF及后置ablation安排保持；B04上限仍150°，90–150°随机化和新增断触事件记录未实施。未改source以外的config/asset、创建分支、Git提交、启动仿真/训练/render或更新Teacher/G7。
+
+验证：2026-09-18 20:22 HKT完成一次修正harness后的[定向CPU核对](implementation_evidence/release_income_20260918/README.md)。直接执行提取的生产方法和本机IsaacLab quaternion math：Stage3/gate前hinge=1、hold≈.8保持；gate后开门/关门hinge与hold均0；正grasp变0、负grasp保留−1；1.2rad置位及回关后OR锁存保持。源码AST随probe解析成功，未运行IsaacSim或训练，不据此认定实际松手/策略收益。
+
+## V29-D022：补充强回弹下重新抓把手扶门目标，重开最终奖励讨论
+
+后续状态：Owner在D023将此议题移至N02讨论，不作为当前baseline前置；候选未实施。
+
+2026-09-18 20:35 HKT。行为目标与接触范围：-owner；方案建议：-codex planner及一路只读语义核对。状态：**REGRASP_GOAL_CONFIRMED / REWARD_REDESIGN_DISCUSSION_OPEN / NO_NEW_CODE_CHANGE**。
+
+Owner指出D021的gate后关闭可能带来早松手/净空不足、回关后重开变弱、握持学习变慢，并希望policy在强回弹时重新伸臂抵住门。经范围澄清，Owner选择“先限定为重新抓把手扶门”。手掌/前臂顶门板不纳入首版。
+
+定向核对确认：Stage4普通grasp距离奖励为0、mild距离项在gate后关闭；回臂罚在非双指接触时生效，恰好覆盖伸手过程。Stage5有更强的−5 arm默认姿态项且无接触豁免，也无接近把手收入。门近闭时仍存在回柄偏好。stage reward、目标运动和完成收益仍在，失抓不会自然退stage或立即终止；不能说完全只剩碰撞/失败，也不能据源码断言D021必然导致上述行为。没有新训练结果。
+
+Main建议将release gate保留为历史许可，另按当前身体通行区域、净空、回关趋势与已有接触反馈建立可再次生效的辅助需求，覆盖Stage4/5。需要时引导接近/有效握持/恢复必要净空，解除相冲突的回臂偏置；真实latch重新捕获时还需允许再压柄，避免回柄奖励抵消。扶门qdot≈0也可能有用，不能只奖励正门速，或用瞬时零门速判断辅助结束；退出结合净空余量、通过进度及有限迟滞。
+
+继续去掉无条件开大/大力握持的收入；恢复进展需同时计入改善与恶化，避免反复关回再开/反复重抓得到重复奖金。势函数差分是待细化的shaping方向，具体Phi、几何包络、时窗/迟滞、权重与终止口径尚未确定。完整候选、source定位与论文出处见[plan §6.3.1](a2_piper_base_v29_baseline_plan.md)。该讨论不自动引入N01恢复图/采样或N02网络，也不重开B02机制实现。
+
+D021仍是当前源码；其CPU方法证据保持原限定，不提升为最终恢复行为认可。本轮仅更新目标、计划与待决记录，没有回滚或继续改reward代码、添加测试、运行仿真/训练、Git操作或Teacher/G7变更。B01三档、B02后置、B03保持15°后置与B04最大角仍待实施的状态保持。
+
+## V29-D023：精确回退D021奖励，重新扶门移到N02讨论
+
+2026-09-18 20:43 HKT。范围及回退选择：-owner；实施：-codex planner。状态：**OWNER_CONFIRMED / EXACT_REVERT_IMPLEMENTED / STATIC_PASS**。
+
+Owner要求baseline先不做按需回弹恢复，回退之前门轴奖励，并将“arm重新抵住门”放到N02讨论。Main说明原公式在release gate后门角位置项仍关闭、只保留门速/持握推动收入，并明确回退按D021整组三处处理；Owner选择“恢复D021之前的原公式（推荐，精确回退）”。本条以该澄清为准，不额外打开gate后门角位置项。
+
+已精确恢复`_reward_push_door_hinge`、`_get_a2_grasp_gated_door_reward_components`与`_reward_grasp`：hinge仅位置项乘旧A mask，正/负门速仍计入；最终hold_and_drive不再乘新增release mask；grasp撤回Stage4去正留负的新增处理。位置项原90°饱和、合成[-1,1]限幅、原scale及Stage5 continuity=false保留。其他近期source改动不回退。
+
+[静态回退记录](implementation_evidence/reward_revert_20260918/readout.json)对照D021前的`codex/v29-b02-b04-pro-20260918`输入分支（提交主题`Prepare v29 B02 and B04 Pro decision handoff`、时间`2026-09-18T17:14:54+08:00`），三处函数源码逐段完全相同，当前source AST解析通过。没有重跑旧D021 probe或仿真/训练；其旧CPU证据已标历史适用，不能宣称为当前公式通过。
+
+D022关于净空/闭合风险、重新接近把手、Stage4/5回臂及近闭门再压柄的候选移入[N02讨论文档](../novelty/documents/20260918_n02_regrasp_rebound_discussion.md)，Owner首版接触范围仍是重新抓把手。N02讨论与实验另行推进；共同任务reward改动和交互历史方法收益需分开解释，未授权新网络/分支/预算。N01原有恢复图/采样安排不自动取消。
+
+B04最大角U(90°,150°)的原生限位计划保留、尚未实施，当前仍150°；本版不增加专门的重抓事件/去抖或按需辅助mask。B01三档与closer各半、B02后置独立ablation、B03保持15°后置及其他基础决定不变。已同步plan/TODO/总体安排/novelty归档与memory；无配置/资产修改、Git提交或Teacher/G7变更。
+
+## V29-D024：B04讨论结案与实施待办分开
+
+2026-09-18 21:01 HKT。确认：-owner。状态：**B04_PLAN_DECISION_PASS / IMPLEMENTATION_PENDING**。
+
+Owner指出B04已落地plan，要求讨论TODO标完成。现将B04勾选并划掉标题，标方案讨论PASS；每门固定U(90°,150°)原生限位、D023原奖励及既有阶段条件为已确定方案。物理代码尚未实施、当前上限150°，另列明确实施待办，不以此继续扣留讨论完成状态。此前未勾选混淆了方案与代码阶段，按本条纠正；未启动运行或改动训练源码。
+
+## V29-D025：B05七族设计与自由段/抓握目标可视化
+
+2026-09-18 21:23 HKT。任务：-owner；整合/绘图：-codex Main；两路只读team分别给形状族和grasp-frame/指部几何合同。状态：**DESIGN_OPTIONS_READY / OWNER_SELECTION_PENDING / NOT_IMPLEMENTED**。
+
+交付F0原圆直杆、F1椭圆、F2圆角扁、F3单弧、F4浅S、F5偏置直腹、F6缓变锥度。完整标称值、图、出处和G映射统一维护在[B05设计](a2_piper_base_v29_b05_handle_design.md)，与PNG/SVG及会话比较图共用[参数/中心线](b05_designs_20260918/families.json)。没有把上下镜像或回钩单独凑成新族；族/回钩权重和尺寸域待Owner选择，B05未标方案PASS。
+
+source确认Capsule的110–140mm是轴段、含球帽为132–170mm；完整axle180–210mm。F0选L125/r13/A195。当前TCP处不能用指尖25.4mm代替切向覆盖：原始全指包络约56mm、TCP截面约41.47mm；30–50mm自由段尚不能标已足够。Main据此把本次标称主段设65–74mm，以56mm参照＋每端3mm余量得到3–12mm中心候选，只作静态设计，不证明扫掠可抓。
+
+G由有向切线和同源位置定义，t朝轴颈以匹配当前PiPER姿态，Y闭合/+Z接近。F3抬高5.68mm、F4倾角约−8.25°、F5抬高8mm。未来统一生成器/FixedJoint/consumer责任层，避免旧固定四元数与LEFT处理重复叠加，保持单一handle刚体/双指接触过滤。
+
+已检查七族显示、切换F4/下压30°/回返显示与窄屏无水平溢出，静态概览排版已修正。证据仅标称几何计算和图形交互，非IsaacLab资产/抓握/训练结果。未改训练source/config/URDF/USD，未启动仿真/训练、Git提交或新分支；B01/B02/B03、D023原奖励和N02归属保持。
+
+## V29-D026：B05七族全量确认、planner职责与独立Pro审阅
+
+2026-09-18 21:38 HKT。依据：-owner；记录：-codex planner。状态：**OWNER_APPROVED / PASS_PLAN_DISCUSSION / PRO_HANDOFF_REQUESTED / NOT_IMPLEMENTED**。
+
+Owner原话：“要求全部apply，我同意这7族设计。放入v29 baseline plan。”同时要求打包给Pro审阅：1. 设计是否重复；2. 是否还要拓展构型；3. 搜集现实handle对比，判断能否在sim模型简单的情况下增强泛化能力。
+
+Owner并明确：“你的职责是planner，在非我要求的情况下你都是负责设计plan，不做具体的code implement和训练监督。所以B04，B05这里设计好，得到我确认后放入plan了，TODO这里就可以标记完成。”本轮apply据此指方案纳入，不是代码实施命令。
+
+F0–F6七族及自由段/目标设计全部进入baseline §7，B05勾选并划掉标题，取消D025中F0–F3基础组/F4–F6扩展组的分期建议。B04继续按方案完成保持勾选。族概率、连续随机尺寸域等由Pro提出细化建议，不据此让已确认方案继续挂为未完成；没有将未定概率伪写成Owner批准值。
+
+Pro必须独立区分整体轮廓、抓点邻域截面/曲率、净空与接触力学，给现实厂家来源及最小模型建议。几何覆盖可以静态分析，但没有训练/实机证据时不能保证泛化收益。合并、替换或新增族只作为明确建议，后续由Owner决定。保留B02独立ablation、B03后置、D023原奖励与N02归属，不重开这些议题。本轮不改source/config/asset、不运行仿真或训练；只按已请求的Pro交付发布选定文档/材料。

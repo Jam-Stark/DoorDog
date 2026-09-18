@@ -1,0 +1,145 @@
+{
+  "evidence": "COMPUTED_NOMINAL_DESIGN",
+  "families": [
+    {
+      "id": "F0",
+      "name": "原始圆直杆",
+      "arc_length": 125.0,
+      "free_s": [
+        30.0,
+        95.0
+      ],
+      "centre_s": [
+        61.0,
+        64.0
+      ],
+      "target_s": 62.5,
+      "target_xyz": [
+        62.5,
+        77.5,
+        0.0
+      ],
+      "target_tangent_degrees": 0.0
+    },
+    {
+      "id": "F1",
+      "name": "椭圆直杆",
+      "arc_length": 130.0,
+      "free_s": [
+        28.0,
+        102.0
+      ],
+      "centre_s": [
+        59.0,
+        71.0
+      ],
+      "target_s": 65.0,
+      "target_xyz": [
+        65.0,
+        77.5,
+        0.0
+      ],
+      "target_tangent_degrees": 0.0
+    },
+    {
+      "id": "F2",
+      "name": "圆角扁直杆",
+      "arc_length": 130.0,
+      "free_s": [
+        28.0,
+        102.0
+      ],
+      "centre_s": [
+        59.0,
+        71.0
+      ],
+      "target_s": 65.0,
+      "target_xyz": [
+        65.0,
+        77.5,
+        0.0
+      ],
+      "target_tangent_degrees": 0.0
+    },
+    {
+      "id": "F3",
+      "name": "单弧轻弯杆",
+      "arc_length": 134.999988876343,
+      "free_s": [
+        33.0,
+        102.0
+      ],
+      "centre_s": [
+        64.0,
+        71.0
+      ],
+      "target_s": 67.5,
+      "target_xyz": [
+        67.18010006402488,
+        77.5,
+        5.681810074960081
+      ],
+      "target_tangent_degrees": -7.966730498511352e-07
+    },
+    {
+      "id": "F4",
+      "name": "浅 S 杆",
+      "arc_length": 130.68057141828655,
+      "free_s": [
+        31.0,
+        99.68057141828655
+      ],
+      "centre_s": [
+        62.0,
+        68.68057141828655
+      ],
+      "target_s": 65.34028570914327,
+      "target_xyz": [
+        64.99999999999999,
+        77.5,
+        2.400857290751901e-15
+      ],
+      "target_tangent_degrees": -8.249266107625996
+    },
+    {
+      "id": "F5",
+      "name": "偏置直腹杆",
+      "arc_length": 142.33860177295975,
+      "free_s": [
+        35.16930088647987,
+        107.16930088647987
+      ],
+      "centre_s": [
+        66.16930088647987,
+        76.16930088647987
+      ],
+      "target_s": 71.16930088647987,
+      "target_xyz": [
+        70.0,
+        77.5,
+        8.0
+      ],
+      "target_tangent_degrees": 0.0
+    },
+    {
+      "id": "F6",
+      "name": "缓变锥度杆",
+      "arc_length": 130.0,
+      "free_s": [
+        30.0,
+        100.0
+      ],
+      "centre_s": [
+        61.0,
+        69.0
+      ],
+      "target_s": 65.0,
+      "target_xyz": [
+        65.0,
+        77.5,
+        0.0
+      ],
+      "target_tangent_degrees": 0.0
+    }
+  ]
+}

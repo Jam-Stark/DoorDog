@@ -1,8 +1,10 @@
 # v29 总体安排
 
-更新：2026-09-18 15:08 HKT。记录：-codex planner；方向与资源安排：-owner。
+更新：2026-09-18 20:43 HKT。记录：-codex planner；方向与资源安排：-owner。
 
 状态：Owner 已确定阶段方向与 GPU 分工；baseline 正在逐项讨论。本文记录总体安排，不是正式训练方案、实验矩阵或启动脚本。
+
+**Planner职责（Owner于D026明确）**：本任务默认负责设计plan、记录决定与研究交付；没有Owner明确要求时，不进行具体代码实施或训练监督。B04/B05在设计确认并写入plan后即标讨论完成，实施状态单独记录。B05七族已全部确认，后续Pro仅审阅重复、扩展必要性及现实覆盖。
 
 ## 阶段方向与 GPU 分工
 
@@ -20,6 +22,8 @@
 ## 基础版本与独立工作时机
 
 - 当前逐项讨论并维护[baseline TODO](a2_piper_base_v29_baseline_TODO.md)。Owner于2026-09-18要求开始落地[baseline plan](a2_piper_base_v29_baseline_plan.md)：先收录B01/B06/B07及已有基础决定，整体clean后完成全文与执行安排；B01讨论确认不等于物理代码已实施。
+- **B02安排变更（D020）**：当前baseline不做B02，保留现有实体latch/mimic；B04按两份Pro反馈形成独立于B02的baseline设计。其他baseline项确定后，再从共同baseline版本单开apply B02分支做ablation（建议名`codex/v29-apply-b02`）。当前未创建分支，未分配额外GPU/预算；具体B02改动组与共同对照设置届时确定。B02分支时机以其他baseline项确定为准，N01/N02的既有启动条件分别保留。
+- **N02讨论范围补充（D023）**：强回弹时重新伸臂扶门（首版限定重新抓把手）及相应奖励/回臂协调留N02讨论，不作为baseline前置。baseline已精确回退D021收入关闭；B04继续原生最大角随机化计划。N02仍在baseline落地后独立分支开展，未新增预算/GPU占用；N01原有议题不自动取消。
 - N01/N02 已由本次 Owner 决定纳入 v29 大方向，取代此前“是否纳入 v29 尚未决定”的状态；旧 pilot/shadow 的证据限制仍然成立。
 - N01/N02 涉及 Doorman 范式、状态机或网络等较大变化，按 Owner 要求等待任务 1 的 v29 baseline 落地后，再 checkout 到各自独立 branch/worktree 开展工作。先期研究讨论可以并行，当前不创建分支/worktree、不修改方法实现。
 - pull 承接共同 baseline 改进；同步时分别辨认共同 obs/action/capability 与 pull 的任务动力学/阶段语义。当前只记录方向，尚未修改 pull 工作区。

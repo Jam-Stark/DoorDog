@@ -1,12 +1,14 @@
 # v29 baseline TODO
 
-更新：2026-09-18 17:04 HKT。维护：-codex planner；依据：-owner。B01三档范围决定PASS，B06/B07已PASS；B02软件/当前物理解锁二选一与B04限位方案交Pro，B03后置到baseline出来后微调，B05继续讨论。
+更新：2026-09-18 21:38 HKT。D026：Owner确认B05七族全部入plan；B04/B05均按方案讨论完成勾选。Main默认负责planner工作，实施/训练须有明确要求。
 
 状态：DISCUSSION_OPEN。本文保留逐项讨论与出处；按Owner本轮要求，[baseline plan](a2_piper_base_v29_baseline_plan.md)已开始收录确认部分，尚未整体冻结。
 
-2026-09-18 Pro回传已完成本地解析，原包/原文、来源、参数及复核附件见[本次归档](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/README.md)，详细核对见[LOCAL_RECONCILIATION](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/LOCAL_RECONCILIATION.md)。其中“六项未决”是回传解析时的状态；Owner后续确认以本清单与D008–D015为准，不改Pro原文。
+2026-09-18 Pro回传已完成本地解析，原包/原文、来源、参数及复核附件见[本次归档](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/README.md)，详细核对见[LOCAL_RECONCILIATION](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/LOCAL_RECONCILIATION.md)。其中“六项未决”是回传解析时的状态；Owner后续确认以本清单与D008–D026为准，不改Pro原文。
 
-维护方式：新动向追加到对应条目；team 事实、建议与 Owner 决定分别标记。只有与 Owner 讨论后明确确定的事项才改为 `[x]` 并划掉标题，同时保留结论和出处。讨论结案不等于代码已经实施。Owner已要求开始落地plan；逐项收录已确认内容，整体clean后再完成全文与执行安排。
+**本次B02/B04双Pro回传（D019）**：两份原ZIP/原文及本地差异核对见[独立归档](../pro_reviews/v29/20260918_192550__B02_B04_dual_pro_review/README.md)。共同方向不等于参数或阶段条件全部一致；Main推荐以Pro2为讨论基案，并记录必要接入纠正。该次解析时B02/B04未勾选、未实施；当前B02后置与B04设计以D020为准。旧9月17日smoke与包内静态PASS不证明新机制。
+
+维护方式：新动向追加到对应条目；team 事实、建议与 Owner 决定分别标记。只有与 Owner 讨论后明确确定的事项才改为 `[x]` 并划掉标题，同时保留结论和出处。讨论结案不等于代码已经实施。Owner于D026重申：Main默认是planner；设计确认并写入plan即可勾选，不能因尚未实施或训练而继续挂为未完成。Owner已要求开始落地plan；逐项收录已确认内容，整体clean后再完成全文与执行安排。
 
 总体 GPU 分工与 N01/N02 独立工作时机见 [总体安排](a2_piper_base_v29_overall_arrangement.md)。
 
@@ -34,13 +36,19 @@
     2. 回关行为：建议同时覆盖无闭门器与有闭门器，首版各占1/2；有闭门器组再包含不同回关强度。无闭门器仍可有摩擦，不设成完美无阻力；不把轻门固定等同无闭门器。具体力矩/速度规律在方向确认后按物理语义落实，现有大gain加cap不能直接称现实曲线。
     3. 门轴顺滑程度：建议增加温和摩擦变化，首版采用Pro的0–1N·m起动摩擦、动态/静态比0.5–1、附加粘性0–0.5N·m·s/rad作为工程初值；暂不恢复历史2/5N·m强摩擦档。它与闭门器主动回关分开表达。Owner决定覆盖范围和行为，单位换算/避免重复施力属于实现责任。
 
-- [ ] **B02：latch 解锁角度与转轴动力学随机化。** Owner 希望覆盖现实不同 latch 解锁角度，并让 robot 学会根据下压交互判断解锁；原始意图为“下压到压不动了就是解锁了”。
-  - **Owner最新范围（D016，覆盖D015软件偏好）**：交Pro在“软件约束虚拟锁闩A / 保留当前碰撞锁舌+mimic物理解锁B”之间二选一，列优劣、明确选择与所选方案设计。此前软件偏好及20–60°/+5°均非已批准结论；B02未PASS、未实施。见[本次Owner任务](pro_handoff/20260918_b02_b04/OWNER_REQUEST.md)。
+- [x] **~~B02：latch 解锁角度与转轴动力学随机化~~ — DEFERRED_TO_ABLATION（本轮baseline不实施）。**
+  - **Owner决定（D020）**：等其他baseline项确定后，再开独立apply B02分支做ablation。当前baseline保留实体latch/mimic、三DOF、handle 45°及现有handle动力学/奖励尺度；勾选只表示本轮处置确定，不是B02实现/效果PASS。
+  - **后续执行入口**：[plan §5](a2_piper_base_v29_baseline_plan.md)；分支建议名`codex/v29-apply-b02`，当前尚未创建。与共同baseline保持B01/B04等域及训练/评估设置一致，B02具体配方和实验预算届时确定。
+  - **以下均为历史研究/后续ablation预研**，不构成当前baseline实施要求。原始意图为覆盖不同解锁角，并学习下压/试推交互。
+  - **Owner交付范围（D016，覆盖D015软件偏好）**：交Pro在“软件约束虚拟锁闩A / 保留当前碰撞锁舌+mimic物理解锁B”之间二选一，列优劣、明确选择与所选方案设计。此前软件偏好及20–60°/+5°均非已批准结论；B02未PASS、未实施。见[本次Owner任务](pro_handoff/20260918_b02_b04/OWNER_REQUEST.md)。
+  - **两份Pro选择（D019，待Owner确认）**：均选A虚拟锁闩，保留handle/hinge物理与接触，删除实体latch/mimic/第三DOF；正常M与锁定epsilon分开。原文与优劣见[本地对照](../pro_reviews/v29/20260918_192550__B02_B04_dual_pro_review/LOCAL_RECONCILIATION.md)。
+  - **D019预研推荐（仅后续B02 ablation，未确认）**：以Pro2为讨论基案：H~U(40°,60°)，u=ρH、ρ~U(.65,.85)，u支持26–51°而非uniform；SI预载/端点力矩关联回位，POST物理步更新。Pro1固定H45°、u25–40°及近饱和回位模型作为窄行程备选；不混用两套参数/快照时相。完整参数保留在[双Pro对照](../pro_reviews/v29/20260918_192550__B02_B04_dual_pro_review/LOCAL_RECONCILIATION.md)，当前安排见[plan §5](a2_piper_base_v29_baseline_plan.md)。
+  - **本地接入纠正（INSPECTED/STATIC_INFERENCE）**：当前15π/180实际写effort，作者层−15°目标还被runtime零目标覆盖的静态链支持；不能称新负回位target已与旧行为等价。natural/staged/recovery全部恢复后才最终同步R/E与限位；bank原本per-env，可复用tracked bool，不需跨env配方框架。固定0.6rad与活跃creation的45°两路同时参数化，u管下压、H管止挡；Pro2 validator不能误拒capture外但epsilon内的已锁游隙状态。
   - **机理澄清**：当前latch确实负责锁门；“没有独立布尔阈值”指handle通过mimic缩回碰撞锁舌，是否脱离门框由几何决定。高位代理是放在门顶附近的简化锁舌，并非软件锁，也非把手旁精细锁体。
-  - **team讨论/Main推荐（未确认）**：解锁阈值`U(20°,60°)`，机械止挡为本门阈值`+5°`（25–65°），每门固定。较小改动候选为解锁20–40°、止挡固定45°；不建议0°附近几乎无需下压的样本。推荐版同步调整硬限位、固定0.6rad下压尺度和creation路径的45°截断/归一化。它不依赖B04的门轴最大开角决定。
+  - **D015历史team推荐（未确认；当前建议见D019）**：解锁阈值`U(20°,60°)`，机械止挡为本门阈值`+5°`（25–65°），每门固定。较小改动候选为解锁20–40°、止挡固定45°；不建议0°附近几乎无需下压的样本。推荐版同步调整硬限位、固定0.6rad下压尺度和creation路径的45°截断/归一化。它不依赖B04的门轴最大开角决定。
   - **行为与观察**：允许baseline学会压到底再保持抓握试推，不强求精确识别解锁瞬间；明显开门是正反馈，无运动不必然是未解锁，也可能是重门/闭门器/摩擦。内部阈值/锁态不加入actor/Student；不新增脚本试推。Pro的41°/65°为操作角锚点，20–60°与5°余程是工程建议。
   - **实施路线建议**：原生hinge有限游隙约束`[0,epsilon]`与正常开角上限切换；已打开的门不会因handle回位锁死半空，重新关闭后的复锁规则需明确。当前IsaacLab API有batched限位写入，PhysX不允许把相等上下限视为普通limit。删除旧latch/mimic/第三DOF假定并同步natural/staged reset；细节与出处统一在[plan §5](a2_piper_base_v29_baseline_plan.md)。未运行验证或写入物理代码。
-  - 以下保留研究与本地候选；当前以D016的Pro独立二选一范围为准，不预设软件或实体方案获选。
+  - 以下保留此前研究与候选；D019记录双Pro的A选择及本地建议，仍不是Owner最终确认，不将历史候选自动实施。
   - 研究关注：解锁阈值、机械行程终点、阻力/回位与解锁后的可观测反馈是否被当前模型混为一谈；先澄清行为目标，再决定随机化维度。
   - Team 核实（INSPECTED）：当前把手机械行程固定 `0–45°`，回位目标 `−15°`、stiffness `50`、damping `0.5`；latch 是带碰撞的滑动刚体，最大缩回 `0.03 m`，mimic gearing=`−0.03/45`。实际解闩由缩回量与门框几何共同决定，没有独立的布尔解锁角开关。[生成链路](../../gr00t/rl/isaac_utils/playground/env_rand/door.py#L559)
   - Team 核实：v29 的 `0.6 rad` 是 unlatch reward 归一化/饱和尺度，不能当作物理解闩阈值；另有45°硬限位遥测常量。[配置](../../gr00t/rl/config/ablation/wbmanip/base_v29_common.yaml#L72)、[公式](../../gr00t/rl/envs/door/door_open_a2_base.py#L2134)
@@ -73,8 +81,18 @@ Team 建议（未确认）：提高仰角有依据；优先讨论20–25°，近
 
 **local-only/Owner待决**：25°是否作为新名义值、近高/远低视野优先级及三相机分工；当前v29自然轨迹、renderer实际K/遮挡/深度仍未新增验证。不恢复v28豁免render条件。
 
-- [ ] **B04：门最大张开角随机化。** Owner 观察 v28 会持把手开到最大角度才释放，提出把最大开角随机化为 90° 至当前上限，以覆盖现实门的不同限位。
-  - **Owner追加（D017）**：与B02同包交Pro，更细判断软件限制还是物理限制，并给出所选随机化方案。当前150°是原生关节物理约束，非每步裁剪；须区分强制改角度、原生joint limit、实体stopper三种方式。范围/实施待Pro选择与后续落实。
+- [x] **~~B04：门最大张开角随机化~~ — PASS（方案讨论完成；代码实施另列）。**
+  - **Owner确认（D024）**：B04已经落地plan，本讨论TODO应标完成。当前确定方案是每门固定native上限U(90°,150°)，沿用D023恢复的原奖励；不是物理代码或训练PASS。此前因代码未实施而未勾选，混淆了本清单的方案讨论与实施状态，现已纠正。
+  - **Owner最新决定（D023）**：baseline暂不做按需恢复奖励；选择“恢复D021之前的原公式（精确回退）”，hinge、hold_and_drive与grasp三处已恢复。门轴位置项仍受旧gate控制，gate后门速/持握推动收入恢复，不额外增加持续门角位置收入。
+  - **回退验证**：[三处函数源码对照及AST](implementation_evidence/reward_revert_20260918/readout.json)通过，与D021前review输入完全一致；D021 CPU结果仅保留为当时历史，不用于当前通过声明。
+  - **N02分工**：强回弹下重新伸臂扶门及相关接近/握持/回臂/再压柄设计移到[N02待讨论](../novelty/documents/20260918_n02_regrasp_rebound_discussion.md)，首版仍限定重新抓把手，不作为baseline前置；未实现新方法。
+  - **最大角设计继续**：每门生成时M~U(90°,150°)，左右/B01分组同域、跨reset/stage固定，使用native hinge范围[0,M]。保留实体latch/mimic三DOF，不增加R/E或epsilon；该随机化尚未实施，当前仍150°。
+  - **其他合同保持**：现有Stage3→4、release gate、Stage4→5与回臂条件不改；恢复相关断触/再接触去抖留N02讨论。当前计划见[plan §6](a2_piper_base_v29_baseline_plan.md)。
+  - **以下保留需求与研究过程**：Owner观察v28持把手开到最大角才释放，提出90°至当前上限；当前设计不承诺随机上限和收入调整一定改变已学行为。
+  - **Owner追加（D017）**：与B02同包交Pro，更细判断软件限制还是物理限制，并给出所选随机化方案。当前150°是原生关节物理约束，非每步裁剪；须区分强制改角度、原生joint limit、实体stopper三种方式。独立选择已回传见D019，最终范围与实施仍待Owner确认。
+  - **双Pro选择（D019，待Owner确认）**：均选原生joint limit，M~U(90°,150°)、每门固定；与B02共用唯一限位writer，解锁恢复本门M。不是每步裁写角度，也不新增实体stopper。[对照与出处](../pro_reviews/v29/20260918_192550__B02_B04_dual_pro_review/LOCAL_RECONCILIATION.md)。
+  - **D019本地建议（本版采用细则见D020）**：采用Pro2的post-gate收入方案：hinge整项与最终hold_and_drive用收入mask，Stage4 gate后grasp只保留负值；这也去掉gate后hinge的负关门项，恢复学习效果未知。Pro1仅去正速度、保留负关门，并额外改近闭门回柄奖励，不能静默拼接。
+  - **阶段条件保留建议**：Pro2维持现有Stage4→5/回臂条件，2control断触只记事件；Pro1额外加入gate与3control两指全断触晋级/回臂条件，属于新行为要求，本地不建议自动并入。release许可、失去双指同时接触、两指均断触和root crossing分开；仅双指传感范围不能称全机器人脱离。
   - 研究关注：当前 joint limit、stage/release/hold 与奖励阈值的关系；较小机械限位是否使固定阈值不可达；区分改变环境上限与改变何时松手的行为目标。
   - Team 核实（INSPECTED）：当前机械上限 `150°`，闭门 drive target `−10°`。[门轴构建](../../gr00t/rl/isaac_utils/playground/env_rand/door.py#L521)。当前 Stage3→4 约 `14.3°`、release gate `1.2 rad≈68.8°`、Stage4→5 开度门 `1.0472 rad≈60°`，还分别需要握持/释放及root位置条件；因此 `90°` 本身没有被这些固定角度阈值排除。[配置](../../gr00t/rl/config/ablation/wbmanip/base_v29_common.yaml#L69)、[阶段条件](../../gr00t/rl/envs/door/door_open_a2_base.py#L29804)
   - Team 核实：release gate 后 hinge位置收入关闭，但 `hold_and_drive` 仍奖励有效双指握持与正门速；收臂惩罚又要求已经失去双指接触才生效。这是继续持把开门的收益线索，尚未证明是v28观测行为的因果来源。[hold条件](../../gr00t/rl/envs/door/door_open_a2_base.py#L15123)、[门角奖励](../../gr00t/rl/envs/door/door_open_a2_base.py#L17537)、[握持驱动奖励](../../gr00t/rl/envs/door/door_open_a2_base.py#L18360)、[收臂条件](../../gr00t/rl/envs/door/door_open_a2_base.py#L15942)
@@ -83,8 +101,12 @@ Team 建议（未确认）：提高仰角有依据；优先讨论20–25°，近
   - **证据/本地核对**：[Pro release语义附件](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/original/RELEASE_EVENT_SEMANTICS.json)得到源码支持：`hinge_at_release`是逻辑gate首次置位，不要求实际松手；`post_release_body_force`从gate后stage≥4累计。**回位时间是另一窗口**：`v28_post_release=gate & ~both_contact`，从首次满足该flag的记录开始；不等于gate时刻、两指全无接触或计划释放。clean又使用首次Stage3起的身体力最大值，三者不能互换。[本地事件对照](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/LOCAL_RECONCILIATION.md)
   - **local-only/Owner待决**：是否采纳机械限位随机化及门型关联；是否以净通行/回弹时序定义v29释放质量；计划张爪、失去双指接触、非计划loss与再接触的区分。既有共现/收益线索不是reward因果证明，不回写v28门值。
 
-- [ ] **B05：handle 几何族与概率末端回钩。** 保持当前圆截面直杆的大体抓握方式，讨论椭圆截面、曲线/不规则轮廓与不同现实把手形状，并按概率启用末端回钩。
-  - Owner 决定：待讨论。
+- [x] **~~B05：handle 几何族与概率末端回钩~~ — PASS（七族全部确认，方案已入plan）。** 保持双指夹持lever的基本方式，采用F0–F6七族与独立回钩选项。
+  - **本轮交付（D025）**：F0圆直杆、F1椭圆直杆、F2圆角扁直杆、F3单弧杆、F4浅S杆、F5偏置直腹杆、F6缓变锥度杆七族。[规格与自由段/目标帧](a2_piper_base_v29_b05_handle_design.md)及[概览图](b05_designs_20260918/handle_family_atlas.png)已生成，会话图可切换族、下压角与G。
+  - **抓点原则**：先定义主握段I，再按指体覆盖收缩到中心候选J，G取J弧长中点。标称I长65–74mm；以56mm全指切向包络＋每端3mm示意余量得J长3–12mm，不把30–50mm当已证实足够。曲杆位置/朝向同源，PiPER Y闭合/+Z接近，t指向轴颈。
+  - **统一接入建议（未实施）**：生成器输出唯一grasp frame并同步FixedJoint，consumer去掉重复固定旋转/LEFT补偿，沿目标frame取pregrasp；同一handle刚体及双指sensor语义保持。
+  - **Owner决定（D026）**：七族全部apply到baseline plan，取消首批/扩展拆分；本项方案确认完成。后续Pro审阅检查重复、扩展必要性与现实把手覆盖，参数细化不撤销本项勾选。
+  - **职责与证据**：Main默认只负责planner工作；本轮不做代码实施或训练监督。没有导入后碰撞、左右扫掠或抓取表现证据，不将方案PASS写成运行/泛化PASS。
   - 研究关注：已有 generator 能力、可抓握区域、碰撞与 visual 一致性；形状变化对抓握目标定义和 push/pull 的影响。先讨论具体形状族，不自动改变抓握方式。
   - Team 核实（INSPECTED）：实际generator为圆截面Capsule杆，长度 `0.11–0.14 m`、半径 `0.011–0.015 m`；**末端已存在50%概率回钩**，长度 `0.04–0.06 m`，朝向门板。`door_handle_type`枚举当前仅被采样/记录，并未按knob/lever/pushbar分派几何。[尺寸与概率](../../gr00t/rl/isaac_utils/playground/env_rand/door.py#L305)、[几何构建](../../gr00t/rl/isaac_utils/playground/env_rand/door.py#L426)
   - Team 核实：当前grasp_target固定在杆中点、绑定同一handle刚体；改变杆中心线后需要根据真实可抓握段更新目标位置/方向。[目标生成](../../gr00t/rl/isaac_utils/playground/env_rand/door.py#L634)
@@ -92,7 +114,7 @@ Team 建议（未确认）：提高仰角有依据；优先讨论20–25°，近
   - **Pro追加（未确认）**：圆直杆对照之外，椭圆、圆角扁截面和轻弯杆都可考虑，采用中心线×截面×return同源几何；不把恰好两个新族当固定要求。[形状原文](../pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/original/HANDLE_FAMILIES.md)及S14–S18/S23提供产品形态锚点；CSV P10–P17中的轴长、曲率、自由抓握段和3–5mm余量是**工程初值**，并非厂家完整CAD或现实分布。
   - **本地核对/关键接入差异**：当前目标还经过固定四元数、LEFT side mirror和pregrasp偏置，不能只改grasp_target点。Pro的`[a,c=t×a,t]`需映射到PiPER局部Y开合、Z接近；若a指TCP向把手，可讨论`R_target=[−t,c,a]`与`p_pre=p_grasp−d·a`，由同一层一次性处理左右手性、FixedJoint姿态及offset。该映射只是可行性说明，未实施。维持同一handle刚体/双指接触语义，退化抓点不能以静默fallback掩盖。
   - **补充事实**：Pro的URDF每指10N是资产声明；当前v29配置为45/45N、1300/32，并有写入effort_limit_sim路径，不能把10N当当前仿真能力上限。45N也不是实测接触力。70mm仅为差动关节行程；净开口/指垫局部面仍待相应几何核对。
-  - **local-only/Owner待决**：首批形状族、尺寸域、族/回钩设计权重，以及统一grasp/pregrasp frame的责任层；现有指部真实可插入区域、产品图纸未核箭头/截面/曲率保留未知。
+  - **后续细化/实现事实**：七族及统一生成器目标frame方案已确认；连续尺寸域、族/回钩配比交Pro建议。真实指部插入、产品图纸截面/曲率和动态净空仍需对应证据，与方案结案分开。
 
 - [x] **~~B06：相机光路与 MERGED 几何精度——当前init/reset setup确认~~ — PASS。**
   - Owner 决定（2026-09-18）：同意Pro对当前setup的判断，接受现有MERGED、三相机及arm init/reset=`[0,.10,-.10,0,-.52,1.57]`。本项讨论确认通过，不为连线夹角凑零改几何。依据见D008；下方保留研究过程。
@@ -137,7 +159,7 @@ Team 核实（CPU静态FK）：同一当前URDF/rig下，Owner表的全部数值
 
 ## 已确认结论
 
-B01范围决定PASS，三档联合设计进入[baseline plan](a2_piper_base_v29_baseline_plan.md)，物理代码待实施。B06/B07已PASS，Stage0平滑速度已实现。B03明确后置；B02机制与B04限位交Pro独立决定，B05待讨论。完整决定见[决策记录D008–D017](a2_piper_base_v29_decision_log.md)。
+B01范围决定PASS，三档联合设计进入[baseline plan](a2_piper_base_v29_baseline_plan.md)，物理代码待实施。B06/B07已PASS，Stage0平滑速度已实现。B02明确移至其他baseline项确定后的独立ablation，B03后置；三处奖励已按D023精确恢复，B04方案讨论已按D024完成、代码另待实施；重抓扶门归N02讨论，B05七族已全部确认并标方案PASS。完整决定见[决策记录D008–D025](a2_piper_base_v29_decision_log.md)。
 
 ## Pro对v28的验收与本地边界
 
@@ -145,6 +167,15 @@ Pro接受已声明Owner范围变更后的执行收尾，限域接受核心实验
 
 回位120/6、9/119、2/126、0/126是已观察/删失计数，不自动按128或只比较已观察者均值；S0+S5姿态L1是arm六关节偏差，不是base roll/pitch。Pro evidence index中的`state.json`未在本次输入bundle中，不能作为云端独立读取证明；已有锁定/启动/停止/清理收据足以支持相应收尾核对。
 
+## 已确定方案的实施待办
+
+- [ ] **B01物理实现**：按plan落实三档质量、closer各半与native摩擦联合配方。
+- [ ] **B04限位实现**：按已确定方案参数化每门U(90°,150°)的native upper、metadata和同门恢复；当前源代码仍150°。
+
+## 后续独立分支
+
+- [ ] **apply B02 ablation**：其他baseline项确定后，从共同baseline版本单开分支落实B02并比较；当前不创建分支、未安排运行预算。保留两份Pro原设计及本地接入事实，实际消融改动组届时明确。
+
 ## 当前建议讨论优先级
 
-B02/B04按本次Pro任务收敛；B05几何族与目标frame继续讨论。B03等待baseline出来后再微调，不阻塞当前版本；B06扩展事项按独立议题处理。N01/N02仍按baseline落地后独立分支安排，不因本段产生训练预算。
+B04/B05讨论已完成，B05独立Pro审阅用于后续方案优化；按需重抓把手的奖励/回臂合同留N02讨论，不阻塞baseline；B02不再阻塞本版，其他baseline项确定后另开分支做ablation。B03等待baseline出来后再微调，不阻塞当前版本；B06扩展事项按独立议题处理。N01/N02仍按baseline落地后独立分支安排，不因本段产生训练预算。

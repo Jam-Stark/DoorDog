@@ -22,7 +22,7 @@ related_entries:
 
 # Novelty 讨论与路线
 
-2026-09-20 Owner同步启动N02独立Pro预研：完整C002保留B05，先找具体能力缺口，再选估计/预测目标及其控制用途，之后才选网络。必须包含短/失败/无有效接触轨迹，v27 shadow只作旧证据；UniFP/SixthSense只用于分析可借鉴部分，不能预选fusion/flow-matching。Teacher与Student从输入/数据/监督/记忆起分别设计，并直接讨论近中性姿态/arm主导、有条件roll-pitch、controlled swing或quiet hold、强回弹下持续握持避免trunk碰撞目标。见[研究brief](../../../scriptsFORhuman/novelty/documents/20260920_n02_v29_c002_pro_research_brief.md)与[交付入口](../../../scriptsFORhuman/v29/pro_handoff/20260920_n02_online_adaptation/README.md)。方法尚未选定/实施，无新实验或预算；N01接口待共同裁定。
+2026-09-20 Owner同步启动N02独立Pro预研：完整C002保留B05，先找具体能力缺口，再选估计/预测目标及其控制用途，之后才选网络。必须包含短/失败/无有效接触轨迹，v27 shadow只作旧证据；UniFP/SixthSense只用于分析可借鉴部分，不能预选fusion/flow-matching。Teacher与Student从输入/数据/监督/记忆起分别设计，并直接讨论近中性姿态/arm主导、有条件roll-pitch、controlled swing或quiet hold、强回弹下持续握持避免trunk碰撞目标。见[研究brief](../../../scriptsFORhuman/novelty/documents/20260920_n02_v29_c002_pro_research_brief.md)与[交付入口](../../../scriptsFORhuman/v29/pro_handoff/20260920_n02_online_adaptation/README.md)。Owner同轮追加Pro实际尝试A2＋PiPER动力学和roll/pitch方向出力建模，原URDF/惯量/config限值与计算要求一并交付；Main只提取输入，未计算力能力。方法尚未选定/实施，无新本地实验或预算；N01接口待共同裁定。
 
 2026-09-20 Owner启动N01预研：以完整v29 C002（`v29-c002-baseline`）为主底座，先保留B05，打包给Pro独立重思恢复图、哪些失败需恢复及退回何处。既有novelty只是参考，不预定方法结论；恢复Teacher学习与Student获取能力必须分别设计，不能默认常规蒸馏自然继承。当前A2 DAgger默认Teacher执行比例1.0、无自动退火/跨batch数据聚合；Student81D＋RGB不含Teacher的stage/contact/门真值，这些source事实只是研究输入。见[研究brief](../../../scriptsFORhuman/novelty/documents/20260920_n01_v29_c002_pro_research_brief.md)和[交付入口](../../../scriptsFORhuman/v29/pro_handoff/20260920_n01_recovery_transfer/README.md)。尚无N01实现或新实验；原GPU0/GPU1训练合同不变。
 

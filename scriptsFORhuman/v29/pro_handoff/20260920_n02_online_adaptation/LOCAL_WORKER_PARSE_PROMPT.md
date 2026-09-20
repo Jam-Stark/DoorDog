@@ -4,4 +4,6 @@
 
 重点分析Owner的近中性姿态/arm主导、有条件roll-pitch、controlled swing或quiet hold、强回弹时维持握持避免trunk碰撞目标：新增信息究竟能改变哪些动作，哪些还需要最小行为/奖励/训练暴露调整；能否把这些收益分开。UniFP和SixthSense是借鉴对象，不是fusion/flow-matching选型指令。N01恢复图尚未实施，双方接口和范围调整都只作为待采纳建议。
 
+另检查Pro动力学/roll-pitch方向出力建模是否实际执行：保留modeling脚本、参数、results数据/图和执行记录；区分同一门坐标/TCP条件下的力上界、重力/足地/抓握约束、坐标旋转与真实能力变化。当前arm100N·m/finger45N是C002仿真配置，不是已确认硬件持续能力。Pro未运行时保持NOT_RUN，不把脚本存在当数值验证。结合建模结果重新判断N02感知目标与有条件姿态，不自动启动本地仿真或训练。
+
 保留Pro原文与其迭代后的最终结论，分清source事实、文献、推断、UNKNOWN和local-only；整理少量真正影响下一步的选择，更新novelty文档/README/memory。此次回包仅授权解析和设计讨论，不自动授权N02方法实现、训练/评估、GPU占用、预算或新增测试工程；原GPU0/GPU1训练与持久化等待不变。Owner明确要求下一阶段后再落实最小功能路径，不能把云端方案写成已经证明的在线适应、Student收益或硬件能力。

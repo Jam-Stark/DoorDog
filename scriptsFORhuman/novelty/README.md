@@ -12,7 +12,7 @@
 
 2026-09-20补充：Owner启动[N01 Pro预研](documents/20260920_n01_v29_c002_pro_research_brief.md)，要求完整C002保留B05、独立重思恢复图和“退回哪里”，并把恢复Teacher训练与Student能力传递分别设计/验证。历史novelty仅作参考；[原话](conversations/20260920_codex_n01_recovery_distillation_request.md)与[交付入口](../v29/pro_handoff/20260920_n01_recovery_transfer/README.md)已登记。当前仅研究交付，无N01方法实现或新实验。
 
-2026-09-20补充：Owner同步启动[N02 Pro预研](documents/20260920_n02_v29_c002_pro_research_brief.md)，先明确能力缺口与估计/预测目标，再比较LSTM/辅助监督/历史编码与视觉；UniFP/SixthSense仅作借鉴。要求解释持续感知如何改变姿态、甩门/quiet握持及强回弹下控门，并从开始单独设计Student数据与记忆。[原话](conversations/20260920_codex_n02_online_adaptation_request.md)与[交付入口](../v29/pro_handoff/20260920_n02_online_adaptation/README.md)已登记。与N01同步研究，均无新方法实现/实验。
+2026-09-20补充：Owner同步启动[N02 Pro预研](documents/20260920_n02_v29_c002_pro_research_brief.md)，先明确能力缺口与估计/预测目标，再比较LSTM/辅助监督/历史编码与视觉；UniFP/SixthSense仅作借鉴。要求解释持续感知如何改变姿态、甩门/quiet握持及强回弹下控门，并从开始单独设计Student数据与记忆。[原话](conversations/20260920_codex_n02_online_adaptation_request.md)与[交付入口](../v29/pro_handoff/20260920_n02_online_adaptation/README.md)已登记。与N01同步研究，均无新方法实现/实验。Owner同轮追加Pro实际尝试A2＋PiPER动力学建模与roll/pitch方向出力计算，修订资料已加入原模型/限值/惯量输入及执行回传要求。
 
 ## 目录与维护约定
 

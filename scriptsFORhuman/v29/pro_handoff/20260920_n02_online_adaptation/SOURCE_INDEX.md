@@ -22,3 +22,10 @@ source ZIP与N01包复用同一完整C002版本，文件保持repo相对路径�
 实际C002训练config、D056/D060接受记录、D061/D064有限运行证据放在brief/evidence ZIP。B05 atlas/native/readout属于已完成的有限候选证明；不是N02新实验。未打包的绝对本机路径不能被云端声称已读。
 
 N02重点源码位置已在本次只读查看；共用C002 source包使用上一次直接冻结输入及同tag补充依赖，无新的代码/compile/GPU检查。旧plan/candidate状态字段与当前接受结论的区别见LOCAL_FACTS。
+
+## 动力学/方向力输入
+
+- 原始模型：`gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.urdf`、`a2_piper.usd`与其依赖。
+- 已提取输入：本目录 `model_inputs/ROBOT_MODEL_INPUTS.json`、`JOINT_LIMITS_AND_ACTUATORS.csv`、`LINK_INERTIALS.csv`；来源是URDF＋`evidence/C002_runtime/config.yaml`，无力能力结论。
+- TCP：`door_open_a2_base.py::_get_a2_gripper_source_tcp_offset_z`，当前0.085m；source-offset Jacobian helper约3898行。不能把link原点当TCP。
+- 执行目标：`DYNAMICS_AND_FORCE_EXECUTION_BRIEF.md`，要求Pro实际尝试执行模型、给定坐标/工作点下的方向力或扭矩裕量比较，回传脚本和结果。

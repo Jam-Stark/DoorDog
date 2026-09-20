@@ -64,3 +64,7 @@ Teacher与Student各自处理hidden与done；Teacher hidden不在蒸馏storage�
 ## N01接口与范围
 
 N01已交付独立Pro预研，恢复图/能力传递尚未选型或实施。N02可以提出信息/状态/数据接口与恢复行为的分工，包括旧“强回弹重抓把手”议题；这些都是待Owner采纳的建议。既有GPU0/GPU1运行和等待不变，当前没有新增N02方法、实验或预算。
+
+## 新增建模输入
+
+Owner要求Pro实际尝试动力学和roll/pitch方向力验证。本包提取的 `model_inputs/` 包含28 link惯量、20配置DOF与URDF/config限值对照、TCP85mm和实际控制参数。arm六关节当前各100N·m是仿真配置值；finger当前45N覆盖URDF10N。尚未进行新的力能力求解/仿真，数据不能当实机持续出力证据。Pro需按独立执行brief计算并报告限制。

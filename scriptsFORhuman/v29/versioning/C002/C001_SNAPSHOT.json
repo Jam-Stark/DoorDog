@@ -1,0 +1,1610 @@
+{
+  "candidate": "C001",
+  "created_utc": "2026-09-18T20:51:36.403904+00:00",
+  "worker_thread": "01a0b592-48e3-7ad0-9263-4cb605862ed6",
+  "source_basis": "Complete selected current inputs, including inherited approved workspace changes; patch is not worker-only attribution",
+  "files": [
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v12_A_v10A_scratch_control.yaml",
+      "size_bytes": 1510,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v12_B_v10A_scratch_kp160.yaml",
+      "size_bytes": 1513,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v12_C_v10A_scratch_stability1.yaml",
+      "size_bytes": 1510,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v12_D_v10A_scratch_kp160_stability1.yaml",
+      "size_bytes": 1513,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v13_1_main.yaml",
+      "size_bytes": 2225,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v13_A_main.yaml",
+      "size_bytes": 2127,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v13_B_gate_only.yaml",
+      "size_bytes": 2162,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v14_main.yaml",
+      "size_bytes": 2335,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v15_main.yaml",
+      "size_bytes": 2524,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v16_main.yaml",
+      "size_bytes": 2727,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G1_full_m34_m35_hinge135.yaml",
+      "size_bytes": 2930,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G2_m35_only.yaml",
+      "size_bytes": 2924,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G3_m34_only.yaml",
+      "size_bytes": 2927,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G4_v16_control.yaml",
+      "size_bytes": 2944,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G5_full_m34_m35_hinge125.yaml",
+      "size_bytes": 2927,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v17_G6_full_m34_m35_robustness.yaml",
+      "size_bytes": 2927,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v18_M39_combined_probe.yaml",
+      "size_bytes": 4028,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v18_main.yaml",
+      "size_bytes": 3493,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G1_full.yaml",
+      "size_bytes": 3589,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G2_norm_control.yaml",
+      "size_bytes": 3581,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G3_no_carry_control.yaml",
+      "size_bytes": 3581,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G4_drifted_warmstart.yaml",
+      "size_bytes": 3587,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G5_no_overspeed_fix.yaml",
+      "size_bytes": 3573,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G6_full_replicate.yaml",
+      "size_bytes": 3576,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v19_G7_ceiling_probe.yaml",
+      "size_bytes": 3581,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G1_g2_continuation.yaml",
+      "size_bytes": 3802,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G2_economics_only.yaml",
+      "size_bytes": 3991,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G3_send_institution_only.yaml",
+      "size_bytes": 3840,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G4_send_economics.yaml",
+      "size_bytes": 4007,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G5_send_arm_tie.yaml",
+      "size_bytes": 3945,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G6_full.yaml",
+      "size_bytes": 4051,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_G7_full_seed1.yaml",
+      "size_bytes": 4095,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G1_g2_continuation.yaml",
+      "size_bytes": 4676,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G2_economics_only.yaml",
+      "size_bytes": 4673,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G3_send_curriculum_only.yaml",
+      "size_bytes": 4897,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G4_send_curriculum_economics.yaml",
+      "size_bytes": 4901,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G5_send_curriculum_arm_tie.yaml",
+      "size_bytes": 4901,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G6_full.yaml",
+      "size_bytes": 4881,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G7_full_seed1.yaml",
+      "size_bytes": 4887,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R1_P2_G4_learnability_pilot.yaml",
+      "size_bytes": 4961,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G1_g2_continuation.yaml",
+      "size_bytes": 5106,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G2_economics_only.yaml",
+      "size_bytes": 5103,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G3_send_curriculum_only.yaml",
+      "size_bytes": 5327,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G4_send_curriculum_economics.yaml",
+      "size_bytes": 5331,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G5_send_curriculum_arm_tie.yaml",
+      "size_bytes": 5331,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G6_full.yaml",
+      "size_bytes": 5311,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G7_full_seed1.yaml",
+      "size_bytes": 5317,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v20_R2_P2_G4_learnability_pilot.yaml",
+      "size_bytes": 5391,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B1_theta090_arm_v20.yaml",
+      "size_bytes": 5786,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B2_theta120_arm_v20.yaml",
+      "size_bytes": 5774,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B3_theta090_arm_realistic.yaml",
+      "size_bytes": 5867,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B4_theta120_arm_realistic.yaml",
+      "size_bytes": 5867,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B5_theta120_arm_realistic_seed1.yaml",
+      "size_bytes": 5867,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B6_theta120_arm_v20_seed1.yaml",
+      "size_bytes": 5774,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v21B_B7_theta120_arm_realistic_arm_tie.yaml",
+      "size_bytes": 5908,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G1_posture_seed0.yaml",
+      "size_bytes": 6535,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G2_posture_seed1.yaml",
+      "size_bytes": 6535,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G3_randomized_seed0.yaml",
+      "size_bytes": 7536,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G4_randomized_seed1.yaml",
+      "size_bytes": 7536,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G5_body_assist_seed0.yaml",
+      "size_bytes": 7534,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v22_G6_body_assist_seed1.yaml",
+      "size_bytes": 7534,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G1_warm_D0_full.yaml",
+      "size_bytes": 2531,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G2_warm_D0_rp0.yaml",
+      "size_bytes": 1303,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G3_scratch_D0_full.yaml",
+      "size_bytes": 1370,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G4_scratch_D0_rp0.yaml",
+      "size_bytes": 1358,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G5_warm_D1_full.yaml",
+      "size_bytes": 1464,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G6_warm_D1_rp0.yaml",
+      "size_bytes": 1490,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G7_scratch_D1_full.yaml",
+      "size_bytes": 1557,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_G8_scratch_D1_rp0.yaml",
+      "size_bytes": 1545,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_common.yaml",
+      "size_bytes": 4313,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_d1_full_64x10_smoke.yaml",
+      "size_bytes": 3325,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_f1_d0_head_reset_smoke.yaml",
+      "size_bytes": 2190,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p06_warm_full_d0_smoke.yaml",
+      "size_bytes": 3416,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p07_rp0_runtime.yaml",
+      "size_bytes": 2295,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p08_a0_d0_state_bank.yaml",
+      "size_bytes": 7917,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p08_preformal_v2.yaml",
+      "size_bytes": 2965,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v23_p09_d0_type_smoke.yaml",
+      "size_bytes": 3568,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p1_d_v2_energy.yaml",
+      "size_bytes": 1709,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p1_friction_domain_escalation.yaml",
+      "size_bytes": 2569,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p1_native_probe.yaml",
+      "size_bytes": 3267,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p2_force_boundary.yaml",
+      "size_bytes": 5559,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_p2_force_boundary_r13.yaml",
+      "size_bytes": 5255,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_r13_f3_behavioral_pilot.yaml",
+      "size_bytes": 2205,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v24_r1_f3_marginal_e1_pilot.yaml",
+      "size_bytes": 2309,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v25_formal_full_p10.yaml",
+      "size_bytes": 1211,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v25_formal_rp0_p10.yaml",
+      "size_bytes": 294,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v25_m1_left_only.yaml",
+      "size_bytes": 885,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v25_m2_mixed_lr_64x8_smoke.yaml",
+      "size_bytes": 1116,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_A_RAW0_DEP0_T010.yaml",
+      "size_bytes": 325,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_C_RAW6_T010.yaml",
+      "size_bytes": 320,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_R_RAW0_DEP6_T010.yaml",
+      "size_bytes": 325,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_W_RAW0_DEP6_T025.yaml",
+      "size_bytes": 326,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_2_pull_derived.yaml",
+      "size_bytes": 996,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_3_M0_OLD.yaml",
+      "size_bytes": 345,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_3_M1_CREATE.yaml",
+      "size_bytes": 348,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_3_event_time_creation.yaml",
+      "size_bytes": 1330,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_4_C0_CANONICAL_OFF.yaml",
+      "size_bytes": 139,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_4_C1_CANONICAL_ON.yaml",
+      "size_bytes": 203,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_4_bilateral_grasp_foundation.yaml",
+      "size_bytes": 1406,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_O0A1_rebase.yaml",
+      "size_bytes": 394,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_O1A0_geometry.yaml",
+      "size_bytes": 350,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_O1A1_geometry_rebase.yaml",
+      "size_bytes": 348,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_eval_O0A0.yaml",
+      "size_bytes": 250,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_eval_O0A1.yaml",
+      "size_bytes": 249,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_eval_O1A0.yaml",
+      "size_bytes": 249,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_eval_O1A1.yaml",
+      "size_bytes": 248,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_geometry_target.yaml",
+      "size_bytes": 378,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_C2_eval_gauge.yaml",
+      "size_bytes": 471,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_C2_gauge.yaml",
+      "size_bytes": 469,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_K0_eval_O0A0.yaml",
+      "size_bytes": 382,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R13_eval_policy_residual.yaml",
+      "size_bytes": 912,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R13_policy_residual.yaml",
+      "size_bytes": 890,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R14_eval_policy_residual.yaml",
+      "size_bytes": 907,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R14_policy_residual.yaml",
+      "size_bytes": 885,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R15_eval_policy_residual.yaml",
+      "size_bytes": 962,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R15_policy_residual.yaml",
+      "size_bytes": 940,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R1_eval_policy_residual.yaml",
+      "size_bytes": 895,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_5_wave2_R1_policy_residual.yaml",
+      "size_bytes": 873,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_6_waveB_B0.yaml",
+      "size_bytes": 1154,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_6_waveB_B1.yaml",
+      "size_bytes": 400,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q05_S0.yaml",
+      "size_bytes": 164,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q05_S1.yaml",
+      "size_bytes": 164,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q05_S2.yaml",
+      "size_bytes": 164,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q20_S0.yaml",
+      "size_bytes": 164,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q20_S1.yaml",
+      "size_bytes": 164,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_Q20_S2.yaml",
+      "size_bytes": 164,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_7_common.yaml",
+      "size_bytes": 831,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_C_S1.yaml",
+      "size_bytes": 273,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_C_S2.yaml",
+      "size_bytes": 273,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_K_S1.yaml",
+      "size_bytes": 1324,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_K_S2.yaml",
+      "size_bytes": 1324,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_W_S1.yaml",
+      "size_bytes": 329,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_W_S2.yaml",
+      "size_bytes": 329,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_8_common.yaml",
+      "size_bytes": 790,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_common_scratch_lr.yaml",
+      "size_bytes": 2604,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_eval_natural_start.yaml",
+      "size_bytes": 604,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_left_scratch_seed0.yaml",
+      "size_bytes": 200,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_lr_policy_continuation.yaml",
+      "size_bytes": 850,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_lr_scratch_seed0.yaml",
+      "size_bytes": 206,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_lr_scratch_seed1.yaml",
+      "size_bytes": 206,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v26_right_scratch_seed0.yaml",
+      "size_bytes": 201,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_C_S21.yaml",
+      "size_bytes": 336,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_C_S22.yaml",
+      "size_bytes": 336,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_L0_S31.yaml",
+      "size_bytes": 344,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_L1_S31.yaml",
+      "size_bytes": 723,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_L1_S32.yaml",
+      "size_bytes": 723,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_Q1_S21.yaml",
+      "size_bytes": 607,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_Q1_S22.yaml",
+      "size_bytes": 607,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_Q2_S21.yaml",
+      "size_bytes": 813,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_Q2_S22.yaml",
+      "size_bytes": 813,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_R0_S41.yaml",
+      "size_bytes": 544,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_R1_S41.yaml",
+      "size_bytes": 543,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_R2_S41.yaml",
+      "size_bytes": 543,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SC_S201.yaml",
+      "size_bytes": 279,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SC_S202.yaml",
+      "size_bytes": 279,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SC_S203.yaml",
+      "size_bytes": 279,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SK_S211.yaml",
+      "size_bytes": 1298,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SK_S212.yaml",
+      "size_bytes": 1298,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_SK_S213.yaml",
+      "size_bytes": 1298,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v27_common.yaml",
+      "size_bytes": 437,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_S281.yaml",
+      "size_bytes": 238,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_S282.yaml",
+      "size_bytes": 238,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_S283.yaml",
+      "size_bytes": 238,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_S284.yaml",
+      "size_bytes": 284,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_A_W281.yaml",
+      "size_bytes": 430,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_G1_WARM.yaml",
+      "size_bytes": 430,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_common.yaml",
+      "size_bytes": 5504,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v28_eval_natural_start.yaml",
+      "size_bytes": 145,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_baseline.yaml",
+      "size_bytes": 291,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_common.yaml",
+      "size_bytes": 6107,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_eval_natural_start.yaml",
+      "size_bytes": 145,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v9_A.yaml",
+      "size_bytes": 120,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v9_B.yaml",
+      "size_bytes": 116,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v9_C.yaml",
+      "size_bytes": 119,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v9_D.yaml",
+      "size_bytes": 115,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/algo/dagger_vision_distributed.yaml",
+      "size_bytes": 2332,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/algo/eval/base.yaml",
+      "size_bytes": 639,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/algo/ppo.yaml",
+      "size_bytes": 1176,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/algo/trl/ppo.yaml",
+      "size_bytes": 597,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/base.yaml",
+      "size_bytes": 1177,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/base/hydra.yaml",
+      "size_bytes": 293,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/base/structure.yaml",
+      "size_bytes": 109,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/base_eval.yaml",
+      "size_bytes": 7376,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/callbacks/autoresume.yaml",
+      "size_bytes": 136,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/callbacks/model_save.yaml",
+      "size_bytes": 137,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/callbacks/read_eval_locomanip.yaml",
+      "size_bytes": 166,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/callbacks/wandb.yaml",
+      "size_bytes": 73,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/domain_rand/NO_domain_rand.yaml",
+      "size_bytes": 7754,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/domain_rand/domain_rand_base.yaml",
+      "size_bytes": 754,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/domain_rand/domain_rand_visual_ImageRand.yaml",
+      "size_bytes": 2328,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/env/base_task.yaml",
+      "size_bytes": 887,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/env/door_open_a2_base.yaml",
+      "size_bytes": 12841,
+      "comparison_to_HEAD": "changed"
+    },
+    {
+      "path": "gr00t/rl/config/env/legged_base.yaml",
+      "size_bytes": 952,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_dagger-lstm.yaml",
+      "size_bytes": 7035,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_lstm.yaml",
+      "size_bytes": 3110,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_stage0_2_grasp_terminal_lstm.yaml",
+      "size_bytes": 3520,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_homie_dagger-lstm.yaml",
+      "size_bytes": 5384,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_base.yaml",
+      "size_bytes": 6382,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_base_dagger.yaml",
+      "size_bytes": 4563,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_v26_5_gauge.yaml",
+      "size_bytes": 2104,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_homie_dagger.yaml",
+      "size_bytes": 6674,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/opt/wandb.yaml",
+      "size_bytes": 223,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml",
+      "size_bytes": 5663,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_v23.yaml",
+      "size_bytes": 5799,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_v26_acquisition.yaml",
+      "size_bytes": 5063,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/robot/A2_Piper/a2_piper.yaml",
+      "size_bytes": 5183,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/robot/A2_Piper/a2_piper_v29.yaml",
+      "size_bytes": 5247,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "gr00t/rl/config/robot/A2_Piper/a2_piper_vpiper.yaml",
+      "size_bytes": 5248,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/robot/g1/g1_43dof.yaml",
+      "size_bytes": 19831,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/robot/robot_base.yaml",
+      "size_bytes": 1713,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/simulator/isaacsim.yaml",
+      "size_bytes": 1992,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/terrain/terrain_base.yaml",
+      "size_bytes": 95,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/terrain/terrain_locomotion_plane.yaml",
+      "size_bytes": 1091,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/trainer/trl.yaml",
+      "size_bytes": 56,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/trainer/trl_a2_base_api.yaml",
+      "size_bytes": 69,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/trainer/trl_distill_a2_base_api.yaml",
+      "size_bytes": 86,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/config/trainer/trl_distill_obj_pred_homie_api.yaml",
+      "size_bytes": 99,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.urdf",
+      "size_bytes": 50075,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.usd",
+      "size_bytes": 3009,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/config/asset_build.json",
+      "size_bytes": 1451,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/config/camera_rig.json",
+      "size_bytes": 37366,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/configuration/a2_piper_base.usd",
+      "size_bytes": 35764242,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/configuration/a2_piper_physics.usd",
+      "size_bytes": 12191,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/configuration/a2_piper_robot.usd",
+      "size_bytes": 2477,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/configuration/a2_piper_sensor.usd",
+      "size_bytes": 648,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/left_front_Link1.STL",
+      "size_bytes": 249684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/left_front_Link2.STL",
+      "size_bytes": 548484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/left_front_Link3.STL",
+      "size_bytes": 310484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/left_front_Link4.STL",
+      "size_bytes": 1719884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/left_hind_Link1.STL",
+      "size_bytes": 249684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/left_hind_Link2.STL",
+      "size_bytes": 548484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/left_hind_Link3.STL",
+      "size_bytes": 310484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/left_hind_Link4.STL",
+      "size_bytes": 1719884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/metal_plate_5mm_head_width.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_00.stl",
+      "size_bytes": 1484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_01.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_02.stl",
+      "size_bytes": 13484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_03.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_04.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_05.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_06.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_07.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_08.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_09.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_10.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_11.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_12.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_13.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_collision_14.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_main_visual.stl",
+      "size_bytes": 626284,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_00.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_01.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_02.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_03.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_04.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_05.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_06.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_07.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_08.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_09.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_10.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_11.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_12.stl",
+      "size_bytes": 484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_13.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_14.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_15.stl",
+      "size_bytes": 484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_16.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_17.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_18.stl",
+      "size_bytes": 484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_19.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_20.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_21.stl",
+      "size_bytes": 484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_22.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_23.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_24.stl",
+      "size_bytes": 484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_25.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_26.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_27.stl",
+      "size_bytes": 484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_28.stl",
+      "size_bytes": 684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_29.stl",
+      "size_bytes": 884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_30.stl",
+      "size_bytes": 6784,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_31.stl",
+      "size_bytes": 7084,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_32.stl",
+      "size_bytes": 7284,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_33.stl",
+      "size_bytes": 6784,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_34.stl",
+      "size_bytes": 7084,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_collision_35.stl",
+      "size_bytes": 7284,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/mount/vpiper_support_visual.stl",
+      "size_bytes": 182984,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/base_link.STL",
+      "size_bytes": 607384,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/gripper_base.STL",
+      "size_bytes": 649484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link1.STL",
+      "size_bytes": 447784,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link2.STL",
+      "size_bytes": 3658384,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link3.STL",
+      "size_bytes": 1845784,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link4.STL",
+      "size_bytes": 877984,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link5.STL",
+      "size_bytes": 833684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link6.STL",
+      "size_bytes": 58884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link7.STL",
+      "size_bytes": 104384,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link8.STL",
+      "size_bytes": 104384,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/right_front_Link1.STL",
+      "size_bytes": 249684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/right_front_Link2.STL",
+      "size_bytes": 547484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/right_front_Link3.STL",
+      "size_bytes": 310484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/right_front_Link4.STL",
+      "size_bytes": 1719884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/right_hind_Link1.STL",
+      "size_bytes": 249684,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/right_hind_Link2.STL",
+      "size_bytes": 547484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/right_hind_Link3.STL",
+      "size_bytes": 310484,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/right_hind_Link4.STL",
+      "size_bytes": 1719884,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/trunk.STL",
+      "size_bytes": 3421184,
+      "comparison_to_HEAD": "Full asset file copied; no text patch"
+    },
+    {
+      "path": "gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py",
+      "size_bytes": 100704,
+      "comparison_to_HEAD": "changed"
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v24_friction.py",
+      "size_bytes": 11829,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/envs/door/door_open_a2_base.py",
+      "size_bytes": 1494284,
+      "comparison_to_HEAD": "changed"
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/door.py",
+      "size_bytes": 60249,
+      "comparison_to_HEAD": "changed"
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/door_v29_parameters.py",
+      "size_bytes": 2197,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/handle_v29.py",
+      "size_bytes": 20450,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/isaacsim.py",
+      "size_bytes": 155797,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/train_agent_trl.py",
+      "size_bytes": 26803,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/trl/callbacks/model_save_callback.py",
+      "size_bytes": 4723,
+      "comparison_to_HEAD": "unchanged"
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py",
+      "size_bytes": 483974,
+      "comparison_to_HEAD": "changed"
+    },
+    {
+      "path": "scriptsFORhuman/v29/v29_asset_probe.py",
+      "size_bytes": 17728,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "scriptsFORhuman/v29/v29_reference_contact.py",
+      "size_bytes": 23722,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "scriptsFORhuman/v29/v29_reference_ik_plan.py",
+      "size_bytes": 5142,
+      "comparison_to_HEAD": "new"
+    },
+    {
+      "path": "scriptsFORhuman/v29/v29_runtime_evidence.py",
+      "size_bytes": 8351,
+      "comparison_to_HEAD": "new"
+    }
+  ],
+  "git_commit_created": false,
+  "hash_manifest_generated": false
+}

@@ -1,0 +1,15 @@
+{
+  "version": "C002",
+  "created_at": "2026-09-20T11:19:46+08:00",
+  "status": "ACCEPTED_IMPLEMENTATION_FROZEN_INPUTS",
+  "baseline_branch": "codex/v29-c002-baseline",
+  "baseline_tag": "v29-c002-baseline",
+  "source_worktree": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+  "base_snapshot_source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v29/candidates/C001/final_input_snapshot/SNAPSHOT.json",
+  "delta_snapshot_source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v29/candidates/C002/delta_input_snapshot/SNAPSHOT.json",
+  "runtime_input_files": 321,
+  "copy_verification": "One direct byte comparison after copying every declared frozen input",
+  "git_scope": "Declared frozen inputs, selected baseline design documents and small acceptance/provenance records only",
+  "limits": "This tag preserves the accepted implementation and original run contract, not policy qualification or a new training authorization. Original large runtime artifacts remain at their source paths.",
+  "candidate_status_note": "C002_CANDIDATE submission status is historical; D060 is the later acceptance and original GPU0 run authorization."
+}

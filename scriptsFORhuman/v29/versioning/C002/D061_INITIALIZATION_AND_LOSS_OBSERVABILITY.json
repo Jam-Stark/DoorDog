@@ -1,0 +1,106 @@
+{
+  "decision": "V29-D061",
+  "decider": "PLANNER",
+  "decided_at": "2026-09-19T06:52:01+08:00",
+  "candidate": "C002",
+  "run_name": "v29-c002-push-seed291-train",
+  "authorization": "D060 remains in force; no recipe, source, asset, duration or evaluation change",
+  "status": "FORMAL_INITIALIZATION_CONFIRMED_CONTINUE_EXISTING_RUN",
+  "initialization": {
+    "worker_readout": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v29-c002-push-seed291-train/initialization_readout.json",
+    "raw_first_batch": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v29/push_baseline_C002_seed291/runtime_capture/after_first_batch.json",
+    "observed_hkt": "2026-09-19T06:45:15+08:00",
+    "global_step": 1,
+    "num_envs": 4096,
+    "actor_obs": {
+      "shape": [
+        4096,
+        133
+      ],
+      "dtype": "torch.float32",
+      "device": "cuda:0"
+    },
+    "critic_obs": {
+      "shape": [
+        4096,
+        138
+      ],
+      "dtype": "torch.float32",
+      "device": "cuda:0"
+    },
+    "side_counts": {
+      "1": 2048,
+      "-1": 2048
+    },
+    "family_counts_from_runtime_readout": {
+      "F0": 584,
+      "F5": 586,
+      "F6": 586,
+      "F1": 584,
+      "F3": 584,
+      "F2": 586,
+      "F4": 586
+    },
+    "selected_reward_count": 33,
+    "main_recomputed_selected_rewards_finite": true,
+    "selected_reward_range": [
+      -0.03585857152938843,
+      0.017771080136299133
+    ],
+    "selected_stages": {
+      "0": 33
+    },
+    "scene_creation_seconds": 3215.823238,
+    "first_six_iteration_seconds": [
+      23.35,
+      22.59,
+      22.39,
+      22.28,
+      22.26,
+      22.18
+    ],
+    "first_six_mean_seconds": 22.508333333333336,
+    "torch_first_batch_peak_allocated_bytes": 13704821760,
+    "torch_first_batch_peak_reserved_bytes": 16313745408,
+    "device_memory_worker_point_read_mib": 21767,
+    "device_utilization_worker_point_read_percent": 96,
+    "scope": "Main verified raw first-batch shapes/dtype/device,33 reward values/stages and full side counts. Finite selected rewards do not prove all-step/all-env rewards or losses finite; GPU point read is not a peak."
+  },
+  "loss_observability": {
+    "original_requirement": "worker_start_prompt section7 line120 includes loss and numerical anomaly supervision",
+    "actual_trace": [
+      "PPOTrainer._get_train_metrics computes policy/value/weighted PPO losses",
+      "train calls self.log(metrics) before on_step_end",
+      "log appends complete metrics to state.log_history",
+      "Rich printer does not print the relevant policy/value/weighted PPO loss fields; approved use_wandb=false",
+      "ModelSaveCallback.save_checkpoint deep-copies state then removes log_history before serialization"
+    ],
+    "checkpoint_evidence": {
+      "file": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v29/candidates/C001/scale4096_a1/model_step_000001.pt",
+      "method": "One CPU torch.load of retained actual checkpoint; inspected serialized OnlineTrainerState fields",
+      "serialized_log_history_present": false,
+      "limitation": "Retained checkpoint corroborates unchanged writer path; not a formal-run numerical-loss observation"
+    },
+    "current_loss_status": "NOT_OBSERVED",
+    "decision": "Explicit current-run supervision exception: preserve the already running frozen C002 process and report loss as unavailable. Do not modify/inject/restart solely for loss telemetry. Loss clause is not claimed fully satisfied. Existing D060 process/reward/entropy/stage/checkpoint supervision and final natural-eval outcome remain required.",
+    "claims_not_supported": [
+      "Policy loss finite",
+      "Value loss finite",
+      "Weighted PPO loss finite",
+      "Complete numerical stability from finite reward/entropy or process liveness"
+    ]
+  },
+  "wait": {
+    "logical_wait_id": "v29-c002-push-seed291-train",
+    "worker_wait_record": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v29-c002-push-seed291-train/ACTIVE_EVENT_WAIT.json",
+    "next_event": "Actual batch1000 saved checkpoint or earlier failure/completion/budget/cancellation",
+    "wait_until_epoch": 1789796249.4658225,
+    "wait_until_hkt": "2026-09-19T13:37:29+08:00",
+    "basis": "Worker persisted estimate from first6 iteration mean plus10percent allowance; actual checkpoint event ends wait early",
+    "hard_48h_deadline_epoch": 1789940863.1109755,
+    "hard_48h_deadline_hkt": "2026-09-21T05:47:43+08:00",
+    "mode": "Continue existing worker durable waiter; no new Main polling or duplicate waiter"
+  },
+  "resource_state": "GPU0 remains with worker; no other GPU or training process requested",
+  "process_acceptance": "RUNNING; policy quality UNASSESSED"
+}

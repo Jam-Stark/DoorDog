@@ -1,0 +1,52 @@
+{
+  "source_asset": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909",
+  "asset": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917",
+  "method": "Reuse MERGED layers; replace wrist geometry and mass; hide only housing visuals",
+  "height_m": 0.18,
+  "tilt_deg": 45.0,
+  "support_length_m": 0.11470001524242776,
+  "static_mount_clearance_m": 0.001000000000000521,
+  "tower_mass_kg": 0.15000000596046448,
+  "tower_com_m": [
+    -0.0010726762815566,
+    0.146739506601381,
+    0.0132943456763075
+  ],
+  "tower_inertia_kgm2": [
+    [
+      0.000253946269159891,
+      -5.6019656808361e-06,
+      -2.48084953871119e-07
+    ],
+    [
+      -5.6019656808361e-06,
+      0.000110628146946695,
+      -5.09510217702216e-06
+    ],
+    [
+      -2.48084953871119e-07,
+      -5.09510217702216e-06,
+      0.00034614396298789
+    ]
+  ],
+  "hidden_housing_visuals": {
+    "trunk": [
+      "v28_base_left_housing_visual",
+      "v28_base_right_housing_visual"
+    ],
+    "wrist_camera_tower": [
+      "v28_wrist_housing_visual"
+    ]
+  },
+  "rigid_body_count": 28,
+  "evidence": "CPU asset construction; no policy-quality or hardware claim",
+  "central_envelope_removed": true,
+  "central_envelope_mass_contribution_kg": 0.0,
+  "trunk_mass_source": {
+    "trunk": 19.651,
+    "vpiper_main": 0.31068443156420167,
+    "vpiper_support": 0.10562383324311508,
+    "metal_plate_5mm": 0.33749999999999963,
+    "source": "scriptsFORhuman/v28/v28_merge_mount_bodies.py"
+  }
+}

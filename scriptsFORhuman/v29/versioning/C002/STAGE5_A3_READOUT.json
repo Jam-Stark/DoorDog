@@ -1,0 +1,292 @@
+{
+  "candidate": "C002",
+  "run": "v29-c002-stage5-a3",
+  "process_state": "PROCESS_COMPLETED",
+  "exit_code": 0,
+  "elapsed_wall_seconds": 123.12469625473022,
+  "total_completed_validation_seconds": 5895.6558384895325,
+  "remaining_validation_seconds": 1304.3441615104675,
+  "raw_evidence": "stage5_reward_a3/reward_probe.json",
+  "resolved_probe_config": "stage5_reward_a3/resolved_config.yaml",
+  "receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/runs/v29-c002-stage5-a3/RUN_RECEIPT.json",
+  "cases": {
+    "stage5_aligned": {
+      "rpy": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "stage": [
+        5,
+        5
+      ],
+      "terms": {
+        "penalty_base_roll_pitch_l2": {
+          "raw": [
+            0.0,
+            0.0
+          ],
+          "scaled_after_registered_path": [
+            -0.0,
+            -0.0
+          ],
+          "registered_scale_after_dt": -0.04,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        },
+        "penalty_a2_stage5_goal_heading_l2": {
+          "raw": [
+            0.0,
+            0.0
+          ],
+          "scaled_after_registered_path": [
+            -0.0,
+            -0.0
+          ],
+          "registered_scale_after_dt": -0.08,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        },
+        "penalty_a2_stage5_upright_l2": {
+          "raw": [
+            0.0,
+            0.0
+          ],
+          "scaled_after_registered_path": [
+            -0.0,
+            -0.0
+          ],
+          "registered_scale_after_dt": -0.16,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        }
+      },
+      "combined_roll_pitch_scaled": [
+        -0.0,
+        -0.0
+      ]
+    },
+    "stage5_heading_only": {
+      "rpy": [
+        [
+          0.0,
+          0.0,
+          0.3499999940395355
+        ],
+        [
+          0.0,
+          0.0,
+          0.3499999940395355
+        ]
+      ],
+      "stage": [
+        5,
+        5
+      ],
+      "terms": {
+        "penalty_base_roll_pitch_l2": {
+          "raw": [
+            0.0,
+            0.0
+          ],
+          "scaled_after_registered_path": [
+            -0.0,
+            -0.0
+          ],
+          "registered_scale_after_dt": -0.04,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        },
+        "penalty_a2_stage5_goal_heading_l2": {
+          "raw": [
+            0.12249993532896042,
+            0.12249993532896042
+          ],
+          "scaled_after_registered_path": [
+            -0.00979999452829361,
+            -0.00979999452829361
+          ],
+          "registered_scale_after_dt": -0.08,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        },
+        "penalty_a2_stage5_upright_l2": {
+          "raw": [
+            0.0,
+            0.0
+          ],
+          "scaled_after_registered_path": [
+            -0.0,
+            -0.0
+          ],
+          "registered_scale_after_dt": -0.16,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        }
+      },
+      "combined_roll_pitch_scaled": [
+        -0.0,
+        -0.0
+      ]
+    },
+    "stage5_roll_pitch": {
+      "rpy": [
+        [
+          0.09999999403953552,
+          0.08000000566244125,
+          -1.8391478617818535e-10
+        ],
+        [
+          0.09999999403953552,
+          0.08000000566244125,
+          -1.8391478617818535e-10
+        ]
+      ],
+      "stage": [
+        5,
+        5
+      ],
+      "terms": {
+        "penalty_base_roll_pitch_l2": {
+          "raw": [
+            0.01640000008046627,
+            0.01640000008046627
+          ],
+          "scaled_after_registered_path": [
+            -0.0006559999892488122,
+            -0.0006559999892488122
+          ],
+          "registered_scale_after_dt": -0.04,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        },
+        "penalty_a2_stage5_goal_heading_l2": {
+          "raw": [
+            0.0,
+            0.0
+          ],
+          "scaled_after_registered_path": [
+            -0.0,
+            -0.0
+          ],
+          "registered_scale_after_dt": -0.08,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        },
+        "penalty_a2_stage5_upright_l2": {
+          "raw": [
+            0.01640000008046627,
+            0.01640000008046627
+          ],
+          "scaled_after_registered_path": [
+            -0.002623999956995249,
+            -0.002623999956995249
+          ],
+          "registered_scale_after_dt": -0.16,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        }
+      },
+      "combined_roll_pitch_scaled": [
+        -0.003279999946244061,
+        -0.003279999946244061
+      ]
+    },
+    "stage4_same_roll_pitch_pose": {
+      "rpy": [
+        [
+          0.09999999403953552,
+          0.08000000566244125,
+          -1.8391478617818535e-10
+        ],
+        [
+          0.09999999403953552,
+          0.08000000566244125,
+          -1.8391478617818535e-10
+        ]
+      ],
+      "stage": [
+        4,
+        4
+      ],
+      "terms": {
+        "penalty_base_roll_pitch_l2": {
+          "raw": [
+            0.01640000008046627,
+            0.01640000008046627
+          ],
+          "scaled_after_registered_path": [
+            -0.0006559999892488122,
+            -0.0006559999892488122
+          ],
+          "registered_scale_after_dt": -0.04,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        },
+        "penalty_a2_stage5_goal_heading_l2": {
+          "raw": [
+            0.0,
+            0.0
+          ],
+          "scaled_after_registered_path": [
+            -0.0,
+            -0.0
+          ],
+          "registered_scale_after_dt": -0.08,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        },
+        "penalty_a2_stage5_upright_l2": {
+          "raw": [
+            0.0,
+            0.0
+          ],
+          "scaled_after_registered_path": [
+            -0.0,
+            -0.0
+          ],
+          "registered_scale_after_dt": -0.16,
+          "dt": 0.02,
+          "K": 1.0,
+          "in_reward_penalty_K_list": false,
+          "K_applied_by_registered_path": 1.0
+        }
+      },
+      "combined_roll_pitch_scaled": [
+        -0.0006559999892488122,
+        -0.0006559999892488122
+      ]
+    }
+  },
+  "claim": "Actual registered reward computation at explicit native root/stage fixture; no policy/stage transition/dynamics claim",
+  "K_scope": "Observed K=1 and actual registry membership excludes all3 terms; no artificial K mutation"
+}

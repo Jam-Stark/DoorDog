@@ -1,0 +1,25 @@
+{
+  "candidate": "C002",
+  "status": "IMPLEMENTATION_READY_PENDING_PLANNER_ACCEPTANCE",
+  "frozen_utc": "2026-09-18T21:39:02.287660+00:00",
+  "worker_thread": "01a0b592-48e3-7ad0-9263-4cb605862ed6",
+  "planner_thread": "01a0af49-b5e0-75f2-8fdd-ad5c3e20744b",
+  "workspace": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+  "branch": "A2_Piper",
+  "predecessor": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v29/candidates/C001/CANDIDATE.json",
+  "retained_acceptance": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/runtime/v29_baseline_team/D056_C001_PER_ITEM_ACCEPTANCE.md",
+  "production_changes": [],
+  "source_snapshot": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v29/candidates/C002/delta_input_snapshot/SNAPSHOT.json",
+  "evidence": {
+    "retained_C001": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v29/candidates/C001/CANDIDATE.json",
+    "implementation_report": "implementation_report.md",
+    "directed_stage5_runtime": "stage5_a3_readout.json",
+    "raw_stage5": "stage5_reward_a3/reward_probe.json",
+    "probe_config": "stage5_reward_a3/resolved_config.yaml",
+    "formal_train_proposal": "formal_training_proposal.json",
+    "formal_eval_proposal": "formal_evaluation_proposal.json"
+  },
+  "completed_validation_seconds": 5895.6558384895325,
+  "active_runs": [],
+  "train_approved": false
+}

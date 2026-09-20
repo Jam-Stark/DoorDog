@@ -12,6 +12,8 @@
 
 2026-09-20补充：Owner启动[N01 Pro预研](documents/20260920_n01_v29_c002_pro_research_brief.md)，要求完整C002保留B05、独立重思恢复图和“退回哪里”，并把恢复Teacher训练与Student能力传递分别设计/验证。历史novelty仅作参考；[原话](conversations/20260920_codex_n01_recovery_distillation_request.md)与[交付入口](../v29/pro_handoff/20260920_n01_recovery_transfer/README.md)已登记。当前仅研究交付，无N01方法实现或新实验。
 
+2026-09-20补充：Owner同步启动[N02 Pro预研](documents/20260920_n02_v29_c002_pro_research_brief.md)，先明确能力缺口与估计/预测目标，再比较LSTM/辅助监督/历史编码与视觉；UniFP/SixthSense仅作借鉴。要求解释持续感知如何改变姿态、甩门/quiet握持及强回弹下控门，并从开始单独设计Student数据与记忆。[原话](conversations/20260920_codex_n02_online_adaptation_request.md)与[交付入口](../v29/pro_handoff/20260920_n02_online_adaptation/README.md)已登记。与N01同步研究，均无新方法实现/实验。
+
 ## 目录与维护约定
 
 - `conversations/`：相关对话的人类可读原文或明确标注的摘录。注明平台、任务标题／会话 ID、时间、来源和选取范围；保留 Owner 原话及 AI 结论，区分原文与整理者补充。不收录内部推理、系统指令、工具原始输出或无关聊天。
@@ -28,6 +30,7 @@
 
 | 日期 | 平台／任务 | 内容与范围 |
 |---|---|---|
+| 2026-09-20 | [Codex：N02在线适应预研请求](conversations/20260920_codex_n02_online_adaptation_request.md) | Owner六问、行为目标与指定论文参考边界 |
 | 2026-09-20 | [Codex：N01恢复与蒸馏预研请求](conversations/20260920_codex_n01_recovery_distillation_request.md) | Owner五项原话，完整C002/B05与独立Pro方案范围 |
 | 2026-09-18 | [Codex：回弹扶门转入N02摘录](conversations/20260918_codex_rebound_n02_excerpt.md) | Owner指定接触方式并将行为移至N02讨论，baseline回退另见D023 |
 | 2026-09-18 | [Codex：B01与N02分工摘录](conversations/20260918_codex_b01_n02_excerpt.md) | Owner确认B01覆盖并提出学习能力疑问；公开回复与范围边界，无新方法效果结论 |
@@ -43,6 +46,7 @@
 
 | 文档 | 性质／状态 |
 |---|---|
+| [N02：C002能力/目标/在线控制预研](documents/20260920_n02_v29_c002_pro_research_brief.md) | Owner研究请求，目标先于网络，Teacher/Student分开；尚无方法选型/实验 |
 | [N01：C002恢复机制与Teacher→Student传递预研](documents/20260920_n01_v29_c002_pro_research_brief.md) | 2026-09-20 Owner研究请求；问题与资料包，不是方法已选或实验批准 |
 | [N02：强回弹后重抓把手候选](documents/20260918_n02_regrasp_rebound_discussion.md) | 2026-09-18 Owner指定N02讨论；D022源码依据与未实施候选，不作为baseline前置 |
 | [v29 baseline plan：B01/N02分工](../v29/a2_piper_base_v29_baseline_plan.md) | 2026-09-18跨阶段原位文档；共同环境域与方法收益分开，Teacher输入/source已核，训练效果未知 |

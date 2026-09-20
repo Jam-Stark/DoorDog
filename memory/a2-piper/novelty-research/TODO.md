@@ -4,6 +4,6 @@
 
 - 后续novelty讨论有实质产出时，按讨论区README保存对话与文档、更新索引，并同步本entry三文件；仅记录真实新决定与证据。
 - N-01：接收并定向解析本次Pro预研回包，独立裁定恢复图/落点、Teacher失败课程与Student闭环采样/监督方案。主底座完整C002保留B05，历史novelty仅参考；先选最小功能路径再讨论独立pilot预算，当前无方法实现或收益证明。
-- N-02：Owner于2026-09-18 D023追加强回弹后重新抓把手扶门的讨论，首版不扩展手掌/前臂顶门板；协调Stage4/5接近、握持、回臂/回柄及进展奖励，具体方案未定。任务reward与交互历史方法收益须有对应对照，候选见`20260918_n02_regrasp_rebound_discussion.md`。继续传感/可辨识性立项设计；明确proprio/action history/qpos/effort可读性及短集/失败集门域。v29 B01回关/摩擦拟作为共同baseline环境域；后续方法对照匹配观察与门域，不能将当前Teacher质量真值视为部署Student感知。实际pilot/在线适应实验DEFER，须独立授权，不要求最终相机或完美Teacher。
+- N-02：接收Pro六问回包，先裁定能力缺口/目标/控制用途，再讨论网络与最小实现；完整C002保留B05，短/失败/无接触人口与Teacher/Student信息条件都需覆盖。旧shadow、UniFP/SixthSense只是参考，不预定估参/wrench/fusion/flow-matching。把持续感知驱动的姿态/hold-swing选择与必要行为/reward修改分开验证；强回弹重抓把手及与N01接口仍待方案。当前无N02实现/在线实验，后续pilot与预算另行确定。
 - N-07b：Teacher资格与配对训练／蒸馏预算满足后，再研究camera bundle对Student的收益。
 - N-06等条件路线继续从长期TODO读取入场条件；没有新授权，不启动训练或扩大实验范围。

@@ -1,0 +1,97 @@
+{
+  "base_tag": "v29-c002-baseline",
+  "method": "One direct byte comparison against the named local baseline tag; no digest generated",
+  "scope": "Existing source absent from the321-file frozen candidate input allowlist may still be inherited unchanged from the baseline Git tree. This does not establish a v29 Student runtime.",
+  "files": [
+    {
+      "path": "gr00t/rl/trl/trainer/distill_trainer_a2_base_api.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 23412
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/distill_trainer.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 23517
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/ppo_trainer.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 97030
+    },
+    {
+      "path": "gr00t/rl/trl/modules/actor_critic_modules_recurrent.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 30613
+    },
+    {
+      "path": "gr00t/rl/trl/modules/vision_actor_critic_modules_recurrent.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 23741
+    },
+    {
+      "path": "gr00t/rl/trl/modules/actor_critic_modules.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 14970
+    },
+    {
+      "path": "gr00t/rl/trl/modules/memory.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 5691
+    },
+    {
+      "path": "gr00t/rl/agents/modules/data_utils.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 6266
+    },
+    {
+      "path": "gr00t/rl/envs/legged_base_task/legged_robot_base.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 135443
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/a2_base.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 73793
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/staged_task_base.py",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 35752
+    },
+    {
+      "path": "gr00t/rl/config/algo/dagger_vision_distributed.yaml",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 2332
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_dagger-lstm.yaml",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 7035
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_base_dagger.yaml",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 4563
+    },
+    {
+      "path": "gr00t/rl/config/trainer/trl_distill_a2_base_api.yaml",
+      "baseline_tag_contains_path": true,
+      "current_matches_baseline_tag": true,
+      "bytes": 86
+    }
+  ]
+}

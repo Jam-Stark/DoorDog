@@ -8001,6 +8001,14 @@ class TRLPPOTrainer(PPOTrainer):
         self._a2_v23_runtime_load_facts["load_mode"] = "full"
         self._a2_v23_runtime_restored_start_global_step = int(self.state.global_step)
         self._require_a2_v23_full_restore_facts()
+        if self.env.config.get("a2_v29_baseline_enabled", False):
+            output = Path(self._a2_v26_5_runtime_load_receipt_output_dir)
+            (output / "v29_checkpoint_load.json").write_text(json.dumps({
+                "checkpoint_path": str(Path(checkpoint_path).resolve()),
+                "checkpoint_load_mode": self.checkpoint_load_mode,
+                "global_step": int(self.state.global_step),
+                "load_facts": self._a2_v23_runtime_load_facts,
+            }, indent=2) + "\n")
         print(f"Loaded checkpoint from step {self.state.global_step}")
         return checkpoint
 

@@ -1,0 +1,740 @@
+{
+  "date": "2026-09-21",
+  "evidence": "offline source geometry reconstruction only; no Isaac or physical rollout",
+  "handle_source": "/home/baoquanc/workspace/DoorDog-A2_Piper_v29_n01/gr00t/rl/isaac_utils/playground/env_rand/handle_v29.py",
+  "parameter_source": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v29/push_baseline_C002_seed291/runtime_capture/begin.json",
+  "gripper_urdf": "/home/baoquanc/workspace/DoorDog-A2_Piper_v29_n01/gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.urdf",
+  "instances": [
+    {
+      "family": "F0",
+      "env_id": 0,
+      "door_side": 1,
+      "parameters": {
+        "axle_length_m": 0.1598471518145136,
+        "bounds_max_local_m": [
+          0.09357429245527646,
+          0.013650716548019665,
+          0.013650716548019665
+        ],
+        "bounds_min_local_m": [
+          -0.09357429245527646,
+          -0.1430866948479129,
+          -0.013650716548019665
+        ],
+        "cap_polar_steps": 6,
+        "center_of_mass_local_m": [
+          6.647742440963895e-16,
+          -0.04577592524009334,
+          9.331164634723345e-18
+        ],
+        "centre_interval_m": [
+          0.06206463479197437,
+          0.06737134350791886
+        ],
+        "convex_additional_partition_count": 0,
+        "convex_cell_count": 26,
+        "convex_hull_vertex_limit": 64,
+        "convex_max_polygons": 34,
+        "convex_max_vertices": 64,
+        "convex_min_thickness_m": 0.0,
+        "convex_source_cell_count": 26,
+        "corner_radius_m": 0.0,
+        "face_standoff_m": 0.0599235759072568,
+        "family": "F0",
+        "free_interval_m": [
+          0.031064634791974372,
+          0.09837134350791886
+        ],
+        "grasp_arc_m": 0.06471798914994661,
+        "grasp_closing_half_extent_m": 0.013650716548019665,
+        "grasp_normal_half_extent_m": 0.013650716548019665,
+        "grasp_position_local_m": [
+          -0.0799235759072568,
+          -0.06471798914994661,
+          0.0
+        ],
+        "grasp_quaternion_wxyz": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "inertia_axes_wxyz": [
+          1.0,
+          8.239936510889835e-17,
+          -6.613731219294502e-17,
+          5.8004421712297565e-15
+        ],
+        "inertia_diagonal_kg_m2": [
+          0.0008855083790148881,
+          0.0020258498332898834,
+          0.0028760648554911755
+        ],
+        "inertia_tensor_kg_m2": [
+          0.0008855083790148881,
+          -1.3228969321956297e-17,
+          -2.6330011024480186e-19,
+          -1.3228969321956297e-17,
+          0.002025849833289883,
+          -1.2823780895699598e-19,
+          -2.6330011024480186e-19,
+          -1.2823780895699598e-19,
+          0.0028760648554911755
+        ],
+        "main_arc_length_m": 0.12943597829989323,
+        "mass_integration": "convex_cells_minus_axle_intersections",
+        "mass_kg": 0.4,
+        "neck_radius_m": 0.012780937440968747,
+        "panel_mass_including_roses_kg": 47.36376418809276,
+        "plane_scale": 1.0354878263991458,
+        "return_depth_m": 0.0,
+        "return_present": false,
+        "return_radius_m": 0.0,
+        "rose_radius_m": 0.027,
+        "rose_thickness_m": 0.006,
+        "section_closing_diameter_m": 0.02730143309603933,
+        "section_kind": "circle",
+        "section_normal_diameter_m": 0.02730143309603933,
+        "section_polygon_vertices": 32,
+        "section_roll_rad": 0.0,
+        "tip_cap_extension_m": 0.013650716548019665,
+        "version": 29,
+        "volume_m3": 0.000242107464241335
+      }
+    },
+    {
+      "family": "F1",
+      "env_id": 6,
+      "door_side": -1,
+      "parameters": {
+        "axle_length_m": 0.1896591803971994,
+        "bounds_max_local_m": [
+          0.10916264868645023,
+          0.1678568184438617,
+          0.014152603526554057
+        ],
+        "bounds_min_local_m": [
+          -0.10916264868645023,
+          -0.01511242670481323,
+          -0.014152603526554057
+        ],
+        "cap_polar_steps": 6,
+        "center_of_mass_local_m": [
+          2.877456829806e-16,
+          0.05802315610520243,
+          -9.749092539523694e-05
+        ],
+        "centre_interval_m": [
+          0.057764549849406724,
+          0.06649943159426733
+        ],
+        "convex_additional_partition_count": 0,
+        "convex_cell_count": 44,
+        "convex_hull_vertex_limit": 64,
+        "convex_max_polygons": 34,
+        "convex_max_vertices": 64,
+        "convex_min_thickness_m": 0.0,
+        "convex_source_cell_count": 44,
+        "corner_radius_m": 0.0,
+        "face_standoff_m": 0.0748295901985997,
+        "family": "F1",
+        "free_interval_m": [
+          0.02676454984940672,
+          0.09749943159426733
+        ],
+        "grasp_arc_m": 0.062131990721837026,
+        "grasp_closing_half_extent_m": 0.011788949430375565,
+        "grasp_normal_half_extent_m": 0.014350236805478648,
+        "grasp_position_local_m": [
+          -0.0948295901985997,
+          0.062131990721837026,
+          0.0
+        ],
+        "grasp_quaternion_wxyz": [
+          0.5,
+          0.5,
+          0.5,
+          0.5
+        ],
+        "inertia_axes_wxyz": [
+          0.9999998284152243,
+          -0.0005858067274998358,
+          -2.877584057510402e-16,
+          -2.6812307438719327e-15
+        ],
+        "inertia_diagonal_kg_m2": [
+          0.0018451317524784392,
+          0.0030558168535591472,
+          0.0048608988111825905
+        ],
+        "inertia_tensor_kg_m2": [
+          0.0018451317524784392,
+          6.490632449472528e-18,
+          -1.7337564168520026e-18,
+          6.490632449472528e-18,
+          0.003055819331354748,
+          2.1148564945418413e-06,
+          -1.7337564168520026e-18,
+          2.1148564945418413e-06,
+          0.00486089633338699
+        ],
+        "main_arc_length_m": 0.12426398144367405,
+        "mass_integration": "convex_cells_minus_axle_intersections",
+        "mass_kg": 0.5,
+        "neck_radius_m": 0.014152603526554057,
+        "panel_mass_including_roses_kg": 121.43978298067904,
+        "plane_scale": 0.9558767803359542,
+        "return_depth_m": 0.043805468713729354,
+        "return_present": true,
+        "return_radius_m": 0.0292597785123371,
+        "rose_radius_m": 0.027,
+        "rose_thickness_m": 0.006,
+        "section_closing_diameter_m": 0.021589181006876044,
+        "section_kind": "ellipse",
+        "section_normal_diameter_m": 0.03022485340962646,
+        "section_polygon_vertices": 32,
+        "section_roll_rad": 0.46458218034327414,
+        "tip_cap_extension_m": 0.01511242670481323,
+        "version": 29,
+        "volume_m3": 0.0003155438640300978
+      }
+    },
+    {
+      "family": "F2",
+      "env_id": 13,
+      "door_side": -1,
+      "parameters": {
+        "axle_length_m": 0.20266612174822526,
+        "bounds_max_local_m": [
+          0.11709486442119724,
+          0.15776553024214904,
+          0.011905984549637805
+        ],
+        "bounds_min_local_m": [
+          -0.11709486442119724,
+          -0.016081271023551103,
+          -0.011905984549637805
+        ],
+        "cap_polar_steps": 6,
+        "center_of_mass_local_m": [
+          -5.778433433092111e-17,
+          0.049040166908042006,
+          1.2804029058849629e-05
+        ],
+        "centre_interval_m": [
+          0.06151660967785186,
+          0.08016764954074605
+        ],
+        "convex_additional_partition_count": 0,
+        "convex_cell_count": 26,
+        "convex_hull_vertex_limit": 64,
+        "convex_max_polygons": 30,
+        "convex_max_vertices": 56,
+        "convex_min_thickness_m": 0.0,
+        "convex_source_cell_count": 26,
+        "corner_radius_m": 0.006230300685928845,
+        "face_standoff_m": 0.08133306087411263,
+        "family": "F2",
+        "free_interval_m": [
+          0.030516609677851858,
+          0.11116764954074605
+        ],
+        "grasp_arc_m": 0.07084212960929895,
+        "grasp_closing_half_extent_m": 0.010020294484702236,
+        "grasp_normal_half_extent_m": 0.015778473255516248,
+        "grasp_position_local_m": [
+          -0.10133306087411263,
+          0.07084212960929895,
+          0.0
+        ],
+        "grasp_quaternion_wxyz": [
+          0.5,
+          0.5,
+          0.5,
+          0.5
+        ],
+        "inertia_axes_wxyz": [
+          0.00012172116031024607,
+          0.9999999925919796,
+          -8.672232030297374e-17,
+          1.323866350639485e-16
+        ],
+        "inertia_diagonal_kg_m2": [
+          0.0010602158643165903,
+          0.0032046420401886703,
+          0.004241134506835096
+        ],
+        "inertia_tensor_kg_m2": [
+          0.0010602158643165903,
+          3.718033090781875e-19,
+          -8.422456071865045e-19,
+          3.718033090781875e-19,
+          0.003204642101615529,
+          2.523261220400809e-07,
+          -8.422456071865045e-19,
+          2.523261220400809e-07,
+          0.004241134445408238
+        ],
+        "main_arc_length_m": 0.14168425921859792,
+        "mass_integration": "convex_cells_minus_axle_intersections",
+        "mass_kg": 0.4,
+        "neck_radius_m": 0.011905984549637805,
+        "panel_mass_including_roses_kg": 126.11840234814291,
+        "plane_scale": 1.0898789170661378,
+        "return_depth_m": 0.0,
+        "return_present": false,
+        "return_radius_m": 0.0,
+        "rose_radius_m": 0.027,
+        "rose_thickness_m": 0.006,
+        "section_closing_diameter_m": 0.018690902057786535,
+        "section_kind": "rounded_rectangle",
+        "section_normal_diameter_m": 0.031151503429644224,
+        "section_polygon_vertices": 28,
+        "section_roll_rad": -0.07316803240881375,
+        "tip_cap_extension_m": 0.016081271023551103,
+        "version": 29,
+        "volume_m3": 0.0002573597743644888
+      }
+    },
+    {
+      "family": "F3",
+      "env_id": 7,
+      "door_side": 1,
+      "parameters": {
+        "axle_length_m": 0.2001698833103945,
+        "bounds_max_local_m": [
+          0.11132090582279619,
+          0.014509289173786393,
+          0.017194307210983716
+        ],
+        "bounds_min_local_m": [
+          -0.11132090582279619,
+          -0.15208683979759097,
+          -0.014509289173786393
+        ],
+        "cap_polar_steps": 6,
+        "center_of_mass_local_m": [
+          -1.5564747251230285e-17,
+          -0.03503100105071873,
+          0.0017517372931446851
+        ],
+        "centre_interval_m": [
+          0.06560610574839504,
+          0.07596432685867557
+        ],
+        "convex_additional_partition_count": 0,
+        "convex_cell_count": 40,
+        "convex_hull_vertex_limit": 64,
+        "convex_max_polygons": 34,
+        "convex_max_vertices": 64,
+        "convex_min_thickness_m": 0.0,
+        "convex_source_cell_count": 40,
+        "corner_radius_m": 0.0,
+        "face_standoff_m": 0.08008494165519725,
+        "family": "F3",
+        "free_interval_m": [
+          0.034606105748395045,
+          0.10696432685867557
+        ],
+        "grasp_arc_m": 0.0707852163035353,
+        "grasp_closing_half_extent_m": 0.011235964167598936,
+        "grasp_normal_half_extent_m": 0.011235964167598936,
+        "grasp_position_local_m": [
+          -0.10008494165519725,
+          -0.07044974104637056,
+          0.005958343043384778
+        ],
+        "grasp_quaternion_wxyz": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "inertia_axes_wxyz": [
+          0.9999014056364253,
+          -0.014042044235108183,
+          -1.3061990083524352e-16,
+          2.3970259827165783e-16
+        ],
+        "inertia_diagonal_kg_m2": [
+          0.000933355625289006,
+          0.0026156060764074814,
+          0.0035121009448858915
+        ],
+        "inertia_tensor_kg_m2": [
+          0.000933355625289006,
+          -8.193166346251021e-19,
+          -6.682201939286572e-19,
+          -8.193166346251021e-19,
+          0.0026163130168554583,
+          2.516483099749693e-05,
+          -6.682201939286572e-19,
+          2.516483099749693e-05,
+          0.0035113940044379163
+        ],
+        "main_arc_length_m": 0.14157043260707064,
+        "mass_integration": "convex_cells_minus_axle_intersections",
+        "mass_kg": 0.4,
+        "neck_radius_m": 0.014509289173786393,
+        "panel_mass_including_roses_kg": 70.26918740809018,
+        "plane_scale": 1.048669871163486,
+        "return_depth_m": 0.0,
+        "return_present": false,
+        "return_radius_m": 0.0,
+        "rose_radius_m": 0.027,
+        "rose_thickness_m": 0.006,
+        "section_closing_diameter_m": 0.02247192833519787,
+        "section_kind": "circle",
+        "section_normal_diameter_m": 0.02247192833519787,
+        "section_polygon_vertices": 32,
+        "section_roll_rad": 0.0,
+        "tip_cap_extension_m": 0.011235964167598936,
+        "version": 29,
+        "volume_m3": 0.00024701560681254065
+      }
+    },
+    {
+      "family": "F4",
+      "env_id": 14,
+      "door_side": -1,
+      "parameters": {
+        "axle_length_m": 0.1646052843734597,
+        "bounds_max_local_m": [
+          0.09523375737112721,
+          0.14628014352756144,
+          0.016010468778344833
+        ],
+        "bounds_min_local_m": [
+          -0.09523375737112721,
+          -0.013580705985094588,
+          -0.016010468778344833
+        ],
+        "cap_polar_steps": 6,
+        "center_of_mass_local_m": [
+          2.3212902169595383e-16,
+          0.043368277058364865,
+          -9.105911746353478e-06
+        ],
+        "centre_interval_m": [
+          0.06281998713745723,
+          0.07131728169361193
+        ],
+        "convex_additional_partition_count": 32,
+        "convex_cell_count": 88,
+        "convex_hull_vertex_limit": 64,
+        "convex_max_polygons": 35,
+        "convex_max_vertices": 64,
+        "convex_min_thickness_m": 0.0,
+        "convex_source_cell_count": 56,
+        "corner_radius_m": 0.0,
+        "face_standoff_m": 0.06230264218672985,
+        "family": "F4",
+        "free_interval_m": [
+          0.031819987137457234,
+          0.10231728169361193
+        ],
+        "grasp_arc_m": 0.06706863441553458,
+        "grasp_closing_half_extent_m": 0.012931115184397358,
+        "grasp_normal_half_extent_m": 0.012931115184397358,
+        "grasp_position_local_m": [
+          -0.08230264218672985,
+          0.06671932786886195,
+          3.771120522270673e-19
+        ],
+        "grasp_quaternion_wxyz": [
+          0.5346718618565662,
+          0.4627375067344692,
+          0.5346718618565662,
+          0.4627375067344692
+        ],
+        "inertia_axes_wxyz": [
+          0.9999653914241527,
+          -0.008319612607618635,
+          2.697131158823052e-17,
+          -1.9399981930180204e-15
+        ],
+        "inertia_diagonal_kg_m2": [
+          0.000924746347910499,
+          0.0020434658287707603,
+          0.0029320059187119703
+        ],
+        "inertia_tensor_kg_m2": [
+          0.000924746347910499,
+          4.342254078524637e-18,
+          1.0083228785154534e-19,
+          4.342254078524637e-18,
+          0.0020437118163430766,
+          1.478206040256476e-05,
+          1.0083228785154534e-19,
+          1.478206040256476e-05,
+          0.0029317599311396536
+        ],
+        "main_arc_length_m": 0.13413726883106916,
+        "mass_integration": "convex_cells_minus_axle_intersections",
+        "mass_kg": 0.4,
+        "neck_radius_m": 0.013580705985094588,
+        "panel_mass_including_roses_kg": 43.95869756263768,
+        "plane_scale": 1.0264511979824915,
+        "return_depth_m": 0.0,
+        "return_present": false,
+        "return_radius_m": 0.0,
+        "rose_radius_m": 0.027,
+        "rose_thickness_m": 0.006,
+        "section_closing_diameter_m": 0.025862230368794717,
+        "section_kind": "circle",
+        "section_normal_diameter_m": 0.025862230368794717,
+        "section_polygon_vertices": 32,
+        "section_roll_rad": 0.0,
+        "tip_cap_extension_m": 0.012931115184397358,
+        "version": 29,
+        "volume_m3": 0.00024221940953969112
+      }
+    },
+    {
+      "family": "F5",
+      "env_id": 19,
+      "door_side": -1,
+      "parameters": {
+        "axle_length_m": 0.17842401228536464,
+        "bounds_max_local_m": [
+          0.10193962847637018,
+          0.18234787116506604,
+          0.020731680499049852
+        ],
+        "bounds_min_local_m": [
+          -0.10193962847637018,
+          -0.014641853724242438,
+          -0.014641853724242438
+        ],
+        "cap_polar_steps": 6,
+        "center_of_mass_local_m": [
+          3.7484170532858303e-16,
+          0.06480941454297243,
+          0.0026555805159980137
+        ],
+        "centre_interval_m": [
+          0.0661874596382194,
+          0.0762239831289029
+        ],
+        "convex_additional_partition_count": 16,
+        "convex_cell_count": 94,
+        "convex_hull_vertex_limit": 64,
+        "convex_max_polygons": 35,
+        "convex_max_vertices": 64,
+        "convex_min_thickness_m": 0.0,
+        "convex_source_cell_count": 78,
+        "corner_radius_m": 0.0,
+        "face_standoff_m": 0.06921200614268232,
+        "family": "F5",
+        "free_interval_m": [
+          0.0351874596382194,
+          0.1072239831289029
+        ],
+        "grasp_arc_m": 0.07120572138356115,
+        "grasp_closing_half_extent_m": 0.012727622333687868,
+        "grasp_normal_half_extent_m": 0.012727622333687868,
+        "grasp_position_local_m": [
+          -0.08921200614268232,
+          0.07003550894938196,
+          0.008004058165361984
+        ],
+        "grasp_quaternion_wxyz": [
+          0.5,
+          0.5,
+          0.5,
+          0.5
+        ],
+        "inertia_axes_wxyz": [
+          0.9999985298169521,
+          0.001714748942027933,
+          3.1711698966571774e-16,
+          -7.42172032971591e-15
+        ],
+        "inertia_diagonal_kg_m2": [
+          0.0021956352804018493,
+          0.002760221263462146,
+          0.004898192743415396
+        ],
+        "inertia_tensor_kg_m2": [
+          0.0021956352804018493,
+          8.375308526264025e-18,
+          1.6739965743464497e-18,
+          8.375308526264025e-18,
+          0.0027602464090451385,
+          -7.3321147686162316e-06,
+          1.6739965743464497e-18,
+          -7.3321147686162316e-06,
+          0.004898167597832405
+        ],
+        "main_arc_length_m": 0.14241144276454928,
+        "mass_integration": "convex_cells_minus_axle_intersections",
+        "mass_kg": 0.5,
+        "neck_radius_m": 0.014641853724242438,
+        "panel_mass_including_roses_kg": 115.50675910578451,
+        "plane_scale": 1.000507270670248,
+        "return_depth_m": 0.04480918310299148,
+        "return_present": true,
+        "return_radius_m": 0.02954923093754342,
+        "rose_radius_m": 0.027,
+        "rose_thickness_m": 0.006,
+        "section_closing_diameter_m": 0.025455244667375736,
+        "section_kind": "circle",
+        "section_normal_diameter_m": 0.025455244667375736,
+        "section_polygon_vertices": 32,
+        "section_roll_rad": 0.0,
+        "tip_cap_extension_m": 0.012727622333687868,
+        "version": 29,
+        "volume_m3": 0.00033157745028923645
+      }
+    },
+    {
+      "family": "F6",
+      "env_id": 2,
+      "door_side": -1,
+      "parameters": {
+        "axle_length_m": 0.1643694157522023,
+        "bounds_max_local_m": [
+          0.09549940715346808,
+          0.14106542509547398,
+          0.013314699277366938
+        ],
+        "bounds_min_local_m": [
+          -0.09549940715346808,
+          -0.01331469927736694,
+          -0.013314699277366938
+        ],
+        "cap_polar_steps": 6,
+        "center_of_mass_local_m": [
+          -1.1767674048304708e-16,
+          0.039238597211133264,
+          7.318563548433644e-18
+        ],
+        "centre_interval_m": [
+          0.06094247518879393,
+          0.0688082506293131
+        ],
+        "convex_additional_partition_count": 0,
+        "convex_cell_count": 40,
+        "convex_hull_vertex_limit": 64,
+        "convex_max_polygons": 34,
+        "convex_max_vertices": 64,
+        "convex_min_thickness_m": 0.0,
+        "convex_source_cell_count": 40,
+        "corner_radius_m": 0.0,
+        "face_standoff_m": 0.06218470787610115,
+        "family": "F6",
+        "free_interval_m": [
+          0.029942475188793928,
+          0.0998082506293131
+        ],
+        "grasp_arc_m": 0.06487536290905352,
+        "grasp_closing_half_extent_m": 0.012314699277366939,
+        "grasp_normal_half_extent_m": 0.012314699277366939,
+        "grasp_position_local_m": [
+          -0.08218470787610115,
+          0.06487536290905352,
+          0.0
+        ],
+        "grasp_quaternion_wxyz": [
+          0.5,
+          0.5,
+          0.5,
+          0.5
+        ],
+        "inertia_axes_wxyz": [
+          1.0,
+          -1.6653345369377348e-16,
+          1.972481301529368e-16,
+          6.382373196260322e-16
+        ],
+        "inertia_diagonal_kg_m2": [
+          0.0008029113526288788,
+          0.002047353758153108,
+          0.0028195728106622485
+        ],
+        "inertia_tensor_kg_m2": [
+          0.0008029113526288788,
+          -1.5884991706615113e-18,
+          7.955654034971547e-19,
+          -1.5884991706615113e-18,
+          0.0020473537581531076,
+          1.0302010715666865e-19,
+          7.955654034971547e-19,
+          1.0302010715666865e-19,
+          0.002819572810662248
+        ],
+        "main_arc_length_m": 0.12975072581810704,
+        "mass_integration": "convex_cells_minus_axle_intersections",
+        "mass_kg": 0.4,
+        "neck_radius_m": 0.012545875108616902,
+        "panel_mass_including_roses_kg": 61.46808132631826,
+        "plane_scale": 0.998082506293131,
+        "return_depth_m": 0.0,
+        "return_present": false,
+        "return_radius_m": 0.0,
+        "rose_radius_m": 0.027,
+        "rose_thickness_m": 0.006,
+        "section_closing_diameter_m": 0.024629398554733877,
+        "section_kind": "circle",
+        "section_normal_diameter_m": 0.024629398554733877,
+        "section_polygon_vertices": 32,
+        "section_roll_rad": 0.0,
+        "tip_cap_extension_m": 0.01131469927736694,
+        "version": 29,
+        "volume_m3": 0.00020950407161538184
+      }
+    }
+  ],
+  "gripper_pose": "TCP=G, orientation=G, joint displacement uses current grasp closing half-extent; illustrative alignment, not observed stable grasp",
+  "force_origin": "arm_body6_to_gripper inertial CoM from current URDF",
+  "directions_local_G": {
+    "exit": [
+      0,
+      0,
+      -1
+    ],
+    "side_plus": [
+      1,
+      0,
+      0
+    ],
+    "side_minus": [
+      -1,
+      0,
+      0
+    ]
+  },
+  "angular_spread_deg": 0,
+  "excluded_directions_local_G": [
+    [
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      -1,
+      0
+    ]
+  ],
+  "amplitude_N": {
+    "exit": [
+      40,
+      100
+    ],
+    "side_plus": [
+      25,
+      60
+    ],
+    "side_minus": [
+      25,
+      60
+    ]
+  },
+  "note": "Direction arrows are not displacement trajectories. F0 native capsules are shown using the source polygonal construction."
+}

@@ -1,0 +1,787 @@
+{
+  "date": "2026-09-21",
+  "evidence": "OFFLINE_ALGEBRA_ONLY; no Isaac/physics integration/policy execution",
+  "scope": "fixed base, fixed joint targets, linearized six-joint arm; one-dimensional tangential contact; archived poses are synthetic IK examples, not observed C002 teacher grasps",
+  "source_urdf": "/home/baoquanc/workspace/DoorDog-A2_Piper_v29_n01/gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.urdf",
+  "source_pose_data": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pro_reviews/v29/20260920_162527__N02_online_adaptation/original/results/states.json",
+  "source_control_configs": [
+    "gr00t/rl/config/robot/A2_Piper/a2_piper_v29.yaml",
+    "gr00t/rl/config/ablation/wbmanip/base_v29_common.yaml"
+  ],
+  "receiver": "arm_body6_to_gripper CoM",
+  "receiver_com_local_m": [
+    -0.000183807162235591,
+    8.05033155577911e-05,
+    0.0321436689908876
+  ],
+  "contact_proxy": "TCP at receiver link offset [0,0,0.085] m; G assumed aligned with TCP",
+  "arm_kp_Nm_per_rad": [
+    64.0,
+    128.0,
+    64.0,
+    64.0,
+    64.0,
+    64.0
+  ],
+  "arm_kd_Nms_per_rad": [
+    3.0,
+    4.5,
+    3.0,
+    3.0,
+    3.0,
+    3.0
+  ],
+  "equations": {
+    "quasistatic": "Kq*dq=Jc.T*d*F-Jh.T*d*R; delta_h=C_hc*F-C_hh*R",
+    "force": "F=alpha*R+K_eff*delta_h; alpha=C_hh/C_hc; K_eff=1/C_hc",
+    "damping": "low-frequency inverse compliance term D_eff=(jh.T*Kq^-1*Dq*Kq^-1*jc)/C_hc^2; omits inertia",
+    "breakaway": "F_start approximately alpha * available static-friction margin, under these simplified contact assumptions"
+  },
+  "poses": [
+    {
+      "name": "low90",
+      "arm_q_rad": [
+        0.5904239032501317,
+        1.5353711510714794,
+        -0.6266736196669168,
+        0.7412088779277097,
+        -0.9693657766799382,
+        1.092933720572727
+      ],
+      "base_position_m": [
+        0.0,
+        0.0,
+        0.5146704090397051
+      ],
+      "base_rotation": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "tcp_position_recomputed_m": [
+        0.5000000000000002,
+        0.11999999999999962,
+        0.900000000000001
+      ],
+      "tcp_rotation_recomputed": [
+        [
+          -1.3590848475094615e-15,
+          2.3711764518361395e-15,
+          0.9999999999999996
+        ],
+        [
+          0.9999999999999997,
+          7.694883433377825e-16,
+          1.5366679429514558e-15
+        ],
+        [
+          -5.840549206488204e-16,
+          0.9999999999999993,
+          -2.7065615679809244e-15
+        ]
+      ]
+    },
+    {
+      "name": "mid105",
+      "arm_q_rad": [
+        0.4823949408873425,
+        1.4614994091805058,
+        -1.2073014821460897,
+        1.2634319829119247,
+        -0.5083108852075509,
+        0.34853395879003213
+      ],
+      "base_position_m": [
+        0.0,
+        0.0,
+        0.5146704090397051
+      ],
+      "base_rotation": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "tcp_position_recomputed_m": [
+        0.5499999999999975,
+        0.1199999999999974,
+        1.0499999999999967
+      ],
+      "tcp_rotation_recomputed": [
+        [
+          -1.0250184950157867e-14,
+          4.258612592036471e-15,
+          1.0
+        ],
+        [
+          0.9999999999999999,
+          -3.068222763306272e-16,
+          1.0344289050198451e-14
+        ],
+        [
+          5.403978732153628e-16,
+          1.0,
+          -4.3469365103957244e-15
+        ]
+      ]
+    },
+    {
+      "name": "far90",
+      "arm_q_rad": [
+        0.3065478412010537,
+        2.083552000422236,
+        -1.4470563734227444,
+        0.5450042295083011,
+        -0.6212753717453243,
+        1.1127951908595037
+      ],
+      "base_position_m": [
+        0.0,
+        0.0,
+        0.5146704090397051
+      ],
+      "base_rotation": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "tcp_position_recomputed_m": [
+        0.6999999999999998,
+        0.11999999999999995,
+        0.8999999999999999
+      ],
+      "tcp_rotation_recomputed": [
+        [
+          -2.388601724161976e-16,
+          -1.7497828749058046e-16,
+          0.9999999999999999
+        ],
+        [
+          1.0,
+          -9.164460561618212e-16,
+          2.4880124069003477e-16
+        ],
+        [
+          9.818934492756859e-16,
+          0.9999999999999997,
+          2.1540146351855072e-16
+        ]
+      ]
+    },
+    {
+      "name": "high120",
+      "arm_q_rad": [
+        2.326290658989132e-07,
+        1.6784290998442397,
+        -2.085785426167516,
+        2.1677981277963175e-05,
+        0.4945599996110998,
+        1.5707808856579346
+      ],
+      "base_position_m": [
+        0.0,
+        0.0,
+        0.5146704090397051
+      ],
+      "base_rotation": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "tcp_position_recomputed_m": [
+        0.6000000000000001,
+        4.840486127387742e-20,
+        1.2
+      ],
+      "tcp_rotation_recomputed": [
+        [
+          -3.0079588281773443e-18,
+          -6.890329475836763e-17,
+          0.9999999999999993
+        ],
+        [
+          0.9999999999999997,
+          -4.384103674292341e-17,
+          -2.442480553338057e-18
+        ],
+        [
+          8.486061836330268e-17,
+          0.9999999999999997,
+          1.3850670906655024e-16
+        ]
+      ]
+    },
+    {
+      "name": "left105",
+      "arm_q_rad": [
+        -0.4823894841581487,
+        1.461499604351826,
+        -1.2073041829402673,
+        -1.2634414289285685,
+        -0.5083260277375218,
+        -0.3485205904443948
+      ],
+      "base_position_m": [
+        0.0,
+        0.0,
+        0.5146704090397051
+      ],
+      "base_rotation": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "tcp_position_recomputed_m": [
+        0.5499999999997767,
+        -0.1199999999988857,
+        1.0500000000001255
+      ],
+      "tcp_rotation_recomputed": [
+        [
+          -5.7811481557120396e-12,
+          -1.915877959884598e-12,
+          0.9999999999999996
+        ],
+        [
+          -0.9999999999999997,
+          -4.423248072999526e-13,
+          -5.781124899830394e-12
+        ],
+        [
+          4.424828362354813e-13,
+          -0.9999999999999999,
+          -1.915833557220022e-12
+        ]
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "workpoint": "low90",
+      "direction": "exit_minus_z",
+      "force_unit_vector_world": [
+        -0.9999999999999996,
+        -1.5366679429514558e-15,
+        2.7065615679809244e-15
+      ],
+      "j_receiver_m": [
+        0.11981619283776344,
+        -0.09551409465433533,
+        0.14006867945913956,
+        0.00010377570294163315,
+        -6.775598013357383e-05,
+        9.62964972193618e-35
+      ],
+      "j_contact_m": [
+        0.11999999999999902,
+        -0.09544722052880453,
+        0.14013555358467036,
+        -2.7574853195574463e-07,
+        8.825899999935942e-05,
+        3.28429327576129e-47
+      ],
+      "C_contact_receiver_m_per_N": 0.0006025752577462725,
+      "C_contact_contact_m_per_N": 0.0006030166737741566,
+      "friction_transfer_factor": 1.0007325492081025,
+      "K_effective_N_per_m": 1659.543745191529,
+      "D_low_frequency_Ns_per_m": 75.49242796562547,
+      "elastic_extra_20mm_N": 33.19087490383058,
+      "elastic_extra_40mm_N": 66.38174980766117,
+      "viscous_extra_at_0p1_mps_N": 7.549242796562547,
+      "D_over_K_s": 0.045489869239278675,
+      "illustrative_breakaway_N_q14mm": 29.141331832939947,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 66.23878305421559,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 99.42965795804618
+    },
+    {
+      "workpoint": "low90",
+      "direction": "side_plus_minus_x",
+      "force_unit_vector_world": [
+        -1.3590848475094615e-15,
+        0.9999999999999997,
+        -5.840549206488204e-16
+      ],
+      "j_receiver_m": [
+        0.302143668990888,
+        0.06400831822372098,
+        -0.09386966988921806,
+        -0.09016267318293764,
+        0.05663158939269162,
+        -8.050331555784296e-05
+      ],
+      "j_contact_m": [
+        0.35500000000000026,
+        0.06396330906037635,
+        -0.09391467905256269,
+        -0.12881663353234316,
+        0.08093927830758697,
+        -8.013128353347108e-18
+      ],
+      "C_contact_receiver_m_per_N": 0.002098781349019212,
+      "C_contact_contact_m_per_N": 0.0025005548631575262,
+      "friction_transfer_factor": 1.191431810810625,
+      "K_effective_N_per_m": 476.46697473622635,
+      "D_low_frequency_Ns_per_m": 22.24929439673176,
+      "elastic_extra_20mm_N": 9.529339494724526,
+      "elastic_extra_40mm_N": 19.058678989449053,
+      "viscous_extra_at_0p1_mps_N": 2.224929439673176,
+      "D_over_K_s": 0.046696404108698276,
+      "illustrative_breakaway_N_q14mm": 34.6944943308054,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 42.11195147385243,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 51.64129096857695
+    },
+    {
+      "workpoint": "mid105",
+      "direction": "exit_minus_z",
+      "force_unit_vector_world": [
+        -1.0,
+        -1.0344289050198451e-14,
+        4.3469365103957244e-15
+      ],
+      "j_receiver_m": [
+        0.11981619283775763,
+        -0.23474217462316965,
+        0.01767361082570809,
+        -6.435805364750006e-06,
+        -0.0001119901622300587,
+        9.62964972193618e-35
+      ],
+      "j_contact_m": [
+        0.11999999999999321,
+        -0.23467085824020797,
+        0.01774492720866978,
+        -1.627269378799586e-07,
+        8.825899999943434e-05,
+        -4.981178134904623e-46
+      ],
+      "C_contact_receiver_m_per_N": 0.0006599238122976593,
+      "C_contact_contact_m_per_N": 0.000660157751326794,
+      "friction_transfer_factor": 1.0003544939957845,
+      "K_effective_N_per_m": 1515.3264382418572,
+      "D_low_frequency_Ns_per_m": 59.45024826643096,
+      "elastic_extra_20mm_N": 30.306528764837143,
+      "elastic_extra_40mm_N": 60.613057529674286,
+      "viscous_extra_at_0p1_mps_N": 5.945024826643096,
+      "D_over_K_s": 0.039232634478025434,
+      "illustrative_breakaway_N_q14mm": 29.130322865157243,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 61.740586098492834,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 92.04711486332997
+    },
+    {
+      "workpoint": "mid105",
+      "direction": "side_plus_minus_x",
+      "force_unit_vector_world": [
+        -1.0250184950157867e-14,
+        0.9999999999999999,
+        5.403978732153628e-16
+      ],
+      "j_receiver_m": [
+        0.3521436689908863,
+        0.12292122482382269,
+        -0.00925626469288855,
+        -0.020513106913033492,
+        0.11573958286843819,
+        -8.050331555789595e-05
+      ],
+      "j_contact_m": [
+        0.40499999999999864,
+        0.1228836872890952,
+        -0.009293802227616027,
+        -0.02922851736075578,
+        0.1654178952563939,
+        7.459960646642619e-17
+      ],
+      "C_contact_receiver_m_per_N": 0.002656276318881764,
+      "C_contact_contact_m_per_N": 0.0031231087712326614,
+      "friction_transfer_factor": 1.1757469465930503,
+      "K_effective_N_per_m": 376.46685809440896,
+      "D_low_frequency_Ns_per_m": 17.450888548945223,
+      "elastic_extra_20mm_N": 7.529337161888179,
+      "elastic_extra_40mm_N": 15.058674323776359,
+      "viscous_extra_at_0p1_mps_N": 1.7450888548945223,
+      "D_over_K_s": 0.046354381996008144,
+      "illustrative_breakaway_N_q14mm": 34.23775108478963,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 39.23245821597362,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 46.7617953778618
+    },
+    {
+      "workpoint": "far90",
+      "direction": "exit_minus_z",
+      "force_unit_vector_world": [
+        -0.9999999999999999,
+        -2.4880124069003477e-16,
+        -2.1540146351855072e-16
+      ],
+      "j_receiver_m": [
+        0.11981619283776421,
+        -0.10961902912462627,
+        0.10693206753288098,
+        7.504920820218668e-05,
+        -6.5218955081752e-05,
+        6.018531076210112e-36
+      ],
+      "j_contact_m": [
+        0.1199999999999998,
+        -0.1095422792953745,
+        0.10700881736213275,
+        -1.9462516442017064e-07,
+        8.825899999942057e-05,
+        -8.552847072295026e-49
+      ],
+      "C_contact_receiver_m_per_N": 0.0004972589157308683,
+      "C_contact_contact_m_per_N": 0.0004976664103053768,
+      "friction_transfer_factor": 1.0008194816857323,
+      "K_effective_N_per_m": 2011.0247767608264,
+      "D_low_frequency_Ns_per_m": 89.82074107344081,
+      "elastic_extra_20mm_N": 40.22049553521653,
+      "elastic_extra_40mm_N": 80.44099107043306,
+      "viscous_extra_at_0p1_mps_N": 8.982074107344081,
+      "D_over_K_s": 0.044664164316322245,
+      "illustrative_breakaway_N_q14mm": 29.143863306688527,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 74.70345003591306,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 114.9239455711296
+    },
+    {
+      "workpoint": "far90",
+      "direction": "side_plus_minus_x",
+      "force_unit_vector_world": [
+        -2.388601724161976e-16,
+        1.0,
+        9.818934492756859e-16
+      ],
+      "j_receiver_m": [
+        0.5021436689908875,
+        0.03469440579582288,
+        -0.03384720836284634,
+        -0.06429248431362028,
+        0.05444872862882999,
+        -8.050331555774938e-05
+      ],
+      "j_contact_m": [
+        0.5549999999999998,
+        0.0346699205368217,
+        -0.033871693621847526,
+        -0.09182244087607411,
+        0.07781947931642653,
+        1.830912439907681e-17
+      ],
+      "C_contact_receiver_m_per_N": 0.0045402857696651665,
+      "C_contact_contact_m_per_N": 0.005066570708333543,
+      "friction_transfer_factor": 1.1159144964364631,
+      "K_effective_N_per_m": 220.25045354661611,
+      "D_low_frequency_Ns_per_m": 10.318897845674632,
+      "elastic_extra_20mm_N": 4.405009070932322,
+      "elastic_extra_40mm_N": 8.810018141864644,
+      "viscous_extra_at_0p1_mps_N": 1.0318897845674633,
+      "D_over_K_s": 0.04685074504734508,
+      "illustrative_breakaway_N_q14mm": 32.49543013622981,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 33.870400224700866,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 38.27540929563319
+    },
+    {
+      "workpoint": "high120",
+      "direction": "exit_minus_z",
+      "force_unit_vector_world": [
+        -0.9999999999999993,
+        2.442480553338057e-18,
+        -1.3850670906655024e-16
+      ],
+      "j_receiver_m": [
+        -0.00018380716223558968,
+        -0.41497853884008534,
+        -0.13835915683331373,
+        -8.708380163204578e-05,
+        7.752846260257579e-06,
+        0.0
+      ],
+      "j_contact_m": [
+        1.1597335130426935e-18,
+        -0.41489803619346616,
+        -0.13827865418669452,
+        1.5861658778093958e-07,
+        8.825899999944727e-05,
+        2.0111016890618893e-51
+      ],
+      "C_contact_receiver_m_per_N": 0.0016440470169586665,
+      "C_contact_contact_m_per_N": 0.0016436122533118292,
+      "friction_transfer_factor": 0.999735552789943,
+      "K_effective_N_per_m": 608.2551105198357,
+      "D_low_frequency_Ns_per_m": 22.68006098148103,
+      "elastic_extra_20mm_N": 12.165102210396714,
+      "elastic_extra_40mm_N": 24.33020442079343,
+      "viscous_extra_at_0p1_mps_N": 2.268006098148103,
+      "D_over_K_s": 0.03728708660104454,
+      "illustrative_breakaway_N_q14mm": 29.11229929724314,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 39.90637019363257,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 52.07147240402928
+    },
+    {
+      "workpoint": "high120",
+      "direction": "side_plus_minus_x",
+      "force_unit_vector_world": [
+        -3.0079588281773443e-18,
+        0.9999999999999997,
+        8.486061836330268e-17
+      ],
+      "j_receiver_m": [
+        0.4021436689908876,
+        -4.2090875178176295e-06,
+        -2.1288065511113586e-06,
+        0.05845628155491274,
+        1.9014497705799101e-06,
+        -8.050331555775161e-05
+      ],
+      "j_contact_m": [
+        0.4549999999999999,
+        -4.400916920539286e-06,
+        -2.320635953833014e-06,
+        0.08361510127738957,
+        2.7173159117673496e-06,
+        1.1773070270656761e-17
+      ],
+      "C_contact_receiver_m_per_N": 0.0029353624580115063,
+      "C_contact_contact_m_per_N": 0.003344007581001269,
+      "friction_transfer_factor": 1.1392145361382697,
+      "K_effective_N_per_m": 340.6734310683482,
+      "D_low_frequency_Ns_per_m": 15.969067081131998,
+      "elastic_extra_20mm_N": 6.8134686213669635,
+      "elastic_extra_40mm_N": 13.626937242733927,
+      "viscous_extra_at_0p1_mps_N": 1.5969067081131998,
+      "D_over_K_s": 0.046874999999422254,
+      "illustrative_breakaway_N_q14mm": 33.17392729234641,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 37.437561710283276,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 44.25103033165024
+    },
+    {
+      "workpoint": "left105",
+      "direction": "exit_minus_z",
+      "force_unit_vector_world": [
+        -0.9999999999999996,
+        5.781124899830394e-12,
+        1.915833557220022e-12
+      ],
+      "j_receiver_m": [
+        -0.11981619283430874,
+        -0.23459765604755328,
+        0.017817013235695324,
+        -6.754110942881526e-05,
+        -5.7004983092840375e-05,
+        -4.930380657631324e-32
+      ],
+      "j_contact_m": [
+        -0.1199999999965443,
+        -0.23466897212275942,
+        0.017745697160489182,
+        -1.6273136182184416e-07,
+        8.825899999933873e-05,
+        -2.1431458713383752e-41
+      ],
+      "C_contact_receiver_m_per_N": 0.0006596954506909424,
+      "C_contact_contact_m_per_N": 0.0006601512624240032,
+      "friction_transfer_factor": 1.0006909426654123,
+      "K_effective_N_per_m": 1515.8509869253066,
+      "D_low_frequency_Ns_per_m": 59.474045156781614,
+      "elastic_extra_20mm_N": 30.317019738506133,
+      "elastic_extra_40mm_N": 60.634039477012266,
+      "viscous_extra_at_0p1_mps_N": 5.947404515678162,
+      "D_over_K_s": 0.03923475702411651,
+      "illustrative_breakaway_N_q14mm": 29.140120250416807,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 61.762029473298995,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 92.07904921180513
+    },
+    {
+      "workpoint": "left105",
+      "direction": "side_plus_minus_x",
+      "force_unit_vector_world": [
+        -5.7811481557120396e-12,
+        -0.9999999999999997,
+        4.424828362354813e-13
+      ],
+      "j_receiver_m": [
+        -0.35214366899135774,
+        0.12285103089272575,
+        -0.0093285869237133,
+        0.020371605335042127,
+        0.11574014529948015,
+        -8.050331555782123e-05
+      ],
+      "j_contact_m": [
+        -0.40500000000047026,
+        0.12288856901509217,
+        -0.009291048801346912,
+        0.029227534810208615,
+        0.1654186990018082,
+        8.715695365405776e-17
+      ],
+      "C_contact_receiver_m_per_N": 0.002656161688344208,
+      "C_contact_contact_m_per_N": 0.003123120602437988,
+      "friction_transfer_factor": 1.17580214191888,
+      "K_effective_N_per_m": 376.48310507158084,
+      "D_low_frequency_Ns_per_m": 17.451737358754237,
+      "elastic_extra_20mm_N": 7.529662101431617,
+      "elastic_extra_40mm_N": 15.059324202863234,
+      "viscous_extra_at_0p1_mps_N": 1.7451737358754238,
+      "D_over_K_s": 0.04635463616736834,
+      "illustrative_breakaway_N_q14mm": 34.239358372677785,
+      "illustrative_motion_20mm_N_q14mm_at_0p1mps": 39.23427441340011,
+      "illustrative_motion_40mm_N_q14mm_at_0p1mps": 46.76393651483173
+    }
+  ],
+  "limitations": [
+    "no actual per-episode normal/tangential preload supplied",
+    "no collision, shape interlocking, moving door or compliant base model",
+    "no policy target adaptation or physical grasp/loss proof",
+    "20/40 mm are scale examples, not verified escape distances"
+  ],
+  "gripper_model": {
+    "joint_type": "prismatic; arm_j7/arm_j8",
+    "kp_N_per_m": 1300.0,
+    "kd_Ns_per_m": 32.0,
+    "drive_effort_limit_N_each": 45.0,
+    "closed_target_q_m": [
+      0.0,
+      0.0
+    ],
+    "finger_material_mu_static_dynamic": [
+      1.1,
+      0.9
+    ],
+    "handle_default_mu_static_dynamic": [
+      0.5,
+      0.5
+    ],
+    "combine_mode_assumption": "average; defaults/source and historical M39 metadata, not new C002 pair readback",
+    "effective_mu_static_dynamic": [
+      0.8,
+      0.7
+    ],
+    "normal_force_approximation": "N_i approximately min(1300*abs(q_i),45), static flat contact aligned with the finger drive, omitting preload/dynamics/wedging",
+    "note": "45 N is the drive limit, not a universal bound on collision contact normal force"
+  },
+  "grip_scenarios": [
+    {
+      "absolute_q_each_m": 0.005,
+      "normal_each_N": 6.5,
+      "static_total_N": 10.4,
+      "kinetic_total_N": 9.1
+    },
+    {
+      "absolute_q_each_m": 0.01,
+      "normal_each_N": 13.0,
+      "static_total_N": 20.8,
+      "kinetic_total_N": 18.2
+    },
+    {
+      "absolute_q_each_m": 0.014,
+      "normal_each_N": 18.2,
+      "static_total_N": 29.12,
+      "kinetic_total_N": 25.479999999999997
+    },
+    {
+      "absolute_q_each_m": 0.02,
+      "normal_each_N": 26.0,
+      "static_total_N": 41.6,
+      "kinetic_total_N": 36.4
+    },
+    {
+      "absolute_q_each_m": 0.035,
+      "normal_each_N": 45,
+      "static_total_N": 72.0,
+      "kinetic_total_N": 62.99999999999999
+    }
+  ],
+  "illustrative_motion_force": {
+    "absolute_q_each_m": 0.014,
+    "normal_each_N": 18.2,
+    "static_friction_total_N": 29.12,
+    "kinetic_friction_total_N": 25.48,
+    "motion_speed_m_per_s": 0.1,
+    "note": "Illustrative motion of 20/40 mm, not predicted escape or a measured slip threshold; fixed targets/base and no preload"
+  },
+  "planner_proposal": {
+    "status": "PROPOSED; not Owner-approved numeric protocol or runtime calibration",
+    "exit_force_uniform_N": [
+      40,
+      100
+    ],
+    "each_side_force_uniform_N": [
+      25,
+      60
+    ],
+    "duration_physics_steps_uniform_integer_inclusive": [
+      40,
+      100
+    ],
+    "physics_dt_s": 0.005,
+    "duration_s": [
+      0.2,
+      0.5
+    ],
+    "random_wait_after_fresh_hold_control_ticks_uniform_integer_inclusive": [
+      0,
+      15
+    ],
+    "control_dt_s": 0.02,
+    "window": "fresh qualified grasp while handle control is needed and before normal release starts; first calibration uses early stable holding",
+    "pulse_end": "predetermined, independent of slip/retention; actual episode done truncates it"
+  }
+}

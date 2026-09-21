@@ -102,7 +102,6 @@ def main() -> None:
     right_full_action = a2_v26_4_map_action_coordinates(left_full_action, right_mask, default_arm, 0.25, canonical_to_physical=True)
     require_close(a2_v26_4_map_action_coordinates(right_full_action, right_mask, default_arm, 0.25, canonical_to_physical=False), left_full_action, "production action mapping does not round-trip")
     physical_origin = a2_v26_4_physical_delta_origin(left_full_action, right_mask, default_arm, 0.25)
-    stage0 = torch.tensor([True, False, False])
     physical_clipped = a2_v26_4_accumulate_physical_delta(
         physical_origin,
         left_full_action[:, 5:11],
@@ -112,16 +111,13 @@ def main() -> None:
         0.25,
         1.0,
         15.0,
-        stage0,
     )
     recovered_full = torch.zeros_like(left_full_action)
     recovered_full[:, 5:11] = physical_clipped
     recovered_after_physical_clip = a2_v26_4_map_action_coordinates(recovered_full, right_mask, default_arm, 0.25, canonical_to_physical=False)[:, 5:11]
-    require_equal(physical_clipped[1:, 5], torch.full((batch - 1,), -15.0, dtype=torch.float64), "physical j6 clip did not apply at configured bound")
-    require_equal(recovered_after_physical_clip[0, 5:6], torch.zeros(1, dtype=torch.float64), "stage0 canonical delta was not reset")
-    require_close(recovered_after_physical_clip[1:, 5], torch.full((batch - 1,), 2.44, dtype=torch.float64), "physical j6 clip did not recover canonical action coordinate")
-    require_equal(physical_clipped[0], physical_origin[0], "stage0 delta origin was not restored")
-    require(torch.any(physical_clipped[1] != physical_origin[1]), "stage1 physical increment was overwritten by stage0 override")
+    require_equal(physical_clipped[:, 5], torch.full((batch,), -15.0, dtype=torch.float64), "physical j6 clip did not apply at configured bound")
+    require_close(recovered_after_physical_clip[:, 5], torch.full((batch,), 2.44, dtype=torch.float64), "physical j6 clip did not recover canonical action coordinate")
+    require(torch.all(torch.any(physical_clipped != physical_origin, dim=-1)), "physical increment was overwritten by a stage override")
     physical_reset = a2_v26_4_map_action_coordinates(torch.zeros_like(left_full_action), right_mask, default_arm, 0.25, canonical_to_physical=True)[:, 5:11]
     require_equal(physical_reset[:, 3], torch.full((batch,), -2.0, dtype=torch.float64), "RIGHT arm_j4 physical reset origin changed")
     require_close(physical_reset[:, 5], torch.full((batch,), -12.56, dtype=torch.float64), "RIGHT arm_j6 physical reset origin changed")
@@ -163,7 +159,7 @@ def main() -> None:
         "schema": SCHEMA, "status": "STATIC_IDENTITY_COMPLETE", "typed_outcome": "CANONICAL_IDENTITY_PROOF_PASS", "proof_result": "PASS", "implemented": True, "evidence_level": "STATIC_PASS", "seam_key": SEAM_KEY,
         "source": str(args.source.resolve()), "actor_obs_dim": total,
         "actor_obs_fields": [{"name": name, "slice": slices[name], "dim": dim} for name, dim in fields],
-        "checks": {"resolved_133d_order": "PASS", "actual_mro_and_production_helper": "PASS", "mirror_squared": "PASS", "continuous_identity_modulo_side_label": "PASS", "side_one_hot_preserved": "PASS", "stage0_origin_stage1_to5_increment_survives": "PASS", "physical_delta_clip_reset_and_roundtrip": "PASS", "frame_transformer_target_reference_modified": False},
+        "checks": {"resolved_133d_order": "PASS", "actual_mro_and_production_helper": "PASS", "mirror_squared": "PASS", "continuous_identity_modulo_side_label": "PASS", "side_one_hot_preserved": "PASS", "stage_independent_increment_survives": "PASS", "physical_delta_clip_reset_and_roundtrip": "PASS", "frame_transformer_target_reference_modified": False},
         "not_a_runtime_or_training_claim": "CPU static fixture only; no IsaacSim, GPU, training, or FrameTransformer target-reference correction was run.",
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

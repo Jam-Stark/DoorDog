@@ -2,7 +2,7 @@
 name: novelty-research
 status: active
 scope: novelty选题、跨版本路线裁定、讨论来源与文档维护
-last_verified: 2026-09-17
+last_verified: 2026-09-21
 evidence: INSPECTED — 原会话、人类可读导出、现有plan与实验readout
 read_when:
   - 讨论或裁定novelty、恢复图、交互历史适应、coupling critic或Teacher shaping
@@ -11,6 +11,9 @@ read_when:
 source_of_truth:
   - scriptsFORhuman/novelty/README.md
   - scriptsFORhuman/novelty/conversations/
+  - scriptsFORhuman/v29/pro_handoff/20260921_n02_independent_audit/README.md
+  - scriptsFORhuman/v29/a2_piper_v29_n02_plan.md
+  - scriptsFORhuman/novelty/documents/20260920_n02_minimal_continuous_adaptation_design.md
   - scriptsFORhuman/novelty/documents/20260910_novelty_status.md
   - scriptsFORhuman/a2_piper_longterm_TODO.md
   - scriptsFORhuman/v28/a2_piper_base_v28_plan_20260909.md
@@ -20,6 +23,22 @@ related_entries:
 ---
 
 # Novelty 讨论与路线
+
+2026-09-21：Owner要求把当前N02 plan按workflow交Pro独立审核，附baseline与原novelty路线，明确提出六项concern和多改动归因问题；[原文](../../../scriptsFORhuman/novelty/conversations/20260921_codex_n02_independent_review_request.md)与[交付入口](../../../scriptsFORhuman/v29/pro_handoff/20260921_n02_independent_audit/README.md)已保存。v1.0 FINAL现为待审议技术候选，三类行为目标不等于必须离散模式/分层学习，Pro可替换路线。当前进行有界审阅提交/发布和资料打包，上传完成以receipt为准；GPU4授权保留，无N02实施/运行或模型复算。先前定稿不覆盖本次重新审议要求。
+
+2026-09-21 20:12 HKT：Owner要求逐点回答四问并finalize，明确授权GPU4；[请求原文](../../../scriptsFORhuman/novelty/conversations/20260921_codex_n02_finalize_request.md)与[v29 N02 plan v1.0 FINAL](../../../scriptsFORhuman/v29/a2_piper_v29_n02_plan.md)已保存。三行为共享条件LSTM/decoder，mode one-hot与自phase接在LSTM后，外部1/3指派交错学习；临时skill shaping只教执行器。自主selector为独立categorical PPO，候选固定枚举，return/value只读统一物理r_task，回臂/闭爪等通用mask不得按mode免罚；按真实持续K使用gamma**K，RELEASE尾段成本归首次选择。先可用c→冻结整条表示/归一化/执行链→无头selector→必要时factual后果/冻结头→带预测selector，只更新selector/value；c更新需新版本采集，旧标签不改名，重算hidden不生成反事实未来。Teacher/Student各自闭环和版本。GPU4无需重复申请，额外GPU按具体ablation提出；本轮未实施/运行/测试/提交。
+
+B08现已修复并同步：本轮定向读取[N02共享记录](../../../scriptsFORhuman/v29/B08_SHARED_BASELINE.md)与主任务实施记录，并核对普通/canonical路径删除Stage0在线覆盖的四文件补丁。真实reset、原Stage0默认姿态reward/晋级保留；主任务已有CPU提取路径证明，本轮未复跑，不推出仿真/策略收益。有效开发底座C002+B05+B08，旧冻结运行仍不含B08。较早的B08 OPEN条目是历史。已发布baseline入口另记录7000里程碑LEFT31/32goal、RIGHT31/32到Stage3无Stage4，故6000的0/64不再称最新成绩；本轮只引用已归档入口，不监督或轮询既有运行。
+
+2026-09-21 12:57 HKT：Owner已接受N02首段已握柄push后三候选（N02-D001）与Stage5/完成按身体通过重定义（N02-D002）；[原话](../../../scriptsFORhuman/novelty/conversations/20260921_codex_n02_owner_decisions.md)与[v29 N02 plan v0.1](../../../scriptsFORhuman/v29/a2_piper_v29_n02_plan.md)已保存。完成要求root终点＋真实释放＋全身清离，共同支持握持/撤臂/回柄；stage收入仍逐tick。下一实施包P0先接共同任务和真实动作路径，再原LSTM暴露、有价值时固定c小头、Student自身闭环。两项决定不再待确认；时窗/包络/奖励数值、实现及运行预算尚未批准，本轮仅计划与文档。
+
+计划起点已更新为[已归档C002最终读回](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v29/a2_piper_base_v29_C002_final_readout_20260921.md)：64自然首episode为0/64 goal，LEFT有后段暴露、RIGHT32例均Stage2；不视作合格整任务Teacher，不重跑或诊断归因。共同baseline B08仍OPEN；[N01 plan](/home/baoquanc/workspace/DoorDog-A2_Piper_v29_n01/scriptsFORhuman/v29/a2_piper_v29_n01_plan.md)虽已接受其分支stage-blind合同，方法仍未实施，N02不可假设可用代码。局部后段可以先做，独立Student自然任务前须落实共享执行接口。未监控或接管既有GPU任务/等待，无实施、模型重算、测试、训练/评估、Git提交或外部发布。
+
+2026-09-20 17:02 HKT：N02 planner 在完整 `v29-c002-baseline` 上建立独立 `codex/v29-n02` / `/home/baoquanc/workspace/DoorDog-A2_Piper_v29_n02`，交付[最小设计](../../../scriptsFORhuman/novelty/documents/20260920_n02_minimal_continuous_adaptation_design.md)，待 Owner 裁定。推荐已握柄 push 后段三候选；同一执行者/固定版本 c 的反馈续接，先原 LSTM 行为支持与暴露，再冻结 c 判断 p_useful/身体通过后果读出价值；不混用 Teacher/Student 未来或隐藏真值。新增 body_clear/fully_clear 与 assistance 共同解释握持、撤臂/回柄、Stage5逐 tick 收入和最终完成；Stage5进入语义改变明确列为待决。倾斜搜索和 post-release 重抓建议随后增加，D023仍归N02，N01恢复图未实施。
+
+本轮只补查上述未决接口：Stage5 hold income 在 C002 关闭、夹爪收纳偏好闭合、complete 在 delayed reset 期间为持续收入；现有 v22 clearance 不是全身清离。证据仅 INSPECTED，无实现、模型重算、测试、训练/评估、GPU、预算、Git提交或外部发布；原GPU任务与等待仍归原任务。[原 Pro 材料及更正](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pro_reviews/v29/20260920_162527__N02_online_adaptation/README.md)仍在主工作目录：42姿态/26解/104方向与PD是Pro CPU材料，本机未复跑；156行压柄夹持界须按45N/18.2N必要界解读而非90N/36.4N容量，仿真限值不作硬件能力。本文没有重算或改原件。
+
+2026-09-20的跨分支上下文（历史）：[N01 最小设计](/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/novelty/documents/20260920_n01_minimal_recovery_transfer_design.md)已交付但未实施，当时共享stage-blind接口待采纳；后续决定以本页2026-09-21段及N01 plan为准。下方更早条目保留历史时点状态，不覆盖当前Owner决定。
 
 2026-09-17：v28恢复执行后的closure已完成N01/N02增量复核（D059/X05）。原三seedreach1/3，固定主备DEV均未双侧过门；两方法仍设计CONTINUE、实验DEFER，Owner更急切后续改动优先，未自动定义v29方法排期。[增量复核](../../../scriptsFORhuman/novelty/documents/20260917_v28_closure_N01_N02.md)。
 

@@ -126,7 +126,6 @@ def a2_v26_4_accumulate_physical_delta(
     action_scale: float,
     delta_action_scale: float,
     delta_action_clip: float,
-    stage0_mask: torch.Tensor,
 ) -> torch.Tensor:
     increment_actions = torch.zeros_like(canonical_actions)
     increment_actions[:, 5:11] = canonical_delta_increment
@@ -145,5 +144,4 @@ def a2_v26_4_accumulate_physical_delta(
         -delta_action_clip,
         delta_action_clip,
     )
-    updated[stage0_mask] = origin[stage0_mask]
     return updated

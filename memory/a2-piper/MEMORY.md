@@ -3,7 +3,7 @@
 本 subsystem 记录 A2_Piper branch/worktree 的开发约定、robot migration、reward design、workspace routing、experiment progress 与当前 TODO/DONE。不要把这些施工状态写入 `origin-reference`。
 
 - [base-v28-camera-aware-rebaseline/description.md](base-v28-camera-aware-rebaseline/description.md)：v28于2026-09-17 closure；原三seedreach1/3，固定主/备DEV clean123/47、69/52均未双侧过门，CONF未运行；A284提前停止、render按Owner复用，N01/N02设计继续/实验延期。
-- [novelty-research/description.md](novelty-research/description.md): 2026-09-14 — v28 G1停止点N01/N02回收已完成；两项继续有界立项设计、实验DEFER，X05复核义务关闭；方法收益未建立。
+- [novelty-research/description.md](novelty-research/description.md): 2026-09-21 — Owner要求N02 v1.0独立Pro复审：可推翻分层架构，核对baseline/原novelty与六项concern；当前转入审阅交付，不直接进入P0。B08已同步、GPU4授权保留，N02方法尚未实施/运行。
 ## Entries
 
 - [base-v27-bilateral-hardening/description.md](base-v27-bilateral-hardening/description.md): 2026-09-11 — closed，V27_COMPLETED_SCIENTIFIC_NO_RELEASE；A质量未决/C，B域未收敛/current，R未决（R1误停644），SC0/3、SK1/3/K_SCRATCH_SUPERIOR。C72/72 lanes integrity0，最终确认按规则NOT_RUN；closure/manifest v2齐全，隔离与资源已清理，绑定未变。

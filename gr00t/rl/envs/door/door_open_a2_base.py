@@ -59,7 +59,6 @@ from gr00t.rl.envs.door.a2_v26_4_canonicalization import (
     a2_v26_4_canonicalize_hand_force,
     a2_v26_4_canonicalize_vector,
     a2_v26_4_map_action_coordinates,
-    a2_v26_4_physical_delta_origin,
     a2_v26_6_mirror_quat_wxyz,
 )
 from gr00t.rl.envs.door.a2_v20_r2_evidence import (
@@ -8844,9 +8843,7 @@ class DoorPregrasp(
             self.config.robot.control.action_scale,
             self._delta_action_scale,
             delta_actions_clip,
-            self.stage_buf == self.STAGE_WALK_TO_DOOR,
         )
-        self._apply_delta_action_overrides()
         self._a2_v26_4_sync_canonical_delta_actions()
         canonical_actions[:, self._delta_action_indices] = self._a2_v26_4_canonical_delta_actions
         if self.config.get("zero_vel", False) and "gt_actions" not in actor_state:
@@ -8865,53 +8862,6 @@ class DoorPregrasp(
             canonical_to_physical=True,
         )
         return A2Base.step(self, {**actor_state, "actions": physical_actions})
-
-    @override
-    def _apply_delta_action_overrides(self):
-        if not self._use_a2_base:
-            return
-
-        expected_delta_action_indices = torch.tensor(
-            [5, 6, 7, 8, 9, 10], dtype=self._delta_action_indices.dtype, device=self.device
-        )
-        if not torch.equal(self._delta_action_indices, expected_delta_action_indices):
-            raise RuntimeError(
-                "A2 stage0 arm default gate requires delta_action_indices "
-                f"{expected_delta_action_indices.tolist()}; got "
-                f"{self._delta_action_indices.tolist()}."
-            )
-
-        expected_shape = (self.num_envs, expected_delta_action_indices.numel())
-        if tuple(self._delta_actions.shape) != expected_shape:
-            raise RuntimeError(
-                "A2 stage0 arm default gate requires _delta_actions shape "
-                f"{expected_shape}; got {tuple(self._delta_actions.shape)}."
-            )
-
-        stage_buf = getattr(self, "stage_buf", None)
-        stage_shape = None if not torch.is_tensor(stage_buf) else tuple(stage_buf.shape)
-        if stage_shape != (self.num_envs,):
-            raise RuntimeError(
-                "A2 stage0 arm default gate requires stage_buf shape "
-                f"({self.num_envs},); got {stage_shape}."
-            )
-
-        stage0 = stage_buf == self.STAGE_WALK_TO_DOOR
-        if self._a2_v26_4_side_canonicalization_enabled():
-            physical_origin = a2_v26_4_physical_delta_origin(
-                torch.zeros(
-                    self.num_envs,
-                    self._a2_high_level_action_dim + self._a2_leg_action_dim,
-                    device=self.device,
-                    dtype=self._delta_actions.dtype,
-                ),
-                self._a2_v26_4_right_mask(),
-                self.default_dof_pos[:, self._upper_non_gripper_dof_idx],
-                self.config.robot.control.action_scale,
-            )
-            self._delta_actions[stage0, :] = physical_origin[stage0, :]
-            return
-        self._delta_actions[stage0, :] = 0.0
 
     def _init_buffers(self):
         super()._init_buffers()

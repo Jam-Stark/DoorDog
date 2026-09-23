@@ -171,6 +171,9 @@ outputs/
 logs/
 logs_rl/
 logs_eval/
+scriptsFORhuman/v28/runtime_logs/
+scriptsFORhuman/v29/runtime_logs/
+scriptsFORhuman/v29/candidates/
 !external_dependencies/OpenHomie/HomieRL/legged_gym/logs/exported/policies/*.onnx
 
 # Ruff stuff:

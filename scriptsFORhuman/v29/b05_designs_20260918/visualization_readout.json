@@ -1,0 +1,14 @@
+{
+  "status": "GEOMETRY_AND_VISUALIZATION_ONLY",
+  "seven_families": 7,
+  "browser_checks": {
+    "initial_display": "PASS",
+    "select_F4_and_30_degree_rotation": "PASS",
+    "hook_toggle": "PASS",
+    "narrow_layout_no_horizontal_overflow": "PASS"
+  },
+  "training_assets": "NOT_CREATED",
+  "isaacsim": "NOT_RUN",
+  "grasp_success": "NOT_EVALUATED",
+  "inline_fragment": "/home/baoquanc/.codex/visualizations/2026/09/17/01a0af49-b5e0-75f2-8fdd-ad5c3e20744b/b05-handle-designs.html"
+}

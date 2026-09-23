@@ -1,0 +1,20 @@
+{
+  "schema": "pull_v28_active_handoff_v1",
+  "status": "HANDOFF_READY_ALL_TRAINING_STOPPED",
+  "group": "pull_v28_rebuild_4096_20260914",
+  "decision": "V28P-D016",
+  "training_receipts": {
+    "PA_S1": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/runtime/runs/pull_v28_rebuild_4096_20260914_train_pa_s1_attempt1/RUN_RECEIPT.json",
+    "PA_S2": null,
+    "PA_S3": null
+  },
+  "eval_queue_receipt": null,
+  "owner_latest_instruction": "receiving m5 AI will execute from prompt",
+  "actual_4096_ETA": null,
+  "config_num_envs": 4096,
+  "updated_at": "2026-09-14T19:15:49.891370+08:00",
+  "pa_s1_cancelled": true,
+  "pa_s1_completed_batches_observed": 0,
+  "old_1024_cancelled": true,
+  "launch_by": "receiving m5 AI under Owner restart prompt"
+}

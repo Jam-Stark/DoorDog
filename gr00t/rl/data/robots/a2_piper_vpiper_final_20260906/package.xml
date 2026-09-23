@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>a2_piper_vpiper_description</name>
+  <version>0.2.0</version>
+  <description>Owner-supplied A2/PiPER assets with CAD-derived Vpiper and revised 250x100x5 mm head-width plate geometry.</description>
+  <maintainer email="owner@example.invalid">DoorDog Owner (replace before distribution)</maintainer>
+  <license>See SOURCE_NOTICES.md; original asset licenses are not supplied in this package.</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

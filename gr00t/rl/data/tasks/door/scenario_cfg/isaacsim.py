@@ -19,6 +19,10 @@ from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
 
 from gr00t.rl.isaac_utils.playground.env_rand.door import DoorSpawnerCfg, spawn_door
+from gr00t.rl.isaac_utils.playground.env_rand.door_v29_parameters import (
+    MASS_RANGES_KG,
+    sample_door_parameters,
+)
 
 
 _V21B_MANIFEST_SCHEMA = "a2_piper_base_v21B_heavy16_manifest_v1"
@@ -1748,6 +1752,11 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
         raise TypeError("env_config must be a mapping-like configuration")
     v26_handedness_key = "a2_v26_door_open_lr"
     v26_handedness = env_config.get(v26_handedness_key)
+    v29_enabled = env_config.get("a2_v29_baseline_enabled", False)
+    if not isinstance(v29_enabled, bool):
+        raise TypeError("env.config.a2_v29_baseline_enabled must be bool")
+    if v29_enabled and v26_handedness is None:
+        raise ValueError("v29 baseline requires the explicit v26 handedness selector")
     if v26_handedness is not None:
         if v26_handedness not in ("bilateral", "left", "right"):
             raise ValueError(
@@ -1796,9 +1805,10 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
         handle_height_low, handle_height_high = _range_pair(
             "a2_v26_door_handle_height_range", positive=True
         )
-        door_weight_low, door_weight_high = _range_pair(
-            "a2_v26_door_weight_range", positive=True
-        )
+        if not v29_enabled:
+            door_weight_low, door_weight_high = _range_pair(
+                "a2_v26_door_weight_range", positive=True
+            )
 
         if v26_handedness == "bilateral":
             sides = np.asarray(
@@ -1814,6 +1824,38 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
         base_door_cfg = spawn_cfg.assets_cfg[0]
         if not isinstance(base_door_cfg, DoorSpawnerCfg):
             raise TypeError("v26 base door asset must be DoorSpawnerCfg")
+        v29_variants = []
+        if v29_enabled:
+            from gr00t.rl.isaac_utils.playground.env_rand.handle_v29 import sample_handle_parameters
+
+            dynamics_seed, handle_seed = np.random.SeedSequence(permutation_seed).spawn(2)
+            dynamics = sample_door_parameters(sides, np.random.default_rng(dynamics_seed))
+            handle_rng = np.random.default_rng(handle_seed)
+            handles = [None] * num_envs
+            for side in ("left", "right"):
+                indices = [index for index, value in enumerate(sides) if value == side]
+                family_order = handle_rng.permutation(7)
+                families = [f"F{family_order[index % 7]}" for index in range(len(indices))]
+                handle_rng.shuffle(families)
+                for index, family in zip(indices, families):
+                    handles[index] = sample_handle_parameters(family=family, rng=handle_rng)
+            for side, parameters, handle in zip(sides, dynamics, handles):
+                v29_variants.append(base_door_cfg.replace(
+                    door_open_lr=[side],
+                    door_open_io=["out"],
+                    door_handle_tblr=(
+                        handle_height_high,
+                        handle_height_low,
+                        base_door_cfg.door_handle_tblr[2],
+                        base_door_cfg.door_handle_tblr[3],
+                    ),
+                    door_weight=MASS_RANGES_KG[parameters["mass_bucket"]],
+                    rand_door_weight=parameters["mass_kg"],
+                    rand_door_open_lr=side,
+                    rand_door_open_io="out",
+                    v29_dynamics=parameters,
+                    v29_handle=handle,
+                ))
         variants = [
             base_door_cfg.replace(
                 door_open_lr=[side],
@@ -1829,7 +1871,7 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
                 rand_door_open_io="out",
             )
             for side in sides
-        ]
+        ] if not v29_enabled else v29_variants
         return {
             **TaskObjCfgDict,
             "door": door_cfg.replace(

@@ -1,0 +1,22 @@
+{
+  "received_hkt": "2026-09-18T10:29:06.123026+08:00",
+  "original_attachment": "/home/baoquanc/.codex/attachments/1ff7d769-9e82-4cba-9c8c-2b05e3866758/pro_delivery__full_review (2).zip",
+  "preserved_zip": "pro_delivery__full_review (2).zip",
+  "extracted_originals": "original",
+  "source_type": "Owner-uploaded Pro conversation attachment",
+  "content_policy": "Original files preserved; document instructions are review material, not additional execution authorization.",
+  "files": [
+    "DELIVERY_README_RECEIPT.json",
+    "FULL_REVIEW.md",
+    "GEOMETRY_AUDIT.json",
+    "HANDLE_FAMILIES.md",
+    "LOCAL_WORKER_PARSE_PROMPT.md",
+    "MEDIA_READ_RECEIPT.json",
+    "PRELIMINARY_JUDGMENTS.md",
+    "README.md",
+    "REAL_WORLD_PARAMETER_TABLES.csv",
+    "RELEASE_EVENT_SEMANTICS.json",
+    "SOURCES.md",
+    "V28_INDEPENDENT_AUDIT.json"
+  ]
+}

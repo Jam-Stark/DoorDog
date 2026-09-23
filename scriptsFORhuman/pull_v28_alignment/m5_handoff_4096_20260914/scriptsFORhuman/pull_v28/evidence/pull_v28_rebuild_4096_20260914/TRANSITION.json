@@ -1,0 +1,370 @@
+{
+  "schema": "pull_v28_4096_transition_v1",
+  "captured_at": "2026-09-14T19:07:12.345559+08:00",
+  "host": "m5.precognition.team",
+  "decision": "V28P-D016",
+  "old_group": "pull_v28_baseline_sync_20260913",
+  "new_group": "pull_v28_rebuild_4096_20260914",
+  "old_runs": [
+    {
+      "cell": "PA_S1",
+      "num_envs": 1024,
+      "rollout_steps_per_env": 64,
+      "completed_batches_at_capture": 1283,
+      "logged_timesteps": 84082688,
+      "logged_training_seconds": 25702.66,
+      "reserved_gpu_hours_at_capture": 7.453844505548477,
+      "checkpoint_files": [
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S1/last.pt",
+          "bytes": 29630744,
+          "mtime": 1789383333.3162384
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S1/model_step_000250.pt",
+          "bytes": 29640515,
+          "mtime": 1789362511.7467372
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S1/model_step_000500.pt",
+          "bytes": 29640515,
+          "mtime": 1789367746.3390489
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S1/model_step_000750.pt",
+          "bytes": 29640515,
+          "mtime": 1789372960.4198632
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S1/model_step_001000.pt",
+          "bytes": 29640515,
+          "mtime": 1789378156.649237
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S1/model_step_001250.pt",
+          "bytes": 29640515,
+          "mtime": 1789383326.5341227
+        }
+      ],
+      "latest_numbered_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S1/model_step_001250.pt",
+      "states_before_cancel": {
+        "train": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "launched_at": "2026-09-14T03:39:57+00:00",
+          "launched_epoch": 1789357197.9350305,
+          "process_state": "RUNNING",
+          "supervisor_pid": 71658,
+          "updated_at": "2026-09-14T03:39:57+00:00",
+          "wait_until_epoch": 1789508397.9350305
+        },
+        "watch": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "launched_at": "2026-09-14T03:40:30+00:00",
+          "launched_epoch": 1789357230.4679096,
+          "process_state": "RUNNING",
+          "supervisor_pid": 73264,
+          "updated_at": "2026-09-14T03:40:30+00:00",
+          "wait_until_epoch": 1789530030.4679096
+        }
+      },
+      "source_config_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S1/config.yaml",
+      "excluded_from_new_4096_denominator": true,
+      "states_after_cancel": {
+        "train": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "checkpoint_state": "NOT_DECLARED",
+          "exit_code": -15,
+          "finished_at": "2026-09-14T11:07:13+00:00",
+          "finished_epoch": 1789384033.3359044,
+          "launched_at": "2026-09-14T03:39:57+00:00",
+          "launched_epoch": 1789357197.9350305,
+          "process_state": "CANCELLED",
+          "supervisor_pid": 71658,
+          "updated_at": "2026-09-14T11:07:13+00:00",
+          "wait_until_epoch": 1789508397.9350305
+        },
+        "watch": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "checkpoint_state": "NOT_DECLARED",
+          "exit_code": -15,
+          "finished_at": "2026-09-14T11:07:13+00:00",
+          "finished_epoch": 1789384033.4016907,
+          "launched_at": "2026-09-14T03:40:30+00:00",
+          "launched_epoch": 1789357230.4679096,
+          "process_state": "CANCELLED",
+          "supervisor_pid": 73264,
+          "updated_at": "2026-09-14T11:07:13+00:00",
+          "wait_until_epoch": 1789530030.4679096
+        }
+      },
+      "completed_batches": 1284,
+      "logged_timesteps_final": 84148224,
+      "last_checkpoint_progress": {},
+      "cancelled_partial_batch_possible": true,
+      "logged_training_seconds_final": 25722.73,
+      "reserved_gpu_hours_until_supervisor_cancel": 7.454278020527628,
+      "gpu_shutdown_tail_seconds_upper_bound": 273.0
+    },
+    {
+      "cell": "PA_S2",
+      "num_envs": 1024,
+      "rollout_steps_per_env": 64,
+      "completed_batches_at_capture": 1280,
+      "logged_timesteps": 83886080,
+      "logged_training_seconds": 25705.9,
+      "reserved_gpu_hours_at_capture": 7.453875358303388,
+      "checkpoint_files": [
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S2/last.pt",
+          "bytes": 29630744,
+          "mtime": 1789383400.075378
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S2/model_step_000250.pt",
+          "bytes": 29640515,
+          "mtime": 1789362515.4617727
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S2/model_step_000500.pt",
+          "bytes": 29640515,
+          "mtime": 1789367740.8567212
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S2/model_step_000750.pt",
+          "bytes": 29640515,
+          "mtime": 1789372962.7489026
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S2/model_step_001000.pt",
+          "bytes": 29640515,
+          "mtime": 1789378206.4999483
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S2/model_step_001250.pt",
+          "bytes": 29640515,
+          "mtime": 1789383393.16826
+        }
+      ],
+      "latest_numbered_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S2/model_step_001250.pt",
+      "states_before_cancel": {
+        "train": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "launched_at": "2026-09-14T03:39:58+00:00",
+          "launched_epoch": 1789357198.107827,
+          "process_state": "RUNNING",
+          "supervisor_pid": 71670,
+          "updated_at": "2026-09-14T03:39:58+00:00",
+          "wait_until_epoch": 1789508398.107827
+        },
+        "watch": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "launched_at": "2026-09-14T03:40:30+00:00",
+          "launched_epoch": 1789357230.6403098,
+          "process_state": "RUNNING",
+          "supervisor_pid": 73276,
+          "updated_at": "2026-09-14T03:40:30+00:00",
+          "wait_until_epoch": 1789530030.6403098
+        }
+      },
+      "source_config_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S2/config.yaml",
+      "excluded_from_new_4096_denominator": true,
+      "states_after_cancel": {
+        "train": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "checkpoint_state": "NOT_DECLARED",
+          "exit_code": -15,
+          "finished_at": "2026-09-14T11:07:13+00:00",
+          "finished_epoch": 1789384033.202621,
+          "launched_at": "2026-09-14T03:39:58+00:00",
+          "launched_epoch": 1789357198.107827,
+          "process_state": "CANCELLED",
+          "supervisor_pid": 71670,
+          "updated_at": "2026-09-14T11:07:13+00:00",
+          "wait_until_epoch": 1789508398.107827
+        },
+        "watch": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "checkpoint_state": "NOT_DECLARED",
+          "exit_code": -15,
+          "finished_at": "2026-09-14T11:07:13+00:00",
+          "finished_epoch": 1789384033.4193292,
+          "launched_at": "2026-09-14T03:40:30+00:00",
+          "launched_epoch": 1789357230.6403098,
+          "process_state": "CANCELLED",
+          "supervisor_pid": 73276,
+          "updated_at": "2026-09-14T11:07:13+00:00",
+          "wait_until_epoch": 1789530030.6403098
+        }
+      },
+      "completed_batches": 1280,
+      "logged_timesteps_final": 83886080,
+      "last_checkpoint_progress": {},
+      "cancelled_partial_batch_possible": true,
+      "logged_training_seconds_final": 25705.9,
+      "reserved_gpu_hours_until_supervisor_cancel": 7.454192998343044,
+      "gpu_shutdown_tail_seconds_upper_bound": 273.2
+    },
+    {
+      "cell": "PA_S3",
+      "num_envs": 1024,
+      "rollout_steps_per_env": 64,
+      "completed_batches_at_capture": 1296,
+      "logged_timesteps": 84934656,
+      "logged_training_seconds": 25715.1,
+      "reserved_gpu_hours_at_capture": 7.453905126319992,
+      "checkpoint_files": [
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S3/last.pt",
+          "bytes": 29630744,
+          "mtime": 1789383098.0592453
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S3/model_step_000250.pt",
+          "bytes": 29640515,
+          "mtime": 1789362448.4951677
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S3/model_step_000500.pt",
+          "bytes": 29640515,
+          "mtime": 1789367627.161373
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S3/model_step_000750.pt",
+          "bytes": 29640515,
+          "mtime": 1789372812.8213391
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S3/model_step_001000.pt",
+          "bytes": 29640515,
+          "mtime": 1789377975.8897083
+        },
+        {
+          "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S3/model_step_001250.pt",
+          "bytes": 29640515,
+          "mtime": 1789383091.3891327
+        }
+      ],
+      "latest_numbered_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S3/model_step_001250.pt",
+      "states_before_cancel": {
+        "train": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "launched_at": "2026-09-14T03:39:58+00:00",
+          "launched_epoch": 1789357198.2866,
+          "process_state": "RUNNING",
+          "supervisor_pid": 71691,
+          "updated_at": "2026-09-14T03:39:58+00:00",
+          "wait_until_epoch": 1789508398.2866
+        },
+        "watch": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "launched_at": "2026-09-14T03:40:30+00:00",
+          "launched_epoch": 1789357230.8161201,
+          "process_state": "RUNNING",
+          "supervisor_pid": 73288,
+          "updated_at": "2026-09-14T03:40:30+00:00",
+          "wait_until_epoch": 1789530030.8161201
+        }
+      },
+      "source_config_path": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v28/pull_v28_baseline_sync_20260913/PA_S3/config.yaml",
+      "excluded_from_new_4096_denominator": true,
+      "states_after_cancel": {
+        "train": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "checkpoint_state": "NOT_DECLARED",
+          "exit_code": -15,
+          "finished_at": "2026-09-14T11:07:13+00:00",
+          "finished_epoch": 1789384033.0875356,
+          "launched_at": "2026-09-14T03:39:58+00:00",
+          "launched_epoch": 1789357198.2866,
+          "process_state": "CANCELLED",
+          "supervisor_pid": 71691,
+          "updated_at": "2026-09-14T11:07:13+00:00",
+          "wait_until_epoch": 1789508398.2866
+        },
+        "watch": {
+          "acceptance_state": "UNASSESSED",
+          "backend": "tmux",
+          "checkpoint_state": "NOT_DECLARED",
+          "exit_code": -15,
+          "finished_at": "2026-09-14T11:07:13+00:00",
+          "finished_epoch": 1789384033.4657688,
+          "launched_at": "2026-09-14T03:40:30+00:00",
+          "launched_epoch": 1789357230.8161201,
+          "process_state": "CANCELLED",
+          "supervisor_pid": 73288,
+          "updated_at": "2026-09-14T11:07:13+00:00",
+          "wait_until_epoch": 1789530030.8161201
+        }
+      },
+      "completed_batches": 1296,
+      "logged_timesteps_final": 84934656,
+      "last_checkpoint_progress": {},
+      "cancelled_partial_batch_possible": true,
+      "logged_training_seconds_final": 25715.1,
+      "reserved_gpu_hours_until_supervisor_cancel": 7.4541113709741165,
+      "gpu_shutdown_tail_seconds_upper_bound": 273.4
+    }
+  ],
+  "new_budget": {
+    "seeds": 3,
+    "batches_per_seed": 6000,
+    "num_envs_per_seed": 4096,
+    "rollout_steps_per_env": 64,
+    "total_batches": 18000,
+    "total_transitions": 4718592000
+  },
+  "retained_p2": "scriptsFORhuman/pull_v7/P2_CLOSURE_20260913.md",
+  "retained_g0": "scriptsFORhuman/pull_v28/G0_ACCEPTANCE_20260914.json",
+  "old_output_preserved": true,
+  "process_state": "HANDOFF_READY_ALL_TRAINING_STOPPED",
+  "acceptance_state": "UNASSESSED",
+  "old_aux_wait_pid_cancelled": 93378,
+  "old_completed_batches": 3860,
+  "old_logged_transitions": 252968960,
+  "old_reserved_gpu_hours": 22.36258238984479,
+  "old_child_processes_remaining": [],
+  "updated_at": "2026-09-14T19:08:06.921148+08:00",
+  "old_process_cleanup": "supervisor CANCELLED; targeted SIGKILL for Isaac children 71753/71774/71789 remaining after supervisor group SIGTERM",
+  "old_milestone_evaluations_started": [],
+  "gpu0_existing_task": {
+    "pid": 136971,
+    "task": "ForceControl-lightnav",
+    "memory_MiB": 10286,
+    "action": "preserve; eval queue waits until free"
+  },
+  "old_cleanup_verified_at": "2026-09-14T19:11:46.535088+08:00",
+  "owner_latest_instruction": "2026-09-14: provide prompt; pull-machine AI will execute",
+  "new_runs_submitted": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/.ai/runtime/runs/pull_v28_rebuild_4096_20260914_train_pa_s1_attempt1/RUN_RECEIPT.json"
+  ],
+  "new_pa_s2_pa_s3_submitted": false,
+  "new_eval_queue_submitted": false,
+  "new_pa_s1_state": {
+    "acceptance_state": "UNASSESSED",
+    "backend": "tmux",
+    "checkpoint_state": "NOT_DECLARED",
+    "exit_code": -15,
+    "finished_at": "2026-09-14T11:15:50+00:00",
+    "finished_epoch": 1789384550.2037938,
+    "launched_at": "2026-09-14T11:15:12+00:00",
+    "launched_epoch": 1789384512.1292331,
+    "process_state": "CANCELLED",
+    "supervisor_pid": 651035,
+    "updated_at": "2026-09-14T11:15:50+00:00",
+    "wait_until_epoch": 1789388112.1292331
+  },
+  "new_pa_s1_completed_batches_observed": 0,
+  "new_pa_s1_checkpoint_files": [],
+  "actual_4096_ETA": null
+}

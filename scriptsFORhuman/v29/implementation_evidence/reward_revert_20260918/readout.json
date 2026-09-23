@@ -1,0 +1,32 @@
+{
+  "verified_at": "2026-09-18 20:40 HKT",
+  "decision": "V29-D023",
+  "evidence": "STATIC_PASS",
+  "source": "gr00t/rl/envs/door/door_open_a2_base.py",
+  "reference": {
+    "branch": "codex/v29-b02-b04-pro-20260918",
+    "subject": "Prepare v29 B02 and B04 Pro decision handoff",
+    "commit_time": "2026-09-18T17:14:54+08:00"
+  },
+  "comparison": "Exact source segments of the three methods; unrelated workspace edits untouched",
+  "current_source_AST": "PASS",
+  "methods": [
+    {
+      "method": "_reward_grasp",
+      "current_line": 16817,
+      "identical_to_before_D021": true
+    },
+    {
+      "method": "_reward_push_door_hinge",
+      "current_line": 17571,
+      "identical_to_before_D021": true
+    },
+    {
+      "method": "_get_a2_grasp_gated_door_reward_components",
+      "current_line": 18367,
+      "identical_to_before_D021": true
+    }
+  ],
+  "runtime": "NOT_RUN",
+  "training": "NOT_RUN"
+}

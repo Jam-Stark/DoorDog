@@ -1,0 +1,350 @@
+{
+  "sources": {
+    "push": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v29/push_baseline_C002_seed291/config.yaml",
+    "pull": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v29/pull_v29_baseline_seed291/config.yaml"
+  },
+  "selected_env": {
+    "a2_stage0_staging_x_min": {
+      "push": 0.68,
+      "pull": 0.5
+    },
+    "a2_stage0_staging_x_max": {
+      "push": 0.72,
+      "pull": 0.8
+    },
+    "a2_stage0_staging_y_tol": {
+      "push": 0.15,
+      "pull": 0.15
+    },
+    "a2_stage0_target_root_vel": {
+      "push": 0.5,
+      "pull": 0.5
+    },
+    "a2_stage0_near_target_root_vel": {
+      "push": 0.3,
+      "pull": 0.3
+    },
+    "a2_stage1_stage2_base_forward_creep_deadband": {
+      "push": 0.02,
+      "pull": 0.05
+    },
+    "a2_grasp_gate_mode": {
+      "push": "control_streak",
+      "pull": "control_streak"
+    },
+    "a2_grasp_streak_control_steps": {
+      "push": 5,
+      "pull": 5
+    },
+    "a2_stage2_squeeze_force_min": {
+      "push": 0.5,
+      "pull": 0.5
+    },
+    "a2_stage2_squeeze_force_max": {
+      "push": 30.0,
+      "pull": 30.0
+    },
+    "a2_stage2_completion_close_gate_required": {
+      "push": false,
+      "pull": false
+    },
+    "a2_stage3_to4_door_hinge_threshold": {
+      "push": 0.25,
+      "pull": 0.25
+    },
+    "a2_stage3_to4_requires_grasp_streak": {
+      "push": true,
+      "pull": true
+    },
+    "a2_stage3_to4_streak_highwater": {
+      "push": false,
+      "pull": false
+    },
+    "a2_stage3_base_unlocked": {
+      "push": true,
+      "pull": true
+    },
+    "a2_v26_4_side_canonicalization_enabled": {
+      "push": false,
+      "pull": "ABSENT"
+    },
+    "delta_action_scale": {
+      "push": 0.3,
+      "pull": 0.3
+    },
+    "delta_action_clip": {
+      "push": 15.0,
+      "pull": 15.0
+    },
+    "delta_action_clamp_to_dof_limits": {
+      "push": true,
+      "pull": true
+    },
+    "a2_gripper_source_tcp_offset_z": {
+      "push": 0.085,
+      "pull": 0.085
+    },
+    "a2_v26_door_handle_height_range": {
+      "push": [
+        0.9,
+        1.2
+      ],
+      "pull": [
+        0.9,
+        1.2
+      ]
+    },
+    "a2_v26_natural_start_enabled": {
+      "push": true,
+      "pull": true
+    },
+    "a2_v26_natural_start_door_normal_distance_range": {
+      "push": [
+        1.2,
+        4.0
+      ],
+      "pull": [
+        1.2,
+        4.0
+      ]
+    },
+    "a2_v26_natural_start_lateral_offset_range": {
+      "push": [
+        -0.5,
+        0.5
+      ],
+      "pull": [
+        -0.5,
+        0.5
+      ]
+    },
+    "a2_v26_natural_start_relative_yaw_range": {
+      "push": [
+        -0.6108652381980153,
+        0.6108652381980153
+      ],
+      "pull": [
+        -0.6108652381980153,
+        0.6108652381980153
+      ]
+    },
+    "a2_v29_natural_start_handle_yaw_jitter_rad": {
+      "push": 0.17453292519943295,
+      "pull": 0.17453292519943295
+    },
+    "enable_staged_reset": {
+      "push": true,
+      "pull": true
+    },
+    "staged_reset_ratios": {
+      "push": [
+        0.5,
+        0.1,
+        0.1,
+        0.1,
+        0.1,
+        0.1
+      ],
+      "pull": [
+        0.5,
+        0.1,
+        0.1,
+        0.1,
+        0.1,
+        0.1
+      ]
+    },
+    "max_stage_time": {
+      "push": [
+        525,
+        150,
+        150,
+        150,
+        150,
+        300
+      ],
+      "pull": [
+        525,
+        150,
+        150,
+        150,
+        150,
+        300
+      ]
+    },
+    "max_episode_length_s": {
+      "push": 30,
+      "pull": 30
+    },
+    "a2_v26_8_penalty_driver": {
+      "push": "side_min_natural_stage_reach_rate",
+      "pull": "ABSENT"
+    }
+  },
+  "trl": {
+    "push": {
+      "dataset_name": "dummy",
+      "output_dir": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v29/push_baseline_C002_seed291",
+      "learning_rate": "${algo.config.actor_learning_rate}",
+      "num_total_batches": 6000,
+      "total_episodes": null,
+      "num_ppo_epochs": "${algo.config.num_learning_epochs}",
+      "num_mini_batches": "${algo.config.num_mini_batches}",
+      "per_device_train_batch_size": null,
+      "gradient_accumulation_steps": 1,
+      "report_to": "none",
+      "gamma": "${algo.config.gamma}",
+      "lam": "${algo.config.lam}",
+      "vf_coef": "${algo.config.value_loss_coef}",
+      "lr_scheduler_type": "constant",
+      "save_strategy": "no",
+      "disable_tqdm": true
+    },
+    "pull": {
+      "dataset_name": "dummy",
+      "output_dir": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v29/pull_v29_baseline_seed291",
+      "learning_rate": 0.0001,
+      "num_total_batches": 6000,
+      "total_episodes": null,
+      "num_ppo_epochs": 5,
+      "num_mini_batches": 4,
+      "per_device_train_batch_size": null,
+      "gradient_accumulation_steps": 1,
+      "report_to": "none",
+      "gamma": 0.9975,
+      "lam": 0.985,
+      "vf_coef": 1.0,
+      "lr_scheduler_type": "constant",
+      "save_strategy": "no",
+      "disable_tqdm": true
+    }
+  },
+  "robot_init": {
+    "push": {
+      "pos": [
+        0.0,
+        0.0,
+        0.55
+      ],
+      "rot": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "lin_vel": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ang_vel": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "default_joint_angles": {
+        "FL_hip_joint": 0.0,
+        "FL_thigh_joint": 0.5,
+        "FL_calf_joint": -1.0,
+        "RL_hip_joint": 0.0,
+        "RL_thigh_joint": 0.5,
+        "RL_calf_joint": -1.0,
+        "FR_hip_joint": 0.0,
+        "FR_thigh_joint": 0.5,
+        "FR_calf_joint": -1.0,
+        "RR_hip_joint": 0.0,
+        "RR_thigh_joint": 0.5,
+        "RR_calf_joint": -1.0,
+        "arm_j1": 0.0,
+        "arm_j2": 0.1,
+        "arm_j3": -0.1,
+        "arm_j4": 0.0,
+        "arm_j5": -0.52,
+        "arm_j6": 1.57,
+        "arm_j7": 0.0,
+        "arm_j8": 0.0
+      }
+    },
+    "pull": {
+      "pos": [
+        0.0,
+        0.0,
+        0.55
+      ],
+      "rot": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "lin_vel": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ang_vel": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "default_joint_angles": {
+        "FL_hip_joint": 0.0,
+        "FL_thigh_joint": 0.5,
+        "FL_calf_joint": -1.0,
+        "RL_hip_joint": 0.0,
+        "RL_thigh_joint": 0.5,
+        "RL_calf_joint": -1.0,
+        "FR_hip_joint": 0.0,
+        "FR_thigh_joint": 0.5,
+        "FR_calf_joint": -1.0,
+        "RR_hip_joint": 0.0,
+        "RR_thigh_joint": 0.5,
+        "RR_calf_joint": -1.0,
+        "arm_j1": 0.0,
+        "arm_j2": 0.1,
+        "arm_j3": -0.1,
+        "arm_j4": 0.0,
+        "arm_j5": -0.52,
+        "arm_j6": 1.57,
+        "arm_j7": 0.0,
+        "arm_j8": 0.0
+      }
+    }
+  },
+  "reward_curriculum": {
+    "push": {
+      "reward_penalty_curriculum": true
+    },
+    "pull": {
+      "reward_penalty_curriculum": false
+    }
+  },
+  "ppo_config_values": {
+    "push": {
+      "actor_learning_rate": 0.0001,
+      "num_learning_epochs": 5,
+      "num_mini_batches": 4,
+      "gamma": 0.9975,
+      "lam": 0.985,
+      "value_loss_coef": 1.0,
+      "init_noise_std": 0.8,
+      "clip_param": 0.2,
+      "entropy_coef": 0.01,
+      "desired_kl": 0.005,
+      "num_steps_per_env": 64
+    },
+    "pull": {
+      "actor_learning_rate": 0.0001,
+      "num_learning_epochs": 5,
+      "num_mini_batches": 4,
+      "gamma": 0.9975,
+      "lam": 0.985,
+      "value_loss_coef": 1.0,
+      "init_noise_std": 0.8,
+      "clip_param": 0.2,
+      "entropy_coef": 0.01,
+      "desired_kl": 0.005,
+      "num_steps_per_env": 64
+    }
+  }
+}

@@ -1,9 +1,9 @@
 ---
 name: codex-agent-system-architecture
 scope: repository-wide AI workflow and authority model
-status: adaptive_v1_3_static_pass_runtime_not_run
-last_updated: 2026-08-22 HKT
-evidence_level: STATIC_PASS; PRODUCTION_RUNTIME_NOT_RUN
+status: v1_4_0_installed_host_verification_partial
+last_updated: 2026-09-12 17:58 HKT
+evidence_level: STATIC_PASS; TEST_PASS; LOCAL_HELPER_RUNTIME_PASS; APP_HOOKS_UNVERIFIED
 owned_paths:
   - AGENTS.md
   - .ai/
@@ -18,7 +18,16 @@ owned_paths:
 
 ## Purpose
 
-Record Jam Coding Role v1.3.0 for DoorDog: a lean default workflow with optional coordination facilities.
+Record Jam Coding Role v1.4.0 for DoorDog: a lean default workflow with optional coordination facilities.
+
+## v1.4.0 本地升级
+
+- 按 Owner 提供的交付包更新 27 个 DoorDog workflow 文件；Main model/effort 继续由用户选择，context/compact 保持 516000/464400。
+- 十一角色显式设置 model、最高 high effort、独立 context/compact 和 total scope；新委托使用 `fork_turns="none"`。
+- Supervisor 保存绝对 ETA，分离 process/acceptance，自动写完成 outbox，显式 ack 后归档。
+- 遵守 Owner 禁止哈希要求：不使用包内安装器；删除 command/source 摘要字段，memory 候选按规范化字段直接去重，ID 使用 UUID。
+- 新 supervisor 不兼容 v1.3 receipt/CLI。v26/v27 已关闭的历史 callers 不在此次迁移范围，不能直接用新版 helper 重启；当前 v28 无该依赖。原脚本随迁移备份保留。
+- 本机证据与限制见 `.ai/runtime/workflow-v140/` 和 runtime-compatibility entry。没有训练、硬件、外部仓库、commit/push 或 idle wake 交付。
 
 ## Current decisions
 

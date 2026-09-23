@@ -1,0 +1,373 @@
+{
+  "status": "RESOURCE_AND_SECONDARY_FORMAT_PASS",
+  "worker_original_URDF_and_mesh_files_preserved": 28,
+  "new_serialized_convex_mount_hulls": 51,
+  "plate_visual_and_collision_size_mm": [
+    250,
+    100,
+    5
+  ],
+  "ROS_variant_equivalent_except_URI_and_extension": true,
+  "fixed_MJCF_FK_test_configurations": 256,
+  "fixed_MJCF_max_matrix_error": 2.525923914475925e-12,
+  "native_engine_compile": "NOT_RUN",
+  "collision_hulls": [
+    {
+      "file": "meshes/mount/vpiper_main_collision_00.stl",
+      "faces": 28,
+      "volume_m3": 0.00018310392651501697,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_01.stl",
+      "faces": 12,
+      "volume_m3": 2.400000472366823e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_02.stl",
+      "faces": 268,
+      "volume_m3": 0.00012957018967757643,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_03.stl",
+      "faces": 12,
+      "volume_m3": 2.70000048950315e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_04.stl",
+      "faces": 16,
+      "volume_m3": 1.0029997595176165e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_05.stl",
+      "faces": 12,
+      "volume_m3": 2.7709584135428153e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_06.stl",
+      "faces": 12,
+      "volume_m3": 1.3545001533664771e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_07.stl",
+      "faces": 12,
+      "volume_m3": 3.009999593272754e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_08.stl",
+      "faces": 12,
+      "volume_m3": 1.3545000973008544e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_09.stl",
+      "faces": 12,
+      "volume_m3": 2.7000004895031502e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_10.stl",
+      "faces": 16,
+      "volume_m3": 1.0029997595176168e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_11.stl",
+      "faces": 12,
+      "volume_m3": 2.7709584135428153e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_12.stl",
+      "faces": 12,
+      "volume_m3": 1.3545001533664771e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_13.stl",
+      "faces": 12,
+      "volume_m3": 3.009999593272754e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_main_collision_14.stl",
+      "faces": 12,
+      "volume_m3": 1.3545000973008544e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_00.stl",
+      "faces": 16,
+      "volume_m3": 1.1276046331392021e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_01.stl",
+      "faces": 12,
+      "volume_m3": 1.2500000093132252e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_02.stl",
+      "faces": 12,
+      "volume_m3": 5.7499997168779245e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_03.stl",
+      "faces": 16,
+      "volume_m3": 1.1276046331392021e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_04.stl",
+      "faces": 12,
+      "volume_m3": 1.2500000093132252e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_05.stl",
+      "faces": 12,
+      "volume_m3": 5.7499997168779245e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_06.stl",
+      "faces": 16,
+      "volume_m3": 5.035503654439822e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_07.stl",
+      "faces": 16,
+      "volume_m3": 1.204454638806309e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_08.stl",
+      "faces": 12,
+      "volume_m3": 5.7499997168779245e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_09.stl",
+      "faces": 16,
+      "volume_m3": 5.036382171479699e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_10.stl",
+      "faces": 16,
+      "volume_m3": 1.204454638806309e-05,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_11.stl",
+      "faces": 12,
+      "volume_m3": 5.7499997168779245e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_12.stl",
+      "faces": 8,
+      "volume_m3": 7.172578455400172e-07,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_13.stl",
+      "faces": 16,
+      "volume_m3": 9.752894930364812e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_14.stl",
+      "faces": 12,
+      "volume_m3": 5.7499997168779245e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_15.stl",
+      "faces": 8,
+      "volume_m3": 7.174161551738104e-07,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_16.stl",
+      "faces": 16,
+      "volume_m3": 9.752894930364812e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_17.stl",
+      "faces": 12,
+      "volume_m3": 5.7499997168779245e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_18.stl",
+      "faces": 8,
+      "volume_m3": 5.227849875463372e-07,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_19.stl",
+      "faces": 16,
+      "volume_m3": 7.568875928222535e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_20.stl",
+      "faces": 16,
+      "volume_m3": 5.734896049324026e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_21.stl",
+      "faces": 8,
+      "volume_m3": 5.228232137783032e-07,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_22.stl",
+      "faces": 16,
+      "volume_m3": 7.568875928222533e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_23.stl",
+      "faces": 16,
+      "volume_m3": 5.734896049324024e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_24.stl",
+      "faces": 8,
+      "volume_m3": 8.03841337446681e-07,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_25.stl",
+      "faces": 12,
+      "volume_m3": 4.312579166603283e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_26.stl",
+      "faces": 16,
+      "volume_m3": 5.2526606678176395e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_27.stl",
+      "faces": 8,
+      "volume_m3": 8.038581675458381e-07,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_28.stl",
+      "faces": 12,
+      "volume_m3": 4.312579166603283e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_29.stl",
+      "faces": 16,
+      "volume_m3": 5.252660667817641e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_30.stl",
+      "faces": 134,
+      "volume_m3": 1.485007849724117e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_31.stl",
+      "faces": 140,
+      "volume_m3": 3.478462393252096e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_32.stl",
+      "faces": 144,
+      "volume_m3": 4.6580459245156544e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_33.stl",
+      "faces": 134,
+      "volume_m3": 1.4850122753683203e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_34.stl",
+      "faces": 140,
+      "volume_m3": 3.4784623932520987e-06,
+      "watertight": true,
+      "convex": true
+    },
+    {
+      "file": "meshes/mount/vpiper_support_collision_35.stl",
+      "faces": 144,
+      "volume_m3": 4.658045924515644e-06,
+      "watertight": true,
+      "convex": true
+    }
+  ]
+}

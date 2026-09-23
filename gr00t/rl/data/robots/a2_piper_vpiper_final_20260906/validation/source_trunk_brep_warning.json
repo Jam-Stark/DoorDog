@@ -1,0 +1,45 @@
+{
+  "source_trunk_brep_valid": false,
+  "raw_and_transformed_both_invalid": true,
+  "healing_applied": false,
+  "bad_elements": [
+    {
+      "type": "face",
+      "index": 1054,
+      "status": [
+        "BRepCheck_Status.BRepCheck_UnorientableShape"
+      ],
+      "bounds_STEP_mm": [
+        [
+          -112.82674346963596,
+          114.60821027969783,
+          -88.6251623163801
+        ],
+        [
+          -39.56876897709968,
+          114.60821027969853,
+          -80.82523471318004
+        ]
+      ]
+    },
+    {
+      "type": "shell",
+      "index": 0,
+      "status": [
+        "BRepCheck_Status.BRepCheck_NoError"
+      ],
+      "bounds_STEP_mm": [
+        [
+          -387.2543737617327,
+          -143.12877798012,
+          -130.21084883952506
+        ],
+        [
+          327.8443421085705,
+          143.241044889498,
+          80.35900417229033
+        ]
+      ]
+    }
+  ]
+}

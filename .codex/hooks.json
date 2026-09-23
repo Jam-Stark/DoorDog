@@ -1,5 +1,5 @@
 {
-  "description": "DoorDog v1.3 adaptive coordination hooks; no-op while team state is inactive",
+  "description": "Jam v1.4.0: bounded spawn and continuity; no wake/Stop/sleep hooks",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,8 +8,7 @@
           {
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" pre",
-            "timeout": 10,
-            "statusMessage": "Checking optional coordination policy"
+            "timeout": 10
           }
         ]
       }
@@ -21,8 +20,7 @@
           {
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" post",
-            "timeout": 10,
-            "statusMessage": "Recording active coordination metadata"
+            "timeout": 10
           }
         ]
       }
@@ -33,8 +31,18 @@
           {
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" session-start",
-            "timeout": 10,
-            "statusMessage": "Loading pending long-run events"
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" post-compact",
+            "timeout": 10
           }
         ]
       }

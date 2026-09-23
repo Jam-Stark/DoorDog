@@ -1,0 +1,222 @@
+== robot/a2_piper_U3_F0_clearance_only.urdf links 42 joints 41
+  trunk collision name=None origin={'xyz': '0 0 0.007', 'rpy': '0 0 0'} box {'size': '0.24 0.28 0.17'}
+  trunk collision name=None origin={'xyz': '0.25 0 0.119', 'rpy': '0 0 0'} box {'size': '0.08 0.05 0.02'}
+  trunk collision name=None origin={'xyz': '-0.22 0 0.119', 'rpy': '0 -0.03 0'} box {'size': '0.05 0.03 0.016'}
+  trunk collision name=None origin={'xyz': '0.365 0 0.1', 'rpy': '0 -0.7 0'} box {'size': '0.06 0.1 0.01'}
+  trunk collision name=None origin={'xyz': '-0.31 0 0.112', 'rpy': '0 0.7 0'} box {'size': '0.045 0.1 0.01'}
+  trunk collision name=base_foot_collision origin={'xyz': '0.045 0 0.149431554755', 'rpy': '0 0 0'} box {'size': '0.042 0.09 0.004'}
+  trunk collision name=base_crossbar_collision origin={'xyz': '0.045 0 0.155431554755', 'rpy': '0 0 0'} box {'size': '0.022 0.33 0.008'}
+  trunk collision name=base_left_crossbar_rail_collision origin={'xyz': '0.0393718339299 0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01125633214015212'}
+  trunk collision name=base_left_post_collision origin={'xyz': '0.0337436678598 0.155 0.165719380584', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.02057565165841896'}
+  trunk collision name=base_left_saddle_collision origin={'xyz': '0.0326838293314 0.155 0.177703302606', 'rpy': '0 -0.558505360638 0'} box {'size': '0.022 0.08 0.004'}
+  trunk collision name=base_right_crossbar_rail_collision origin={'xyz': '0.0367152714492 -0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01656945710150697'}
+  trunk collision name=base_right_post_collision origin={'xyz': '0.0284305428985 -0.155 0.164646059671', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.018429009832892196'}
+  trunk collision name=base_right_saddle_collision origin={'xyz': '0.0280147195169 -0.155 0.175816859789', 'rpy': '0 -0.209439510239 0'} box {'size': '0.022 0.08 0.004'}
+  trunk visual name=base_foot origin={'xyz': '0.045 0 0.149431554755', 'rpy': '0 0 0'} box {'size': '0.042 0.09 0.004'}
+  trunk visual name=base_crossbar origin={'xyz': '0.045 0 0.155431554755', 'rpy': '0 0 0'} box {'size': '0.022 0.33 0.008'}
+  trunk visual name=base_left_crossbar_rail origin={'xyz': '0.0393718339299 0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01125633214015212'}
+  trunk visual name=base_left_post origin={'xyz': '0.0337436678598 0.155 0.165719380584', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.02057565165841896'}
+  trunk visual name=base_left_saddle origin={'xyz': '0.0326838293314 0.155 0.177703302606', 'rpy': '0 -0.558505360638 0'} box {'size': '0.022 0.08 0.004'}
+  trunk visual name=base_right_crossbar_rail origin={'xyz': '0.0367152714492 -0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01656945710150697'}
+  trunk visual name=base_right_post origin={'xyz': '0.0284305428985 -0.155 0.164646059671', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.018429009832892196'}
+  trunk visual name=base_right_saddle origin={'xyz': '0.0280147195169 -0.155 0.175816859789', 'rpy': '0 -0.209439510239 0'} box {'size': '0.022 0.08 0.004'}
+  arm_body6_to_gripper collision name=None origin={'xyz': '0 0 0', 'rpy': '0 0 0'} mesh {'filename': 'meshes/piper/gripper_base.STL'}
+  arm_body6_to_gripper collision name=wrist_u3_foot_collision origin={'xyz': '-0.00475 0.0299972908064 0.018', 'rpy': '0 0 0'} box {'size': '0.04 0.004 0.024'}
+  arm_body6_to_gripper collision name=wrist_u3_upright_collision origin={'xyz': '-0.00480259495544 0.0957690159438 0.023750120815', 'rpy': '0.000796620312934 -1.48359262584 -1.57079632679'} box {'size': '0.008 0.008 0.13204524199175832'}
+  arm_body6_to_gripper collision name=wrist_u3_short_head_collision origin={'xyz': '-0.00249271865913 0.162209708284 0.0218699892712', 'rpy': '3.0580371084 0.300258054116 -3.14159265359'} box {'size': '0.008 0.008 0.01603116197810846'}
+  arm_body6_to_gripper collision name=wrist_u3_saddle_collision origin={'xyz': '-0.000131840647846 0.164871075187 0.0144139232967', 'rpy': '-0.000116874533583 -1.48359265298 -1.56987934758'} box {'size': '0.022 0.08 0.004'}
+  arm_body6_to_gripper visual name=wrist_u3_foot origin={'xyz': '-0.00475 0.0299972908064 0.018', 'rpy': '0 0 0'} box {'size': '0.04 0.004 0.024'}
+  arm_body6_to_gripper visual name=wrist_u3_upright origin={'xyz': '-0.00480259495544 0.0957690159438 0.023750120815', 'rpy': '0.000796620312934 -1.48359262584 -1.57079632679'} box {'size': '0.008 0.008 0.13204524199175832'}
+  arm_body6_to_gripper visual name=wrist_u3_short_head origin={'xyz': '-0.00249271865913 0.162209708284 0.0218699892712', 'rpy': '3.0580371084 0.300258054116 -3.14159265359'} box {'size': '0.008 0.008 0.01603116197810846'}
+  arm_body6_to_gripper visual name=wrist_u3_saddle origin={'xyz': '-0.000131840647846 0.164871075187 0.0144139232967', 'rpy': '-0.000116874533583 -1.48359265298 -1.56987934758'} box {'size': '0.022 0.08 0.004'}
+   dd_base_left_M_fixed trunk -> dd_base_left_M {'xyz': '0.025 0.155 0.19', 'rpy': '0 -0.558505360638 0'}
+   dd_base_right_M_fixed trunk -> dd_base_right_M {'xyz': '0.025 -0.155 0.19', 'rpy': '0 -0.209439510239 0'}
+   dd_wrist_M_fixed arm_body6_to_gripper -> dd_wrist_M {'xyz': '-0.0001433916411620225 0.17931597301279573 0.01567677458253331', 'rpy': '-0.000116874533583 -1.48359265298 -1.56987934758'}
+== robot/a2_piper_U3_F15_clearance_only.urdf links 42 joints 41
+  trunk collision name=None origin={'xyz': '0 0 0.007', 'rpy': '0 0 0'} box {'size': '0.24 0.28 0.17'}
+  trunk collision name=None origin={'xyz': '0.25 0 0.119', 'rpy': '0 0 0'} box {'size': '0.08 0.05 0.02'}
+  trunk collision name=None origin={'xyz': '-0.22 0 0.119', 'rpy': '0 -0.03 0'} box {'size': '0.05 0.03 0.016'}
+  trunk collision name=None origin={'xyz': '0.365 0 0.1', 'rpy': '0 -0.7 0'} box {'size': '0.06 0.1 0.01'}
+  trunk collision name=None origin={'xyz': '-0.31 0 0.112', 'rpy': '0 0.7 0'} box {'size': '0.045 0.1 0.01'}
+  trunk collision name=base_foot_collision origin={'xyz': '0.045 0 0.149431554755', 'rpy': '0 0 0'} box {'size': '0.042 0.09 0.004'}
+  trunk collision name=base_crossbar_collision origin={'xyz': '0.045 0 0.155431554755', 'rpy': '0 0 0'} box {'size': '0.022 0.33 0.008'}
+  trunk collision name=base_left_crossbar_rail_collision origin={'xyz': '0.0393718339299 0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01125633214015212'}
+  trunk collision name=base_left_post_collision origin={'xyz': '0.0337436678598 0.155 0.165719380584', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.02057565165841896'}
+  trunk collision name=base_left_saddle_collision origin={'xyz': '0.0326838293314 0.155 0.177703302606', 'rpy': '0 -0.558505360638 0'} box {'size': '0.022 0.08 0.004'}
+  trunk collision name=base_right_crossbar_rail_collision origin={'xyz': '0.0367152714492 -0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01656945710150697'}
+  trunk collision name=base_right_post_collision origin={'xyz': '0.0284305428985 -0.155 0.164646059671', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.018429009832892196'}
+  trunk collision name=base_right_saddle_collision origin={'xyz': '0.0280147195169 -0.155 0.175816859789', 'rpy': '0 -0.209439510239 0'} box {'size': '0.022 0.08 0.004'}
+  trunk visual name=base_foot origin={'xyz': '0.045 0 0.149431554755', 'rpy': '0 0 0'} box {'size': '0.042 0.09 0.004'}
+  trunk visual name=base_crossbar origin={'xyz': '0.045 0 0.155431554755', 'rpy': '0 0 0'} box {'size': '0.022 0.33 0.008'}
+  trunk visual name=base_left_crossbar_rail origin={'xyz': '0.0393718339299 0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01125633214015212'}
+  trunk visual name=base_left_post origin={'xyz': '0.0337436678598 0.155 0.165719380584', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.02057565165841896'}
+  trunk visual name=base_left_saddle origin={'xyz': '0.0326838293314 0.155 0.177703302606', 'rpy': '0 -0.558505360638 0'} box {'size': '0.022 0.08 0.004'}
+  trunk visual name=base_right_crossbar_rail origin={'xyz': '0.0367152714492 -0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01656945710150697'}
+  trunk visual name=base_right_post origin={'xyz': '0.0284305428985 -0.155 0.164646059671', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.018429009832892196'}
+  trunk visual name=base_right_saddle origin={'xyz': '0.0280147195169 -0.155 0.175816859789', 'rpy': '0 -0.209439510239 0'} box {'size': '0.022 0.08 0.004'}
+  arm_body6_to_gripper collision name=None origin={'xyz': '0 0 0', 'rpy': '0 0 0'} mesh {'filename': 'meshes/piper/gripper_base.STL'}
+  arm_body6_to_gripper collision name=wrist_u3_foot_collision origin={'xyz': '-0.00475 0.0299972908064 0.018', 'rpy': '0 0 0'} box {'size': '0.04 0.004 0.024'}
+  arm_body6_to_gripper collision name=wrist_u3_upright_collision origin={'xyz': '-0.00480281889489 0.0960490596094 0.0237746037506', 'rpy': '0.000796620312935 -1.48359262584 -1.57079632679'} box {'size': '0.008 0.008 0.13260746585798872'}
+  arm_body6_to_gripper collision name=wrist_u3_short_head_collision origin={'xyz': '-0.0024933370653 0.162955761897 0.0197918116375', 'rpy': '3.05663881628 0.237533066563 3.14159265359'} box {'size': '0.008 0.008 0.020151243139421737'}
+  arm_body6_to_gripper collision name=wrist_u3_saddle_collision origin={'xyz': '-0.000132533952982 0.165690122973 0.0107183380537', 'rpy': '-2.97664706977e-05 -1.22179326563 -1.56996780604'} box {'size': '0.022 0.08 0.004'}
+  arm_body6_to_gripper visual name=wrist_u3_foot origin={'xyz': '-0.00475 0.0299972908064 0.018', 'rpy': '0 0 0'} box {'size': '0.04 0.004 0.024'}
+  arm_body6_to_gripper visual name=wrist_u3_upright origin={'xyz': '-0.00480281889489 0.0960490596094 0.0237746037506', 'rpy': '0.000796620312935 -1.48359262584 -1.57079632679'} box {'size': '0.008 0.008 0.13260746585798872'}
+  arm_body6_to_gripper visual name=wrist_u3_short_head origin={'xyz': '-0.0024933370653 0.162955761897 0.0197918116375', 'rpy': '3.05663881628 0.237533066563 3.14159265359'} box {'size': '0.008 0.008 0.020151243139421737'}
+  arm_body6_to_gripper visual name=wrist_u3_saddle origin={'xyz': '-0.000132533952982 0.165690122973 0.0107183380537', 'rpy': '-2.97664706977e-05 -1.22179326563 -1.56996780604'} box {'size': '0.022 0.08 0.004'}
+   dd_base_left_M_fixed trunk -> dd_base_left_M {'xyz': '0.025 0.155 0.19', 'rpy': '0 -0.558505360638 0'}
+   dd_base_right_M_fixed trunk -> dd_base_right_M {'xyz': '0.025 -0.155 0.19', 'rpy': '0 -0.209439510239 0'}
+   dd_wrist_M_fixed arm_body6_to_gripper -> dd_wrist_M {'xyz': '-0.0001433916411620225 0.17931597301279573 0.01567677458253331', 'rpy': '-2.97664706977e-05 -1.22179326563 -1.56996780604'}
+== robot/a2_piper_U3_F0_camera_visuals.urdf links 42 joints 41
+  trunk collision name=None origin={'xyz': '0 0 0.007', 'rpy': '0 0 0'} box {'size': '0.24 0.28 0.17'}
+  trunk collision name=None origin={'xyz': '0.25 0 0.119', 'rpy': '0 0 0'} box {'size': '0.08 0.05 0.02'}
+  trunk collision name=None origin={'xyz': '-0.22 0 0.119', 'rpy': '0 -0.03 0'} box {'size': '0.05 0.03 0.016'}
+  trunk collision name=None origin={'xyz': '0.365 0 0.1', 'rpy': '0 -0.7 0'} box {'size': '0.06 0.1 0.01'}
+  trunk collision name=None origin={'xyz': '-0.31 0 0.112', 'rpy': '0 0.7 0'} box {'size': '0.045 0.1 0.01'}
+  trunk visual name=base_foot origin={'xyz': '0.045 0 0.149431554755', 'rpy': '0 0 0'} box {'size': '0.042 0.09 0.004'}
+  trunk visual name=base_crossbar origin={'xyz': '0.045 0 0.155431554755', 'rpy': '0 0 0'} box {'size': '0.022 0.33 0.008'}
+  trunk visual name=base_left_crossbar_rail origin={'xyz': '0.0393718339299 0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01125633214015212'}
+  trunk visual name=base_left_post origin={'xyz': '0.0337436678598 0.155 0.165719380584', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.02057565165841896'}
+  trunk visual name=base_left_saddle origin={'xyz': '0.0326838293314 0.155 0.177703302606', 'rpy': '0 -0.558505360638 0'} box {'size': '0.022 0.08 0.004'}
+  trunk visual name=base_right_crossbar_rail origin={'xyz': '0.0367152714492 -0.155 0.155431554755', 'rpy': '0 -1.57079632679 0'} box {'size': '0.01 0.01 0.01656945710150697'}
+  trunk visual name=base_right_post origin={'xyz': '0.0284305428985 -0.155 0.164646059671', 'rpy': '0 0 0'} box {'size': '0.01 0.01 0.018429009832892196'}
+  trunk visual name=base_right_saddle origin={'xyz': '0.0280147195169 -0.155 0.175816859789', 'rpy': '0 -0.209439510239 0'} box {'size': '0.022 0.08 0.004'}
+  arm_body6_to_gripper collision name=None origin={'xyz': '0 0 0', 'rpy': '0 0 0'} mesh {'filename': 'meshes/piper/gripper_base.STL'}
+  arm_body6_to_gripper visual name=wrist_u3_foot origin={'xyz': '-0.00475 0.0299972908064 0.018', 'rpy': '0 0 0'} box {'size': '0.04 0.004 0.024'}
+  arm_body6_to_gripper visual name=wrist_u3_upright origin={'xyz': '-0.00480259495544 0.0957690159438 0.023750120815', 'rpy': '0.000796620312934 -1.48359262584 -1.57079632679'} box {'size': '0.008 0.008 0.13204524199175832'}
+  arm_body6_to_gripper visual name=wrist_u3_short_head origin={'xyz': '-0.00249271865913 0.162209708284 0.0218699892712', 'rpy': '3.0580371084 0.300258054116 -3.14159265359'} box {'size': '0.008 0.008 0.01603116197810846'}
+  arm_body6_to_gripper visual name=wrist_u3_saddle origin={'xyz': '-0.000131840647846 0.164871075187 0.0144139232967', 'rpy': '-0.000116874533583 -1.48359265298 -1.56987934758'} box {'size': '0.022 0.08 0.004'}
+   dd_base_left_M_fixed trunk -> dd_base_left_M {'xyz': '0.025 0.155 0.19', 'rpy': '0 -0.558505360638 0'}
+   dd_base_right_M_fixed trunk -> dd_base_right_M {'xyz': '0.025 -0.155 0.19', 'rpy': '0 -0.209439510239 0'}
+   dd_wrist_M_fixed arm_body6_to_gripper -> dd_wrist_M {'xyz': '-0.0001433916411620225 0.17931597301279573 0.01567677458253331', 'rpy': '-0.000116874533583 -1.48359265298 -1.56987934758'}
+
+=== README.md head ===
+# U3前视优先修改版 · SVG + 仿真接入完整包
+
+**主配置为 `U3_F0`：在指定默认姿态下，腕相机水平朝前。** `U3_F15`是同位置下俯15°的固定对照，不是恢复原来的60多度俯视，也不是运行中按stage切换。U1、U2已不再提供为可选配置。
+
+## 1. 先看图或直接打开场景
+
+打开根目录 `START_HERE.html`。图纸都是数值SVG，不含位图底图或图像生成内容。
+
+|文件|用途|
+|---|---|
+|`svg/U3_F0_reference_four_views.svg`|主方案完整安装／视野／光路：前、右、后、俯四视图|
+|`svg/U3_F0_wrist_detail_four_views.svg`|腕部局部，确认直立180mm、水平前视及近端TCP位置|
+|`svg/U3_F0_base_detail_four_views.svg`|两台未改变的base相机及Vpiper／5mm板|
+|`svg/U3_F15_reference_four_views.svg`|同位置15°小俯角对照|
+|`svg/U3_F15_wrist_detail_four_views.svg`|对照腕部局部|
+|`svg/*_front.svg / *_right.svg / *_rear.svg / *_top.svg`|独立SVG视口，保持对应主图比例|
+|`sim/U3_F0_reference_scene.usda`|完整机器人与本方案相机、支架的静态USD场景|
+|`sim/U3_F0_forward_bench.usda`|同一场景＋明确标记的合成前向格板和近场点；不是任务门|
+|`sim/U3_F15_*`|15°对照场景|
+
+`previews/`是从SVG直接渲染的PNG，方便快速看图；不替代原矢量坐标。
+
+## 2. 修改后的固定参数
+
+机械M：原点为外壳包络中心，+X镜头前向，+Y沿90mm长边，+Z相机上方。F=`arm_body6_to_gripper`，B=`trunk`。RPY为`Rz(yaw) Ry(pitch) Rx(roll)`。
+
+|配置|相机|parent|外壳中心XYZ，mm|机械RPY，deg|
+|---|---|---|---|---|
+|两配置共同|base_left|B|[25,155,190]|[0,-32,0]|
+|两配置共同|base_right|B|[25,-155,190]|[0,-12,0]|
+|**U3_F0**|wrist|F|[-0.143391641,179.315973013,15.676774583]|[-0.006696418,-85.003597532,-89.947460961]|
+|**U3_F15**|wrist|F|同上|[-0.001705493,-70.003597558,-89.952529257]|
+
+在`[0,0,0,0,0,1.57] rad`的默认机械臂姿态下，两者相机中心都**严格位于法兰正上方180mm**，没有重新侧移／后退。U3_F0光轴为B`[1,0,0]`；U3_F15光轴为B`[cos15°,0,-sin15°]`。因此表内F系的−85°不能理解为向地面俯视85°。
+
+两台base的完整配置对象与旧U3逐项相等。RGB与左右IR各有独立光心、矩阵、ROS四元数及USD四元数，均已写在JSON中。depth配置仍是base848×480／195mm门槛、wrist424×240／105mm门槛。
+
+机器人按已上传的最终HEAD100文件：PiPER安装原点B`[145,0,147.431555] mm`，新增板`250×100×5 mm`。本轮再次核对STEP与visual mesh以及总STEP来源哈希。支架根部根据实际网格重设落点，避免旧示意足垫悬在基体表面上方；它仍不是已经加工的孔位／夹紧设计。
+
+## 3. 直接挂到运动机器人，不要求先通过硬件验收
+
+在Isaac Sim/Isaac Lab应用已经初始化、机器人已经生成后、Camera传感器构造和sim.reset之前调用：
+
+```python
+from pathlib import Path
+import sys
+import omni.usd
+
+BUNDLE = Path('/path/to/U3_forward_delivery')
+sys.path.insert(0, str(BUNDLE / 'code'))
+from attach_isaac import install, make_existing_camera_cfgs
+
+receipt = install(
+    omni.usd.get_context().get_stage(),
+    BUNDLE / 'config/U3_F0.json',
+    robot_root='/World/envs/env_0/Robot',  # 改为你的实际机器人根路径
+    supports=True,
+    housings=True,
+    replace=True,
+)
+# 如使用Isaac Lab，则据这些config构造Camera并加入既有sensor生命周期：
+configs = make_existing_camera_cfgs(receipt, include_right_ir=True)
+```
+
+`replace=True`明确替换旧`DoorDogCameraRig`，不要同时叠加旧U1/U2/U3视角。脚本将base挂到trunk、wrist挂到法兰link上，而不是固定到世界坐标。新增的overlay没有RigidBody、Collision、Mass等physics API，不改变policy。
+
+固定关节合并时，只有输入URDF中与F重合的`arm_body6`被允许作自动等价parent。其他名称映射、缩放、实例代理会显式报错，不会悄悄把腕相机挂到trunk。多个env应在克隆前安装或逐env使用实际prim路径。
+
+用`U3_F15.json`替换路径可做同一记录/同一场景的固定角度对照，不需要修改动作。手动隐藏支架的诊断选项不能被解释成实物支架已经不存在或已无冲突。
+
+## 4. 最小渲染检查
+
+```bash
+./isaaclab.sh -p /path/to/U3_forward_delivery/code/smoke_isaaclab.py \
+  --plan U3_F0 --bench-targets --enable_cameras --headless \
+  --save-dir /tmp/u3_forward_F0_smoke
+```
+
+同理改为`--plan U3_F15`做对照；`--no-supports`可用于分离支架遮挡，`--stream-mode six`只启动每台RGB+depth，默认`nine`另外启动右IR视点Z-buffer诊断。
+
+该脚本使用完整静态机器人参考几何，输出每路RGB PNG／数组、理想光轴深度数组、实际K及变换核对；**不是原始阶段任务回放**。合成格板只是检查前视相机朝向/渲染输出，不把它作为真实随机门场景证据。本环境未运行这个Isaac脚本，运行记录由你的本地环境产生。
+
+纯viewport可直接打开`*_reference_scene.usda`或`*_forward_bench.usda`。这些场景是静态视觉场景；运动机器人要使用上面的挂载接口或模型导入路径。
+
+`robot/a2_piper_*_camera_visuals.urdf`保留原关节／惯性／碰撞字段，增加visual和fixed optical frames；无惯性的新增fixed link如何被具体URDF importer合并/补默认质量，尚未运行验证。因此要严格保持现有仿真物理不变，优先使用USD overlay接口，而不要假设所有导入器都会完全忽略新增fixed link。
+
+`*_clearance_only.urdf`则显式增加外壳／支架碰撞包络，仅供单独的机械扫掠检查，不能冒充不改变物理的默认视觉版本。
+
+## 5. 前视职责与接触职责的真实边界
+
+原U3朝向按对准近端TCP选取，参考姿态下俯约63.867°。本版改为前视，是按Owner要求改变优先级，不再用“让TCP居中”决定镜头方向。
+
+但180mm塔架与F+Z85mm近端TCP存在几何冲突：在当前名义光学模型下，U3_F0和U3_F15均不能把这个近端点放入RGB。参考姿态下，一个与TCP同B高度、位于法兰正前方的点，分别约要到**0.458m／0.243m**才进入三流共同视野；这个距离来自几何扫描，不是实际handle已验证的工作距。
+
+因此不能宣称“主方案默认前视，同时S3完整握持区也已解决”。这次已经交付可直接放sim的前视方案；S3/4外露handle／手指与base互补是否够用，需要你用实际阶段画面继续验证。固定在法兰上的TCP和相机的相对位置不随整条arm/base转动而改变，不能把“arm动起来”当作会自动把刚性近端TCP移回图像的理由。
+
+S5也只有在arm实际恢复接近参考方向后，腕机才恢复前视。`docs/PHASE_ROLE_CONTRACT.md`逐阶段列出了设计职责、已知冲突和待验证项；`code/phase_diagnostics.py`可从既有环境读取实际变换/目标，输出各流像素和相对base前向方向，不改任何动作、stage或相机位姿。
+
+## 6. 本轮完成的计算
+
+- 冻结U3塔架位置与两台base配置，重算新俯仰、九路光学／USD变换及支架。
+- 对指定参考姿态和0/20/35mm三种手指关节半开度做前向合成点、TCP、实际两指表面样点及160×90网格射线检查。
+- 检查相机／支架包络与已知机器人网格在上述静态姿态中的表面相交；不将零命中解释为连续扫掠、门板或实机安全通过。
+- 从原机器人三角网格计算四视图SVG，原mesh不做显示简化；另用独立逐三角形算法复核样例射线首交。
+- 核对新URDF中原关节、惯性、原碰撞字段未变，optical frame FK与JSON一致，ROS optical(+Z前,+Y下)和USD(-Z前,+Y上)轴转换一致。
+- 检查所有SVG为纯矢量、XML正确、ID唯一；附CSV、JSON、NPZ和完整代码。
+
+原完整stage轨迹不在本轮上传的模型／图包内。本轮**没有重新处理1536集、没有S0/1/2/3/4/5新覆盖率，也没有实拍或真实有效depth结果**。这里的静态射线栅格不是RGB图像像素的真实测量。
+
+## 7. 本地复算与源文件
+
+```bash
+python -m pip install -r code/requirements.txt
+python code/reproduce.py --out ../U3_forward_recomputed
+```
+
+输出目录必须不存在。会从包内原始模型和旧U3源配置重建参数、参考计算、URDF／USD、SVG和静态QA；不下载软件、不调用训练、也不自动执行Isaac。数值库版本在`qa/tool_versions.json`。
+
+在有pxr的环境中还可以运行`python code/check_usd.py`，原生解析所有USD场景并核对摄像机world矩阵，随后测试挂载／移除接口。当前交付中的该项为`NOT_RUN`，不是运行成功收据。
+
+**单一参数源：** `config/U3_F0.json`、`config/U3_F15.json`。`source/U3_V_previous.json`仅作来源对照，不是推荐配置。公开API文档、未标定参数与成像边界见`docs/`。所有可下载文件校验见MANIFEST与SHA256SUMS。
+
+=== config dir ===
+config/mechanical_poses.csv
+config/reference_joint_pose.json
+config/U3_F0_reference_coordinates.json
+config/U3_F15.json
+config/U3_F15_reference_coordinates.json
+config/U3_F0.json
+config/parent_paths.example.json

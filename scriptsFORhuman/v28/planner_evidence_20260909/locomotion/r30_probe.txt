@@ -1,0 +1,129 @@
+total 337380
+drwxrwxr-x  2 baoquanc baoquanc      4096 Sep  9 00:11 .
+drwxrwxr-x 29 baoquanc baoquanc      4096 Sep  9 02:09 ..
+-rw-rw-r--  1 baoquanc baoquanc      2009 Sep  9 00:11 a2_eval_diagnostic_metadata.json
+-rw-rw-r--  1 baoquanc baoquanc     10669 Sep  9 00:11 handle_height_ablation_summary.json
+-rw-rw-r--  1 baoquanc baoquanc     96867 Sep  9 00:11 metrics_eval.json
+-rw-rw-r--  1 baoquanc baoquanc  35079231 Sep  9 00:11 stage0_1_step_trace.json
+-rw-rw-r--  1 baoquanc baoquanc 155078773 Sep  9 00:11 stage2_5_step_trace.json
+-rw-rw-r--  1 baoquanc baoquanc 155078773 Sep  9 00:11 stage2_step_trace.json
+-rw-rw-r--  1 baoquanc baoquanc    103640 Sep  9 00:11 student_stage2_diagnostic.json
+---
+== a2_eval_diagnostic_metadata.json
+{
+    "diagnostic_trace_enabled": true,
+    "reward_terms": [
+        "push_door_hinge",
+        "a2_stage3_unlatch_hold",
+        "a2_stage3_stage4_hold_and_drive",
+        "a2_corridor_door_wide",
+        "a2_corridor_clean_passage",
+        "penalty_a2_door_body_contact",
+        "complete"
+    ],
+    "forced_gripper_close_enabled": false,
+    "forced_gripper_close_value": -1.0,
+    "forced_gripper_close_stages": [
+        3,
+        4
+    ],
+    "forced_gripper_close_applied_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ],
+    "canonical_high_level_action_layout": {
+        "dim": 12,
+        "base_start": 0,
+        "base_end": 5,
+        "arm_start": 5,
+        "arm_end": 11,
+        "gripper_index": 11
+    },
+    "stage3_to4_door_hinge_threshold": 0.25,
+    "trace_timing": {
+        "policy_and_post_forced_override": "computed from the pre-step observation and pre-step stage_buf",
+        "post_delta_post_warp_env_action": "captured inside A2Base after DeltaActionBase and WarpedActionBase, before action-to-joint-target mapping",
+        "a2_base_leg_action12": "captured from the completed 24D step_actions suffix after A2 Base composition and immediately before env.step",
+        "articulation_state_contact_reward": "captured after physics tensor refresh and reward computation, before reset and before staged-task stage advanceme
+== handle_height_ablation_summary.json
+{
+  "checkpoint": {
+    "config_path": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/depthadd_v3_20260820/depthadd_v3_rgbd_doorman_dr_4x64_s0_12k_r15/config.yaml",
+    "global_step": 12000,
+    "path": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/depthadd_v3_20260820/depthadd_v3_rgbd_doorman_dr_4x64_s0_12k_r15/model_step_012000.pt"
+  },
+  "contract": {
+    "controller": "student",
+    "depth_zero": false,
+    "global_step": 12000,
+    "mode": "diagnose",
+    "num_envs": 16,
+    "observation_augmentation": "off",
+    "render_profile": "standard",
+    "seed": 0,
+    "visual_lane": "fixed"
+  },
+  "door_handle_height_m": {
+    "non_height_custom_data": "bitwise JSON-value equal to frozen r10 case_table",
+    "realized_by_env": [
+      {
+        "env_id": 0,
+        "value": 0.9
+      },
+      {
+        "env_id": 1,
+        "value": 0.9
+      },
+      {
+        "env_id": 2,
+        "value": 0.9
+      },
+      {
+        "env_id": 3,
+        "value": 0.9
+      },
+      {
+        "env_id": 4,
+        "value": 0.9
+      },
+      {
+        "env_id": 5,
+        "value": 0.9
+      },
+      {
+        "env_id": 6,
+        "value": 0.9
+      },
+      {
+        "env_id": 7,
+        "value": 0.9
+      },
+      {
+        "env_id": 8,
+        "value": 0.9
+      },
+      {
+        "env_id": 9,
+        "value": 0.9
+      },
+      {
+        "env_id": 10,
+        "value": 0.9
+      },
+      {
+
+---

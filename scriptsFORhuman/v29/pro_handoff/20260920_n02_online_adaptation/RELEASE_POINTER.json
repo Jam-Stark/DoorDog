@@ -1,0 +1,9 @@
+{
+  "local_release_dir": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/outgoing-artifacts/base_v29_n02_online_adaptation/20260920_150609__c002_dynamics_r2",
+  "base_tag": "v29-c002-baseline",
+  "review_branch": "codex/v29-n02-pro-20260920",
+  "revision": 2,
+  "status": "PUBLISHED_AND_UPLOADED",
+  "drive_folder": "https://drive.google.com/drive/folders/1m7C_mk9bFPxGcQK0RTUFwl3J8rPHjE7g",
+  "delivery_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/outgoing-artifacts/base_v29_n02_online_adaptation/20260920_150609__c002_dynamics_r2/DELIVERY_RECEIPT.json"
+}

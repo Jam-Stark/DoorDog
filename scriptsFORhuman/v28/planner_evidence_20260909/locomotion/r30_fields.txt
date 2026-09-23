@@ -1,0 +1,114 @@
+1867
+env_id : 0
+stage_buf : 0
+time_in_stage_buf : 1
+episode_length_buf : 1
+terminal_reasons : unknown_reset
+door_hinge_joint_pos : 3.938802842912148e-12
+door_handle_joint_pos : 0.00012795750808436424
+door_hinge_joint_vel : 2.1597027455300122e-07
+door_handle_joint_vel : -0.014619099907577038
+root_pos_rel : [-0.79071044921875, 0.4342517852783203, 0.5469660758972168]
+root_roll : -0.00270593399181962
+root_pitch : -0.005593620706349611
+root_yaw : -0.0758354663848877
+target_root_distance : 2.8246850967407227
+doorframe_contact_force : 0.0
+contact_force_arm_body7_8_w : [[-0.018330145627260208, 0.011007889173924923, -0.039113786071538925], [0.0183301456272602
+contact_force_arm_body7_8_norm : [0.044576406478881836, 0.044576406478881836]
+handle_contact_force_w : [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+handle_contact_force_norm : [0.0, 0.0]
+squeeze_y : [0.0, 0.0]
+single_contact : False
+single_contact_arm_body7 : False
+single_contact_arm_body8 : False
+both_contact : False
+squeeze_window : False
+contact_stability : False
+a2_grasp_gate_mode : control_streak
+a2_grasp_streak_control_steps : 5
+a2_stage2_squeeze_streak : 0
+a2_stage3_stage4_both_contact_streak : 0
+over_force : False
+arm_j7_j8_pos : [3.444586036494002e-05, -3.1966188544174656e-05]
+arm_j7_j8_close_target : [0.0, 0.0]
+arm_j7_j8_close_error : [3.444586036494002e-05, -3.1966188544174656e-05]
+gripper_primitive_raw : [-0.03666780889034271]
+gripper_raw_sign_flip : False
+stage3_stage4_gripper_raw_sign_flip : False
+target_offset_x_abs : 0.666822075843811
+target_offset_y_abs : 0.391867458820343
+target_offset_z_abs : 0.32930445671081543
+target_pos_source_handle_distance : 0.8406267166137695
+target_offset_norm : 0.8406267166137695
+target_pos_source_pregrasp_distance : 0.795499861240387
+pregrasp_opening_alignment : 0.8905660510063171
+pregrasp_approach_alignment : 0.921780526638031
+handle_opening_alignment : 0.8905660510063171
+handle_approach_alignment : 0.921780526638031
+gripper_source_quat_w : [-0.3255818486213684, -0.6482138633728027, -0.5218055248260498, -0.4489257335662842]
+gripper_source_axes_w : {'x': [0.05236935615539551, 0.9688072800636292, 0.2422189712524414], 'y': [0.3841590285301
+target_quat_source_handle : [-0.972255527973175, 0.19775599241256714, -0.001519620418548584, 0.12493820488452911]
+target_quat_source_pregrasp : [-0.972255527973175, 0.19775599241256714, -0.001519620418548584, 0.12493820488452911]
+target_axes_source_handle : {'x': [0.968776285648346, -0.24354474246501923, 0.046459637582302094], 'y': [0.24234269559
+target_axes_source_pregrasp : {'x': [0.968776285648346, -0.24354474246501923, 0.046459637582302094], 'y': [0.24234269559
+target_pos_source_handle : [-0.666822075843811, 0.391867458820343, 0.32930445671081543]
+target_pos_source_pregrasp : [-0.6720590591430664, 0.35345137119293213, 0.23712602257728577]
+joint_names : ['FL_hip_joint', 'FL_thigh_joint', 'FL_calf_joint', 'RL_hip_joint', 'RL_thigh_joint', 'RL_
+a2_base_leg_action12 : [0.07169009745121002, -0.5657696723937988, 0.9119636416435242, 0.09932918846607208, -0.165
+robot_joint_pos20 : [0.0067971497774124146, 0.532302737236023, -1.075461745262146, 0.038146380335092545, 0.580
+robot_joint_vel20 : [0.3962980806827545, -1.4527690410614014, 3.724306344985962, 3.135554790496826, 3.84635496
+final_joint_position_target20 : [0.017922524362802505, 0.45851218700408936, -0.9401814937591553, 0.22799091041088104, 0.79
+door_joint_names : ['hinge_joint', 'handle_joint', 'latch_joint']
+door_joint_pos : [3.938802842912148e-12, 0.00012795750808436424, 4.419256583787501e-06]
+door_joint_vel : [2.1597027455300122e-07, -0.014619099907577038, -0.0005584085010923445]
+policy_high_level_action_raw : [1.2366679906845093, -2.6751039028167725, -1.5875964164733887, 0.8882231712341309, 0.88049
+policy_base_action_raw : [1.2366679906845093, -2.6751039028167725, -1.5875964164733887, 0.8882231712341309, 0.88049
+policy_arm_action_raw : [-1.0471765995025635, -0.31399014592170715, -4.682643413543701, 1.0580716133117676, 0.0467
+policy_gripper_primitive_raw : -0.03666780889034271
+post_forced_override_pre_env_action : [1.2366679906845093, -2.6751039028167725, -1.5875964164733887, 0.8882231712341309, 0.88049
+post_forced_override_pre_env_base_action : [1.2366679906845093, -2.6751039028167725, -1.5875964164733887, 0.8882231712341309, 0.88049
+post_forced_override_pre_env_arm_action : [-1.0471765995025635, -0.31399014592170715, -4.682643413543701, 1.0580716133117676, 0.0467
+post_forced_override_pre_env_gripper_primitive : -0.03666780889034271
+post_delta_post_warp_env_action : [1.2366679906845093, -2.6751039028167725, -1.5875964164733887, 0.8882231712341309, 0.88049
+post_delta_post_warp_base_action : [1.2366679906845093, -2.6751039028167725, -1.5875964164733887, 0.8882231712341309, 0.88049
+actual_post_delta_post_warp_arm_action : [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+post_delta_post_warp_gripper_primitive : -0.03666780889034271
+forced_gripper_close_applied : False
+first_episode_active : True
+episode_index : 0
+physical_base_command : [0.3091669976711273, -0.5, -0.39689910411834717, 0.3552892804145813, 0.35219627618789673]
+root_pos_w : [29.20928955078125, -29.56574821472168, 0.5469660758972168]
+root_quat_w : [0.999276340007782, -0.0014580119168385863, -0.002743504475802183, -0.03791225329041481]
+root_lin_vel_w : [0.04878963157534599, -0.016223955899477005, -0.24468174576759338]
+root_ang_vel_w : [-0.23341241478919983, -0.4442919194698334, 0.18309961259365082]
+arm_joint_names : ['arm_j1', 'arm_j2', 'arm_j3', 'arm_j4', 'arm_j5', 'arm_j6']
+arm_joint_pos : [-0.0001969754375750199, 0.004724217113107443, 4.1353009692102205e-06, 0.24791420996189117
+arm_joint_vel : [-0.03318701311945915, 0.33302998542785645, -0.0004742266610264778, -0.027293585240840912,
+arm_joint_pos_target : [0.0, 0.0, 0.0, 0.25, 0.5, 1.5700000524520874]
+arm_soft_joint_pos_limits : [[-2.3561999797821045, 2.3561999797821045], [0.15700006484985352, 2.982999801635742], [-2.
+arm_soft_limit_normalized_margin : [0.49995821714401245, -0.053883884102106094, -0.05555711314082146, 0.4210715591907501, 0.2
+gripper_joint_names : ['arm_j7', 'arm_j8']
+gripper_joint_pos : [3.444586036494002e-05, -3.1966188544174656e-05]
+gripper_joint_pos_target : [0.0, 0.0]
+gripper_joint_target_error : [-3.444586036494002e-05, 3.1966188544174656e-05]
+tcp_to_handle_pos : [-0.666822075843811, 0.391867458820343, 0.32930445671081543]
+gripper_source_pos_w : [29.4801082611084, -29.56482696533203, 0.8392706513404846]
+tcp_to_handle_quat : [-0.972255527973175, 0.19775599241256714, -0.001519620418548584, 0.12493820488452911]
+reward_raw : {'push_door_hinge': 0.0, 'a2_stage3_unlatch_hold': 0.0, 'a2_stage3_stage4_hold_and_drive':
+reward_scaled : {'push_door_hinge': 0.0, 'a2_stage3_unlatch_hold': 0.0, 'a2_stage3_stage4_hold_and_drive':
+stage0_staging : {'grasp_target_pos_w': [29.899272918701172, -30.290958404541016, 0.8999924063682556], 'nea
+stage1_pregrasp_ready : {'pregrasp_distance': 0.795499861240387, 'pregrasp_threshold': 0.10000000149011612, 'pregr
+pre_stage : 0
+post_stage : 0
+stage_transition : False
+transition_from : None
+transition_to : None
+transition_predicate : False
+stage0_to1_predicate : False
+stage1_to2_predicate : False
+stage_transition_streak : 0
+time_in_stage : 1
+actual_time_in_stage : 1
+episode_length : 1
+step_index : 0

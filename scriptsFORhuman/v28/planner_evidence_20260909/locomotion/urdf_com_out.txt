@@ -1,0 +1,173 @@
+====================================================================================================
+A2_Piper/a2_piper.urdf
+links=27 total_mass=44.7410 kg
+trunk mass=19.6510 com=[0.0069826, -0.0007129, 0.0128895]  arm links mass sum=4.6700
+   FL_calf                    m=  0.3610 com_local=[0.012515, -2.4e-05, -0.117649]
+   FL_foot                    m=  0.0460 com_local=[-0.007846, 1.2e-05, -0.009403]
+   FL_hip                     m=  1.6200 com_local=[-0.002408, -0.01622, 0.000239]
+   FL_thigh                   m=  3.0790 com_local=[-0.003268, -0.03111, -0.053896]
+   FR_calf                    m=  0.3610 com_local=[0.012515, 1.6e-05, -0.117649]
+   FR_foot                    m=  0.0460 com_local=[-0.007846, 1.2e-05, -0.009403]
+   FR_hip                     m=  1.6200 com_local=[-0.002465, 0.01622, 0.000318]
+   FR_thigh                   m=  3.0770 com_local=[-0.003256, 0.031125, -0.053921]
+   RL_calf                    m=  0.3610 com_local=[0.012515, -2.4e-05, -0.117649]
+   RL_foot                    m=  0.0460 com_local=[-0.007846, 1.2e-05, -0.009403]
+   RL_hip                     m=  1.6200 com_local=[0.00327, -0.01622, -9.7e-05]
+   RL_thigh                   m=  3.0790 com_local=[-0.003268, -0.03111, -0.053896]
+   RR_calf                    m=  0.3610 com_local=[0.012515, 1.6e-05, -0.117649]
+   RR_foot                    m=  0.0460 com_local=[-0.007846, 1.2e-05, -0.009403]
+   RR_hip                     m=  1.6200 com_local=[0.00327, 0.01622, -3.7e-05]
+   RR_thigh                   m=  3.0770 com_local=[-0.003256, 0.031125, -0.053921]
+   arm_body0                  m=  1.0200 com_local=[-0.00473641164191482, 2.56829134630247e-05, 0.041451518036016]
+   arm_body1                  m=  0.7100 com_local=[0.000121504734057468, 0.000104632162460536, -0.00438597309559853]
+   arm_body2                  m=  1.1700 com_local=[0.198666145229743, -0.010926924140076, 0.00142121714502687]
+   arm_body3                  m=  0.5000 com_local=[-0.0202737662122021, -0.133914995944595, -0.000458682652737356]
+   arm_body4                  m=  0.3800 com_local=[-9.66635791618542e-05, 0.000876064475651083, -0.00496880904640868]
+   arm_body5                  m=  0.3830 com_local=[-4.10554118924211e-05, -0.0566486692356075, -0.0037205791677906]
+   arm_body6                  m=  0.0070 com_local=[-8.82590762930069e-05, 9.0598378529832e-06, -0.002]
+   arm_body6_to_gripper       m=  0.4500 com_local=[-0.000183807162235591, 8.05033155577911e-05, 0.0321436689908876]
+   arm_body7                  m=  0.0250 com_local=[0.00065123185041968, -0.0491929869131989, 0.00972258769184025]
+   arm_body8                  m=  0.0250 com_local=[0.000651231850419722, -0.0491929869131991, 0.00972258769184024]
+   trunk                      m= 19.6510 com_local=[0.0069826, -0.0007129, 0.0128895]
+-- joints
+   FL_hip_joint           revolute  trunk                 ->FL_hip                 xyz=[0.25944, 0.075113, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   FL_thigh_joint         revolute  FL_hip                ->FL_thigh               xyz=[0.0, 0.12779, 0.0] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   FL_calf_joint          revolute  FL_thigh              ->FL_calf                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   FL_foot_joint          fixed     FL_calf               ->FL_foot                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   RL_hip_joint           revolute  trunk                 ->RL_hip                 xyz=[-0.25944, 0.075113, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   RL_thigh_joint         revolute  RL_hip                ->RL_thigh               xyz=[0.0, 0.12779, 0.0] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   RL_calf_joint          revolute  RL_thigh              ->RL_calf                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   RL_foot_joint          fixed     RL_calf               ->RL_foot                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   FR_hip_joint           revolute  trunk                 ->FR_hip                 xyz=[0.25944, -0.075113, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   FR_thigh_joint         revolute  FR_hip                ->FR_thigh               xyz=[0.0, -0.12779, 0.0] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   FR_calf_joint          revolute  FR_thigh              ->FR_calf                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   FR_foot_joint          fixed     FR_calf               ->FR_foot                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   RR_hip_joint           revolute  trunk                 ->RR_hip                 xyz=[-0.25944, -0.075113, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   RR_thigh_joint         revolute  RR_hip                ->RR_thigh               xyz=[0.0, -0.12779, 0.0] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   RR_calf_joint          revolute  RR_thigh              ->RR_calf                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   RR_foot_joint          fixed     RR_calf               ->RR_foot                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   arm_j0                 fixed     trunk                 ->arm_body0              xyz=[0.145, 0.0, 0.154] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   arm_j1                 revolute  arm_body0             ->arm_body1              xyz=[0.0, 0.0, 0.123] rpy=[0.0, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j2                 revolute  arm_body1             ->arm_body2              xyz=[0.0, 0.0, 0.0] rpy=[1.5708, -0.1359, -3.1416] axis=[0.0, 0.0, 1.0]
+   arm_j3                 revolute  arm_body2             ->arm_body3              xyz=[0.28503, 0.0, 0.0] rpy=[0.0, 0.0, -1.7939] axis=[0.0, 0.0, 1.0]
+   arm_j4                 revolute  arm_body3             ->arm_body4              xyz=[-0.021984, -0.25075, 0.0] rpy=[1.5708, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j5                 revolute  arm_body4             ->arm_body5              xyz=[0.0, 0.0, 0.0] rpy=[-1.5708, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j6                 revolute  arm_body5             ->arm_body6              xyz=[8.8259e-05, -0.091, 0.0] rpy=[1.5708, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j6_to_gripper_base fixed     arm_body6             ->arm_body6_to_gripper   xyz=[0.0, 0.0, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   arm_j7                 prismatic arm_body6_to_gripper  ->arm_body7              xyz=[0.0, 0.0, 0.1358] rpy=[1.5708, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j8                 prismatic arm_body6_to_gripper  ->arm_body8              xyz=[0.0, 0.0, 0.1358] rpy=[1.5708, 0.0, -3.1416] axis=[0.0, 0.0, -1.0]
+-- FK / CoM (trunk frame), legs at hips 0 / thighs 0.5 / calfs -1.0
+  old_default_[0,0,0,0.25,0.5,1.57]
+     whole-robot M=44.7410 CoM_trunk=(+0.0020,-0.0001,+0.0099)
+     arm-only   M=4.6700 CoM_trunk=(+0.0853,+0.0023,+0.2852)
+     gripper_base(arm_body6_to_gripper) p=(+0.1937,+0.0108,+0.3241)
+     TCP(+0.105 local z) p=(+0.2897,+0.0233,+0.2836)   TCP(+0.085) p=(+0.2714,+0.0209,+0.2913)
+     LPY[code(0.145,0.704)] (flat root z=0.55): l=0.1956 pitch=+0.7238 yaw=+0.1594
+     LPY[doc(0.135,0.687)] (flat root z=0.55): l=0.2144 pitch=+0.7527 yaw=+0.1492
+     arm_body0 (arm base) p=[0.145, 0.0, 0.154]
+  new_v28_[0,0,0,0,-0.44,1.57]
+     whole-robot M=44.7410 CoM_trunk=(+0.0019,-0.0003,+0.0116)
+     arm-only   M=4.6700 CoM_trunk=(+0.0844,+0.0001,+0.3018)
+     gripper_base(arm_body6_to_gripper) p=(+0.1892,+0.0000,+0.4051)
+     TCP(+0.105 local z) p=(+0.2799,-0.0000,+0.4579)   TCP(+0.085) p=(+0.2626,-0.0000,+0.4478)
+     LPY[code(0.145,0.704)] (flat root z=0.55): l=0.3325 pitch=+1.1530 yaw=-0.0000
+     LPY[doc(0.135,0.687)] (flat root z=0.55): l=0.3521 pitch=+1.1466 yaw=-0.0000
+     arm_body0 (arm base) p=[0.145, 0.0, 0.154]
+  lmp_stage1_hold_[0,1.48,-0.63,-0.84,0,1.57]
+     whole-robot M=44.7410 CoM_trunk=(+0.0168,-0.0003,+0.0169)
+     arm-only   M=4.6700 CoM_trunk=(+0.2269,+0.0002,+0.3528)
+     gripper_base(arm_body6_to_gripper) p=(+0.4201,-0.0001,+0.3415)
+     TCP(+0.105 local z) p=(+0.4960,-0.0001,+0.2689)   TCP(+0.085) p=(+0.4815,-0.0001,+0.2827)
+     LPY[code(0.145,0.704)] (flat root z=0.55): l=0.3693 pitch=+0.3164 yaw=-0.0002
+     LPY[doc(0.135,0.687)] (flat root z=0.55): l=0.3843 pitch=+0.3504 yaw=-0.0002
+     arm_body0 (arm base) p=[0.145, 0.0, 0.154]
+====================================================================================================
+a2_piper_vpiper_final_20260906/a2_piper.urdf
+links=30 total_mass=45.4948 kg
+trunk mass=19.6510 com=[0.0069826, -0.0007129, 0.0128895]  arm links mass sum=4.6700
+   FL_calf                    m=  0.3610 com_local=[0.012515, -2.4e-05, -0.117649]
+   FL_foot                    m=  0.0460 com_local=[-0.007846, 1.2e-05, -0.009403]
+   FL_hip                     m=  1.6200 com_local=[-0.002408, -0.01622, 0.000239]
+   FL_thigh                   m=  3.0790 com_local=[-0.003268, -0.03111, -0.053896]
+   FR_calf                    m=  0.3610 com_local=[0.012515, 1.6e-05, -0.117649]
+   FR_foot                    m=  0.0460 com_local=[-0.007846, 1.2e-05, -0.009403]
+   FR_hip                     m=  1.6200 com_local=[-0.002465, 0.01622, 0.000318]
+   FR_thigh                   m=  3.0770 com_local=[-0.003256, 0.031125, -0.053921]
+   RL_calf                    m=  0.3610 com_local=[0.012515, -2.4e-05, -0.117649]
+   RL_foot                    m=  0.0460 com_local=[-0.007846, 1.2e-05, -0.009403]
+   RL_hip                     m=  1.6200 com_local=[0.00327, -0.01622, -9.7e-05]
+   RL_thigh                   m=  3.0790 com_local=[-0.003268, -0.03111, -0.053896]
+   RR_calf                    m=  0.3610 com_local=[0.012515, 1.6e-05, -0.117649]
+   RR_foot                    m=  0.0460 com_local=[-0.007846, 1.2e-05, -0.009403]
+   RR_hip                     m=  1.6200 com_local=[0.00327, 0.01622, -3.7e-05]
+   RR_thigh                   m=  3.0770 com_local=[-0.003256, 0.031125, -0.053921]
+   arm_body0                  m=  1.0200 com_local=[-0.00473641164191482, 2.56829134630247e-05, 0.041451518036016]
+   arm_body1                  m=  0.7100 com_local=[0.000121504734057468, 0.000104632162460536, -0.00438597309559853]
+   arm_body2                  m=  1.1700 com_local=[0.198666145229743, -0.010926924140076, 0.00142121714502687]
+   arm_body3                  m=  0.5000 com_local=[-0.0202737662122021, -0.133914995944595, -0.000458682652737356]
+   arm_body4                  m=  0.3800 com_local=[-9.66635791618542e-05, 0.000876064475651083, -0.00496880904640868]
+   arm_body5                  m=  0.3830 com_local=[-4.10554118924211e-05, -0.0566486692356075, -0.0037205791677906]
+   arm_body6                  m=  0.0070 com_local=[-8.82590762930069e-05, 9.0598378529832e-06, -0.002]
+   arm_body6_to_gripper       m=  0.4500 com_local=[-0.000183807162235591, 8.05033155577911e-05, 0.0321436689908876]
+   arm_body7                  m=  0.0250 com_local=[0.00065123185041968, -0.0491929869131989, 0.00972258769184025]
+   arm_body8                  m=  0.0250 com_local=[0.000651231850419722, -0.0491929869131991, 0.00972258769184024]
+   metal_plate_5mm            m=  0.3375 com_local=[0.0, 0.0, 0.0025]
+   trunk                      m= 19.6510 com_local=[0.0069826, -0.0007129, 0.0128895]
+   vpiper_main                m=  0.3107 com_local=[-0.0377098373473, 3.5599369072e-10, 0.0365841949569]
+   vpiper_support             m=  0.1056 com_local=[0.0307616666142, 1.92607132787e-07, 0.0315141900139]
+-- joints
+   FL_hip_joint           revolute  trunk                 ->FL_hip                 xyz=[0.25944, 0.075113, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   FL_thigh_joint         revolute  FL_hip                ->FL_thigh               xyz=[0.0, 0.12779, 0.0] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   FL_calf_joint          revolute  FL_thigh              ->FL_calf                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   FL_foot_joint          fixed     FL_calf               ->FL_foot                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   RL_hip_joint           revolute  trunk                 ->RL_hip                 xyz=[-0.25944, 0.075113, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   RL_thigh_joint         revolute  RL_hip                ->RL_thigh               xyz=[0.0, 0.12779, 0.0] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   RL_calf_joint          revolute  RL_thigh              ->RL_calf                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   RL_foot_joint          fixed     RL_calf               ->RL_foot                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   FR_hip_joint           revolute  trunk                 ->FR_hip                 xyz=[0.25944, -0.075113, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   FR_thigh_joint         revolute  FR_hip                ->FR_thigh               xyz=[0.0, -0.12779, 0.0] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   FR_calf_joint          revolute  FR_thigh              ->FR_calf                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   FR_foot_joint          fixed     FR_calf               ->FR_foot                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   RR_hip_joint           revolute  trunk                 ->RR_hip                 xyz=[-0.25944, -0.075113, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   RR_thigh_joint         revolute  RR_hip                ->RR_thigh               xyz=[0.0, -0.12779, 0.0] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   RR_calf_joint          revolute  RR_thigh              ->RR_calf                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[0.0, 1.0, 0.0]
+   RR_foot_joint          fixed     RR_calf               ->RR_foot                xyz=[0.0, 0.0, -0.275] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   arm_j0                 fixed     trunk                 ->arm_body0              xyz=[0.145, 0.0, 0.147431554755] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   arm_j1                 revolute  arm_body0             ->arm_body1              xyz=[0.0, 0.0, 0.123] rpy=[0.0, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j2                 revolute  arm_body1             ->arm_body2              xyz=[0.0, 0.0, 0.0] rpy=[1.5708, -0.1359, -3.1416] axis=[0.0, 0.0, 1.0]
+   arm_j3                 revolute  arm_body2             ->arm_body3              xyz=[0.28503, 0.0, 0.0] rpy=[0.0, 0.0, -1.7939] axis=[0.0, 0.0, 1.0]
+   arm_j4                 revolute  arm_body3             ->arm_body4              xyz=[-0.021984, -0.25075, 0.0] rpy=[1.5708, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j5                 revolute  arm_body4             ->arm_body5              xyz=[0.0, 0.0, 0.0] rpy=[-1.5708, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j6                 revolute  arm_body5             ->arm_body6              xyz=[8.8259e-05, -0.091, 0.0] rpy=[1.5708, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j6_to_gripper_base fixed     arm_body6             ->arm_body6_to_gripper   xyz=[0.0, 0.0, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   arm_j7                 prismatic arm_body6_to_gripper  ->arm_body7              xyz=[0.0, 0.0, 0.1358] rpy=[1.5708, 0.0, 0.0] axis=[0.0, 0.0, 1.0]
+   arm_j8                 prismatic arm_body6_to_gripper  ->arm_body8              xyz=[0.0, 0.0, 0.1358] rpy=[1.5708, 0.0, -3.1416] axis=[0.0, 0.0, -1.0]
+   trunk_to_vpiper        fixed     trunk                 ->vpiper_main            xyz=[0.143212711224, 3.54690751414e-06, 0.092431554755] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   vpiper_to_support      fixed     vpiper_main           ->vpiper_support         xyz=[0.0, 0.0, 0.0] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+   vpiper_to_plate        fixed     vpiper_main           ->metal_plate_5mm        xyz=[0.0, 0.0, 0.05] rpy=[0.0, 0.0, 0.0] axis=[1.0, 0.0, 0.0]
+-- FK / CoM (trunk frame), legs at hips 0 / thighs 0.5 / calfs -1.0
+  old_default_[0,0,0,0.25,0.5,1.57]
+     whole-robot M=45.4948 CoM_trunk=(+0.0042,-0.0001,+0.0113)
+     arm-only   M=4.6700 CoM_trunk=(+0.0853,+0.0023,+0.2787)
+     gripper_base(arm_body6_to_gripper) p=(+0.1937,+0.0108,+0.3176)
+     TCP(+0.105 local z) p=(+0.2897,+0.0233,+0.2770)   TCP(+0.085) p=(+0.2714,+0.0209,+0.2847)
+     LPY[code(0.145,0.704)] (flat root z=0.55): l=0.1913 pitch=+0.6981 yaw=+0.1594
+     LPY[doc(0.135,0.687)] (flat root z=0.55): l=0.2099 pitch=+0.7299 yaw=+0.1492
+     arm_body0 (arm base) p=[0.145, 0.0, 0.1474]
+  new_v28_[0,0,0,0,-0.44,1.57]
+     whole-robot M=45.4948 CoM_trunk=(+0.0041,-0.0003,+0.0130)
+     arm-only   M=4.6700 CoM_trunk=(+0.0844,+0.0001,+0.2952)
+     gripper_base(arm_body6_to_gripper) p=(+0.1892,+0.0000,+0.3985)
+     TCP(+0.105 local z) p=(+0.2799,-0.0000,+0.4513)   TCP(+0.085) p=(+0.2626,-0.0000,+0.4413)
+     LPY[code(0.145,0.704)] (flat root z=0.55): l=0.3265 pitch=+1.1448 yaw=-0.0000
+     LPY[doc(0.135,0.687)] (flat root z=0.55): l=0.3461 pitch=+1.1388 yaw=-0.0000
+     arm_body0 (arm base) p=[0.145, 0.0, 0.1474]
+  lmp_stage1_hold_[0,1.48,-0.63,-0.84,0,1.57]
+     whole-robot M=45.4948 CoM_trunk=(+0.0187,-0.0003,+0.0182)
+     arm-only   M=4.6700 CoM_trunk=(+0.2269,+0.0002,+0.3462)
+     gripper_base(arm_body6_to_gripper) p=(+0.4201,-0.0001,+0.3349)
+     TCP(+0.105 local z) p=(+0.4960,-0.0001,+0.2623)   TCP(+0.085) p=(+0.4815,-0.0001,+0.2762)
+     LPY[code(0.145,0.704)] (flat root z=0.55): l=0.3673 pitch=+0.2994 yaw=-0.0002
+     LPY[doc(0.135,0.687)] (flat root z=0.55): l=0.3821 pitch=+0.3342 yaw=-0.0002
+     arm_body0 (arm base) p=[0.145, 0.0, 0.1474]
+EXIT=0

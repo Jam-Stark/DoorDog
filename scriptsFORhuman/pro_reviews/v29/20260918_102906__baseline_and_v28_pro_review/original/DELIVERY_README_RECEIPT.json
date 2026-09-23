@@ -1,0 +1,26 @@
+{
+  "review_date_hkt": "2026-09-18",
+  "review_scope": "independent source/data review and primary-source research; no simulation/training/hardware",
+  "included_documents": [
+    "FULL_REVIEW.md",
+    "GEOMETRY_AUDIT.json",
+    "HANDLE_FAMILIES.md",
+    "LOCAL_WORKER_PARSE_PROMPT.md",
+    "MEDIA_READ_RECEIPT.json",
+    "PRELIMINARY_JUDGMENTS.md",
+    "README.md",
+    "REAL_WORLD_PARAMETER_TABLES.csv",
+    "RELEASE_EVENT_SEMANTICS.json",
+    "SOURCES.md",
+    "V28_INDEPENDENT_AUDIT.json"
+  ],
+  "source_entries": 24,
+  "parameter_rows": 70,
+  "dev_episode_rows": 512,
+  "simulator_or_checkpoint_executed": false,
+  "full_dev_step_trace_available": false,
+  "full_clean_or_camera_recomputed": false,
+  "owner_decisions_changed": false,
+  "drive_upload_performed": false,
+  "hash_manifest_generated": false
+}

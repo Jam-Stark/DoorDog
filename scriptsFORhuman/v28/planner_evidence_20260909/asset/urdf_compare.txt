@@ -1,0 +1,45 @@
+links old/new: 27 30  joints old/new: 26 29
+links only in new: ['metal_plate_5mm', 'vpiper_main', 'vpiper_support']
+links only in old: []
+joints only in new: ['trunk_to_vpiper', 'vpiper_to_plate', 'vpiper_to_support']
+
+DIFFS on shared links/joints:
+  ('joint', 'arm_j0', 'xyz') 
+     old: [0.145, 0.0, 0.154] 
+     new: [0.145, 0.0, 0.147431554755]
+
+total mass old=44.741000000 new=45.494808265 delta=0.753808265
+
+MASS TABLE (shared links):
+  trunk                  old m=19.651 new m=19.651 identical=True
+  FL_hip                 old m=1.62 new m=1.62 identical=True
+  FL_thigh               old m=3.079 new m=3.079 identical=True
+  FL_calf                old m=0.361 new m=0.361 identical=True
+  FL_foot                old m=0.046 new m=0.046 identical=True
+  RL_hip                 old m=1.62 new m=1.62 identical=True
+  RL_thigh               old m=3.079 new m=3.079 identical=True
+  RL_calf                old m=0.361 new m=0.361 identical=True
+  RL_foot                old m=0.046 new m=0.046 identical=True
+  FR_hip                 old m=1.62 new m=1.62 identical=True
+  FR_thigh               old m=3.077 new m=3.077 identical=True
+  FR_calf                old m=0.361 new m=0.361 identical=True
+  FR_foot                old m=0.046 new m=0.046 identical=True
+  RR_hip                 old m=1.62 new m=1.62 identical=True
+  RR_thigh               old m=3.077 new m=3.077 identical=True
+  RR_calf                old m=0.361 new m=0.361 identical=True
+  RR_foot                old m=0.046 new m=0.046 identical=True
+  arm_body0              old m=1.02 new m=1.02 identical=True
+  arm_body1              old m=0.71 new m=0.71 identical=True
+  arm_body2              old m=1.17 new m=1.17 identical=True
+  arm_body3              old m=0.5 new m=0.5 identical=True
+  arm_body4              old m=0.38 new m=0.38 identical=True
+  arm_body5              old m=0.383 new m=0.383 identical=True
+  arm_body6              old m=0.007 new m=0.007 identical=True
+  arm_body6_to_gripper   old m=0.45 new m=0.45 identical=True
+  arm_body7              old m=0.025 new m=0.025 identical=True
+  arm_body8              old m=0.025 new m=0.025 identical=True
+
+NEW LINKS:
+  metal_plate_5mm: mass=0.337500000 com=[0.0, 0.0, 0.0025] I={'ixx': 0.00028195312499999976, 'iyy': 0.001758515624999994, 'izz': 0.0020390624999999944, 'ixy': 0.0, 'ixz': 0.0, 'iyz': 0.0} ncollision=1 coll_types=['box']
+  vpiper_main: mass=0.310684432 com=[-0.0377098373473, 3.5599369072e-10, 0.0365841949569] I={'ixx': 0.0013635940575800044, 'iyy': 0.0014055699063754, 'izz': 0.00264404009281028, 'ixy': 3.553484748117626e-12, 'ixz': -9.721997068188726e-05, 'iyz': -9.415876038838178e-13} ncollision=15 coll_types=['mesh']
+  vpiper_support: mass=0.105623833 com=[0.0307616666142, 1.92607132787e-07, 0.0315141900139] I={'ixx': 0.00011484136880353958, 'iyy': 0.0001935532031828451, 'izz': 0.0003009564114010197, 'ixy': 2.983184864434152e-09, 'ixz': -7.942434616690279e-06, 'iyz': 3.5069609950514865e-10} ncollision=36 coll_types=['mesh']

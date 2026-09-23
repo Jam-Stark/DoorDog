@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="mount_geometry_inspection">
+  <include file="a2_piper.xml" />
+  <visual>
+    <global azimuth="130" elevation="-20" />
+  </visual>
+  <worldbody>
+    <light pos="0 0 2" dir="0 0 -1" directional="true" />
+    <geom name="inspection_floor" type="plane" size="2 2 0.05" pos="0 0 -0.55" rgba=".85 .87 .89 1" />
+  </worldbody>
+</mujoco>

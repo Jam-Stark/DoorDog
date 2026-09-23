@@ -1,0 +1,212 @@
+{
+  "reference_branch": "codex/v29-b02-b04-pro-20260918",
+  "commit_subject": "Prepare v29 B02 and B04 Pro decision handoff",
+  "commit_time": "2026-09-18T17:14:54+08:00",
+  "comparison": "byte comparison; no digest generated",
+  "files": [
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/door.py",
+      "same_as_review_branch": true,
+      "published_bytes": 55791,
+      "current_bytes": 55791
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/utils/usd_utils.py",
+      "same_as_review_branch": true,
+      "published_bytes": 7346,
+      "current_bytes": 7346
+    },
+    {
+      "path": "gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py",
+      "same_as_review_branch": true,
+      "published_bytes": 98460,
+      "current_bytes": 98460
+    },
+    {
+      "path": "gr00t/rl/envs/door/door_open_a2_base.py",
+      "same_as_review_branch": true,
+      "published_bytes": 1492240,
+      "current_bytes": 1492240
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v26_3_creation.py",
+      "same_as_review_branch": true,
+      "published_bytes": 3042,
+      "current_bytes": 3042
+    },
+    {
+      "path": "gr00t/rl/envs/door/a2_v24_friction.py",
+      "same_as_review_branch": true,
+      "published_bytes": 11829,
+      "current_bytes": 11829
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/staged_task_base.py",
+      "same_as_review_branch": true,
+      "published_bytes": 35752,
+      "current_bytes": 35752
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/base_task.py",
+      "same_as_review_branch": true,
+      "published_bytes": 17508,
+      "current_bytes": 17508
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/a2_base.py",
+      "same_as_review_branch": true,
+      "published_bytes": 73793,
+      "current_bytes": 73793
+    },
+    {
+      "path": "gr00t/rl/envs/legged_base_task/legged_robot_base.py",
+      "same_as_review_branch": true,
+      "published_bytes": 135443,
+      "current_bytes": 135443
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/isaacsim.py",
+      "same_as_review_branch": true,
+      "published_bytes": 155797,
+      "current_bytes": 155797
+    },
+    {
+      "path": "gr00t/rl/config/env/door_open_a2_base.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 12841,
+      "current_bytes": 12841
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_common.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 5860,
+      "current_bytes": 5860
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_baseline.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 291,
+      "current_bytes": 291
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_eval_natural_start.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 145,
+      "current_bytes": 145
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_base.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 6382,
+      "current_bytes": 6382
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_lstm.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 3110,
+      "current_bytes": 3110
+    },
+    {
+      "path": "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_v26_acquisition.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 5063,
+      "current_bytes": 5063
+    },
+    {
+      "path": "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 5663,
+      "current_bytes": 5663
+    },
+    {
+      "path": "gr00t/rl/config/robot/A2_Piper/a2_piper_v29.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 5247,
+      "current_bytes": 5247
+    },
+    {
+      "path": "gr00t/rl/config/robot/A2_Piper/a2_piper.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 5183,
+      "current_bytes": 5183
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.urdf",
+      "same_as_review_branch": true,
+      "published_bytes": 50075,
+      "current_bytes": 50075
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/config/camera_rig.json",
+      "same_as_review_branch": true,
+      "published_bytes": 37366,
+      "current_bytes": 37366
+    },
+    {
+      "path": "scriptsFORhuman/v29/a2_piper_base_v29_baseline_plan.md",
+      "same_as_review_branch": true,
+      "published_bytes": 17412,
+      "current_bytes": 17412
+    },
+    {
+      "path": "scriptsFORhuman/v29/a2_piper_base_v29_baseline_TODO.md",
+      "same_as_review_branch": true,
+      "published_bytes": 30982,
+      "current_bytes": 30982
+    },
+    {
+      "path": "scriptsFORhuman/v29/a2_piper_base_v29_decision_log.md",
+      "same_as_review_branch": false,
+      "published_bytes": 25162,
+      "current_bytes": 26498
+    },
+    {
+      "path": "scriptsFORhuman/v29/a2_piper_base_v29_overall_arrangement.md",
+      "same_as_review_branch": true,
+      "published_bytes": 2443,
+      "current_bytes": 2443
+    },
+    {
+      "path": "scriptsFORhuman/v29/README.md",
+      "same_as_review_branch": false,
+      "published_bytes": 5285,
+      "current_bytes": 5664
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b02_b04/CURRENT_RESOLVED_CONFIG.yaml",
+      "same_as_review_branch": true,
+      "published_bytes": 73261,
+      "current_bytes": 73261
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b02_b04/LOCAL_CONTEXT_AND_OPTIONS.md",
+      "same_as_review_branch": true,
+      "published_bytes": 4612,
+      "current_bytes": 4612
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b02_b04/OWNER_REQUEST.md",
+      "same_as_review_branch": true,
+      "published_bytes": 2547,
+      "current_bytes": 2547
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b02_b04/REVIEW_BRIEF.md",
+      "same_as_review_branch": true,
+      "published_bytes": 5276,
+      "current_bytes": 5276
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b02_b04/SOURCE_INDEX.md",
+      "same_as_review_branch": true,
+      "published_bytes": 3276,
+      "current_bytes": 3276
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b02_b04/STATIC_CONFIG_READOUT.json",
+      "same_as_review_branch": true,
+      "published_bytes": 1099,
+      "current_bytes": 1099
+    }
+  ]
+}

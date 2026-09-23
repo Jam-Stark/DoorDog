@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="960" viewBox="0 0 1500 960">
+<defs><marker id="a" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse"><path d="M7,3.5 L0,0 L0,7 Z" fill="#222"/></marker></defs>
+<rect width="1500" height="960" fill="white"/>
+<style>text{font-family:DejaVu Sans,sans-serif;fill:#202020}.title{font-size:30px;font-weight:bold}.sub{font-size:20px}.label{font-size:21px}.small{font-size:18px}.dim{stroke:#222;stroke-width:1.8;fill:none;marker-start:url(#a);marker-end:url(#a)}.ext{stroke:#777;stroke-width:1;fill:none}</style>
+<text x="60" y="56" class="title">Plate width datum | top view in Vpiper local XY</text>
+<text x="60" y="94" class="sub">Solid outline = supplied CAD top face. Dashed rectangle = final 250 x 100 x 5 mm plate envelope.</text>
+<polygon points="572.500,703.312 262.500,703.312 262.500,166.688 572.500,166.688 572.500,218.000 634.500,280.000 1006.500,280.000 1008.527,280.066 1010.546,280.265 1012.548,280.596 1014.523,281.056 1016.465,281.645 1018.363,282.360 1020.211,283.197 1022.000,284.153 1023.723,285.224 1025.372,286.406 1026.940,287.693 1028.420,289.080 1029.807,290.560 1031.094,292.128 1032.276,293.777 1033.347,295.500 1034.303,297.289 1035.140,299.137 1035.855,301.035 1036.444,302.977 1036.904,304.952 1037.235,306.954 1037.434,308.973 1037.500,311.000 1037.500,559.000 1037.434,561.027 1037.235,563.046 1036.904,565.048 1036.444,567.023 1035.855,568.965 1035.140,570.863 1034.303,572.711 1033.347,574.500 1032.276,576.223 1031.094,577.872 1029.807,579.440 1028.420,580.920 1026.940,582.307 1025.372,583.594 1023.723,584.776 1022.000,585.847 1020.211,586.803 1018.363,587.640 1016.465,588.355 1014.523,588.944 1012.548,589.404 1010.546,589.735 1008.527,589.934 1006.500,590.000 634.500,590.000 572.500,652.000 572.500,703.312" fill="#eeeeee" stroke="#333" stroke-width="3"/>
+<rect x="262.5" y="280.0" width="775.0" height="310.0" fill="none" stroke="#111" stroke-width="3" stroke-dasharray="13 8"/>
+<line x1="262.5" y1="715" x2="262.5" y2="788" class="ext"/>
+<line x1="1037.5" y1="591" x2="1037.5" y2="788" class="ext"/>
+<line x1="262.5" y1="771" x2="1037.5" y2="771" class="dim"/>
+<text x="575" y="809" class="label">250 mm retained length</text>
+<line x1="1010" y1="280.0" x2="1145" y2="280.0" class="ext"/>
+<line x1="1010" y1="590.0" x2="1145" y2="590.0" class="ext"/>
+<line x1="1130" y1="280.0" x2="1130" y2="590.0" class="dim"/>
+<text x="1160" y="404" class="label">100 mm</text>
+<text x="1160" y="435" class="label">overall head width</text>
+<text x="1160" y="468" class="small">= final plate width</text>
+<line x1="1057.5" y1="311.0" x2="1057.5" y2="559.0" class="dim"/>
+<text x="805" y="429" class="small">80 mm straight edge</text>
+<text x="827" y="459" class="small">+ R10 corners</text>
+<line x1="262.5" y1="166.6883474729213" x2="178" y2="166.6883474729213" class="ext"/>
+<line x1="262.5" y1="703.311646248255" x2="178" y2="703.311646248255" class="ext"/>
+<line x1="196" y1="166.6883474729213" x2="196" y2="703.311646248255" class="dim"/>
+<text x="55" y="357" class="small">173.104 mm</text>
+<text x="55" y="386" class="small">rear width</text>
+<text x="55" y="414" class="small">NOT plate width</text>
+<text x="440" y="205" class="small">Vpiper rear shoulder unchanged</text>
+<line x1="685" y1="663" x2="900" y2="663" class="ext"/>
+<path d="M900,663 l-12,-5 l0,10 Z" fill="#222"/>
+<text x="712" y="700" class="small">+X toward A2 head</text>
+<line x1="60" y1="846" x2="1440" y2="846" stroke="#bbb"/>
+<text x="60" y="883" class="small">Only plate width changed. Vpiper itself is not cropped or rescaled. Slot/hole/corner details of the real plate are unmeasured.</text>
+<text x="60" y="917" class="small">100 mm is the CAD narrow-head outer width, not a ruler measurement extracted from the photograph.</text>
+</svg>

@@ -1,0 +1,140 @@
+{
+  "vpiper_main": {
+    "cad_product": "part4",
+    "volume_mm3": 497095.09050272265,
+    "center_of_volume_B_mm": [
+      105.50287387642547,
+      0.0035473021640292923,
+      129.01574971189237
+    ],
+    "uniform_density_inertia_per_kg_about_com_B_kgm2_per_kg": [
+      [
+        0.004389000281458336,
+        1.1437601588939975e-11,
+        -0.00031292192593112655
+      ],
+      [
+        1.1437601588939975e-11,
+        0.004524107948695024,
+        -3.0306880816113327e-12
+      ],
+      [
+        -0.00031292192593112655,
+        -3.0306880816113327e-12,
+        0.008510372017993763
+      ]
+    ],
+    "bounds_B_mm": [
+      [
+        18.212711223762625,
+        -116.54859700488336,
+        92.4315547550036
+      ],
+      [
+        268.2127112237623,
+        116.55569292264764,
+        142.43155475500365
+      ]
+    ],
+    "is_valid": true,
+    "center_of_volume_link_m": [
+      -0.03770983734733687,
+      3.559936907204797e-10,
+      0.03658419495688876
+    ],
+    "link_frame_origin_B_m": [
+      0.14321271122376233,
+      3.546946170338572e-06,
+      0.0924315547550036
+    ],
+    "mass_kg": 0.31068443156420167,
+    "density_kg_m3": 625.0,
+    "mass_status": "MATERIAL ESTIMATE; see mount_materials.json for effective-density assumption, not measured mass"
+  },
+  "vpiper_support": {
+    "cad_product": "part5",
+    "volume_mm3": 168998.13318898412,
+    "center_of_volume_B_mm": [
+      173.97437783792725,
+      0.0037395533031252745,
+      123.94574476891411
+    ],
+    "uniform_density_inertia_per_kg_about_com_B_kgm2_per_kg": [
+      [
+        0.0010872675728328136,
+        2.8243482297861083e-08,
+        -7.519547788432487e-05
+      ],
+      [
+        2.8243482297861083e-08,
+        0.0018324766034323182,
+        3.320236434687511e-09
+      ],
+      [
+        -7.519547788432487e-05,
+        3.320236434687511e-09,
+        0.0028493229431307073
+      ]
+    ],
+    "bounds_B_mm": [
+      [
+        118.21271112376232,
+        -49.99645315386826,
+        106.45929973886967
+      ],
+      [
+        268.2127216467363,
+        50.00354704617044,
+        132.0315548550036
+      ]
+    ],
+    "is_valid": true,
+    "center_of_volume_link_m": [
+      0.03076166661416491,
+      1.9260713278670266e-07,
+      0.03151419001391051
+    ],
+    "link_frame_origin_B_m": [
+      0.14321271122376233,
+      3.546946170338572e-06,
+      0.0924315547550036
+    ],
+    "mass_kg": 0.10562383324311508,
+    "density_kg_m3": 625.0,
+    "mass_status": "MATERIAL ESTIMATE; see mount_materials.json for effective-density assumption, not measured mass"
+  },
+  "metal_plate_5mm": {
+    "volume_mm3": 124999.99999999985,
+    "center_of_volume_link_m": [
+      0,
+      0,
+      0.0025
+    ],
+    "link_frame_origin_B_m": [
+      0.1432127112244533,
+      3.5469075141421057e-06,
+      0.142431554754986
+    ],
+    "mass_kg": 0.33749999999999963,
+    "density_kg_m3": 2700.0,
+    "uniform_density_inertia_per_kg_about_com_B_kgm2_per_kg": [
+      [
+        0.0008354166666666669,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.005210416666666655,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.006041666666666656
+      ]
+    ],
+    "geometry_status": "RECTANGULAR 250x100x5 mm nominal envelope; holes/slots/corner treatment are unmeasured",
+    "mass_status": "MATERIAL ESTIMATE; see mount_materials.json for effective-density assumption, not measured mass"
+  }
+}

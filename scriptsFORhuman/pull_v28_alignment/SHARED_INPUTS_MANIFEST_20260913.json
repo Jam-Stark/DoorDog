@@ -1,0 +1,674 @@
+{
+  "schema": "pull_v28_shared_inputs_v1",
+  "prepared_at_hkt": "2026-09-13T01:29:03.444583+08:00",
+  "source_root": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+  "destination_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v28/mainline_reference/20260913",
+  "scope": "S1/S2/rig runtime inputs plus selected source/docs; no active installation or training",
+  "total_bytes": 62519259,
+  "file_count": 110,
+  "files": [
+    {
+      "source_relative_path": "gr00t/rl/config/robot/A2_Piper/a2_piper_vpiper.yaml",
+      "destination_relative_path": "files/gr00t/rl/config/robot/A2_Piper/a2_piper_vpiper.yaml",
+      "bytes": 5248,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/README.md",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/README.md",
+      "bytes": 3480,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/SOURCE_NOTICES.md",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/SOURCE_NOTICES.md",
+      "bytes": 871,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.urdf",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.urdf",
+      "bytes": 51780,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.usd",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/a2_piper.usd",
+      "bytes": 1457,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/config/camera_rig.json",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/config/camera_rig.json",
+      "bytes": 37488,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_base.usd",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_base.usd",
+      "bytes": 35762594,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_physics.usd",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_physics.usd",
+      "bytes": 11002,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_robot.usd",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_robot.usd",
+      "bytes": 2477,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_sensor.usd",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/configuration/a2_piper_sensor.usd",
+      "bytes": 648,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link1.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link1.STL",
+      "bytes": 249684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link2.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link2.STL",
+      "bytes": 548484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link3.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link3.STL",
+      "bytes": 310484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link4.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_front_Link4.STL",
+      "bytes": 1719884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link1.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link1.STL",
+      "bytes": 249684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link2.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link2.STL",
+      "bytes": 548484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link3.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link3.STL",
+      "bytes": 310484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link4.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/left_hind_Link4.STL",
+      "bytes": 1719884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/metal_plate_5mm_head_width.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/metal_plate_5mm_head_width.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_00.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_00.stl",
+      "bytes": 1484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_01.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_01.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_02.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_02.stl",
+      "bytes": 13484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_03.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_03.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_04.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_04.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_05.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_05.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_06.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_06.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_07.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_07.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_08.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_08.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_09.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_09.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_10.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_10.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_11.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_11.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_12.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_12.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_13.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_13.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_14.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_collision_14.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_visual.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_main_visual.stl",
+      "bytes": 626284,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_00.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_00.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_01.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_01.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_02.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_02.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_03.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_03.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_04.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_04.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_05.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_05.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_06.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_06.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_07.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_07.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_08.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_08.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_09.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_09.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_10.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_10.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_11.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_11.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_12.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_12.stl",
+      "bytes": 484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_13.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_13.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_14.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_14.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_15.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_15.stl",
+      "bytes": 484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_16.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_16.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_17.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_17.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_18.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_18.stl",
+      "bytes": 484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_19.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_19.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_20.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_20.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_21.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_21.stl",
+      "bytes": 484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_22.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_22.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_23.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_23.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_24.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_24.stl",
+      "bytes": 484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_25.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_25.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_26.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_26.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_27.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_27.stl",
+      "bytes": 484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_28.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_28.stl",
+      "bytes": 684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_29.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_29.stl",
+      "bytes": 884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_30.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_30.stl",
+      "bytes": 6784,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_31.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_31.stl",
+      "bytes": 7084,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_32.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_32.stl",
+      "bytes": 7284,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_33.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_33.stl",
+      "bytes": 6784,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_34.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_34.stl",
+      "bytes": 7084,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_35.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_collision_35.stl",
+      "bytes": 7284,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_visual.stl",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/mount/vpiper_support_visual.stl",
+      "bytes": 182984,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/base_link.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/base_link.STL",
+      "bytes": 607384,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/gripper_base.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/gripper_base.STL",
+      "bytes": 649484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link1.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link1.STL",
+      "bytes": 447784,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link2.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link2.STL",
+      "bytes": 3658384,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link3.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link3.STL",
+      "bytes": 1845784,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link4.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link4.STL",
+      "bytes": 877984,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link5.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link5.STL",
+      "bytes": 833684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link6.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link6.STL",
+      "bytes": 58884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link7.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link7.STL",
+      "bytes": 104384,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link8.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/piper/link8.STL",
+      "bytes": 104384,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link1.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link1.STL",
+      "bytes": 249684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link2.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link2.STL",
+      "bytes": 547484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link3.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link3.STL",
+      "bytes": 310484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link4.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_front_Link4.STL",
+      "bytes": 1719884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link1.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link1.STL",
+      "bytes": 249684,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link2.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link2.STL",
+      "bytes": 547484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link3.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link3.STL",
+      "bytes": 310484,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link4.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/right_hind_Link4.STL",
+      "bytes": 1719884,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/trunk.STL",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/meshes/trunk.STL",
+      "bytes": 3421184,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/d35_tower_estimate.json",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/d35_tower_estimate.json",
+      "bytes": 2357,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/usd_import_readback.json",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/usd_import_readback.json",
+      "bytes": 14550,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/usd_mass_inertia_comparison.json",
+      "destination_relative_path": "files/gr00t/rl/data/robots/a2_piper_v28_merged_20260909/validation/usd_mass_inertia_comparison.json",
+      "bytes": 6328,
+      "purpose": "runtime_asset"
+    },
+    {
+      "source_relative_path": "gr00t/rl/envs/base_task/delta_action_base.py",
+      "destination_relative_path": "files/gr00t/rl/envs/base_task/delta_action_base.py",
+      "bytes": 7893,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "gr00t/rl/envs/door/door_open_a2_base.py",
+      "destination_relative_path": "files/gr00t/rl/envs/door/door_open_a2_base.py",
+      "bytes": 1488752,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "gr00t/rl/scripts/smoke_a2_base_flat_walk.py",
+      "destination_relative_path": "files/gr00t/rl/scripts/smoke_a2_base_flat_walk.py",
+      "bytes": 50048,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/a2_piper_base_v28_decision_log.md",
+      "destination_relative_path": "files/scriptsFORhuman/v28/a2_piper_base_v28_decision_log.md",
+      "bytes": 22837,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/a2_piper_base_v28_deferred_register.md",
+      "destination_relative_path": "files/scriptsFORhuman/v28/a2_piper_base_v28_deferred_register.md",
+      "bytes": 9935,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/a2_piper_base_v28_g0_acceptance_20260912.json",
+      "destination_relative_path": "files/scriptsFORhuman/v28/a2_piper_base_v28_g0_acceptance_20260912.json",
+      "bytes": 6813,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/a2_piper_base_v28_g0_resume_readout_20260912.md",
+      "destination_relative_path": "files/scriptsFORhuman/v28/a2_piper_base_v28_g0_resume_readout_20260912.md",
+      "bytes": 11788,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/a2_piper_base_v28_plan_20260909.md",
+      "destination_relative_path": "files/scriptsFORhuman/v28/a2_piper_base_v28_plan_20260909.md",
+      "bytes": 88236,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/camera/U3_F39_H140.json",
+      "destination_relative_path": "files/scriptsFORhuman/v28/camera/U3_F39_H140.json",
+      "bytes": 37488,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/planner_evidence_20260909/policy/REPORT.md",
+      "destination_relative_path": "files/scriptsFORhuman/v28/planner_evidence_20260909/policy/REPORT.md",
+      "bytes": 17850,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/g0_decision.json",
+      "destination_relative_path": "files/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/g0_decision.json",
+      "bytes": 7738,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/d37/seed_exposure_audit.json",
+      "destination_relative_path": "files/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/d37/seed_exposure_audit.json",
+      "bytes": 1774,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/v28_camera_geometry.py",
+      "destination_relative_path": "files/scriptsFORhuman/v28/v28_camera_geometry.py",
+      "bytes": 12859,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/v28_camera_metrics.py",
+      "destination_relative_path": "files/scriptsFORhuman/v28/v28_camera_metrics.py",
+      "bytes": 19125,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/v28_contract.py",
+      "destination_relative_path": "files/scriptsFORhuman/v28/v28_contract.py",
+      "bytes": 6465,
+      "purpose": "reference_only"
+    },
+    {
+      "source_relative_path": "scriptsFORhuman/v28/v28_g0_walk_gate.py",
+      "destination_relative_path": "files/scriptsFORhuman/v28/v28_g0_walk_gate.py",
+      "bytes": 9274,
+      "purpose": "reference_only"
+    }
+  ],
+  "checkpoints_included": false,
+  "policy_handling": "Existing m5 A2_Base is not replaced; direct content comparison only. No training checkpoints transferred.",
+  "code_reference_boundary": "Mainline env helpers are reference only; do not copy full env classes or mainline K/selection/DEVCONF contract into pull."
+}

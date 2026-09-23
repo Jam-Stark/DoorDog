@@ -1,0 +1,135 @@
+{
+  "status": "PROPOSED_NOT_IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+  "review_date": "2026-09-18",
+  "repository": "https://github.com/Jam-Stark/DoorDog",
+  "review_branch": "codex/v29-b02-b04-pro-20260918",
+  "commit_subject": "Prepare v29 B02 and B04 Pro decision handoff",
+  "commit_time": "2026-09-18T17:14:54+08:00",
+  "decision": {
+    "B02": "A_virtual_latch_with_native_hinge_limits",
+    "B04": "native_joint_limit"
+  },
+  "physics_schema": "v29_virtual_latch_2dof_v1",
+  "handle": {
+    "mechanical_stop_deg": 45.0,
+    "unlock_distribution": "uniform_per_door",
+    "unlock_range_deg": [
+      25.0,
+      40.0
+    ],
+    "unlock_range_rad": [
+      0.4363323129985824,
+      0.6981317007977318
+    ],
+    "return_threshold_formula": "theta_unlock - radians(3)",
+    "hysteresis_deg": 3.0,
+    "overtravel_range_deg": [
+      5.0,
+      20.0
+    ],
+    "return_drive_max_torque_range_nm": [
+      1.0,
+      3.0
+    ],
+    "drive_type": "force",
+    "usd_stiffness_per_deg": 50.0,
+    "usd_damping_per_deg": 0.5,
+    "usd_target_position_deg": -15.0,
+    "runtime_target_position_rad": -0.2617993877991494,
+    "runtime_target_velocity_rad_s": 0.0,
+    "effort_feedforward_nm": 0.0,
+    "effective_legacy_drive_equivalence": "NOT_ESTABLISHED"
+  },
+  "hinge": {
+    "normal_max_distribution": "uniform_per_door",
+    "normal_max_range_deg": [
+      90.0,
+      150.0
+    ],
+    "normal_max_range_rad": [
+      1.5707963267948966,
+      2.6179938779914944
+    ],
+    "lower_rad": 0.0,
+    "locked_upper_deg": 0.25,
+    "locked_upper_rad": 0.004363323129985824,
+    "capture_deg": 0.1,
+    "capture_rad": 0.0017453292519943296,
+    "opened_diagnostic_deg": 2.0,
+    "active_upper_formula": "locked_upper if latch_engaged else immutable_normal_max",
+    "near_normal_upper_diagnostic_window_deg": 1.0,
+    "forced_runtime_position_or_velocity_writes": false
+  },
+  "sampling": {
+    "resample": "asset_generation_only",
+    "hold_fixed_across_natural_and_staged_resets": true,
+    "stratification": "same_domain_for_handedness_and_B01_groups; independent_field_rng_streams",
+    "market_frequency_claim": false
+  },
+  "B01_owner_scope": {
+    "mass_bin_ranges_kg": [
+      [
+        30,
+        80
+      ],
+      [
+        80,
+        120
+      ],
+      [
+        120,
+        160
+      ]
+    ],
+    "mass_bin_probabilities": [
+      0.3333333333333333,
+      0.3333333333333333,
+      0.3333333333333333
+    ],
+    "closer_present_probability": 0.5,
+    "friction": "retain_owner_approved_domain; not redefined here",
+    "current_implementation": "NOT_IMPLEMENTED_IN_INPUT"
+  },
+  "B03": {
+    "base_dual_D435i_pitch_up_deg": 15.0,
+    "deferred_until": "after_v29_baseline"
+  },
+  "existing_control_timing": {
+    "physics_hz": 200,
+    "control_decimation": 4,
+    "control_dt_s": 0.02
+  },
+  "events": {
+    "stage3_to4_hinge_rad": 0.25,
+    "stage3_to4_requires_existing_grasp": true,
+    "release_gate_hinge_rad": 1.2,
+    "release_gate_is_episode_latched": true,
+    "stage4_to5_existing_hinge_rad": 1.0472,
+    "stage4_to5_existing_handle_rad": 0.2,
+    "stage4_to5_existing_root_x_m": 0.0,
+    "add_release_gate_to_stage4_to5": true,
+    "add_stable_finger_contact_free_to_stage4_to5": true,
+    "contact_free_threshold_n": "reuse_existing_1.0_N",
+    "contact_free_control_intervals": 3,
+    "contact_scope": [
+      "arm_body7_vs_handle",
+      "arm_body8_vs_handle"
+    ],
+    "all_robot_handle_detachment": "NOT_MEASURED",
+    "missing_event_value": null,
+    "near_closed_disable_handle_return_reward_hinge_rad": 0.25
+  },
+  "observations": {
+    "new_actor_or_student_oracle_inputs": [],
+    "new_network_required": false,
+    "teacher_equals_deployed_student": false
+  },
+  "local_unknowns": [
+    "loaded_narrow_limit_stability_and_overshoot",
+    "runtime_limit_update_CPU_cost_at_parallel_scale",
+    "actual_handle_drive_targets_and_return_profile",
+    "capture_impulse_and_relock_behavior",
+    "90_deg_release_and_whole_body_passage",
+    "new_B01_B02_B04_learnability"
+  ]
+}

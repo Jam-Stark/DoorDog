@@ -1,0 +1,90 @@
+{
+  "received_at": "2026-09-18T19:27:00.262370+08:00",
+  "source": "Owner attachments in current conversation; no Drive lookup",
+  "packages": [
+    {
+      "label": "pro_1",
+      "original_attachment": "/home/baoquanc/.codex/attachments/a79dde31-68e2-43f1-8454-efe730357d3f/pro_delivery__full_review-1.zip",
+      "preserved_zip": "scriptsFORhuman/pro_reviews/v29/20260918_192550__B02_B04_dual_pro_review/pro_1/pro_delivery__full_review-1.zip",
+      "zip_bytes": 54574,
+      "members": [
+        {
+          "path": "DESIGN_SPEC.md",
+          "bytes": 26798
+        },
+        {
+          "path": "DESIGN_STATIC_CHECKS.json",
+          "bytes": 2293
+        },
+        {
+          "path": "FULL_REVIEW.md",
+          "bytes": 22790
+        },
+        {
+          "path": "LOCAL_WORKER_PARSE_PROMPT.md",
+          "bytes": 1621
+        },
+        {
+          "path": "PARAMETERS.json",
+          "bytes": 4002
+        },
+        {
+          "path": "README.md",
+          "bytes": 1151
+        },
+        {
+          "path": "SOURCE_MAP.md",
+          "bytes": 7621
+        },
+        {
+          "path": "source_evidence/ISAACLAB_LIMIT_API.md",
+          "bytes": 3795
+        },
+        {
+          "path": "source_evidence/SELECTED_SOURCE_EXCERPTS.md",
+          "bytes": 67872
+        }
+      ]
+    },
+    {
+      "label": "pro_2",
+      "original_attachment": "/home/baoquanc/.codex/attachments/a79dde31-68e2-43f1-8454-efe730357d3f/pro_delivery__full_revie-2.zip",
+      "preserved_zip": "scriptsFORhuman/pro_reviews/v29/20260918_192550__B02_B04_dual_pro_review/pro_2/pro_delivery__full_revie-2.zip",
+      "zip_bytes": 38625,
+      "members": [
+        {
+          "path": "FULL_REVIEW.md",
+          "bytes": 27586
+        },
+        {
+          "path": "DESIGN_SPEC.md",
+          "bytes": 21286
+        },
+        {
+          "path": "LOCAL_WORKER_PARSE_PROMPT.md",
+          "bytes": 1621
+        },
+        {
+          "path": "DESIGN_PARAMETERS.json",
+          "bytes": 2582
+        },
+        {
+          "path": "SOURCES_AND_CODE_MAP.md",
+          "bytes": 8422
+        },
+        {
+          "path": "STATIC_REVIEW_CHECKS.json",
+          "bytes": 5189
+        },
+        {
+          "path": "SOURCE_EXCERPTS.md",
+          "bytes": 8937
+        },
+        {
+          "path": "README.md",
+          "bytes": 567
+        }
+      ]
+    }
+  ]
+}

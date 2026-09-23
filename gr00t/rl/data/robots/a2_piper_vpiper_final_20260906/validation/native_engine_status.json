@@ -1,0 +1,9 @@
+{
+  "native_MuJoCo_compilation": "NOT_RUN",
+  "dependency_probe_return_code": 1,
+  "probe_message": "MuJoCo is not installed. No engine validation was performed.",
+  "reason": "MuJoCo not installed; dependency retrieval failed in this environment.",
+  "Isaac_import": "NOT_RUN",
+  "hardware_metrology": "NOT_RUN",
+  "static_verification_separate": true
+}

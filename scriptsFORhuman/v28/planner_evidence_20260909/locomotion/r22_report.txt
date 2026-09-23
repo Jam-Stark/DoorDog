@@ -1,0 +1,72 @@
+AMENDMENT_1.md
+AMENDMENT_2.md
+AMENDMENT_3.md
+AMENDMENT_4.md
+AMENDMENT_5.md
+AMENDMENT_6.md
+AMENDMENT_7_PLANNER_20260905.md
+ANALYSIS.json
+A_FIXED16_ADMISSION.json
+B_FIXED16_ADMISSION.json
+B_IMPLEMENTATION_RETRY.json
+D5_ACCEPTANCE.json
+D5_ACCEPTANCE.md
+D5_RELEASE_PRIMARY.json
+D_FIXED16_ADMISSION.json
+MATERIAL_PARTNER_READBACK.json
+MATERIAL_READBACK.json
+PLANNER_REVIEW_R22_20260905.md
+POLICY_SIDE_EVIDENCE.json
+POLICY_SIDE_EVIDENCE.md
+PREREGISTRATION.md
+REPORT.md
+REPORT_STRUCTURE_NOTES.md
+STAGE4_FRAME_DIAGNOSTICS.json
+STAGE4_FRAME_DIAGNOSTICS.md
+STANCE_ORIGIN.json
+STANCE_ORIGIN.md
+TECHNICAL_STOP.json
+TECHNICAL_STOP.md
+W1_CE_EXIT_CODE
+W1_CE_RUN.log
+a_fixed16_preflight
+b_fixed16_retry1_preflight
+d_fixed16_preflight
+material_diagnose
+material_partner_diagnose
+release_authority_onset_0p10.json
+stage4_retention.json
+=====
+# sim2sim r22 Stage-4 causal contract
+
+All lanes are paired by exact r21 L1 `case_id`; binary outcomes use two-sided exact McNemar across episodes, not physics rows. Primary outcome is `st5`. Amendment 7 release hard gates use only primary `door > 0.10`: any handle maximum <0.30 rad, bolt-ejection fraction >1%, or any penetration >10 mm stops the analysis; retraction maximum is report-only. Frame-force evidence is the original r21 snapshot-mask diagnostic applied to each candidate scene.
+
+| Lane | typed verdict | L1 st5 | lane st5 | exact McNemar p |
+|---|---|---:|---:|---:|
+| `a` | `FRAME_CONTACT_CAUSAL` | 30 | 288 | 3.493e-72 |
+| `b` | `FRICTION_NOT_CAUSAL` | 30 | 31 | 1 |
+| `d` | `BASE_GAIN_CAUSAL` | 30 | 61 | 0.0003032 |
+
+## Amendment 7 release fidelity
+
+| Lane | handle max <0.30 | bolt ejection <−1 mm / releases | max penetration (m) | retraction <20.08 mm (report-only) |
+|---|---:|---:|---:|---:|
+| `a` | 0 | 0/337 (0.0000%) | 0.007953 | 1 |
+| `b` | 0 | 1/338 (0.2959%) | 0.006037 | 0 |
+| `d` | 0 | 0/345 (0.0000%) | 0.005817 | 0 |
+
+The actual labels are A/B/D ejection counts `0/337`, `1/338`, and `0/345`; the planner §1 aggregate `0/0/1` uses a different lane ordering. This reporting correction does not change its §2 verdicts. Retraction maximum is report-only under Amendment 7.
+
+## Context artifacts
+
+- Stance: `/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/logs_eval/sim2sim/depthadd_v3_20260904/R22/STANCE_ORIGIN.json`
+- Policy-side: `/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/logs_eval/sim2sim/depthadd_v3_20260904/R22/POLICY_SIDE_EVIDENCE.json`
+- Material readback: `/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/logs_eval/sim2sim/depthadd_v3_20260904/R22/MATERIAL_READBACK.json`
+
+## Overall
+
+Stage4 gap is plant-attributable: frame contact is the direct cause, and the Stage0–2 forward-gain correction is a partial cause. The frozen table supplies no additional aggregate typed label; `overall_typed_verdict` remains null.
+=====
+12:| **D** stage 0–2 前进增益 0.7 | 291 | **61** | 1 | 54 | 53 | 3.0e−4 |
+25:D 修正站位后 st5 61 但 goal 1；A 无门框时 goal 288。差别就是“机器人到了门平面（st5）之后还是要贴着右门框过”。D lane 在 stage 4 +20 步的门框力 p50 仍 104 N。Isaac 在 stage 4 内横移 +0.18 m 进入门洞中线，MuJoCo 横向命令 +0.34 m/s 实现 0.02 m/s。r23 的单一问题：**为什么握着把手、身体贴门框时，MuJoCo 底盘不响应横移命令。** 候选（按成本）：(1) 门框–机器人接触的摩擦锥/摩擦系数已是源值（B），排除；(2) 门框接触刚度（MuJoCo `solref 0.02` vs PhysX）——软接触让身体嵌入门框数 mm 形成侧向“卡槽”；(3) 低层步态策略在侧向外力下的稳定性差异（需闭环、握持中施加等效侧向力的对照）；(4) 臂对底盘的反作用扭矩（Isaac 与 MuJoCo 的臂–躯干耦合）。
+30:2. D 转默认并做 D5 式验收（默认 = `source_cone × hard × soft limit × stage012_forward_gain 0.7`）；B 待 Owner 一句话；

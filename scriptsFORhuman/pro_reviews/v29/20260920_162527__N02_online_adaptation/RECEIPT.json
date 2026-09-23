@@ -1,0 +1,220 @@
+{
+  "received_hkt": "2026-09-20T16:25:27+08:00",
+  "source": "Owner attachment in current conversation; no Drive retrieval",
+  "attachment": "/home/baoquanc/.codex/attachments/2bb087c9-33d9-4d44-ae74-a83bf8a66fd6/pro_delivery__full_review (5).zip",
+  "preserved_zip": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pro_reviews/v29/20260920_162527__N02_online_adaptation/pro_delivery__full_review (5).zip",
+  "original_dir": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pro_reviews/v29/20260920_162527__N02_online_adaptation/original",
+  "files": [
+    {
+      "path": "CLOSED_LOOP_CONTROL_PLAN.md",
+      "bytes": 10266
+    },
+    {
+      "path": "DYNAMICS_AND_FORCE_ANALYSIS.md",
+      "bytes": 14384
+    },
+    {
+      "path": "FULL_REVIEW.md",
+      "bytes": 17338
+    },
+    {
+      "path": "INPUT_AND_DELIVERY_AUDIT.json",
+      "bytes": 2861
+    },
+    {
+      "path": "LOCAL_WORKER_PARSE_PROMPT.md",
+      "bytes": 2355
+    },
+    {
+      "path": "PILOT_AND_IMPLEMENTATION_PLAN.md",
+      "bytes": 8180
+    },
+    {
+      "path": "README.md",
+      "bytes": 2808
+    },
+    {
+      "path": "REFERENCE_COMPARISON_AND_SOURCES.md",
+      "bytes": 8192
+    },
+    {
+      "path": "SOURCE_EVIDENCE.md",
+      "bytes": 45339
+    },
+    {
+      "path": "TARGET_AND_OBSERVABILITY.md",
+      "bytes": 9150
+    },
+    {
+      "path": "TEACHER_STUDENT_PLAN.md",
+      "bytes": 10315
+    },
+    {
+      "path": "modeling/extra_checks.py",
+      "bytes": 2991
+    },
+    {
+      "path": "modeling/inputs/JOINT_LIMITS_AND_ACTUATORS.csv",
+      "bytes": 3043
+    },
+    {
+      "path": "modeling/inputs/LINK_INERTIALS.csv",
+      "bytes": 3810
+    },
+    {
+      "path": "modeling/inputs/ROBOT_MODEL_INPUTS.json",
+      "bytes": 16194
+    },
+    {
+      "path": "modeling/inputs/a2_piper.urdf",
+      "bytes": 50075
+    },
+    {
+      "path": "modeling/pd_envelope.py",
+      "bytes": 2329
+    },
+    {
+      "path": "modeling/plot_pd_results.py",
+      "bytes": 1448
+    },
+    {
+      "path": "modeling/plot_results.py",
+      "bytes": 2947
+    },
+    {
+      "path": "modeling/probe_workpoints.py",
+      "bytes": 914
+    },
+    {
+      "path": "modeling/requirements.txt",
+      "bytes": 60
+    },
+    {
+      "path": "modeling/robot_model.py",
+      "bytes": 8542
+    },
+    {
+      "path": "modeling/run_analysis.py",
+      "bytes": 12037
+    },
+    {
+      "path": "results/01_arm_vs_supported_capacity.png",
+      "bytes": 106842
+    },
+    {
+      "path": "results/02_torque_at_same_20N.png",
+      "bytes": 79398
+    },
+    {
+      "path": "results/03_separate_base_translation.png",
+      "bytes": 88147
+    },
+    {
+      "path": "results/04_pd_constraint_reverses_ranking.png",
+      "bytes": 116401
+    },
+    {
+      "path": "results/RESULTS_INDEX.md",
+      "bytes": 1674
+    },
+    {
+      "path": "results/directional_force.csv",
+      "bytes": 27972
+    },
+    {
+      "path": "results/execution_summary.json",
+      "bytes": 1168
+    },
+    {
+      "path": "results/extra_checks.log",
+      "bytes": 1622
+    },
+    {
+      "path": "results/ik_status.csv",
+      "bytes": 4465
+    },
+    {
+      "path": "results/independent_balance_checks.json",
+      "bytes": 309
+    },
+    {
+      "path": "results/inertial_sensitivity.csv",
+      "bytes": 6643
+    },
+    {
+      "path": "results/mid105_neutral_model.npz",
+      "bytes": 8806
+    },
+    {
+      "path": "results/parameters.json",
+      "bytes": 2438
+    },
+    {
+      "path": "results/pd_envelope.log",
+      "bytes": 1953
+    },
+    {
+      "path": "results/pd_envelope_details.json",
+      "bytes": 190489
+    },
+    {
+      "path": "results/pd_target_limited_force.csv",
+      "bytes": 16651
+    },
+    {
+      "path": "results/probe_workpoints.log",
+      "bytes": 745
+    },
+    {
+      "path": "results/run.log",
+      "bytes": 4656
+    },
+    {
+      "path": "results/sensitivity.csv",
+      "bytes": 77462
+    },
+    {
+      "path": "results/separate_base_translation.csv",
+      "bytes": 759
+    },
+    {
+      "path": "results/solver_details.json",
+      "bytes": 180936
+    },
+    {
+      "path": "results/states.json",
+      "bytes": 96997
+    },
+    {
+      "path": "results/validation.csv",
+      "bytes": 2836
+    }
+  ],
+  "requested_base_tag": "v29-c002-baseline",
+  "requested_review_branch": "codex/v29-n02-pro-20260920",
+  "status": "ARCHIVED_AND_FOCUSED_RECONCILIATION_DONE",
+  "authority": "Attachment is reference. Owner authorizes archive/read/design discussion; no implementation, local model rerun, simulation/training/evaluation/GPU or budget grant.",
+  "completed_hkt": "2026-09-20T16:37:58+08:00",
+  "local_evidence_level": "INSPECTED",
+  "pro_model_execution": "EXECUTED_CPU_OFFLINE_MODEL supported by mutually consistent scripts, logs, state/data tables and numerical residual records",
+  "local_model_reproduction": "NOT_RUN",
+  "model_correction": {
+    "topic": "Missing tighter single-finger normal resultant constraint F*abs(dot(d,n)) <= Nmax",
+    "affected_file": "original/results/sensitivity.csv",
+    "affected_direction": "press_down",
+    "affected_rows": 156,
+    "two45N_rows": 78,
+    "pd_q014_rows": 78,
+    "original_artifacts_unchanged": true,
+    "corrected_model_rerun": false,
+    "details": "LOCAL_RECONCILIATION.md section 4.3"
+  },
+  "focused_binding": "FOCUSED_INPUT_BINDING.json",
+  "production_implementation_performed": false,
+  "simulation_training_or_evaluation_performed": false,
+  "gpu_allocated": false,
+  "new_budget_authorized": false,
+  "git_commit_or_external_publish_performed": false,
+  "online_adaptation_student_or_hardware_effect_established": false,
+  "planner_handover_delivery": "Final conversation response only; no new prompt file"
+}

@@ -1,0 +1,5 @@
+请按项目AGENTS与memory入口接手Owner在当前对话上传的`pro_delivery__full_review.zip`。这是v29 B05七族handle独立审阅回包；来源仓库`https://github.com/Jam-Stark/DoorDog`，审阅分支`codex/v29-b05-pro-20260918`，提交主题`Approve seven-family v29 B05 handle plan and prepare Pro review`，提交时间`2026-09-18T21:46:23+08:00`。对应Worker输入目录`https://drive.google.com/drive/folders/1VJ-lhwltmidIGWbASzv4sTPtI3NwXZBZ`，但Pro回包以当前对话附件为准，不去Drive寻找答案。
+
+在`scriptsFORhuman/pro_reviews/v29/`下建立新的B05审阅目录，保留原ZIP并提取FULL_REVIEW、DESIGN_RECOMMENDATIONS、REAL_HANDLE_COMPARISON、SOURCES及LOCAL_WORKER_PARSE_PROMPT。先读三问结论与推荐组合，再对照七族已确认规格、当前source/config及原始指部几何做一次有针对性的核对；明确厂家数据、工程假设、推断和local-only，保留Pro原文。重点看局部接触冗余、法向站距/净空、回钩、I/J/G与PiPER有向轴，以及推荐的新增是否超出lever操作范围。
+
+Owner已确认七族全部进入plan，B04/B05的TODO按方案讨论完成保持勾选。你默认是planner：整理Pro的保留/合并/扩展建议供Owner决定，记录到计划/决策讨论入口，不静默删除或替换已批准族，不因代码尚未实施而撤销方案完成。未获Owner新的明确要求，不实施代码、修改资产或训练配置、不启动或监督训练、不添加大规模测试。B02独立ablation、B03后置、D023原奖励与N02归属保持；云端静态意见不升级为抓取、泛化或硬件PASS。当前source可能比审阅分支更新，核对相关差异，不覆盖较新本地改动。

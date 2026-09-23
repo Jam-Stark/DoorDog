@@ -1,0 +1,54 @@
+{
+  "status": "STATIC_PASS_CPU_SAMPLER_PASS",
+  "scope": "Real Hydra --cfg job --resolve plus exact new yaw branch evaluated on CPU; no Isaac, renderer, PPO or formal evaluation",
+  "config": {
+    "max_episode_length_s": 30,
+    "max_stage_time_steps": [
+      525,
+      150,
+      150,
+      150,
+      150,
+      300
+    ],
+    "max_stage_time_s": [
+      10.5,
+      3.0,
+      3.0,
+      3.0,
+      3.0,
+      6.0
+    ],
+    "control_dt_s": 0.02,
+    "remaining_time_carry": true,
+    "door_normal_distance_m": [
+      1.2,
+      4.0
+    ],
+    "door_lateral_offset_m": [
+      -0.5,
+      0.5
+    ],
+    "total_door_yaw_deg": [
+      -35,
+      35
+    ],
+    "handle_heading_jitter_deg": 10,
+    "unchanged_target_root_vel": 0.3
+  },
+  "yaw_branch": {
+    "cpu_points": 1218,
+    "checks": {
+      "shape_dtype_device": true,
+      "door_yaw_limit": true,
+      "handle_bearing_window": true,
+      "positive_intersection": true
+    },
+    "max_handle_bearing_deg": 39.88268280029297,
+    "min_admissible_yaw_width_deg": 5.117314338684082
+  },
+  "natural_eval_inherits_sampling": true,
+  "ordinary_stage0_only": true,
+  "side_window_fov_evidence": "Owner-provided static projection summary; not independently rerun here",
+  "usd_closed_grasp_cache": "Authored grasp_target to door relative transform cached at construction; API path inspected, no new full simulator runtime"
+}

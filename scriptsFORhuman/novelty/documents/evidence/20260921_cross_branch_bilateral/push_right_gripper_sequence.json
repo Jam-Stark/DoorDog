@@ -1,0 +1,1091 @@
+{
+  "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v29/push_baseline_C002_seed291/natural_final/stage2_5_step_trace.json",
+  "scope": "RIGHT first natural episodes, Stage2 only; command/contact timing association, no intervention or causal proof",
+  "envs": 32,
+  "stage2_rows": 19206,
+  "streak_breaks": 3760,
+  "prior_streak_histogram": {
+    "1": 8,
+    "3": 3519,
+    "4": 214,
+    "2": 19
+  },
+  "break_rates": {
+    "current_positive_command": 1.0,
+    "prev_positive_command": 0.0,
+    "any_last3_positive_command": 1.0,
+    "both_contact": 0.0,
+    "squeeze_window": 0.0
+  },
+  "command_sign_run_lengths": {
+    "positive": {
+      "11": 13,
+      "1": 3760,
+      "10": 13,
+      "8": 1,
+      "9": 4,
+      "7": 1
+    },
+    "nonpositive": {
+      "3": 13,
+      "4": 3735,
+      "2": 6,
+      "5": 23,
+      "1": 10,
+      "6": 1
+    }
+  },
+  "representative_env": 1,
+  "representative_sequence": [
+    {
+      "env_id": 1,
+      "step_index": 265,
+      "episode_length_buf": 266,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        0.05523742735385895
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.03500000014901161,
+        -0.034903448075056076
+      ],
+      "arm_j7_j8_close_error": [
+        0.03500000014901161,
+        -0.034903448075056076
+      ],
+      "handle_contact_force_norm": [
+        0.0,
+        0.0
+      ],
+      "squeeze_y": [
+        0.0,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.05360715836286545
+    },
+    {
+      "env_id": 1,
+      "step_index": 266,
+      "episode_length_buf": 267,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -0.8997653722763062
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.025165431201457977,
+        -0.017496690154075623
+      ],
+      "arm_j7_j8_close_error": [
+        0.025165431201457977,
+        -0.017496690154075623
+      ],
+      "handle_contact_force_norm": [
+        22.585031509399414,
+        0.0
+      ],
+      "squeeze_y": [
+        22.205673217773438,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.05112115293741226
+    },
+    {
+      "env_id": 1,
+      "step_index": 267,
+      "episode_length_buf": 268,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.2526159286499023
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.01790495775640011,
+        -0.008021896705031395
+      ],
+      "arm_j7_j8_close_error": [
+        0.01790495775640011,
+        -0.008021896705031395
+      ],
+      "handle_contact_force_norm": [
+        14.550724029541016,
+        0.0
+      ],
+      "squeeze_y": [
+        14.478449821472168,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.049524083733558655
+    },
+    {
+      "env_id": 1,
+      "step_index": 268,
+      "episode_length_buf": 269,
+      "a2_stage2_squeeze_streak": 1,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.3127450942993164
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.014768141321837902,
+        -0.00800242554396391
+      ],
+      "arm_j7_j8_close_error": [
+        0.014768141321837902,
+        -0.00800242554396391
+      ],
+      "handle_contact_force_norm": [
+        17.442975997924805,
+        12.554750442504883
+      ],
+      "squeeze_y": [
+        17.31175994873047,
+        -12.51272201538086
+      ],
+      "target_pos_source_handle_distance": 0.04886716604232788
+    },
+    {
+      "env_id": 1,
+      "step_index": 269,
+      "episode_length_buf": 270,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        0.361008882522583
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.02595398761332035,
+        -0.022462554275989532
+      ],
+      "arm_j7_j8_close_error": [
+        0.02595398761332035,
+        -0.022462554275989532
+      ],
+      "handle_contact_force_norm": [
+        0.0,
+        0.0
+      ],
+      "squeeze_y": [
+        0.0,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.04852946847677231
+    },
+    {
+      "env_id": 1,
+      "step_index": 270,
+      "episode_length_buf": 271,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.1552832126617432
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.017737139016389847,
+        -0.011083822697401047
+      ],
+      "arm_j7_j8_close_error": [
+        0.017737139016389847,
+        -0.011083822697401047
+      ],
+      "handle_contact_force_norm": [
+        22.73785972595215,
+        0.0
+      ],
+      "squeeze_y": [
+        19.792564392089844,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.046235162764787674
+    },
+    {
+      "env_id": 1,
+      "step_index": 271,
+      "episode_length_buf": 272,
+      "a2_stage2_squeeze_streak": 1,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.6533998250961304
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.012809395790100098,
+        -0.010088801383972168
+      ],
+      "arm_j7_j8_close_error": [
+        0.012809395790100098,
+        -0.010088801383972168
+      ],
+      "handle_contact_force_norm": [
+        12.778608322143555,
+        15.24321460723877
+      ],
+      "squeeze_y": [
+        12.74508285522461,
+        -15.234428405761719
+      ],
+      "target_pos_source_handle_distance": 0.045286890119314194
+    },
+    {
+      "env_id": 1,
+      "step_index": 272,
+      "episode_length_buf": 273,
+      "a2_stage2_squeeze_streak": 2,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.885276436805725
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.012657315470278263,
+        -0.010287374258041382
+      ],
+      "arm_j7_j8_close_error": [
+        0.012657315470278263,
+        -0.010287374258041382
+      ],
+      "handle_contact_force_norm": [
+        17.927148818969727,
+        12.311773300170898
+      ],
+      "squeeze_y": [
+        17.757661819458008,
+        -12.303009986877441
+      ],
+      "target_pos_source_handle_distance": 0.04529865086078644
+    },
+    {
+      "env_id": 1,
+      "step_index": 273,
+      "episode_length_buf": 274,
+      "a2_stage2_squeeze_streak": 3,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -0.5918830037117004
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.012668312527239323,
+        -0.010343766771256924
+      ],
+      "arm_j7_j8_close_error": [
+        0.012668312527239323,
+        -0.010343766771256924
+      ],
+      "handle_contact_force_norm": [
+        18.317068099975586,
+        12.60921573638916
+      ],
+      "squeeze_y": [
+        18.02141761779785,
+        -12.59791374206543
+      ],
+      "target_pos_source_handle_distance": 0.04530384764075279
+    },
+    {
+      "env_id": 1,
+      "step_index": 274,
+      "episode_length_buf": 275,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        2.9070279598236084
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.024951593950390816,
+        -0.023559723049402237
+      ],
+      "arm_j7_j8_close_error": [
+        0.024951593950390816,
+        -0.023559723049402237
+      ],
+      "handle_contact_force_norm": [
+        0.0,
+        0.0
+      ],
+      "squeeze_y": [
+        0.0,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.04358822479844093
+    },
+    {
+      "env_id": 1,
+      "step_index": 275,
+      "episode_length_buf": 276,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.461875081062317
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.01597754843533039,
+        -0.011419796384871006
+      ],
+      "arm_j7_j8_close_error": [
+        0.01597754843533039,
+        -0.011419796384871006
+      ],
+      "handle_contact_force_norm": [
+        14.097107887268066,
+        0.0
+      ],
+      "squeeze_y": [
+        14.00003719329834,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.04108322039246559
+    },
+    {
+      "env_id": 1,
+      "step_index": 276,
+      "episode_length_buf": 277,
+      "a2_stage2_squeeze_streak": 1,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.8631476163864136
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.012463589198887348,
+        -0.011307355016469955
+      ],
+      "arm_j7_j8_close_error": [
+        0.012463589198887348,
+        -0.011307355016469955
+      ],
+      "handle_contact_force_norm": [
+        15.226356506347656,
+        15.794744491577148
+      ],
+      "squeeze_y": [
+        15.112274169921875,
+        -15.678556442260742
+      ],
+      "target_pos_source_handle_distance": 0.03994014486670494
+    },
+    {
+      "env_id": 1,
+      "step_index": 277,
+      "episode_length_buf": 278,
+      "a2_stage2_squeeze_streak": 2,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.9596446752548218
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.012225046753883362,
+        -0.01171873975545168
+      ],
+      "arm_j7_j8_close_error": [
+        0.012225046753883362,
+        -0.01171873975545168
+      ],
+      "handle_contact_force_norm": [
+        15.495476722717285,
+        14.436463356018066
+      ],
+      "squeeze_y": [
+        15.380687713623047,
+        -14.340080261230469
+      ],
+      "target_pos_source_handle_distance": 0.040388863533735275
+    },
+    {
+      "env_id": 1,
+      "step_index": 278,
+      "episode_length_buf": 279,
+      "a2_stage2_squeeze_streak": 3,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.9742015600204468
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.012462611310184002,
+        -0.011587116867303848
+      ],
+      "arm_j7_j8_close_error": [
+        0.012462611310184002,
+        -0.011587116867303848
+      ],
+      "handle_contact_force_norm": [
+        15.479154586791992,
+        13.75540828704834
+      ],
+      "squeeze_y": [
+        15.299539566040039,
+        -13.662646293640137
+      ],
+      "target_pos_source_handle_distance": 0.04098435118794441
+    },
+    {
+      "env_id": 1,
+      "step_index": 279,
+      "episode_length_buf": 280,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        1.2994662523269653
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.02486771158874035,
+        -0.024135451763868332
+      ],
+      "arm_j7_j8_close_error": [
+        0.02486771158874035,
+        -0.024135451763868332
+      ],
+      "handle_contact_force_norm": [
+        0.0,
+        0.0
+      ],
+      "squeeze_y": [
+        0.0,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.03990252688527107
+    },
+    {
+      "env_id": 1,
+      "step_index": 280,
+      "episode_length_buf": 281,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.2434484958648682
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.014784623868763447,
+        -0.011513604782521725
+      ],
+      "arm_j7_j8_close_error": [
+        0.014784623868763447,
+        -0.011513604782521725
+      ],
+      "handle_contact_force_norm": [
+        12.665511131286621,
+        0.0
+      ],
+      "squeeze_y": [
+        12.583381652832031,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.03767998144030571
+    },
+    {
+      "env_id": 1,
+      "step_index": 281,
+      "episode_length_buf": 282,
+      "a2_stage2_squeeze_streak": 1,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.8224704265594482
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.012094829231500626,
+        -0.011782779358327389
+      ],
+      "arm_j7_j8_close_error": [
+        0.012094829231500626,
+        -0.011782779358327389
+      ],
+      "handle_contact_force_norm": [
+        13.957368850708008,
+        15.663725852966309
+      ],
+      "squeeze_y": [
+        13.755887985229492,
+        -15.547971725463867
+      ],
+      "target_pos_source_handle_distance": 0.036802493035793304
+    },
+    {
+      "env_id": 1,
+      "step_index": 282,
+      "episode_length_buf": 283,
+      "a2_stage2_squeeze_streak": 2,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.8650962114334106
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.0117338877171278,
+        -0.012210515327751637
+      ],
+      "arm_j7_j8_close_error": [
+        0.0117338877171278,
+        -0.012210515327751637
+      ],
+      "handle_contact_force_norm": [
+        13.993782997131348,
+        15.276269912719727
+      ],
+      "squeeze_y": [
+        13.792961120605469,
+        -15.175915718078613
+      ],
+      "target_pos_source_handle_distance": 0.03737817332148552
+    },
+    {
+      "env_id": 1,
+      "step_index": 283,
+      "episode_length_buf": 284,
+      "a2_stage2_squeeze_streak": 3,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.933995246887207
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.011896996758878231,
+        -0.01206144131720066
+      ],
+      "arm_j7_j8_close_error": [
+        0.011896996758878231,
+        -0.01206144131720066
+      ],
+      "handle_contact_force_norm": [
+        15.831106185913086,
+        14.342013359069824
+      ],
+      "squeeze_y": [
+        15.714784622192383,
+        -14.248346328735352
+      ],
+      "target_pos_source_handle_distance": 0.0380965918302536
+    },
+    {
+      "env_id": 1,
+      "step_index": 284,
+      "episode_length_buf": 285,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        1.0149757862091064
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.024605171754956245,
+        -0.024348072707653046
+      ],
+      "arm_j7_j8_close_error": [
+        0.024605171754956245,
+        -0.024348072707653046
+      ],
+      "handle_contact_force_norm": [
+        0.0,
+        0.0
+      ],
+      "squeeze_y": [
+        0.0,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.03743484988808632
+    },
+    {
+      "env_id": 1,
+      "step_index": 285,
+      "episode_length_buf": 286,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.0486133098602295
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.014016552828252316,
+        -0.011577922850847244
+      ],
+      "arm_j7_j8_close_error": [
+        0.014016552828252316,
+        -0.011577922850847244
+      ],
+      "handle_contact_force_norm": [
+        11.286517143249512,
+        0.0
+      ],
+      "squeeze_y": [
+        11.208452224731445,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.035284895449876785
+    },
+    {
+      "env_id": 1,
+      "step_index": 286,
+      "episode_length_buf": 287,
+      "a2_stage2_squeeze_streak": 1,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.8013828992843628
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.01111760176718235,
+        -0.011778083629906178
+      ],
+      "arm_j7_j8_close_error": [
+        0.01111760176718235,
+        -0.011778083629906178
+      ],
+      "handle_contact_force_norm": [
+        11.081714630126953,
+        12.124526023864746
+      ],
+      "squeeze_y": [
+        10.364495277404785,
+        -12.057552337646484
+      ],
+      "target_pos_source_handle_distance": 0.034360550343990326
+    },
+    {
+      "env_id": 1,
+      "step_index": 287,
+      "episode_length_buf": 288,
+      "a2_stage2_squeeze_streak": 2,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.850993037223816
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.01102360337972641,
+        -0.011491782031953335
+      ],
+      "arm_j7_j8_close_error": [
+        0.01102360337972641,
+        -0.011491782031953335
+      ],
+      "handle_contact_force_norm": [
+        16.443086624145508,
+        13.632369995117188
+      ],
+      "squeeze_y": [
+        14.813066482543945,
+        -13.569969177246094
+      ],
+      "target_pos_source_handle_distance": 0.034932468086481094
+    },
+    {
+      "env_id": 1,
+      "step_index": 288,
+      "episode_length_buf": 289,
+      "a2_stage2_squeeze_streak": 3,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.813267707824707
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.011230920441448689,
+        -0.011327437125146389
+      ],
+      "arm_j7_j8_close_error": [
+        0.011230920441448689,
+        -0.011327437125146389
+      ],
+      "handle_contact_force_norm": [
+        17.087289810180664,
+        14.059420585632324
+      ],
+      "squeeze_y": [
+        16.067150115966797,
+        -13.982645034790039
+      ],
+      "target_pos_source_handle_distance": 0.03538027033209801
+    },
+    {
+      "env_id": 1,
+      "step_index": 289,
+      "episode_length_buf": 290,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        1.3311834335327148
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.024288378655910492,
+        -0.024019941687583923
+      ],
+      "arm_j7_j8_close_error": [
+        0.024288378655910492,
+        -0.024019941687583923
+      ],
+      "handle_contact_force_norm": [
+        0.0,
+        0.0
+      ],
+      "squeeze_y": [
+        0.0,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.03464619442820549
+    },
+    {
+      "env_id": 1,
+      "step_index": 290,
+      "episode_length_buf": 291,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.031813383102417
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.013514431193470955,
+        -0.011369932442903519
+      ],
+      "arm_j7_j8_close_error": [
+        0.013514431193470955,
+        -0.011369932442903519
+      ],
+      "handle_contact_force_norm": [
+        17.6447696685791,
+        0.0
+      ],
+      "squeeze_y": [
+        17.521554946899414,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.032631006091833115
+    },
+    {
+      "env_id": 1,
+      "step_index": 291,
+      "episode_length_buf": 292,
+      "a2_stage2_squeeze_streak": 1,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.7927964925765991
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.01153024286031723,
+        -0.012460123747587204
+      ],
+      "arm_j7_j8_close_error": [
+        0.01153024286031723,
+        -0.012460123747587204
+      ],
+      "handle_contact_force_norm": [
+        14.414058685302734,
+        16.056169509887695
+      ],
+      "squeeze_y": [
+        14.307928085327148,
+        -16.013992309570312
+      ],
+      "target_pos_source_handle_distance": 0.03199746832251549
+    },
+    {
+      "env_id": 1,
+      "step_index": 292,
+      "episode_length_buf": 293,
+      "a2_stage2_squeeze_streak": 2,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.9134855270385742
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.011648873798549175,
+        -0.012380821630358696
+      ],
+      "arm_j7_j8_close_error": [
+        0.011648873798549175,
+        -0.012380821630358696
+      ],
+      "handle_contact_force_norm": [
+        15.427637100219727,
+        15.191949844360352
+      ],
+      "squeeze_y": [
+        15.327816009521484,
+        -15.160310745239258
+      ],
+      "target_pos_source_handle_distance": 0.032176822423934937
+    },
+    {
+      "env_id": 1,
+      "step_index": 293,
+      "episode_length_buf": 294,
+      "a2_stage2_squeeze_streak": 3,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.696893572807312
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.011603941209614277,
+        -0.012452688068151474
+      ],
+      "arm_j7_j8_close_error": [
+        0.011603941209614277,
+        -0.012452688068151474
+      ],
+      "handle_contact_force_norm": [
+        15.311844825744629,
+        15.68608570098877
+      ],
+      "squeeze_y": [
+        15.197685241699219,
+        -15.652210235595703
+      ],
+      "target_pos_source_handle_distance": 0.03234400227665901
+    },
+    {
+      "env_id": 1,
+      "step_index": 294,
+      "episode_length_buf": 295,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        1.7799922227859497
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.02445356547832489,
+        -0.024554884061217308
+      ],
+      "arm_j7_j8_close_error": [
+        0.02445356547832489,
+        -0.024554884061217308
+      ],
+      "handle_contact_force_norm": [
+        0.0,
+        0.0
+      ],
+      "squeeze_y": [
+        0.0,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.03149891644716263
+    },
+    {
+      "env_id": 1,
+      "step_index": 295,
+      "episode_length_buf": 296,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.2167271375656128
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.013580165803432465,
+        -0.01153268851339817
+      ],
+      "arm_j7_j8_close_error": [
+        0.013580165803432465,
+        -0.01153268851339817
+      ],
+      "handle_contact_force_norm": [
+        17.211042404174805,
+        0.0
+      ],
+      "squeeze_y": [
+        17.092060089111328,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.029957158491015434
+    },
+    {
+      "env_id": 1,
+      "step_index": 296,
+      "episode_length_buf": 297,
+      "a2_stage2_squeeze_streak": 1,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.8102443218231201
+      ],
+      "gripper_raw_sign_flip": true,
+      "arm_j7_j8_pos": [
+        0.012537646107375622,
+        -0.011459591798484325
+      ],
+      "arm_j7_j8_close_error": [
+        0.012537646107375622,
+        -0.011459591798484325
+      ],
+      "handle_contact_force_norm": [
+        16.03544044494629,
+        14.263111114501953
+      ],
+      "squeeze_y": [
+        15.929059028625488,
+        -14.215511322021484
+      ],
+      "target_pos_source_handle_distance": 0.02975125052034855
+    },
+    {
+      "env_id": 1,
+      "step_index": 297,
+      "episode_length_buf": 298,
+      "a2_stage2_squeeze_streak": 2,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.9341495037078857
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.012364041060209274,
+        -0.01167017500847578
+      ],
+      "arm_j7_j8_close_error": [
+        0.012364041060209274,
+        -0.01167017500847578
+      ],
+      "handle_contact_force_norm": [
+        15.931761741638184,
+        14.82950496673584
+      ],
+      "squeeze_y": [
+        15.82545280456543,
+        -14.786855697631836
+      ],
+      "target_pos_source_handle_distance": 0.030056890100240707
+    },
+    {
+      "env_id": 1,
+      "step_index": 298,
+      "episode_length_buf": 299,
+      "a2_stage2_squeeze_streak": 3,
+      "both_contact": true,
+      "squeeze_window": true,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        -1.6945198774337769
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.0124199278652668,
+        -0.011713502928614616
+      ],
+      "arm_j7_j8_close_error": [
+        0.0124199278652668,
+        -0.011713502928614616
+      ],
+      "handle_contact_force_norm": [
+        16.63700294494629,
+        14.204251289367676
+      ],
+      "squeeze_y": [
+        16.51215171813965,
+        -14.157663345336914
+      ],
+      "target_pos_source_handle_distance": 0.0304348636418581
+    },
+    {
+      "env_id": 1,
+      "step_index": 299,
+      "episode_length_buf": 300,
+      "a2_stage2_squeeze_streak": 0,
+      "both_contact": false,
+      "squeeze_window": false,
+      "contact_stability": false,
+      "gripper_primitive_raw": [
+        1.941458821296692
+      ],
+      "gripper_raw_sign_flip": false,
+      "arm_j7_j8_pos": [
+        0.024835482239723206,
+        -0.02420642040669918
+      ],
+      "arm_j7_j8_close_error": [
+        0.024835482239723206,
+        -0.02420642040669918
+      ],
+      "handle_contact_force_norm": [
+        0.0,
+        0.0
+      ],
+      "squeeze_y": [
+        0.0,
+        0.0
+      ],
+      "target_pos_source_handle_distance": 0.029944157227873802
+    }
+  ]
+}

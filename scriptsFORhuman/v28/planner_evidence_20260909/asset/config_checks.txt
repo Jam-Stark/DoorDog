@@ -1,0 +1,30 @@
+== m23 flag in configs ==
+== undesired contact weights ==
+gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml:94:      penalty_undesired_contact: -0.2
+== v27 ablation robot/asset overrides ==
+== ablation dir ==
+base_v27_R2_S41.yaml
+base_v27_SC_S201.yaml
+base_v27_SC_S202.yaml
+base_v27_SC_S203.yaml
+base_v27_SK_S211.yaml
+base_v27_SK_S212.yaml
+base_v27_SK_S213.yaml
+base_v27_common.yaml
+base_v9_A.yaml
+base_v9_B.yaml
+base_v9_C.yaml
+base_v9_D.yaml
+== v27 resolved: robot asset + reward undesired ==
+244:          enable_cameras: false
+245:          camera_parent: null
+430:        urdf_file: A2_Piper/a2_piper.urdf
+431:        usd_file: A2_Piper/a2_piper.usd
+434:        self_collisions: 0
+1025:        penalty_undesired_contact: -0.2
+1854:    urdf_file: A2_Piper/a2_piper.urdf
+1855:    usd_file: A2_Piper/a2_piper.usd
+1858:    self_collisions: 0
+2238:      enable_cameras: false
+2239:      camera_parent: null
+2614:    penalty_undesired_contact: -0.2

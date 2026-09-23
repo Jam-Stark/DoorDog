@@ -1,0 +1,11 @@
+== new a2_piper.usd refs ==
+5:configuration/a2_piper_sensor.usd"
+== new robot.usd refs ==
+== new physics.usd: self collision / joints ==
+38:@Mass
+== new base.usd: STL refs? ==
+== old physics.usd ==
+== link names in new physics.usd ==
+25:trunk
+26:FL_hip
+32:arm_body0

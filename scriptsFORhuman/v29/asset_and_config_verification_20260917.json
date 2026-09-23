@@ -1,0 +1,69 @@
+{
+  "evidence": "STATIC_PASS",
+  "camera_count": 3,
+  "camera_names": [
+    "base_left",
+    "base_right",
+    "wrist"
+  ],
+  "visuals": [
+    {
+      "name": "v28_base_left_housing_visual",
+      "usd_invisible": true,
+      "urdf_visual_absent": true,
+      "collision_retained": true
+    },
+    {
+      "name": "v28_base_right_housing_visual",
+      "usd_invisible": true,
+      "urdf_visual_absent": true,
+      "collision_retained": true
+    },
+    {
+      "name": "v28_wrist_housing_visual",
+      "usd_invisible": true,
+      "urdf_visual_absent": true,
+      "collision_retained": true
+    }
+  ],
+  "wrist_urdf_usd_collision_transforms_match": true,
+  "support_remains_visible": true,
+  "rigid_body_count": 28,
+  "default_arm_pose_rad": [
+    0.0,
+    0.1,
+    -0.1,
+    0.0,
+    -0.52,
+    1.57
+  ],
+  "default_wrist_rgb_axis_in_trunk": [
+    0.9649881416961726,
+    -1.4734114489189402e-07,
+    -0.2622935119017345
+  ],
+  "default_wrist_rgb_pitch_deg": -15.2061946540364,
+  "resolved_goal_m": [
+    2.0,
+    0.0,
+    0.5
+  ],
+  "resolved_handle_height_range_m": [
+    0.9,
+    1.2
+  ],
+  "stage5_heading_scale": -4.0,
+  "stage5_upright_added_scale": -8.0,
+  "existing_base_roll_pitch_scale": -2.0,
+  "central_envelope_removed": {
+    "urdf_visual": true,
+    "urdf_collision": true,
+    "usd_visual": true,
+    "usd_collision": true,
+    "rig_geometry": true
+  },
+  "trunk_mass_kg_urdf": 20.404808264807315,
+  "trunk_mass_kg_usd": 20.404808044433594,
+  "runtime_config_reference": "runtime_logs/baseline_smoke_20260917/config.yaml; no config change during central removal",
+  "central_envelope_mass_contribution_kg": 0.0
+}

@@ -1,0 +1,650 @@
+[
+ {
+  "theta_deg": 0,
+  "rgb/tcp": {
+   "in": false,
+   "v_frac": 3.355,
+   "u_frac": 0.806,
+   "z_m": 0.076
+  },
+  "rgb/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 2.938,
+   "u_frac": 0.765,
+   "z_m": 0.089
+  },
+  "rgb/fingertip_open_-y": {
+   "in": false,
+   "v_frac": 2.473,
+   "u_frac": 0.684,
+   "z_m": 0.13
+  },
+  "rgb/fingertip_open_+y": {
+   "in": false,
+   "v_frac": 1.861,
+   "u_frac": 0.694,
+   "z_m": 0.124
+  },
+  "rgb/fingertip_closed": {
+   "in": false,
+   "v_frac": 2.174,
+   "u_frac": 0.689,
+   "z_m": 0.127
+  },
+  "rgb/on_axis_enter_m": 0.385,
+  "rgb/axis_pitch_deg_at_reference": 0.04,
+  "rgb/cam_world_height_trunk0.48": 1.027,
+  "rgb/ground_hit_m_trunk0.48": null,
+  "rgb/cam_world_height_trunk0.55": 1.097,
+  "rgb/ground_hit_m_trunk0.55": null,
+  "rgb/half_vfov_deg": 21.7,
+  "rgb/upper_edge_elev_deg": 21.74,
+  "rgb/lower_edge_elev_deg": -21.65,
+  "depth/tcp": {
+   "in": false,
+   "v_frac": 2.527,
+   "u_frac": 0.61,
+   "z_m": 0.076
+  },
+  "depth/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 2.231,
+   "u_frac": 0.594,
+   "z_m": 0.089
+  },
+  "depth/fingertip_open_-y": {
+   "in": false,
+   "v_frac": 1.9,
+   "u_frac": 0.563,
+   "z_m": 0.13
+  },
+  "depth/fingertip_open_+y": {
+   "in": false,
+   "v_frac": 1.464,
+   "u_frac": 0.566,
+   "z_m": 0.124
+  },
+  "depth/fingertip_closed": {
+   "in": false,
+   "v_frac": 1.687,
+   "u_frac": 0.564,
+   "z_m": 0.127
+  },
+  "depth/on_axis_enter_m": 0.29,
+  "depth/axis_pitch_deg_at_reference": -0.0,
+  "depth/cam_world_height_trunk0.48": 1.027,
+  "depth/ground_hit_m_trunk0.48": null,
+  "depth/cam_world_height_trunk0.55": 1.097,
+  "depth/ground_hit_m_trunk0.55": null,
+  "depth/half_vfov_deg": 29.11,
+  "depth/upper_edge_elev_deg": 29.11,
+  "depth/lower_edge_elev_deg": -29.11
+ },
+ {
+  "theta_deg": 15,
+  "rgb/tcp": {
+   "in": false,
+   "v_frac": 2.069,
+   "u_frac": 0.702,
+   "z_m": 0.118
+  },
+  "rgb/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 1.886,
+   "u_frac": 0.685,
+   "z_m": 0.13
+  },
+  "rgb/fingertip_open_-y": {
+   "in": false,
+   "v_frac": 1.655,
+   "u_frac": 0.639,
+   "z_m": 0.178
+  },
+  "rgb/fingertip_open_+y": {
+   "in": false,
+   "v_frac": 1.296,
+   "u_frac": 0.659,
+   "z_m": 0.154
+  },
+  "rgb/fingertip_closed": {
+   "in": false,
+   "v_frac": 1.488,
+   "u_frac": 0.648,
+   "z_m": 0.166
+  },
+  "rgb/on_axis_enter_m": 0.23,
+  "rgb/axis_pitch_deg_at_reference": -14.96,
+  "rgb/cam_world_height_trunk0.48": 1.027,
+  "rgb/ground_hit_m_trunk0.48": 3.85,
+  "rgb/cam_world_height_trunk0.55": 1.097,
+  "rgb/ground_hit_m_trunk0.55": 4.11,
+  "rgb/half_vfov_deg": 21.7,
+  "rgb/upper_edge_elev_deg": 6.74,
+  "rgb/lower_edge_elev_deg": -36.65,
+  "depth/tcp": {
+   "in": false,
+   "v_frac": 1.612,
+   "u_frac": 0.569,
+   "z_m": 0.118
+  },
+  "depth/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 1.482,
+   "u_frac": 0.562,
+   "z_m": 0.13
+  },
+  "depth/fingertip_open_-y": {
+   "in": false,
+   "v_frac": 1.317,
+   "u_frac": 0.544,
+   "z_m": 0.178
+  },
+  "depth/fingertip_open_+y": {
+   "in": false,
+   "v_frac": 1.061,
+   "u_frac": 0.552,
+   "z_m": 0.154
+  },
+  "depth/fingertip_closed": {
+   "in": false,
+   "v_frac": 1.198,
+   "u_frac": 0.548,
+   "z_m": 0.166
+  },
+  "depth/on_axis_enter_m": 0.18,
+  "depth/axis_pitch_deg_at_reference": -15.0,
+  "depth/cam_world_height_trunk0.48": 1.027,
+  "depth/ground_hit_m_trunk0.48": 3.83,
+  "depth/cam_world_height_trunk0.55": 1.097,
+  "depth/ground_hit_m_trunk0.55": 4.09,
+  "depth/half_vfov_deg": 29.11,
+  "depth/upper_edge_elev_deg": 14.11,
+  "depth/lower_edge_elev_deg": -44.11
+ },
+ {
+  "theta_deg": 25,
+  "rgb/tcp": {
+   "in": false,
+   "v_frac": 1.606,
+   "u_frac": 0.671,
+   "z_m": 0.142
+  },
+  "rgb/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 1.476,
+   "u_frac": 0.66,
+   "z_m": 0.153
+  },
+  "rgb/fingertip_open_-y": {
+   "in": false,
+   "v_frac": 1.304,
+   "u_frac": 0.623,
+   "z_m": 0.204
+  },
+  "rgb/fingertip_open_+y": {
+   "in": false,
+   "v_frac": 1.018,
+   "u_frac": 0.647,
+   "z_m": 0.169
+  },
+  "rgb/fingertip_closed": {
+   "in": false,
+   "v_frac": 1.175,
+   "u_frac": 0.634,
+   "z_m": 0.186
+  },
+  "rgb/on_axis_enter_m": 0.17,
+  "rgb/axis_pitch_deg_at_reference": -24.96,
+  "rgb/cam_world_height_trunk0.48": 1.027,
+  "rgb/ground_hit_m_trunk0.48": 2.21,
+  "rgb/cam_world_height_trunk0.55": 1.097,
+  "rgb/ground_hit_m_trunk0.55": 2.36,
+  "rgb/half_vfov_deg": 21.7,
+  "rgb/upper_edge_elev_deg": -3.26,
+  "rgb/lower_edge_elev_deg": -46.65,
+  "depth/tcp": {
+   "in": false,
+   "v_frac": 1.282,
+   "u_frac": 0.557,
+   "z_m": 0.142
+  },
+  "depth/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 1.19,
+   "u_frac": 0.552,
+   "z_m": 0.153
+  },
+  "depth/fingertip_open_-y": {
+   "in": false,
+   "v_frac": 1.067,
+   "u_frac": 0.538,
+   "z_m": 0.204
+  },
+  "depth/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.863,
+   "u_frac": 0.547,
+   "z_m": 0.169
+  },
+  "depth/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.975,
+   "u_frac": 0.542,
+   "z_m": 0.186
+  },
+  "depth/on_axis_enter_m": 0.135,
+  "depth/axis_pitch_deg_at_reference": -25.0,
+  "depth/cam_world_height_trunk0.48": 1.027,
+  "depth/ground_hit_m_trunk0.48": 2.2,
+  "depth/cam_world_height_trunk0.55": 1.097,
+  "depth/ground_hit_m_trunk0.55": 2.35,
+  "depth/half_vfov_deg": 29.11,
+  "depth/upper_edge_elev_deg": 4.11,
+  "depth/lower_edge_elev_deg": -54.11
+ },
+ {
+  "theta_deg": 30,
+  "rgb/tcp": {
+   "in": false,
+   "v_frac": 1.426,
+   "u_frac": 0.661,
+   "z_m": 0.152
+  },
+  "rgb/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 1.312,
+   "u_frac": 0.652,
+   "z_m": 0.163
+  },
+  "rgb/fingertip_open_-y": {
+   "in": false,
+   "v_frac": 1.158,
+   "u_frac": 0.618,
+   "z_m": 0.214
+  },
+  "rgb/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.894,
+   "u_frac": 0.643,
+   "z_m": 0.174
+  },
+  "rgb/fingertip_closed": {
+   "in": false,
+   "v_frac": 1.04,
+   "u_frac": 0.63,
+   "z_m": 0.194
+  },
+  "rgb/on_axis_enter_m": 0.145,
+  "rgb/axis_pitch_deg_at_reference": -29.96,
+  "rgb/cam_world_height_trunk0.48": 1.027,
+  "rgb/ground_hit_m_trunk0.48": 1.78,
+  "rgb/cam_world_height_trunk0.55": 1.097,
+  "rgb/ground_hit_m_trunk0.55": 1.9,
+  "rgb/half_vfov_deg": 21.7,
+  "rgb/upper_edge_elev_deg": -8.26,
+  "rgb/lower_edge_elev_deg": -51.65,
+  "depth/tcp": {
+   "in": false,
+   "v_frac": 1.154,
+   "u_frac": 0.552,
+   "z_m": 0.152
+  },
+  "depth/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 1.073,
+   "u_frac": 0.549,
+   "z_m": 0.163
+  },
+  "depth/fingertip_open_-y": {
+   "in": true,
+   "v_frac": 0.963,
+   "u_frac": 0.536,
+   "z_m": 0.214
+  },
+  "depth/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.774,
+   "u_frac": 0.545,
+   "z_m": 0.174
+  },
+  "depth/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.878,
+   "u_frac": 0.54,
+   "z_m": 0.194
+  },
+  "depth/on_axis_enter_m": 0.115,
+  "depth/axis_pitch_deg_at_reference": -30.0,
+  "depth/cam_world_height_trunk0.48": 1.027,
+  "depth/ground_hit_m_trunk0.48": 1.78,
+  "depth/cam_world_height_trunk0.55": 1.097,
+  "depth/ground_hit_m_trunk0.55": 1.9,
+  "depth/half_vfov_deg": 29.11,
+  "depth/upper_edge_elev_deg": -0.89,
+  "depth/lower_edge_elev_deg": -59.11
+ },
+ {
+  "theta_deg": 35,
+  "rgb/tcp": {
+   "in": false,
+   "v_frac": 1.267,
+   "u_frac": 0.653,
+   "z_m": 0.161
+  },
+  "rgb/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 1.165,
+   "u_frac": 0.645,
+   "z_m": 0.171
+  },
+  "rgb/fingertip_open_-y": {
+   "in": false,
+   "v_frac": 1.025,
+   "u_frac": 0.614,
+   "z_m": 0.223
+  },
+  "rgb/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.777,
+   "u_frac": 0.641,
+   "z_m": 0.178
+  },
+  "rgb/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.915,
+   "u_frac": 0.626,
+   "z_m": 0.2
+  },
+  "rgb/on_axis_enter_m": 0.125,
+  "rgb/axis_pitch_deg_at_reference": -34.96,
+  "rgb/cam_world_height_trunk0.48": 1.027,
+  "rgb/ground_hit_m_trunk0.48": 1.47,
+  "rgb/cam_world_height_trunk0.55": 1.097,
+  "rgb/ground_hit_m_trunk0.55": 1.57,
+  "rgb/half_vfov_deg": 21.7,
+  "rgb/upper_edge_elev_deg": -13.26,
+  "rgb/lower_edge_elev_deg": -56.65,
+  "depth/tcp": {
+   "in": false,
+   "v_frac": 1.041,
+   "u_frac": 0.549,
+   "z_m": 0.162
+  },
+  "depth/finger_mid_0.0976": {
+   "in": true,
+   "v_frac": 0.968,
+   "u_frac": 0.546,
+   "z_m": 0.171
+  },
+  "depth/fingertip_open_-y": {
+   "in": true,
+   "v_frac": 0.868,
+   "u_frac": 0.534,
+   "z_m": 0.223
+  },
+  "depth/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.691,
+   "u_frac": 0.544,
+   "z_m": 0.178
+  },
+  "depth/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.789,
+   "u_frac": 0.538,
+   "z_m": 0.2
+  },
+  "depth/on_axis_enter_m": 0.095,
+  "depth/axis_pitch_deg_at_reference": -35.0,
+  "depth/cam_world_height_trunk0.48": 1.027,
+  "depth/ground_hit_m_trunk0.48": 1.47,
+  "depth/cam_world_height_trunk0.55": 1.097,
+  "depth/ground_hit_m_trunk0.55": 1.57,
+  "depth/half_vfov_deg": 29.11,
+  "depth/upper_edge_elev_deg": -5.89,
+  "depth/lower_edge_elev_deg": -64.11
+ },
+ {
+  "theta_deg": 40,
+  "rgb/tcp": {
+   "in": false,
+   "v_frac": 1.124,
+   "u_frac": 0.646,
+   "z_m": 0.169
+  },
+  "rgb/finger_mid_0.0976": {
+   "in": false,
+   "v_frac": 1.031,
+   "u_frac": 0.64,
+   "z_m": 0.178
+  },
+  "rgb/fingertip_open_-y": {
+   "in": true,
+   "v_frac": 0.9,
+   "u_frac": 0.611,
+   "z_m": 0.23
+  },
+  "rgb/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.664,
+   "u_frac": 0.639,
+   "z_m": 0.181
+  },
+  "rgb/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.796,
+   "u_frac": 0.624,
+   "z_m": 0.205
+  },
+  "rgb/on_axis_enter_m": 0.105,
+  "rgb/axis_pitch_deg_at_reference": -39.96,
+  "rgb/cam_world_height_trunk0.48": 1.027,
+  "rgb/ground_hit_m_trunk0.48": 1.23,
+  "rgb/cam_world_height_trunk0.55": 1.097,
+  "rgb/ground_hit_m_trunk0.55": 1.31,
+  "rgb/half_vfov_deg": 21.7,
+  "rgb/upper_edge_elev_deg": -18.26,
+  "rgb/lower_edge_elev_deg": -61.65,
+  "depth/tcp": {
+   "in": true,
+   "v_frac": 0.939,
+   "u_frac": 0.546,
+   "z_m": 0.169
+  },
+  "depth/finger_mid_0.0976": {
+   "in": true,
+   "v_frac": 0.872,
+   "u_frac": 0.544,
+   "z_m": 0.178
+  },
+  "depth/fingertip_open_-y": {
+   "in": true,
+   "v_frac": 0.779,
+   "u_frac": 0.533,
+   "z_m": 0.23
+  },
+  "depth/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.61,
+   "u_frac": 0.543,
+   "z_m": 0.181
+  },
+  "depth/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.705,
+   "u_frac": 0.537,
+   "z_m": 0.205
+  },
+  "depth/on_axis_enter_m": 0.075,
+  "depth/axis_pitch_deg_at_reference": -40.0,
+  "depth/cam_world_height_trunk0.48": 1.027,
+  "depth/ground_hit_m_trunk0.48": 1.22,
+  "depth/cam_world_height_trunk0.55": 1.097,
+  "depth/ground_hit_m_trunk0.55": 1.31,
+  "depth/half_vfov_deg": 29.11,
+  "depth/upper_edge_elev_deg": -10.89,
+  "depth/lower_edge_elev_deg": -69.11
+ },
+ {
+  "theta_deg": 45,
+  "rgb/tcp": {
+   "in": true,
+   "v_frac": 0.993,
+   "u_frac": 0.642,
+   "z_m": 0.176
+  },
+  "rgb/finger_mid_0.0976": {
+   "in": true,
+   "v_frac": 0.906,
+   "u_frac": 0.636,
+   "z_m": 0.184
+  },
+  "rgb/fingertip_open_-y": {
+   "in": true,
+   "v_frac": 0.783,
+   "u_frac": 0.61,
+   "z_m": 0.235
+  },
+  "rgb/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.553,
+   "u_frac": 0.639,
+   "z_m": 0.182
+  },
+  "rgb/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.683,
+   "u_frac": 0.622,
+   "z_m": 0.209
+  },
+  "rgb/on_axis_enter_m": 0.085,
+  "rgb/axis_pitch_deg_at_reference": -44.96,
+  "rgb/cam_world_height_trunk0.48": 1.027,
+  "rgb/ground_hit_m_trunk0.48": 1.03,
+  "rgb/cam_world_height_trunk0.55": 1.097,
+  "rgb/ground_hit_m_trunk0.55": 1.1,
+  "rgb/half_vfov_deg": 21.7,
+  "rgb/upper_edge_elev_deg": -23.26,
+  "rgb/lower_edge_elev_deg": -66.65,
+  "depth/tcp": {
+   "in": true,
+   "v_frac": 0.845,
+   "u_frac": 0.545,
+   "z_m": 0.176
+  },
+  "depth/finger_mid_0.0976": {
+   "in": true,
+   "v_frac": 0.783,
+   "u_frac": 0.542,
+   "z_m": 0.184
+  },
+  "depth/fingertip_open_-y": {
+   "in": true,
+   "v_frac": 0.695,
+   "u_frac": 0.532,
+   "z_m": 0.236
+  },
+  "depth/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.531,
+   "u_frac": 0.543,
+   "z_m": 0.182
+  },
+  "depth/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.624,
+   "u_frac": 0.537,
+   "z_m": 0.209
+  },
+  "depth/on_axis_enter_m": 0.06,
+  "depth/axis_pitch_deg_at_reference": -45.0,
+  "depth/cam_world_height_trunk0.48": 1.027,
+  "depth/ground_hit_m_trunk0.48": 1.03,
+  "depth/cam_world_height_trunk0.55": 1.097,
+  "depth/ground_hit_m_trunk0.55": 1.1,
+  "depth/half_vfov_deg": 29.11,
+  "depth/upper_edge_elev_deg": -15.89,
+  "depth/lower_edge_elev_deg": -74.11
+ },
+ {
+  "theta_deg": 50,
+  "rgb/tcp": {
+   "in": true,
+   "v_frac": 0.871,
+   "u_frac": 0.638,
+   "z_m": 0.181
+  },
+  "rgb/finger_mid_0.0976": {
+   "in": true,
+   "v_frac": 0.789,
+   "u_frac": 0.634,
+   "z_m": 0.188
+  },
+  "rgb/fingertip_open_-y": {
+   "in": true,
+   "v_frac": 0.67,
+   "u_frac": 0.608,
+   "z_m": 0.239
+  },
+  "rgb/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.444,
+   "u_frac": 0.639,
+   "z_m": 0.182
+  },
+  "rgb/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.572,
+   "u_frac": 0.622,
+   "z_m": 0.21
+  },
+  "rgb/on_axis_enter_m": 0.07,
+  "rgb/axis_pitch_deg_at_reference": -49.96,
+  "rgb/cam_world_height_trunk0.48": 1.027,
+  "rgb/ground_hit_m_trunk0.48": 0.86,
+  "rgb/cam_world_height_trunk0.55": 1.097,
+  "rgb/ground_hit_m_trunk0.55": 0.92,
+  "rgb/half_vfov_deg": 21.7,
+  "rgb/upper_edge_elev_deg": -28.26,
+  "rgb/lower_edge_elev_deg": -71.65,
+  "depth/tcp": {
+   "in": true,
+   "v_frac": 0.758,
+   "u_frac": 0.543,
+   "z_m": 0.181
+  },
+  "depth/finger_mid_0.0976": {
+   "in": true,
+   "v_frac": 0.699,
+   "u_frac": 0.541,
+   "z_m": 0.189
+  },
+  "depth/fingertip_open_-y": {
+   "in": true,
+   "v_frac": 0.614,
+   "u_frac": 0.531,
+   "z_m": 0.239
+  },
+  "depth/fingertip_open_+y": {
+   "in": true,
+   "v_frac": 0.453,
+   "u_frac": 0.543,
+   "z_m": 0.182
+  },
+  "depth/fingertip_closed": {
+   "in": true,
+   "v_frac": 0.545,
+   "u_frac": 0.536,
+   "z_m": 0.21
+  },
+  "depth/on_axis_enter_m": 0.05,
+  "depth/axis_pitch_deg_at_reference": -50.0,
+  "depth/cam_world_height_trunk0.48": 1.027,
+  "depth/ground_hit_m_trunk0.48": 0.86,
+  "depth/cam_world_height_trunk0.55": 1.097,
+  "depth/ground_hit_m_trunk0.55": 0.92,
+  "depth/half_vfov_deg": 29.11,
+  "depth/upper_edge_elev_deg": -20.89,
+  "depth/lower_edge_elev_deg": -79.11
+ }
+]

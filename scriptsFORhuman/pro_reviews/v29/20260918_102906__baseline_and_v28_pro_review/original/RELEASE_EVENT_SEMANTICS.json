@@ -1,0 +1,49 @@
+{
+  "scope": "Independent raw endpoint arithmetic plus provided-source event definition; NOT physical release reconstruction",
+  "source": "gr00t/rl/envs/door/door_open_a2_base.py::_update_a2_stage4_release_and_root_latches, lines 15841-15845 in supplied source",
+  "definition": "release_event = ~release_gate & updated_gate; hinge_at_release stores hinge at first logical gate transition, not first loss of two-finger contact",
+  "gate_rad": 1.2,
+  "physical_release_time_or_angle": "UNKNOWN_WITHOUT_FULL_CONTACT_TRACE",
+  "lanes": {
+    "eval_qualification_0_dev_a_s282_left": {
+      "gate_observed_n": 126,
+      "gate_missing_n": 2,
+      "hinge_at_legacy_release_deg_min_median_max": [
+        68.7653132051237,
+        69.16972870588016,
+        69.71152663160225
+      ],
+      "interpretation": "near69deg is gate crossing, not evidence of actual gripper release near69deg"
+    },
+    "eval_qualification_0_dev_a_s282_right": {
+      "gate_observed_n": 128,
+      "gate_missing_n": 0,
+      "hinge_at_legacy_release_deg_min_median_max": [
+        68.7899360370816,
+        69.21271450142163,
+        69.74942735130665
+      ],
+      "interpretation": "near69deg is gate crossing, not evidence of actual gripper release near69deg"
+    },
+    "eval_qualification_1_dev_a_s284_left": {
+      "gate_observed_n": 128,
+      "gate_missing_n": 0,
+      "hinge_at_legacy_release_deg_min_median_max": [
+        68.77108471497236,
+        69.11465347550777,
+        69.58354937712372
+      ],
+      "interpretation": "near69deg is gate crossing, not evidence of actual gripper release near69deg"
+    },
+    "eval_qualification_1_dev_a_s284_right": {
+      "gate_observed_n": 126,
+      "gate_missing_n": 2,
+      "hinge_at_legacy_release_deg_min_median_max": [
+        68.75924799714073,
+        69.18157908409013,
+        69.68062685579712
+      ],
+      "interpretation": "near69deg is gate crossing, not evidence of actual gripper release near69deg"
+    }
+  }
+}

@@ -1,0 +1,172 @@
+{
+ "scale": -0.4,
+ "dt": 0.02,
+ "v150_rad_s": 2.6179938779914944,
+ "rows": {
+  "0": {
+   "vel_weights_j4_j5_j6": [
+    0.35,
+    0.35,
+    0.35
+   ],
+   "reversal_weights_j4_j5_j6": [
+    0.5,
+    0.5,
+    0.5
+   ],
+   "income_per_step": 0.08,
+   "income_source": "formula est. (walk_to_door 5*~0.75 + stage 1*~1)*dt",
+   "cost_j4_at_150dps_per_step": 0.01919,
+   "cost_j4_fraction_of_income": 0.24,
+   "cost_j6_at_150dps_per_step": 0.01919,
+   "cost_j6_fraction_of_income": 0.24,
+   "cost_full_reversal_2rads_j4_once": 0.016
+  },
+  "1": {
+   "vel_weights_j4_j5_j6": [
+    0.5,
+    0.5,
+    0.5
+   ],
+   "reversal_weights_j4_j5_j6": [
+    0.5,
+    0.5,
+    0.5
+   ],
+   "income_per_step": 0.12,
+   "income_source": "formula est. (pregrasp_target_distance 6*~0.7 + gripper_handle_orientation 3*~0.5)*dt",
+   "cost_j4_at_150dps_per_step": 0.02742,
+   "cost_j4_fraction_of_income": 0.228,
+   "cost_j6_at_150dps_per_step": 0.02742,
+   "cost_j6_fraction_of_income": 0.228,
+   "cost_full_reversal_2rads_j4_once": 0.016
+  },
+  "2": {
+   "vel_weights_j4_j5_j6": [
+    0.75,
+    0.75,
+    0.75
+   ],
+   "reversal_weights_j4_j5_j6": [
+    0.5,
+    0.5,
+    0.5
+   ],
+   "income_per_step": 0.288,
+   "income_source": "COMPUTED C_S2 DEV L/R 0.2998/0.2764",
+   "cost_j4_at_150dps_per_step": 0.04112,
+   "cost_j4_fraction_of_income": 0.143,
+   "cost_j6_at_150dps_per_step": 0.04112,
+   "cost_j6_fraction_of_income": 0.143,
+   "cost_full_reversal_2rads_j4_once": 0.016
+  },
+  "3": {
+   "vel_weights_j4_j5_j6": [
+    0.5,
+    0.5,
+    0.0
+   ],
+   "reversal_weights_j4_j5_j6": [
+    0.5,
+    0.5,
+    0.25
+   ],
+   "income_per_step": 0.565,
+   "income_source": "COMPUTED 0.5677/0.5621",
+   "cost_j4_at_150dps_per_step": 0.02742,
+   "cost_j4_fraction_of_income": 0.049,
+   "cost_j6_at_150dps_per_step": 0.0,
+   "cost_j6_fraction_of_income": 0.0,
+   "cost_full_reversal_2rads_j4_once": 0.016
+  },
+  "4": {
+   "vel_weights_j4_j5_j6": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "reversal_weights_j4_j5_j6": [
+    0.5,
+    0.5,
+    0.5
+   ],
+   "income_per_step": 0.552,
+   "income_source": "COMPUTED 0.5379/0.5661",
+   "cost_j4_at_150dps_per_step": 0.05483,
+   "cost_j4_fraction_of_income": 0.099,
+   "cost_j6_at_150dps_per_step": 0.05483,
+   "cost_j6_fraction_of_income": 0.099,
+   "cost_full_reversal_2rads_j4_once": 0.016
+  },
+  "5": {
+   "vel_weights_j4_j5_j6": [
+    1.25,
+    1.25,
+    1.25
+   ],
+   "reversal_weights_j4_j5_j6": [
+    0.5,
+    0.5,
+    0.5
+   ],
+   "income_per_step": 0.331,
+   "income_source": "COMPUTED 0.3034/0.3580",
+   "cost_j4_at_150dps_per_step": 0.06854,
+   "cost_j4_fraction_of_income": 0.207,
+   "cost_j6_at_150dps_per_step": 0.06854,
+   "cost_j6_fraction_of_income": 0.207,
+   "cost_full_reversal_2rads_j4_once": 0.016
+  }
+ },
+ "stage3_depression": {
+  "j6_speed_rad_s": 3.0,
+  "new_term_cost": 0.0,
+  "existing_penalty_dof_vel_cost": 0.00018,
+  "existing_penalty_dof_vel_fraction": 0.00032,
+  "existing_penalty_dof_acc_measured_per_step_LR": [
+   -0.00955,
+   -0.00639
+  ],
+  "j4_tail_4p1_rad_s_new_term_cost": 0.06724,
+  "j4_tail_fraction": 0.119,
+  "one_reversal_j6_at_3rad_s_cost_once": 0.018
+ },
+ "stage4_post_release_posture": {
+  "scale0.5_L1_7.1": 0.071,
+  "scale0.5_L1_8.4": 0.084,
+  "scale1.0_L1_7.1": 0.142,
+  "scale1.0_L1_8.4": 0.168,
+  "released_income_per_step_LR": [
+   0.2,
+   0.31
+  ]
+ },
+ "warm_start_shift": {
+  "delta_default_j4_j5": [
+   -0.25,
+   -0.94
+  ],
+  "obs_dof_pos_shift_j4_j5_rad": [
+   0.25,
+   0.94
+  ],
+  "cumulative_delta_action_shift_units": [
+   1.0,
+   3.76
+  ],
+  "per_step_target_increment_rad_per_unit_action": 0.075,
+  "commanded_velocity_rad_s_per_unit_action": 3.75
+ },
+ "g1_probe_gpu": {
+  "iteration_time_s_measured": [
+   22.05,
+   22.96
+  ],
+  "batches": 500,
+  "train_hours": 3.12,
+  "eval_exact64_per_side_min_est": [
+   6,
+   8
+  ]
+ }
+}

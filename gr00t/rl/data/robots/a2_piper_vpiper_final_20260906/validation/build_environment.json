@@ -1,0 +1,18 @@
+{
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "platform": "Linux-6.18.35-x86_64-with-glibc2.41",
+  "packages": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "trimesh": "4.11.1",
+    "cadquery": "2.8.0",
+    "cadquery-ocp": "7.9.3.1.1",
+    "vtk": "9.6.2",
+    "Pillow": "12.3.0",
+    "cairosvg": "2.8.2",
+    "mujoco": null
+  },
+  "mujoco_status": "Not installed; pip dependency lookup failed and public PyPI DNS lookup failed. No native engine validation performed.",
+  "isaac_status": "Not installed or run",
+  "render_status": "VTK deterministic off-screen mesh render succeeded; no physics engine involved"
+}

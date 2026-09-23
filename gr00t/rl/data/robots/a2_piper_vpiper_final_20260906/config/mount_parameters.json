@@ -1,0 +1,60 @@
+{
+  "model_id": "A2-PIPER-VPIPER-5MM-HEAD100-FINAL-GEOMETRY-20260906",
+  "units": "metres; radians",
+  "trunk_frame": "B: +X forward, +Y left, +Z up; original trunk link origin unchanged",
+  "vpiper_main_origin_B_m": [
+    0.1432127112244533,
+    3.5469075141421057e-06,
+    0.09243155475498596
+  ],
+  "vpiper_main_rpy_rad": [
+    0,
+    0,
+    0
+  ],
+  "support_origin_in_main_m": [
+    0,
+    0,
+    0
+  ],
+  "plate_origin_in_main_m": [
+    0,
+    0,
+    0.05
+  ],
+  "plate_size_m": [
+    0.24999999999999972,
+    0.1,
+    0.005
+  ],
+  "plate_center_in_plate_frame_m": [
+    0,
+    0,
+    0.0025
+  ],
+  "primary_arm_origin_B_m": [
+    0.145,
+    0,
+    0.147431554754986
+  ],
+  "primary_arm_origin_in_plate_m": [
+    0.001787288775546699,
+    -3.5469075141421057e-06,
+    0.005
+  ],
+  "arm_rpy_rad": [
+    0,
+    0,
+    0
+  ],
+  "plate_geometry": "RECTANGULAR NOMINAL ENVELOPE 250x100x5 mm, no invented slots/holes. Width matches head portion including corner radii; head straight edge itself is 80 mm.",
+  "physical_XY_status": "Original X=145 mm,Y=0 retained; slot-locking pose unmeasured, no automatic CAD-hole X correction",
+  "physical_Z_status": "CAD-derived raised-rail contact plane + 50 mm Vpiper + owner-confirmed 5 mm plate; not hardware metrology",
+  "rail_in_model": "Raised rail is present in source trunk visual/CAD; original simplified collision primitives retained; no extra rail-height transform added",
+  "new_component_masses_status": "Material-estimated: PETG 50% effective solid fraction (625 kg/m3), aluminum plate 2700 kg/m3. See mount_materials.json and validation/mass_configuration.json; original 27 link inertials retained.",
+  "cad_hole_aligned_XY_for_information_only_m": [
+    0.14821271122445331,
+    3.5469075141421057e-06
+  ],
+  "no_policy_or_controller_changes": true
+}

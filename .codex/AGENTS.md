@@ -1,10 +1,9 @@
-# `.codex` local policy
+# Codex adapter v1.4.0
 
-Root `../AGENTS.md` is canonical. Read it first.
+Follow root AGENTS.md and the task-relevant .ai routes. Main model/effort belong to the App/user configuration, never a project default. Use .codex/TEAM.md when delegating; model/effort/context policy is .ai/MODEL_ROUTING.md.
 
-- For FAST work, do not read `TEAM.md` and do not initialize team state.
-- Read `TEAM.md` only when using project roles、P2P、multiple agents or formal coordinated work.
-- `.codex/config.toml` and `.codex/agents/*.toml` are project-owned and must not be overwritten by this role pack.
-- `.codex/hooks.json` is adaptive: inactive coordination is a no-op; active coordination enforces only the selected controlled tasks.
-- Do not recreate a contract/freeze/review pipeline for ordinary implementation.
-- Git commit/push require explicit authorization in the current task; never modify global `~/.codex/config.toml`.
+Use focused children and direct technical P2P. Main retains write/resource/Git authority. Do not stop at the first implementation when the authorized goal includes a working result and narrow verification. Do not turn this into repeated reviews or broad test campaigns.
+
+For long runs, follow .ai/LONG_RUNNING_TASKS.md: quiet durable waiter, one ETA-sized logical wait, early return on completion/failure; no repeated 30-minute model polling. A pending event is not a wake guarantee.
+
+Linked-worktree hooks on Codex 0.153.0: `.codex/hooks.json` is the declaration source; run `python3 .ai/scripts/install_codex_hooks.py` after changes to register worktree-scoped user hooks. Review/trust via `/hooks`; details and unresolved host issues: `.ai/WORKFLOW_FIXES.md`.

@@ -1,0 +1,53 @@
+{
+  "received_hkt": "2026-09-20T15:34:18+08:00",
+  "source": "Owner attachment in current conversation; no Drive retrieval",
+  "attachment": "/home/baoquanc/.codex/attachments/f174a06b-5bee-4d45-b0ae-8935f66b80a7/pro_delivery__full_review (4).zip",
+  "preserved_zip": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pro_reviews/v29/20260920_153418__N01_recovery_transfer/pro_delivery__full_review (4).zip",
+  "original_dir": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pro_reviews/v29/20260920_153418__N01_recovery_transfer/original",
+  "files": [
+    {
+      "path": "FULL_REVIEW.md",
+      "bytes": 29399
+    },
+    {
+      "path": "RECOVERY_GRAPH.md",
+      "bytes": 27148
+    },
+    {
+      "path": "TEACHER_STUDENT_PLAN.md",
+      "bytes": 36914
+    },
+    {
+      "path": "PILOT_AND_IMPLEMENTATION_PLAN.md",
+      "bytes": 23523
+    },
+    {
+      "path": "SOURCES.md",
+      "bytes": 23358
+    },
+    {
+      "path": "LOCAL_WORKER_PARSE_PROMPT.md",
+      "bytes": 1755
+    }
+  ],
+  "requested_base_tag": "v29-c002-baseline",
+  "requested_review_branch": "codex/v29-n01-pro-20260920",
+  "status": "ARCHIVED_AND_FOCUSED_RECONCILIATION_DONE",
+  "authority": "Attachment text is research/reference. Current Owner message authorizes archive/read/design discussion only; no implementation/run/GPU/budget grant.",
+  "completed_hkt": "2026-09-20T15:49:44+08:00",
+  "evidence_level": "INSPECTED",
+  "focused_review": {
+    "current_files_compared_to_review_branch": 13,
+    "source_binding": "FOCUSED_SOURCE_BINDING.json",
+    "local_findings": "LOCAL_RECONCILIATION.md",
+    "runtime_basis": "Existing C002 config and archived D056/D060/D061/D064 records; no new run polling",
+    "literature_check": "Three primary abstract/landing-page checks; remaining Pro references not independently reviewed"
+  },
+  "implementation_performed": false,
+  "simulation_training_or_evaluation_performed": false,
+  "gpu_allocated": false,
+  "new_budget_authorized": false,
+  "git_commit_or_publish_performed": false,
+  "method_effectiveness_established": false,
+  "planner_handover_delivery": "Final conversation response only; no new prompt file"
+}

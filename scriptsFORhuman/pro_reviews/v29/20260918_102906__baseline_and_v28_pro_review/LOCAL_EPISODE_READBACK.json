@@ -1,0 +1,57 @@
+{
+  "scope": "Existing 512 episode rows arithmetic, not simulation, full-trace clean or camera recomputation",
+  "results": [
+    {
+      "lane": "eval_qualification_0_dev_a_s282_left",
+      "n": 128,
+      "unique_envs": 128,
+      "complete": 126,
+      "complete_hinge_below": 0,
+      "crossing_held": 18,
+      "crossing_unobserved": 1,
+      "release_gate_observed": 126,
+      "post_gate_force_gt5": 3,
+      "release_gate_hinge_median_deg": 69.16972870588016,
+      "matches_pro_counts": true
+    },
+    {
+      "lane": "eval_qualification_0_dev_a_s282_right",
+      "n": 128,
+      "unique_envs": 128,
+      "complete": 128,
+      "complete_hinge_below": 81,
+      "crossing_held": 128,
+      "crossing_unobserved": 0,
+      "release_gate_observed": 128,
+      "post_gate_force_gt5": 0,
+      "release_gate_hinge_median_deg": 69.21271450142163,
+      "matches_pro_counts": true
+    },
+    {
+      "lane": "eval_qualification_1_dev_a_s284_left",
+      "n": 128,
+      "unique_envs": 128,
+      "complete": 128,
+      "complete_hinge_below": 59,
+      "crossing_held": 128,
+      "crossing_unobserved": 0,
+      "release_gate_observed": 128,
+      "post_gate_force_gt5": 0,
+      "release_gate_hinge_median_deg": 69.11465347550777,
+      "matches_pro_counts": true
+    },
+    {
+      "lane": "eval_qualification_1_dev_a_s284_right",
+      "n": 128,
+      "unique_envs": 128,
+      "complete": 126,
+      "complete_hinge_below": 74,
+      "crossing_held": 126,
+      "crossing_unobserved": 2,
+      "release_gate_observed": 126,
+      "post_gate_force_gt5": 0,
+      "release_gate_hinge_median_deg": 69.18157908409013,
+      "matches_pro_counts": true
+    }
+  ]
+}

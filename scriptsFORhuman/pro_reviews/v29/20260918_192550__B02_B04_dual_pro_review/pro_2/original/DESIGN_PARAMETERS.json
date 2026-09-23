@@ -1,0 +1,94 @@
+{
+  "schema": "pro_v29_B02_A_B04_native_design_v1",
+  "status": "PRO_DESIGN_NOT_IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+  "B02_choice": "A_virtual_latch_native_hinge_limits",
+  "B04_choice": "native_joint_limit",
+  "sampling_level": "once_per_generated_door_fixed_across_natural_and_staged_resets",
+  "handle_stop_deg": {
+    "distribution": "uniform",
+    "low": 40.0,
+    "high": 60.0
+  },
+  "unlock_fraction": {
+    "distribution": "uniform",
+    "low": 0.65,
+    "high": 0.85
+  },
+  "unlock_angle_rule": "unlock_rad = unlock_fraction * handle_stop_rad",
+  "derived_unlock_bounds_deg": [
+    26.0,
+    51.0
+  ],
+  "derived_overtravel_bounds_deg": [
+    6.0,
+    21.0
+  ],
+  "handle_retraction_hysteresis_deg": 2.0,
+  "hinge_locked_lower_deg": 0.0,
+  "hinge_locked_upper_deg": 0.25,
+  "hinge_recapture_upper_deg": 0.2,
+  "hinge_negative_tolerance_deg": 0.05,
+  "handle_return": {
+    "model": "native_force_drive_preloaded_linear_spring_plus_damper",
+    "restoring_torque_at_zero_Nm": 0.35,
+    "quasistatic_torque_at_stop_Nm": {
+      "distribution": "uniform",
+      "low": 1.0,
+      "high": 3.0
+    },
+    "stiffness_rule_SI": "(torque_at_stop_Nm - 0.35) / handle_stop_rad",
+    "damping_Nm_s_per_rad": 0.05,
+    "native_drive_torque_cap_Nm": 3.0,
+    "position_target_rule_rad": "-0.35 / stiffness_Nm_per_rad",
+    "velocity_target_rad_per_s": 0.0,
+    "feedforward_effort_target_Nm": 0.0,
+    "USD_angular_gain_conversion": "gain_per_degree = gain_per_radian * pi/180",
+    "data_class": "engineering_initial_values_not_product_measurements"
+  },
+  "mechanical_hinge_max_deg": {
+    "distribution": "uniform",
+    "low": 90.0,
+    "high": 150.0
+  },
+  "stage3_to4_hinge_rad": 0.25,
+  "release_permission_hinge_rad": 1.2,
+  "stage4_to5_hinge_rad": 1.0472,
+  "stage4_to5_handle_rad": 0.2,
+  "stage4_to5_root_x_m": 0.0,
+  "handle_near_stop_tolerance_rad": 0.005,
+  "contact_event_debounce_control_steps": 2,
+  "existing_control_dt_s": 0.02,
+  "existing_physics_dt_s": 0.005,
+  "forbidden_actor_additions": [
+    "latch_engaged",
+    "lever_retracted",
+    "unlock_angle",
+    "handle_stop_angle",
+    "hinge_mechanical_max",
+    "normalized_unlock_progress"
+  ],
+  "B03_base_camera_elevation_deg": 15.0,
+  "B01_owner_domain": {
+    "mass_strata_kg": [
+      [
+        30,
+        80
+      ],
+      [
+        80,
+        120
+      ],
+      [
+        120,
+        160
+      ]
+    ],
+    "mass_stratum_weights": [
+      0.3333333333333333,
+      0.3333333333333333,
+      0.3333333333333333
+    ],
+    "closer_presence_probability": 0.5
+  },
+  "implemented_in_this_delivery": false
+}

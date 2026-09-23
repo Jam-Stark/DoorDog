@@ -1,0 +1,59 @@
+{
+  "observed_at_hkt": "2026-09-13 01:13–01:20 HKT",
+  "host": "ai-precog-machine5",
+  "repository": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "branch": "codex/a2-piper-pull-v0-20260803",
+  "p2": {
+    "cells": {
+      "T_S1": {
+        "child_returncode": 0,
+        "endpoint_step": 10500,
+        "checkpoint_exists": true,
+        "legacy_receipt_state": "RUNNING"
+      },
+      "T_S2": {
+        "child_returncode": 0,
+        "endpoint_step": 10500,
+        "checkpoint_exists": true,
+        "legacy_receipt_state": "RUNNING"
+      },
+      "C_S2": {
+        "child_returncode": 0,
+        "endpoint_step": 10500,
+        "checkpoint_exists": true,
+        "legacy_receipt_state": "RUNNING"
+      }
+    },
+    "natural_eval_directory_empty": true,
+    "C_S1": "DECLARED_NOT_STARTED"
+  },
+  "pull_v28_before_delivery": {
+    "plan_exists": false,
+    "merged_asset_exists": false,
+    "robot_yaml_exists": false,
+    "execution_directory_exists": false,
+    "memory_entry_exists": false
+  },
+  "baseline": {
+    "num_envs": 1024,
+    "reward_penalty_curriculum": false,
+    "driver": null,
+    "staged_reset_ratios": [
+      0.5,
+      0.1,
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ]
+  },
+  "gpu_snapshot": {
+    "GPU0": "external compute, excluded",
+    "GPU1_free_MiB": 24105,
+    "GPU2_free_MiB": 23453,
+    "GPU3_free_MiB": 24103
+  },
+  "evidence_level": "INSPECTED_EXISTING_SOURCE_AND_RUNTIME_RECORDS",
+  "training_or_eval_launched": false,
+  "legacy_events_acknowledged": false
+}

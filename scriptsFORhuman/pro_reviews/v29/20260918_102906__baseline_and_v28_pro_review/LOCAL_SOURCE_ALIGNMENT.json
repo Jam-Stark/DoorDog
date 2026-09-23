@@ -1,0 +1,70 @@
+{
+  "source_config_alignment": [
+    {
+      "path": "gr00t/rl/envs/door/door_open_a2_base.py",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/door.py",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_common.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_baseline.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/config/robot/A2_Piper/a2_piper_v29.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.urdf",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/config/camera_rig.json",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_reduce.py",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v28/v28_camera_metrics.py",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v28/a2_piper_base_v28_execution_closure_20260917.md",
+      "same_bytes": true
+    }
+  ],
+  "runtime_artifact_alignment": [
+    {
+      "path": "scriptsFORhuman/v29/runtime_logs/baseline_no_center_smoke_20260917/config.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_qualification_0_dev_a_s282_left/attempt1/a2_v14_per_env_records.json",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_qualification_0_dev_a_s282_right/attempt1/a2_v14_per_env_records.json",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_qualification_1_dev_a_s284_left/attempt1/a2_v14_per_env_records.json",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_qualification_1_dev_a_s284_right/attempt1/a2_v14_per_env_records.json",
+      "same_bytes": true
+    }
+  ]
+}

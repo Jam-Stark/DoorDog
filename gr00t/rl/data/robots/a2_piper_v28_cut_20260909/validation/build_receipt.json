@@ -1,0 +1,24 @@
+{
+  "state": "STATIC_PASS",
+  "import_exit_code": 0,
+  "readback_exit_code": 0,
+  "device": "cpu",
+  "cuda_visible_devices": "",
+  "physics_steps": 0,
+  "render_evidence": "NOT_RUN: comparison PNG projects actual URDF visual meshes using matplotlib",
+  "builder": "scriptsFORhuman/v28/v28_build_cut_asset.py",
+  "converter": "/home/baoquanc/workspace/IsaacLab/scripts/tools/convert_urdf.py",
+  "converter_arguments": [
+    "--headless",
+    "--device",
+    "cpu",
+    "--joint-stiffness",
+    "0.0",
+    "--joint-damping",
+    "0.0"
+  ],
+  "readback": "scriptsFORhuman/v28/v28_asset_readback.py --expected-bodies 31",
+  "expected_rigid_bodies": 31,
+  "expected_active_joints": 20,
+  "cut_plane_trunk_z_m": 0.13
+}

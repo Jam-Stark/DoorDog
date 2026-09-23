@@ -1,0 +1,21 @@
+
+##### ISAAC_STUDENT_R30_stage0_1: stage0_1_step_trace.json
+records=1867
+stage | n | |e_vx| p50/p95 | |e_vy| p50/p95 | |e_wz| p50/p95 | |e_pitch| p50/p95 | |e_roll| p50/p95
+0 | 904 | 0.209/0.540 | 0.201/0.578 | 0.221/0.677 | 0.290/0.504 | 0.144/0.376
+1 | 963 | 0.113/0.391 | 0.110/0.440 | 0.143/0.515 | 0.077/0.306 | 0.060/0.178
+
+stage | cmd vx p50/p95(|.|) | cmd vy p50/p95(|.|) | cmd wz p50/p95(|.|) | cmd pitch p50/p95(|.|) | cmd roll p50/p95(|.|) | mean cmd vx | mean cmd vy | mean cmd wz | mean cmd pitch | mean cmd roll
+0 | 0.500/0.500 | 0.446/0.500 | 0.429/0.500 | 0.310/0.400 | 0.359/0.400 | +0.287 | -0.185 | -0.232 | +0.112 | +0.283
+1 | 0.203/0.500 | 0.076/0.392 | 0.055/0.301 | 0.220/0.400 | 0.395/0.400 | +0.226 | -0.060 | -0.076 | +0.196 | +0.341
+
+stage | clip share vx | vy | wz | pitch | roll | any | raw-sat share vx | vy | wz | pitch/roll | standing-cmd share
+0 | 0.562 | 0.461 | 0.449 | 0.394 | 0.430 | 0.916 | 0.562 | 0.461 | 0.448 | 0.656 | 0.052
+1 | 0.156 | 0.026 | 0.005 | 0.335 | 0.493 | 0.708 | 0.156 | 0.026 | 0.005 | 0.641 | 0.276
+
+stage | slope realized/cmd vx | vy | wz | pitch(Euler) | roll(Euler)  (least squares through origin, |cmd|>0.05; negative pitch/roll slope = LMP sign convention)
+0 | 0.540 | 0.472 | 0.764 | -0.020 | -0.518
+1 | 0.580 | -0.076 | 0.449 | -0.671 | -0.881
+
+ALL stages n=1867 | evx p50/p95 0.150/0.462 | evy p50/p95 0.154/0.520 | ewz p50/p95 0.195/0.602 | epitch p50/p95 0.149/0.473 | eroll p50/p95 0.084/0.333
+EXIT=0

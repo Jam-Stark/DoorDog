@@ -1,0 +1,298 @@
+{
+  "steps": [
+    1000,
+    2000,
+    3000,
+    4000,
+    5000,
+    6000
+  ],
+  "per_cell": {
+    "A_S281": {
+      "goal": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          5,
+          64
+        ],
+        [
+          64,
+          64
+        ],
+        [
+          52,
+          0
+        ],
+        [
+          62,
+          63
+        ]
+      ],
+      "clean": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          40
+        ],
+        [
+          47,
+          38
+        ],
+        [
+          51,
+          0
+        ],
+        [
+          59,
+          43
+        ]
+      ]
+    },
+    "A_S282": {
+      "goal": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          36,
+          33
+        ],
+        [
+          63,
+          64
+        ],
+        [
+          62,
+          64
+        ]
+      ],
+      "clean": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          61,
+          12
+        ]
+      ]
+    },
+    "A_S283": {
+      "goal": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          64,
+          4
+        ]
+      ],
+      "clean": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          29,
+          2
+        ]
+      ]
+    },
+    "A_S284_conditional": {
+      "goal": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          64
+        ],
+        [
+          64,
+          64
+        ],
+        [
+          64,
+          63
+        ],
+        null
+      ],
+      "clean": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          13,
+          12
+        ],
+        [
+          26,
+          12
+        ],
+        null
+      ]
+    }
+  },
+  "denominator_per_side": 64,
+  "order": [
+    "LEFT",
+    "RIGHT"
+  ],
+  "protocol": "natural exact64 per-side, eval seed280001, staged reset disabled; all goal counts equal complete terminal counts in these lanes",
+  "sources": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step1000_aggregate.md",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step2000_aggregate.md",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step3000_aggregate.md",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step4000_aggregate.md",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step5000_aggregate.md",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/readouts/wave_a_step6000_aggregate.md"
+  ],
+  "conditional_cell": "A_S284 is separate scratch conditional arm with driver target_stage5; not part of original three-seed denominator",
+  "A281_right_3000_4000_5000_6000_comparability": "Same eval protocol and recorded per-env static door metadata; no exact simulator RNG/state pairing claim",
+  "selected_failure_stages": {
+    "281_3000_left": {
+      "goal": 5,
+      "max_stage": {
+        "5": 5,
+        "4": 59
+      },
+      "terminal_reasons": {
+        "complete": 5,
+        "stage_overtime": 59
+      },
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_3000_a_s281_left/attempt1"
+    },
+    "281_4000_left": {
+      "goal": 64,
+      "max_stage": {
+        "5": 64
+      },
+      "terminal_reasons": {
+        "complete": 64
+      },
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_4000_a_s281_left/attempt1"
+    },
+    "281_5000_right": {
+      "goal": 0,
+      "max_stage": {
+        "5": 42,
+        "1": 20,
+        "4": 2
+      },
+      "terminal_reasons": {
+        "upper_dof_overspeed": 64
+      },
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_5000_a_s281_right/attempt1"
+    },
+    "281_6000_right": {
+      "goal": 63,
+      "max_stage": {
+        "5": 63,
+        "3": 1
+      },
+      "terminal_reasons": {
+        "upper_dof_overspeed": 1,
+        "complete": 63
+      },
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s281_6000_a_s281_right/attempt1"
+    },
+    "283_6000_right": {
+      "goal": 4,
+      "max_stage": {
+        "4": 60,
+        "5": 4
+      },
+      "terminal_reasons": {
+        "complete": 4,
+        "stage_overtime": 60
+      },
+      "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v28/runtime_logs/v28_camera_aware_rebaseline_20260909/execution_20260913/attempts/eval_milestone_wave_a_s283_6000_a_s283_right/attempt1"
+    }
+  }
+}

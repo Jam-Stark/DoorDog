@@ -1,0 +1,59 @@
+{
+  "base_tag": "v29-c002-baseline",
+  "review_branch": "codex/v29-n01-pro-20260920",
+  "method": "One direct comparison of 13 task-relevant current files to review branch; no digest, no whole C002 re-audit",
+  "files": [
+    {
+      "path": "gr00t/rl/envs/door/door_open_a2_base.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/staged_task_base.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/delta_action_base.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/a2_base.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/distill_trainer_a2_base_api.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/trl/trainer/distill_trainer.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/trl/modules/memory.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/trl/modules/actor_critic_modules_recurrent.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/trl/modules/vision_actor_critic_modules_recurrent.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_dagger-lstm.yaml",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_base_dagger.yaml",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_common.yaml",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/simulator/isaacsim/isaacsim.py",
+      "current_matches_review_branch": true
+    }
+  ]
+}

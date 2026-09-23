@@ -1,72 +1,27 @@
-# DoorDog AI entrypoint
+# DoorDog AI entrypoint — v1.4.0
 
-System、developer、Owner/user 指令优先。本文件是项目级 workflow authority，负责路由与不可违反的项目边界；runtime adapter 和子目录规则可以补充实现细节，但不得静默关闭这里要求的自动路由。若更高层 system/developer 明确禁止 sub-agent，则遵守该限制并退化为单 agent。
+System/developer/Owner 指令优先；本文件保留项目 authority，runtime adapter 只补充实现。
 
-## 1. 最小读取集
+## 入口
 
-处理非平凡任务时先读：
+稳定行为见 .ai/ROLE.md；非平凡实现涉及项目事实、受保护路径或命令时读 .ai/PROJECT.md；工作流/委托选择见 .ai/WORKFLOW.md。只读当前任务需要的文件，不为小改动重读所有文档。
 
-1. `.ai/ROLE.md`：稳定的 coding behavior 与中文表达规范；
-2. `.ai/PROJECT.md`：DoorDog/A2_Piper 的项目事实、受保护路径和证据边界；
-3. `.ai/WORKFLOW.md`：FAST / STANDARD / HIGH_RISK 路由及按需控制设施。
+FAST 直接完成；STANDARD 存在独立工作线、specialist context 或实质审阅/并行收益时，Main 必须主动委托最少必要 agent，不等 Owner 说“team”。更高层/runtime 不允许则直接完成。HIGH_RISK 的副作用须另有授权。
 
-随后只读取与当前 runtime 对应的 adapter：
+Codex 读 .codex/AGENTS.md，委托时读 .codex/TEAM.md；OMO 读 .omo/AGENTS.md；standalone Claude Code 读 CLAUDE.md，仍是 single-agent。
 
-- Codex：`.codex/AGENTS.md`，需要委托或 P2P 时再读 `.codex/TEAM.md`；
-- OpenCode/OMO：`.omo/AGENTS.md`；
-- standalone Claude Code：`CLAUDE.md`，固定 single-agent。
+## 不可丢失的项目边界
 
-## 1.1 自动路由与 Mandatory delegation gate
+先 trace 实际 source/config/dependency path。IsaacLab API 核对本机 /home/baoquanc/workspace/IsaacLab 及当前官方文档；明确 tensor shape/dtype/device、manager lifecycle、reward/reset/termination、asset/joint、observation/action 和训练语义。无效状态显式失败，不用 fallback、假数据、广泛 catch 或无依据 clipping 保训练继续。
 
-Main 必须自主把任务分类为 FAST、STANDARD 或 HIGH_RISK，不等待 Owner 指定模式。
+Memory 只作路由与历史，不覆盖 current source/resolved config/runtime evidence。static、runtime、experiment、hardware 不混用。Main 独占 scope、acceptance、WRITE_SET、资源、Git 和整合权；P2P 只交换技术事实。任何 Git commit 必须有当前任务明确授权，默认不 push；外部写入、未授权昂贵长跑、硬件、破坏性操作仍需 Owner 批准。
 
-- FAST：简单问答、临时检查或边界清楚的小改动，由 Main 直接完成。
-- STANDARD：普通实现或调试。出现独立 workstream、specialist context 或独立 review/QA 的材料性收益时，Main 必须主动委托。
-- HIGH_RISK：破坏性、外部写入、硬件、昂贵长跑或难回滚操作；副作用仍需 Owner 授权，但安全的只读调查可按以下 gate 委托。
+## 条件路由
 
-每个非 FAST 任务在进入深度工作前，Main 必须检查：
+多 writer/排他资源/跨 session DAG/正式 review → .ai/TEAM_STATE.md。
+长跑或断线连续性 → .ai/LONG_RUNNING_TASKS.md：记下真实 ETA 后一次长等待，不定时唤醒 Main 看日志。
+RL/仿真/benchmark/causal claim/硬件 → .ai/SCIENTIFIC_ENGINEERING.md。
+历史结论相关 → MEMORY.md 及最小路由；出现 durable candidate → .ai/MEMORY_GOVERNANCE.md。
+Owner 指定跨阶段多 planner → .ai/STAGE_DECISION.md；Owner/stage 明确交付 → .ai/ARTIFACT_HANDOFF.md。
 
-1. 是否有两个以上可以独立推进的 read-heavy/research lane；
-2. specialist 是否拥有与 Main 材料性不同的上下文；
-3. 独立 reviewer/QA 是否会实质降低风险；
-4. 并行是否会实质缩短完成时间或隔离 noisy exploration。
-
-任一条件命中且 runtime 允许 sub-agent 时，Main 必须立即 spawn 最少必要的 agent，不能等 Owner 说“team”，也不能先自行完成原本应委托的工作。STANDARD 通常按触发条件使用 1–3 个 focused agent。
-
-非 FAST 仍保持 single-agent 时，必须在 task plan 中记录简短的 `NO_DELEGATION_REASON`：没有独立价值、任务紧耦合且直接完成成本更低，或更高层/runtime 禁止委托。Scope 扩大或出现新独立 lane 时重新检查。
-
-## 2. 条件读取表
-
-| 触发条件 | 再读取 | 启用内容 |
-|---|---|---|
-| 多 writer、排他资源、跨 session 协调、正式 review/QA | `.ai/TEAM_STATE.md` | ledger、必要合同、lease、freeze、verdict |
-| 产生 durable memory candidate 或 memory 分类需要重构 | `.ai/MEMORY_GOVERNANCE.md` | create/move/split/merge/supersede/retire |
-| 运行预计超过 30 分钟或需要断线连续性 | `.ai/LONG_RUNNING_TASKS.md` | tmux、run receipt、pending event |
-| RL、IsaacLab、仿真、benchmark、causal claim、实机 | `.ai/SCIENTIFIC_ENGINEERING.md` | claim-matched scientific evidence |
-| Owner 选择跨阶段多 planner | `.ai/STAGE_DECISION.md` | local/cloud planner synthesis |
-| Owner 要求阶段交付，或当前 stage 明确声明 artifact handoff | `.ai/ARTIFACT_HANDOFF.md` | allowlist bundle 与 Pro_Space 上传 |
-| 历史决策、已知失败或当前 TODO 与任务相关 | `MEMORY.md` 及最小路由 | durable project truth |
-
-没有触发条件时，不为“流程完整”打开对应设施。
-
-## 3. 授权与控制面
-
-- answer / inspect / diagnose / review / research / plan 默认只读；
-- build / fix / refactor / update 授权执行准确的本地改动与相匹配的非破坏性验证；
-- destructive operation、外部写入、材料性 scope 扩张、未授权昂贵长跑和硬件动作必须由 Owner 明确批准；
-- Main `/root` 是唯一控制面，拥有 scope、acceptance、WRITE_SET、排他资源、Git、外部写入和最终整合权；
-- 子 agent 可通过 P2P 直接交换技术事实、复现和有限请求，但不得改变权限。
-
-## 4. DoorDog 不可违反的边界
-
-- 先 trace 实际执行的 source/config/dependency path，再实现最小端到端版本；
-- memory 是路由和历史，不得覆盖当前 source、resolved config 和 runtime 事实；
-- invalid state、unsupported API、shape/type/device mismatch 和缺失 checkpoint 必须 fail fast；
-- 不用 fallback、broad catch、silent downgrade、默认假数据或无依据 clipping 掩盖问题；
-- 一个路径或排他资源同一时间只有一个 writer/owner；
-- IsaacLab API 变更先核对本机 `/home/baoquanc/workspace/IsaacLab` 与当前官方文档；
-- static、runtime、experiment、hardware 证据严格分级；
-- 只有 Main 能 stage、commit、push、merge；任何 Git commit 都需要当前任务中的明确授权，默认不 push；
-- FAST 和普通 STANDARD 任务不创建 ledger、freeze、memory curator 或 artifact bundle，除非出现对应触发条件。
-
-结束时只报告实际相关内容：changed paths、证据等级、未运行事项、仍活跃的 writer/排他资源，以及是否真实产生 durable memory candidate 或 stage artifact handoff。
+没有触发条件就不启用 ledger、freeze、curator 或 artifact。结尾报告实际证据、限制和仍活跃的任务/资源。

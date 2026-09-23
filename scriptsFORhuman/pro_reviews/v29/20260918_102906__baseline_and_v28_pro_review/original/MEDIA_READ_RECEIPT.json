@@ -1,0 +1,16 @@
+[
+  {
+    "path": "logs_eval/base_v28/owner_left_fourview_20260917/LEFT_clean_complete_four_views.mp4",
+    "frames_reported": 441,
+    "frames_decoded": 441,
+    "fps": 20.0,
+    "duration_s": 22.05
+  },
+  {
+    "path": "logs_eval/base_v28/side_video_a282_6000_h180_h110_20260917/run_r2/three_camera_rgb_depth.mp4",
+    "frames_reported": 240,
+    "frames_decoded": 240,
+    "fps": 25.0,
+    "duration_s": 9.6
+  }
+]

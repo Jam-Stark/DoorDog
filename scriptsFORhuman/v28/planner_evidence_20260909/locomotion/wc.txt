@@ -1,0 +1,73 @@
+total words:
+2797 REPORT.md
+non-table words:
+2086
+total 268
+drwxrwxr-x 3 baoquanc baoquanc  4096 Sep  9 17:51 .
+drwxrwxr-x 8 baoquanc baoquanc  4096 Sep  9 16:54 ..
+-rw-rw-r-- 1 baoquanc baoquanc 21691 Sep  9 17:51 REPORT.md
+drwxrwxr-x 2 baoquanc baoquanc  4096 Sep  9 17:37 __pycache__
+-rw-rw-r-- 1 baoquanc baoquanc  2068 Sep  9 17:24 eval_probe.txt
+-rw-rw-r-- 1 baoquanc baoquanc  8562 Sep  9 17:26 eval_probe2.txt
+-rw-rw-r-- 1 baoquanc baoquanc   639 Sep  9 17:03 lmp_git.txt
+-rw-rw-r-- 1 baoquanc baoquanc  1981 Sep  9 17:38 lmp_windows.txt
+-rw-rw-r-- 1 baoquanc baoquanc 17453 Sep  9 17:36 memory_probe.txt
+-rw-rw-r-- 1 baoquanc baoquanc   662 Sep  9 17:15 probe2.txt
+-rw-rw-r-- 1 baoquanc baoquanc  3889 Sep  9 17:29 r22_report.txt
+-rw-rw-r-- 1 baoquanc baoquanc  7240 Sep  9 17:33 r30_fields.txt
+-rw-rw-r-- 1 baoquanc baoquanc  3789 Sep  9 17:32 r30_probe.txt
+-rw-rw-r-- 1 baoquanc baoquanc    64 Sep  9 16:59 shell_probe.txt
+-rw-rw-r-- 1 baoquanc baoquanc  5325 Sep  9 17:24 sim2sim_probe.txt
+-rw-rw-r-- 1 baoquanc baoquanc  7374 Sep  9 17:26 sim2sim_probe2.txt
+-rw-rw-r-- 1 baoquanc baoquanc  7651 Sep  9 17:27 sim2sim_probe3.txt
+-rw-rw-r-- 1 baoquanc baoquanc  2359 Sep  9 17:29 sim2sim_stance.txt
+-rw-rw-r-- 1 baoquanc baoquanc   113 Sep  9 17:31 stage01_probe.txt
+-rw-rw-r-- 1 baoquanc baoquanc  4524 Sep  9 17:37 tcp_lpy_distribution.py
+-rw-rw-r-- 1 baoquanc baoquanc  1920 Sep  9 17:38 tcp_lpy_distribution.txt
+-rw-rw-r-- 1 baoquanc baoquanc 23715 Sep  9 17:27 trace_fields.txt
+-rw-rw-r-- 1 baoquanc baoquanc  4229 Sep  9 17:35 tracking_C_S21_step3000.txt
+-rw-rw-r-- 1 baoquanc baoquanc  1470 Sep  9 17:35 tracking_R30_stage01.txt
+-rw-rw-r-- 1 baoquanc baoquanc  6707 Sep  9 17:35 tracking_analysis.py
+-rw-rw-r-- 1 baoquanc baoquanc 14001 Sep  9 17:30 train_log_format.txt
+-rw-rw-r-- 1 baoquanc baoquanc   598 Sep  9 17:29 train_logs_probe.txt
+-rw-rw-r-- 1 baoquanc baoquanc  2582 Sep  9 17:29 train_logs_probe2.txt
+-rw-rw-r-- 1 baoquanc baoquanc  3489 Sep  9 17:31 train_rew_terms.py
+-rw-rw-r-- 1 baoquanc baoquanc  6477 Sep  9 17:31 train_rew_terms.txt
+-rw-rw-r-- 1 baoquanc baoquanc  6968 Sep  9 17:03 urdf_com.py
+-rw-rw-r-- 1 baoquanc baoquanc 17568 Sep  9 17:03 urdf_com_out.txt
+-rw-rw-r-- 1 baoquanc baoquanc  5133 Sep  9 17:36 v28_probe.txt
+-rw-rw-r-- 1 baoquanc baoquanc    50 Sep  9 17:53 wc.txt
+ M .ai/PROJECT.md
+ M .codex/config.toml
+ M memory/a2-piper/base-v27-bilateral-hardening/DONE.md
+ M memory/a2-piper/base-v27-bilateral-hardening/TODO.md
+ M memory/a2-piper/base-v27-bilateral-hardening/description.md
+ M scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/active_attempts.json
+ M scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/active_source_lock.json
+ M scriptsFORhuman/v27/v27_contract.py
+ M scriptsFORhuman/v27/v27_orchestrate.py
+ M scriptsFORhuman/v27/v27_run_cell.py
+?? scriptsFORhuman/v27/a2_piper_base_v27_shadow_estimator_readout_20260907.md
+?? scriptsFORhuman/v27/claudeHistroy/
+?? scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/cell_states/SC_S201.json
+?? scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/cell_states/SC_S202.json
+?? scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/cell_states/SC_S203.json
+?? scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/cell_states/SK_S211.json
+?? scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/cell_states/SK_S212.json
+?? scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/cell_states/SK_S213.json
+?? scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/compose/SC_S201/
+?? scriptsFORhuman/v27/runtime_logs/v27_bilateral_hardening_20260905/compose/SC_S202/
+ M scripts/manager_dual_policy/export_stage2_policy.py
+ M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/memory/MEMORY.md
+ M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/memory/observations/DONE.md
+ M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/memory/observations/description.md
+ M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/reference/observations/contract.md
+ M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/reference/observations/helper_inventory.md
+ M source/LMP/LMP/tasks/manager_based/lmp_manager/lmp_manager_env_cfg.py
+ M source/LMP/LMP/tasks/manager_based/lmp_manager/mdp/observations.py
+?? artifacts/
+ M .ai/ARTIFACT_HANDOFF.md
+ M .ai/PROJECT.md
+ M .ai/PRO_REVIEW_PROMPT.md
+ M .ai/ROLE_VERSION
+ M .ai/WORKFLOW.md

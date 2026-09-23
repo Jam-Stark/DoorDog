@@ -1,0 +1,251 @@
+{
+  "evidence_level": "STATIC_ARITHMETIC_AND_SOURCE_CONFIG_READING_ONLY",
+  "not_claimed": [
+    "IsaacLab execution",
+    "PhysX constraint stability",
+    "joint limit performance",
+    "policy training",
+    "A/B experiment",
+    "hardware validation"
+  ],
+  "inputs": [
+    {
+      "name": "worker_delivery__source_and_configs.zip",
+      "bytes": 438863,
+      "members": 35,
+      "ordinary_zip_readable": true
+    },
+    {
+      "name": "worker_delivery__reference_and_evidence.zip",
+      "bytes": 63988,
+      "members": 10,
+      "ordinary_zip_readable": true
+    }
+  ],
+  "manifest_members_size_checked": 45,
+  "reading_scope": "Directional functions listed in SOURCES_AND_CODE_MAP.md, not all inherited/historical code paths",
+  "resolved_configuration": {
+    "physics_fps": 200,
+    "control_decimation": 4,
+    "max_episode_length_s": 30,
+    "randomize_door_init_state": false,
+    "current_mass_range_kg": [
+      80.0,
+      120.0
+    ],
+    "native_friction_enabled": false,
+    "current_handle_norm_rad": 0.6,
+    "current_handle_hard_limit_rad": 0.785398,
+    "release_permission_rad": 1.2,
+    "stage5_hold_income_continuity": false,
+    "active_scales_selected": {
+      "push_door_handle": 0.0,
+      "a2_stage3_handle_creation": 6.0,
+      "a2_stage3_unlatch_hold": 3.0,
+      "push_door_hinge": 6.0,
+      "a2_stage3_stage4_hold_and_drive": 8.0,
+      "grasp": 0.2,
+      "dont_push_door_handle": 3.0
+    },
+    "teacher_actor_input_keys": [
+      "dof_pos",
+      "relative_to_door",
+      "dof_vel",
+      "actions",
+      "projected_gravity",
+      "door_dof_pos",
+      "base_lin_vel",
+      "base_ang_vel",
+      "hand_force",
+      "stage",
+      "privileged_door_info",
+      "delta_actions",
+      "gripper_handle_transform",
+      "a2_base_command_raw",
+      "a2_base_command"
+    ]
+  },
+  "proposed_parameter_corner_check": [
+    {
+      "H_deg": 40.0,
+      "rho": 0.65,
+      "u_deg": 26.0,
+      "spare_deg": 14.0,
+      "valid_order": true
+    },
+    {
+      "H_deg": 40.0,
+      "rho": 0.85,
+      "u_deg": 34.0,
+      "spare_deg": 6.0,
+      "valid_order": true
+    },
+    {
+      "H_deg": 60.0,
+      "rho": 0.65,
+      "u_deg": 39.0,
+      "spare_deg": 21.0,
+      "valid_order": true
+    },
+    {
+      "H_deg": 60.0,
+      "rho": 0.85,
+      "u_deg": 51.0,
+      "spare_deg": 9.0,
+      "valid_order": true
+    }
+  ],
+  "derived_bounds": {
+    "u_deg": [
+      26.0,
+      51.0
+    ],
+    "spare_deg": [
+      6.0,
+      21.0
+    ],
+    "k_Nm_per_rad": [
+      0.6207042780583919,
+      3.795845392741704
+    ],
+    "h_rest_deg": [
+      -32.3076923076923,
+      -5.283018867924528
+    ],
+    "door_edge_arc_at_locked_limit_m": [
+      0.003490658503988659,
+      0.004799655442984407
+    ],
+    "old_reset_effort_command_numeric": 0.2617993877991494,
+    "gate_to_min_mechanical_max_margin_deg": 21.24506458430122
+  },
+  "SI_USD_algebra_only_max_error": 8.881784197001252e-16,
+  "FSM_rule_examples_not_physics": [
+    {
+      "case": "natural_closed",
+      "q_deg": 0,
+      "h_deg": 0,
+      "R_E_before": [
+        false,
+        true
+      ],
+      "R_E_after": [
+        false,
+        true
+      ],
+      "arithmetic_matches_spec": true
+    },
+    {
+      "case": "handle_crosses_unlock",
+      "q_deg": 0.25,
+      "h_deg": 30,
+      "R_E_before": [
+        false,
+        true
+      ],
+      "R_E_after": [
+        true,
+        false
+      ],
+      "arithmetic_matches_spec": true
+    },
+    {
+      "case": "open_handle_returns",
+      "q_deg": 30,
+      "h_deg": 0,
+      "R_E_before": [
+        true,
+        false
+      ],
+      "R_E_after": [
+        false,
+        false
+      ],
+      "arithmetic_matches_spec": true
+    },
+    {
+      "case": "close_recapture",
+      "q_deg": 0.1,
+      "h_deg": 0,
+      "R_E_before": [
+        false,
+        false
+      ],
+      "R_E_after": [
+        false,
+        true
+      ],
+      "arithmetic_matches_spec": true
+    },
+    {
+      "case": "close_while_depressed",
+      "q_deg": 0.1,
+      "h_deg": 40,
+      "R_E_before": [
+        true,
+        false
+      ],
+      "R_E_after": [
+        true,
+        false
+      ],
+      "arithmetic_matches_spec": true
+    },
+    {
+      "case": "early_return_before_clearance",
+      "q_deg": 0.1,
+      "h_deg": 27,
+      "R_E_before": [
+        true,
+        false
+      ],
+      "R_E_after": [
+        false,
+        true
+      ],
+      "arithmetic_matches_spec": true
+    },
+    {
+      "case": "open_outside_capture",
+      "q_deg": 0.22,
+      "h_deg": 0,
+      "R_E_before": [
+        false,
+        false
+      ],
+      "R_E_after": [
+        false,
+        false
+      ],
+      "arithmetic_matches_spec": true
+    },
+    {
+      "case": "hysteresis_remembers_retracted",
+      "q_deg": 20,
+      "h_deg": 29,
+      "R_E_before": [
+        true,
+        false
+      ],
+      "R_E_after": [
+        true,
+        false
+      ],
+      "arithmetic_matches_spec": true
+    },
+    {
+      "case": "hysteresis_remembers_extended",
+      "q_deg": 20,
+      "h_deg": 29,
+      "R_E_before": [
+        false,
+        false
+      ],
+      "R_E_after": [
+        false,
+        false
+      ],
+      "arithmetic_matches_spec": true
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "status": "ARCHIVED_ORIGINAL",
+  "attachment": "/home/baoquanc/.codex/attachments/20109730-d533-404e-a1c8-631d264bb06e/pro_delivery__full_review (3).zip",
+  "original_zip_name": "pro_delivery__full_review (3).zip",
+  "original_zip_bytes": 442923,
+  "archive": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pro_reviews/v29/20260918_233820__B05_handle_review",
+  "extracted_files": [
+    "DESIGN_RECOMMENDATIONS.md",
+    "FULL_REVIEW.md",
+    "LOCAL_WORKER_PARSE_PROMPT.md",
+    "REAL_HANDLE_COMPARISON.md",
+    "SOURCES.md",
+    "STATIC_CALCULATIONS.json",
+    "figures/worker_nominal_seven_family_atlas.png"
+  ],
+  "source": "Current Owner conversation attachment; not retrieved from Drive",
+  "declared_review_branch": "codex/v29-b05-pro-20260918",
+  "declared_commit_subject": "Approve seven-family v29 B05 handle plan and prepare Pro review",
+  "declared_commit_time": "2026-09-18T21:46:23+08:00",
+  "local_readback": {
+    "original_zip_matches_attachment": true,
+    "all_seven_original_files_match_zip": true,
+    "new_reconciliation_links_resolve": true
+  }
+}

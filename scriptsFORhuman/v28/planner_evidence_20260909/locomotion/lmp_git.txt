@@ -1,0 +1,19 @@
+943f3ac add gripper offset and arm goal play visuals
+---
+5d780ae3b5d6d8a1893151530d527bca617e3258 2026-06-15 20:06:06 +0800 final position-control update, next switch to force task:
+a96f071939f72c9cba40f95aee966c590be9a6e1 2026-06-11 11:07:24 +0800 add project bg to Memory
+---
+logs/manager_dual_rl/lmp_dual_policy/DoorDogBase/:
+2026-06-12_20-33-04
+
+logs/manager_dual_rl/lmp_dual_policy/stage1_locomotion_a2_piper/:
+2026-06-04_21-39-42
+2026-06-05_16-12-09
+
+logs/manager_dual_rl/lmp_dual_policy/stage2_hybrid_a2_piper/:
+2026-06-05_13-50-32
+2026-06-05_16-05-25
+2026-06-08_19-03-51
+2026-06-09_21-41-40
+2026-06-10_15-43-39
+2026-06-10_23-39-07

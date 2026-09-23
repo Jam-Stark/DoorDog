@@ -1,0 +1,134 @@
+{
+  "evidence": "DERIVED_STATIC_ONLY",
+  "method": "One calculation from serialized nominal centreline samples, G tangent projection over sg +/-28mm; exact independent formulas separately. No plot generator execution or asset writes. This envelope is not a measured contact patch.",
+  "rows": [
+    {
+      "family": "F0",
+      "local_max_residual_mm": 0.0,
+      "pro_max_residual_mm": 0.0,
+      "local_tangent_delta_deg": [
+        0.0,
+        0.0
+      ],
+      "local_normal_dimension_minmax_mm": [
+        26.0,
+        26.0
+      ],
+      "residual_difference_mm": 0.0
+    },
+    {
+      "family": "F1",
+      "local_max_residual_mm": 0.0,
+      "pro_max_residual_mm": 0.0,
+      "local_tangent_delta_deg": [
+        0.0,
+        0.0
+      ],
+      "local_normal_dimension_minmax_mm": [
+        28.0,
+        28.0
+      ],
+      "residual_difference_mm": 0.0
+    },
+    {
+      "family": "F2",
+      "local_max_residual_mm": 0.0,
+      "pro_max_residual_mm": 0.0,
+      "local_tangent_delta_deg": [
+        0.0,
+        0.0
+      ],
+      "local_normal_dimension_minmax_mm": [
+        30.0,
+        30.0
+      ],
+      "residual_difference_mm": 0.0
+    },
+    {
+      "family": "F3",
+      "local_max_residual_mm": 0.9796670485656253,
+      "pro_max_residual_mm": 0.9796671306368187,
+      "local_tangent_delta_deg": [
+        -4.0104740552027485,
+        4.010474218889935
+      ],
+      "local_normal_dimension_minmax_mm": [
+        26.0,
+        26.0
+      ],
+      "residual_difference_mm": -8.207119339687097e-08
+    },
+    {
+      "family": "F4",
+      "local_max_residual_mm": 1.0997058187321636,
+      "pro_max_residual_mm": 1.0997058187218594,
+      "local_tangent_delta_deg": [
+        -2.9589056785184198e-05,
+        6.39112781396059
+      ],
+      "local_normal_dimension_minmax_mm": [
+        24.0,
+        24.0
+      ],
+      "residual_difference_mm": 1.0304201936151003e-11
+    },
+    {
+      "family": "F5",
+      "local_max_residual_mm": 0.0,
+      "pro_max_residual_mm": 0.0,
+      "local_tangent_delta_deg": [
+        0.0,
+        0.0
+      ],
+      "local_normal_dimension_minmax_mm": [
+        26.0,
+        26.0
+      ],
+      "residual_difference_mm": 0.0
+    },
+    {
+      "family": "F6",
+      "local_max_residual_mm": 0.0,
+      "pro_max_residual_mm": 0.0,
+      "local_tangent_delta_deg": [
+        0.0,
+        0.0
+      ],
+      "local_normal_dimension_minmax_mm": [
+        24.78764700998763,
+        27.21235299001237
+      ],
+      "residual_difference_mm": 0.0
+    }
+  ],
+  "formula_checks": {
+    "F3_exact_circle_sagitta_over_halfspan28_mm": 0.979599898688166,
+    "F3_exact_tangent_angle_deg": 4.010704565915763,
+    "F1_closing_pole_curvature_radius_mm": 19.6,
+    "F2_nominal_flat_face_length_mm": 18,
+    "F5_G_radius_about_handle_axis_mm": 70.45565981523414
+  },
+  "limitations": "Interpolation/rounding differences are not simulation or contact error; no grasp/clearance/learning verdict.",
+  "gripper_projection_check": {
+    "evidence": "DERIVED_STATIC_ONLY",
+    "method": "Read-only geometry reviewer transformed raw gripper_base/link7/link8 STL vertices through current URDF joints into gripper-base. No simulation or asset edits.",
+    "tcp_z_mm": 85.0,
+    "fingers_closed_max_z_mm": 135.8,
+    "fingers_closed_forward_extent_mm": 50.8,
+    "fingers_full_open_forward_extent_mm": 50.799871,
+    "gripper_base_max_z_mm": 63.000001,
+    "plane_clearance_at_h_77_5_mm": 26.7,
+    "plane_clearance_at_h_55_mm": 4.2,
+    "conditions": "TCP exactly at G; +Z normal to infinite door plane. Fixed-orientation straight approach along a reaches its minimum plane separation at G.",
+    "excludes": [
+      "pose error",
+      "nonstraight approach",
+      "rose",
+      "return",
+      "wrist camera/other robot parts",
+      "imported collider realization",
+      "dynamic sweeps"
+    ],
+    "roll_contract": "Object section rotates; G retains directed t and door-normal a. Support-width formulas are consistent. This is a pending design proposal, not an implementation or grasp verdict."
+  }
+}

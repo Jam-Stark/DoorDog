@@ -7,6 +7,8 @@ Agent-system memory 用于记录 Codex multi-agent architecture、runtime compat
 
 ## Route
 
+- novelty选题、方法路线或原始讨论，从 [novelty-research/description.md](memory/a2-piper/novelty-research/description.md) 进入，并维护 [讨论区README](scriptsFORhuman/novelty/README.md)。
+
 - 读取项目 origin/baseline 参考事实时，从 [memory/origin-reference/MEMORY.md](memory/origin-reference/MEMORY.md) 开始。
 - 读取 A2_Piper branch/worktree 开发约定、robot/reward 迁移状态或 workspace routing 时，从 [memory/a2-piper/MEMORY.md](memory/a2-piper/MEMORY.md) 开始。
 - 读取 Codex multi-agent policy、role activation status 或 compatibility evidence 时，从 [memory/agent-system/MEMORY.md](memory/agent-system/MEMORY.md) 开始。

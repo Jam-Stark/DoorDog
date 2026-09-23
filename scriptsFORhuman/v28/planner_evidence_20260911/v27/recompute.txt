@@ -1,0 +1,83 @@
+=== endpoint 6000 full counts ===
+SC_S201   left  D= 0 S3+= 0 S4+= 0 oh= 0 S5+= 0 comp= 0 clean= 0 lh+os=0 term={'stage_overtime': 64} gate=False hinge_p50=None force_p95=None hold_thru=0 cwh=0 eplen=552.0
+SC_S201   right D=64 S3+=64 S4+=64 oh=64 S5+=63 comp=63 clean=63 lh+os=0 term={'complete': 63, 'stage_overtime': 1} gate=True hinge_p50=1.2819963693618774 force_p95=0.0 hold_thru=64 cwh=64 eplen=667.0
+SC_S202   left  D=50 S3+=64 S4+=64 oh=64 S5+=64 comp=64 clean=23 lh+os=0 term={'complete': 64} gate=False hinge_p50=0.9986581206321716 force_p95=0.0 hold_thru=64 cwh=64 eplen=529.0
+SC_S202   right D=64 S3+=64 S4+=64 oh=64 S5+=64 comp=64 clean= 1 lh+os=0 term={'complete': 64} gate=False hinge_p50=0.9296167492866516 force_p95=0.0 hold_thru=64 cwh=64 eplen=442.0
+SC_S203   left  D=35 S3+=64 S4+=60 oh=56 S5+=60 comp=60 clean= 0 lh+os=4 term={'upper_dof_overspeed': 4, 'complete': 60} gate=False hinge_p50=0.6612681150436401 force_p95=None hold_thru=47 cwh=47 eplen=450.0
+SC_S203   right D=63 S3+=63 S4+=63 oh=63 S5+=63 comp=63 clean= 0 lh+os=1 term={'upper_dof_overspeed': 1, 'complete': 63} gate=False hinge_p50=0.6545338034629822 force_p95=715.8224487304688 hold_thru=60 cwh=60 eplen=467.0
+SK_S211   left  D=64 S3+=64 S4+=64 oh=64 S5+=64 comp=64 clean=64 lh+os=0 term={'complete': 64} gate=True hinge_p50=1.353829026222229 force_p95=0.0 hold_thru=64 cwh=64 eplen=496.0
+SK_S211   right D=63 S3+=64 S4+=64 oh=64 S5+=63 comp=63 clean=34 lh+os=0 term={'complete': 63, 'stage_overtime': 1} gate=False hinge_p50=1.7647169828414917 force_p95=1016.862060546875 hold_thru=50 cwh=50 eplen=832.0
+SK_S212   left  D=60 S3+=64 S4+=64 oh=64 S5+=59 comp= 0 clean= 0 lh+os=0 term={'stage_overtime': 64} gate=False hinge_p50=1.2613320350646973 force_p95=1104.95556640625 hold_thru=59 cwh=59 eplen=955.0
+SK_S212   right D=64 S3+=64 S4+=64 oh=64 S5+= 2 comp= 0 clean= 0 lh+os=0 term={'stage_overtime': 64} gate=False hinge_p50=0.5457839369773865 force_p95=0.0 hold_thru=61 cwh=61 eplen=754.0
+SK_S213   left  D=61 S3+=63 S4+=62 oh=62 S5+=62 comp=62 clean=62 lh+os=2 term={'upper_dof_overspeed': 2, 'complete': 62} gate=True hinge_p50=1.3847910165786743 force_p95=0.0 hold_thru=37 cwh=37 eplen=399.0
+SK_S213   right D= 2 S3+=64 S4+=63 oh=63 S5+=63 comp=63 clean=63 lh+os=1 term={'upper_dof_overspeed': 1, 'complete': 63} gate=True hinge_p50=1.4923313856124878 force_p95=0.0 hold_thru=2 cwh=2 eplen=373.0
+
+=== per-step pass status & trajectory ===
+SC_S201   step1000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SC_S201   step2000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SC_S201   step3000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SC_S201   step4000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+=20 oh=20 lh/os=0 gate=0  BOTH=False
+SC_S201   step5000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp=63 clean=59 S4+=64 oh=64 lh/os=0 gate=1  BOTH=False
+SC_S201   step6000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp=63 clean=63 S4+=64 oh=64 lh/os=0 gate=1  BOTH=False
+
+SC_S202   step1000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SC_S202   step2000: L: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0  BOTH=False
+SC_S202   step3000: L: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0 | R: comp=63 clean=11 S4+=63 oh=63 lh/os=0 gate=0  BOTH=False
+SC_S202   step4000: L: comp=64 clean= 0 S4+=64 oh=64 lh/os=0 gate=0 | R: comp=60 clean=18 S4+=61 oh=61 lh/os=0 gate=0  BOTH=False
+SC_S202   step5000: L: comp=59 clean= 0 S4+=63 oh=63 lh/os=5 gate=0 | R: comp=63 clean=10 S4+=63 oh=63 lh/os=1 gate=0  BOTH=False
+SC_S202   step6000: L: comp=64 clean=23 S4+=64 oh=64 lh/os=0 gate=0 | R: comp=64 clean= 1 S4+=64 oh=64 lh/os=0 gate=0  BOTH=False
+
+SC_S203   step1000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SC_S203   step2000: L: comp= 0 clean= 0 S4+=52 oh=50 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+=63 oh=63 lh/os=0 gate=0  BOTH=False
+SC_S203   step3000: L: comp=64 clean= 0 S4+=64 oh=64 lh/os=0 gate=0 | R: comp=63 clean= 0 S4+=64 oh=64 lh/os=0 gate=0  BOTH=False
+SC_S203   step4000: L: comp=61 clean= 0 S4+=61 oh=35 lh/os=3 gate=0 | R: comp=64 clean= 0 S4+=64 oh=64 lh/os=0 gate=0  BOTH=False
+SC_S203   step5000: L: comp=61 clean= 0 S4+=61 oh=37 lh/os=3 gate=0 | R: comp=60 clean= 0 S4+=60 oh=60 lh/os=3 gate=0  BOTH=False
+SC_S203   step6000: L: comp=60 clean= 0 S4+=60 oh=56 lh/os=4 gate=0 | R: comp=63 clean= 0 S4+=63 oh=63 lh/os=1 gate=0  BOTH=False
+
+SK_S211   step1000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SK_S211   step2000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SK_S211   step3000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SK_S211   step4000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SK_S211   step5000: L: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+=63 oh=63 lh/os=0 gate=0  BOTH=False
+SK_S211   step6000: L: comp=64 clean=64 S4+=64 oh=64 lh/os=0 gate=1 | R: comp=63 clean=34 S4+=64 oh=64 lh/os=0 gate=0  BOTH=False
+
+SK_S212   step1000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SK_S212   step2000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SK_S212   step3000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SK_S212   step4000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+=26 oh=21 lh/os=0 gate=0  BOTH=False
+SK_S212   step5000: L: comp= 0 clean= 0 S4+=64 oh=56 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0  BOTH=False
+SK_S212   step6000: L: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0  BOTH=False
+
+SK_S213   step1000: L: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+= 0 oh= 0 lh/os=0 gate=0  BOTH=False
+SK_S213   step2000: L: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0 | R: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0  BOTH=False
+SK_S213   step3000: L: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0 | R: comp=64 clean= 1 S4+=64 oh=64 lh/os=0 gate=0  BOTH=False
+SK_S213   step4000: L: comp= 0 clean= 0 S4+=64 oh=64 lh/os=0 gate=0 | R: comp=63 clean=58 S4+=63 oh=63 lh/os=0 gate=1  BOTH=False
+SK_S213   step5000: L: comp= 1 clean= 1 S4+=64 oh=64 lh/os=0 gate=0 | R: comp=64 clean=64 S4+=64 oh=64 lh/os=0 gate=1  BOTH=False
+SK_S213   step6000: L: comp=62 clean=62 S4+=62 oh=62 lh/os=2 gate=1 | R: comp=63 clean=63 S4+=63 oh=63 lh/os=1 gate=1  BOTH=True
+
+=== first milestone both sides pass ===
+SC_S201 None
+SC_S202 None
+SC_S203 None
+SK_S211 None
+SK_S212 None
+SK_S213 6000
+
+=== guard S4+/open_hold  SK >= SC - 8 ===
+  SK_S211/SC_S201 left  S4+      : 64 vs  0-8=-8 -> True
+  SK_S211/SC_S201 left  open_hold: 64 vs  0-8=-8 -> True
+  SK_S211/SC_S201 right S4+      : 64 vs 64-8=56 -> True
+  SK_S211/SC_S201 right open_hold: 64 vs 64-8=56 -> True
+  pair guard SK_S211vsSC_S201: True
+  SK_S212/SC_S202 left  S4+      : 64 vs 64-8=56 -> True
+  SK_S212/SC_S202 left  open_hold: 64 vs 64-8=56 -> True
+  SK_S212/SC_S202 right S4+      : 64 vs 64-8=56 -> True
+  SK_S212/SC_S202 right open_hold: 64 vs 64-8=56 -> True
+  pair guard SK_S212vsSC_S202: True
+  SK_S213/SC_S203 left  S4+      : 62 vs 60-8=52 -> True
+  SK_S213/SC_S203 left  open_hold: 62 vs 56-8=48 -> True
+  SK_S213/SC_S203 right S4+      : 63 vs 63-8=55 -> True
+  SK_S213/SC_S203 right open_hold: 63 vs 63-8=55 -> True
+  pair guard SK_S213vsSC_S203: True
+sc_pass 0 sk_pass 1
+reducer typed: {"sc_outcome": "SCRATCH_NOT_ESTABLISHED", "sk_outcome": "K_SCRATCH_SUPERIOR", "sc_passed_seeds": 0, "sk_passed_seeds": 1}

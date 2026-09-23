@@ -1,0 +1,34 @@
+| theta | tower mm | opening m | stream | bar in-frustum+MinZ | bar visible (ray) | bar centre row | f7 tip vis | f8 tip vis | blockers |
+|---:|---:|---:|---|---:|---:|---:|---:|---:|---|
+| 45.0 | 180 | 0.0 | rgb | 100% | 43% | 0.97 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 45.0 | 180 | 0.0 | depth | 100% | 52% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 38.76 | 140 | 0.0 | rgb | 100% | 29% | 0.97 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 38.76 | 140 | 0.0 | depth | 100% | 33% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 34.49 | 120 | 0.0 | rgb | 100% | 29% | 0.97 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 34.49 | 120 | 0.0 | depth | 100% | 24% | 0.82 | 0% | 7% | arm_body6_to_gripper,arm_body8 |
+| 29.13 | 100 | 0.0 | rgb | 90% | 24% | 0.97 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 29.13 | 100 | 0.0 | depth | 100% | 24% | 0.82 | 0% | 10% | arm_body6_to_gripper,arm_body8 |
+| 45.0 | 180 | 0.013 | rgb | 100% | 38% | 0.97 | 1% | 13% | arm_body6_to_gripper,arm_body8 |
+| 45.0 | 180 | 0.013 | depth | 100% | 38% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 38.76 | 140 | 0.013 | rgb | 100% | 24% | 0.97 | 1% | 13% | arm_body6_to_gripper,arm_body8 |
+| 38.76 | 140 | 0.013 | depth | 100% | 29% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 34.49 | 120 | 0.013 | rgb | 100% | 24% | 0.97 | 1% | 13% | arm_body6_to_gripper,arm_body8 |
+| 34.49 | 120 | 0.013 | depth | 100% | 19% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 29.13 | 100 | 0.013 | rgb | 90% | 24% | 0.97 | 0% | 11% | arm_body6_to_gripper,arm_body8 |
+| 29.13 | 100 | 0.013 | depth | 100% | 19% | 0.82 | 0% | 6% | arm_body6_to_gripper,arm_body8 |
+| 45.0 | 180 | 0.02 | rgb | 100% | 29% | 0.97 | 1% | 13% | arm_body6_to_gripper,arm_body8 |
+| 45.0 | 180 | 0.02 | depth | 100% | 29% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 38.76 | 140 | 0.02 | rgb | 100% | 24% | 0.97 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 38.76 | 140 | 0.02 | depth | 100% | 24% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 34.49 | 120 | 0.02 | rgb | 100% | 24% | 0.97 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 34.49 | 120 | 0.02 | depth | 100% | 19% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 29.13 | 100 | 0.02 | rgb | 90% | 48% | 0.97 | 0% | 11% | arm_body6_to_gripper,arm_body8 |
+| 29.13 | 100 | 0.02 | depth | 100% | 38% | 0.82 | 0% | 6% | arm_body6_to_gripper |
+| 45.0 | 180 | 0.035 | rgb | 100% | 24% | 0.97 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 45.0 | 180 | 0.035 | depth | 100% | 24% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 38.76 | 140 | 0.035 | rgb | 100% | 48% | 0.97 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 38.76 | 140 | 0.035 | depth | 100% | 48% | 0.82 | 0% | 13% | arm_body6_to_gripper,arm_body8 |
+| 34.49 | 120 | 0.035 | rgb | 100% | 52% | 0.97 | 0% | 11% | arm_body6_to_gripper,arm_body8 |
+| 34.49 | 120 | 0.035 | depth | 100% | 43% | 0.82 | 0% | 13% | arm_body6_to_gripper |
+| 29.13 | 100 | 0.035 | rgb | 90% | 52% | 0.97 | 17% | 11% | arm_body6_to_gripper |
+| 29.13 | 100 | 0.035 | depth | 100% | 38% | 0.82 | 8% | 11% | arm_body6_to_gripper |

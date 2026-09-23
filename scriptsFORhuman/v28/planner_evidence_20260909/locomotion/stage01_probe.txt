@@ -1,0 +1,3 @@
+---
+DoorDog-A2_Piper_sim2sim/logs_eval/sim2sim/depthadd_v3_20260908/R30/source_eval/stage0_1_step_trace.json
+---

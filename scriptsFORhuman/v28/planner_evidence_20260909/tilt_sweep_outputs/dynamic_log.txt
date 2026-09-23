@@ -1,0 +1,86 @@
+theta | RGB tcp in (v) | D tcp in (v) | RGB ftip_open in (v) | D ftip_open in (v) | RGB enter m | D enter m | RGB pitch@ref | RGB upper/lower edge elev | ground hit(0.48/0.55)
+    0 | False (3.355) | False (2.527) | False (2.473) | False (1.9) | 0.385 | 0.29 | 0.04 | 21.74/-21.65 | None/None
+   15 | False (2.069) | False (1.612) | False (1.655) | False (1.317) | 0.23 | 0.18 | -14.96 | 6.74/-36.65 | 3.85/4.11
+   25 | False (1.606) | False (1.282) | False (1.304) | False (1.067) | 0.17 | 0.135 | -24.96 | -3.26/-46.65 | 2.21/2.36
+   30 | False (1.426) | False (1.154) | False (1.158) | True (0.963) | 0.145 | 0.115 | -29.96 | -8.26/-51.65 | 1.78/1.9
+   35 | False (1.267) | False (1.041) | False (1.025) | True (0.868) | 0.125 | 0.095 | -34.96 | -13.26/-56.65 | 1.47/1.57
+   40 | False (1.124) | True (0.939) | True (0.9) | True (0.779) | 0.105 | 0.075 | -39.96 | -18.26/-61.65 | 1.23/1.31
+   45 | True (0.993) | True (0.845) | True (0.783) | True (0.695) | 0.085 | 0.06 | -44.96 | -23.26/-66.65 | 1.03/1.1
+   50 | True (0.871) | True (0.758) | True (0.67) | True (0.614) | 0.07 | 0.05 | -49.96 | -28.26/-71.65 | 0.86/0.92
+
+Synthetic Stage0/1 (reference posture, trunk z 0.48): share over 9 poses per distance
+theta | dist | rgb/handle | depth/handle | rgb/frame_handle_side_z1.0 | rgb/panel_mid_z1.0 | rgb/doorway_floor_centre | depth/doorway_floor_centre | rgb/lintel_centre
+    0 | 0.7 | 78% | 89% | 78% | 44% | 0% | 0% | 0%
+    0 | 0.8 | 78% | 100% | 89% | 56% | 0% | 0% | 0%
+    0 | 1.0 | 89% | 100% | 89% | 67% | 0% | 0% | 0%
+    0 | 1.2 | 100% | 100% | 89% | 78% | 0% | 0% | 0%
+    0 | 1.5 | 100% | 100% | 100% | 78% | 0% | 0% | 0%
+   15 | 0.7 | 78% | 100% | 78% | 44% | 0% | 0% | 0%
+   15 | 0.8 | 78% | 100% | 89% | 56% | 0% | 0% | 0%
+   15 | 1.0 | 89% | 100% | 89% | 56% | 0% | 0% | 0%
+   15 | 1.2 | 100% | 100% | 89% | 78% | 0% | 11% | 0%
+   15 | 1.5 | 100% | 100% | 100% | 78% | 0% | 100% | 0%
+   25 | 0.7 | 78% | 100% | 67% | 11% | 0% | 0% | 0%
+   25 | 0.8 | 78% | 100% | 0% | 0% | 0% | 0% | 0%
+   25 | 1.0 | 89% | 100% | 0% | 0% | 0% | 67% | 0%
+   25 | 1.2 | 100% | 100% | 0% | 0% | 67% | 100% | 0%
+   25 | 1.5 | 100% | 100% | 0% | 0% | 100% | 100% | 0%
+   30 | 0.7 | 78% | 100% | 0% | 0% | 0% | 0% | 0%
+   30 | 0.8 | 78% | 100% | 0% | 0% | 0% | 33% | 0%
+   30 | 1.0 | 89% | 100% | 0% | 0% | 22% | 89% | 0%
+   30 | 1.2 | 100% | 100% | 0% | 0% | 89% | 100% | 0%
+   30 | 1.5 | 0% | 100% | 0% | 0% | 100% | 100% | 0%
+   35 | 0.7 | 78% | 89% | 0% | 0% | 0% | 33% | 0%
+   35 | 0.8 | 78% | 100% | 0% | 0% | 11% | 78% | 0%
+   35 | 1.0 | 0% | 100% | 0% | 0% | 78% | 100% | 0%
+   35 | 1.2 | 0% | 100% | 0% | 0% | 89% | 100% | 0%
+   35 | 1.5 | 0% | 100% | 0% | 0% | 100% | 100% | 0%
+   40 | 0.7 | 44% | 89% | 0% | 0% | 22% | 78% | 0%
+   40 | 0.8 | 0% | 100% | 0% | 0% | 67% | 100% | 0%
+   40 | 1.0 | 0% | 44% | 0% | 0% | 89% | 100% | 0%
+   40 | 1.2 | 0% | 0% | 0% | 0% | 100% | 100% | 0%
+   40 | 1.5 | 0% | 0% | 0% | 0% | 100% | 100% | 0%
+   45 | 0.7 | 0% | 89% | 0% | 0% | 67% | 100% | 0%
+   45 | 0.8 | 0% | 22% | 0% | 0% | 89% | 100% | 0%
+   45 | 1.0 | 0% | 0% | 0% | 0% | 89% | 100% | 0%
+   45 | 1.2 | 0% | 0% | 0% | 0% | 100% | 100% | 0%
+   45 | 1.5 | 0% | 0% | 0% | 0% | 100% | 100% | 0%
+   50 | 0.7 | 0% | 0% | 0% | 0% | 89% | 100% | 0%
+   50 | 0.8 | 0% | 0% | 0% | 0% | 89% | 100% | 0%
+   50 | 1.0 | 0% | 0% | 0% | 0% | 100% | 100% | 0%
+   50 | 1.2 | 0% | 0% | 0% | 0% | 100% | 100% | 0%
+   50 | 1.5 | 0% | 0% | 0% | 0% | 100% | 100% | 0%
+dynamic theta=40 done in 119s
+  th40 C_S2/left stage2: W-RGB handle 72% W-D handle 100% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 23% W-RGB floor+1m 100% axis elev p50 -43
+  th40 C_S2/left stage3: W-RGB handle 9% W-D handle 82% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 8% W-RGB floor+1m 44% axis elev p50 -37
+  th40 C_S2/left stage4: W-RGB handle 26% W-D handle 95% W-RGB tcp 0% W-D tcp 100% W-RGB panel 1% W-RGB frame(handle) 0% W-RGB floor+1m 48% axis elev p50 -42
+  th40 C_S2/left stage5: W-RGB handle 0% W-D handle 0% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 39% axis elev p50 -61
+  th40 C_S2/right stage2: W-RGB handle 77% W-D handle 100% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 29% W-RGB floor+1m 100% axis elev p50 -41
+  th40 C_S2/right stage3: W-RGB handle 14% W-D handle 100% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 5% W-RGB floor+1m 27% axis elev p50 -37
+  th40 C_S2/right stage4: W-RGB handle 3% W-D handle 98% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 57% axis elev p50 -66
+  th40 C_S2/right stage5: W-RGB handle 2% W-D handle 4% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 0% axis elev p50 -62
+  th40 C_S21/left stage2: W-RGB handle 81% W-D handle 100% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 22% W-RGB floor+1m 100% axis elev p50 -38
+  th40 C_S21/left stage3: W-RGB handle 11% W-D handle 64% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 5% W-RGB floor+1m 75% axis elev p50 -31
+  th40 C_S21/left stage4: W-RGB handle 23% W-D handle 100% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 83% axis elev p50 -47
+  th40 C_S21/left stage5: W-RGB handle 5% W-D handle 8% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 25% axis elev p50 -53
+  th40 C_S21/right stage2: W-RGB handle 67% W-D handle 100% W-RGB tcp 0% W-D tcp 100% W-RGB panel 4% W-RGB frame(handle) 12% W-RGB floor+1m 100% axis elev p50 -40
+  th40 C_S21/right stage3: W-RGB handle 14% W-D handle 98% W-RGB tcp 0% W-D tcp 100% W-RGB panel 1% W-RGB frame(handle) 2% W-RGB floor+1m 57% axis elev p50 -35
+  th40 C_S21/right stage4: W-RGB handle 20% W-D handle 97% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 84% axis elev p50 -60
+  th40 C_S21/right stage5: W-RGB handle 5% W-D handle 7% W-RGB tcp 0% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 14% axis elev p50 -52
+dynamic theta=45 done in 119s
+  th45 C_S2/left stage2: W-RGB handle 97% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 15% W-RGB floor+1m 100% axis elev p50 -48
+  th45 C_S2/left stage3: W-RGB handle 25% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 13% W-RGB floor+1m 40% axis elev p50 -39
+  th45 C_S2/left stage4: W-RGB handle 77% W-D handle 95% W-RGB tcp 100% W-D tcp 100% W-RGB panel 1% W-RGB frame(handle) 0% W-RGB floor+1m 52% axis elev p50 -46
+  th45 C_S2/left stage5: W-RGB handle 0% W-D handle 0% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 41% axis elev p50 -66
+  th45 C_S2/right stage2: W-RGB handle 99% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 17% W-RGB floor+1m 100% axis elev p50 -46
+  th45 C_S2/right stage3: W-RGB handle 26% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 6% W-RGB floor+1m 21% axis elev p50 -39
+  th45 C_S2/right stage4: W-RGB handle 23% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 59% axis elev p50 -67
+  th45 C_S2/right stage5: W-RGB handle 1% W-D handle 3% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 0% axis elev p50 -67
+  th45 C_S21/left stage2: W-RGB handle 99% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 14% W-RGB floor+1m 100% axis elev p50 -43
+  th45 C_S21/left stage3: W-RGB handle 23% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 6% W-RGB floor+1m 54% axis elev p50 -34
+  th45 C_S21/left stage4: W-RGB handle 92% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 94% axis elev p50 -52
+  th45 C_S21/left stage5: W-RGB handle 6% W-D handle 7% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 32% axis elev p50 -58
+  th45 C_S21/right stage2: W-RGB handle 98% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 3% W-RGB frame(handle) 7% W-RGB floor+1m 100% axis elev p50 -45
+  th45 C_S21/right stage3: W-RGB handle 33% W-D handle 100% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 2% W-RGB floor+1m 50% axis elev p50 -38
+  th45 C_S21/right stage4: W-RGB handle 40% W-D handle 99% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 81% axis elev p50 -63
+  th45 C_S21/right stage5: W-RGB handle 5% W-D handle 6% W-RGB tcp 100% W-D tcp 100% W-RGB panel 0% W-RGB frame(handle) 0% W-RGB floor+1m 16% axis elev p50 -57

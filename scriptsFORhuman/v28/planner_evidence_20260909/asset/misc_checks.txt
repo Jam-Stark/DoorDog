@@ -1,0 +1,117 @@
+=== .isaacsim_version ===
+4.5
+=== tests/scripts referencing asset paths or num_bodies ===
+gr00t/rl/scripts/README.md:39:The preview requires `gr00t/rl/data/robots/A2_Piper/a2_piper.usd`; if it is missing, the entrypoint fails fast and prints the conversion command instead of falling back to G1.
+gr00t/rl/scripts/smoke_a2_base_flat_walk.py:18:DEFAULT_USD_PATH = REPO_ROOT / "gr00t/rl/data/robots/A2_Piper/a2_piper.usd"
+gr00t/rl/scripts/preview_a2_piper_door_scene.py:18:DEFAULT_URDF_PATH = REPO_ROOT / "gr00t/rl/data/robots/A2_Piper/a2_piper.urdf"
+gr00t/rl/scripts/preview_a2_piper_door_scene.py:19:DEFAULT_USD_PATH = REPO_ROOT / "gr00t/rl/data/robots/A2_Piper/a2_piper.usd"
+gr00t/rl/scripts/preview_a2_piper_door_scene.py:129:        help="Generate A2_Piper/a2_piper.usd from the URDF before opening the preview.",
+gr00t/rl/scripts/a2_piper_v14_reachability_map.py:26:DEFAULT_USD_PATH = REPO_ROOT / "gr00t/rl/data/robots/A2_Piper/a2_piper.usd"
+gr00t/rl/scripts/a2_piper_v15_dynamic_reachability.py:1231:        if getattr(sensor, "num_bodies", None) != 1:
+gr00t/rl/tests/test_a2_student_distillation_contract.py:72:            {"/robot": "A2_Piper/a2_piper"},
+gr00t/rl/tests/test_a2_student_distillation_contract.py:173:    assert {"/robot": "A2_Piper/a2_piper"} in defaults
+gr00t/rl/tests/test_a2_v15_dynamic_reachability.py:725:            num_bodies=1,
+gr00t/rl/tests/test_a2_v15_dynamic_reachability.py:771:    urdf_path = ROOT / "gr00t/rl/data/robots/A2_Piper/a2_piper.urdf"
+=== isaacsim.py version import lines ===
+        optimize_material_randomization_memory,
+        randomize_body_com,
+        randomize_dome_light,
+        randomize_floor_material,
+        randomize_robot_material,
+        randomize_table_material,
+    )
+    from gr00t.rl.simulator.isaacsim.isaacsim_articulation_cfg import ARTICULATION_CFG
+    from gr00t.rl.utils.helpers import dict_to_true_list
+
+elif DEFAULT_ISAACSIM_VERSION == "4.2":
+    #### IsaacSim 4.2
+
+    import builtins
+    import copy
+    import importlib.util
+        randomize_dome_light,
+        randomize_floor_material,
+        randomize_robot_material,
+        randomize_table_material,
+    )
+    from gr00t.rl.simulator.isaacsim.isaacsim_articulation_cfg import ARTICULATION_CFG
+    from gr00t.rl.utils.helpers import dict_to_true_list
+
+else:
+    raise ValueError(f"Unsupported IsaacSim version: {DEFAULT_ISAACSIM_VERSION}")
+
+=== IsaacLab articulation body ordering ===
+123:        return self.root_physx_view.shared_metatype.fixed_base
+128:        return self.root_physx_view.shared_metatype.dof_count
+143:        return self.root_physx_view.shared_metatype.link_count
+148:        return self.root_physx_view.shared_metatype.dof_names
+161:    def body_names(self) -> list[str]:
+163:        return self.root_physx_view.shared_metatype.link_names
+273:    def find_bodies(self, name_keys: str | Sequence[str], preserve_order: bool = False) -> tuple[list[int], list[str]]:
+=== IsaacLab urdf importer joint collision / self collision handling ===
+148:        import_config.set_self_collision(self.cfg.self_collision)
+=== tilt param in camera bundle config ===
+== config/U3_F0.json top keys: ['plan_id', 'name_cn', 'input_authority', 'hardware_status', 'simulation_scope', 'housing_size_M_m', 'mechanical_axes', 'rotation_order', 'cameras', 'brackets', 'support_version', 'mass_and_collision', 'assumptions_and_scope', 'design_revision', 'drawing', 'wrist_support_anchor']
+   plan_id = "U3_F0"
+   assumptions_and_scope.reference_q = [0, 0, 0, 0, 0, 1.57]
+   assumptions_and_scope.fixed_in_F_after_reference = true
+   design_revision.reference_down_pitch_B_deg = 0
+   design_revision.reference_forward_axis_B = [1.0, 0.0, -0.0]
+   design_revision.reference_bar_axis_B = [0.0, 1.0, 0.0]
+   design_revision.reference_raise_B_mm = [0, 0, 180]
+   design_revision.stages_do_not_drive_camera_joints = true
+   design_revision.tilt_modes_are_separate_static_trials_not_stage_switching = true
+   drawing.far_planes_not_max_sensor_range = true
+== config/U3_F15.json top keys: ['plan_id', 'name_cn', 'input_authority', 'hardware_status', 'simulation_scope', 'housing_size_M_m', 'mechanical_axes', 'rotation_order', 'cameras', 'brackets', 'support_version', 'mass_and_collision', 'assumptions_and_scope', 'design_revision', 'drawing', 'wrist_support_anchor']
+   plan_id = "U3_F15"
+   assumptions_and_scope.reference_q = [0, 0, 0, 0, 0, 1.57]
+   assumptions_and_scope.fixed_in_F_after_reference = true
+   design_revision.reference_down_pitch_B_deg = 15
+   design_revision.reference_forward_axis_B = [0.9659258262890683, 0.0, -0.25881904510252074]
+   design_revision.reference_bar_axis_B = [0.0, 1.0, 0.0]
+   design_revision.reference_raise_B_mm = [0, 0, 180]
+   design_revision.stages_do_not_drive_camera_joints = true
+   design_revision.tilt_modes_are_separate_static_trials_not_stage_switching = true
+   drawing.far_planes_not_max_sensor_range = true
+=== reference_joint_pose.json ===
+{
+  "FL_hip_joint": 0.0,
+  "FL_thigh_joint": 0.7,
+  "FL_calf_joint": -1.4,
+  "RL_hip_joint": 0.0,
+  "RL_thigh_joint": 0.7,
+  "RL_calf_joint": -1.4,
+  "FR_hip_joint": 0.0,
+  "FR_thigh_joint": 0.7,
+  "FR_calf_joint": -1.4,
+  "RR_hip_joint": 0.0,
+  "RR_thigh_joint": 0.7,
+  "RR_calf_joint": -1.4,
+  "arm_j1": 0,
+  "arm_j2": 0,
+  "arm_j3": 0,
+  "arm_j4": 0,
+  "arm_j5": 0,
+  "arm_j6": 1.57,
+  "arm_j7": 0.02,
+  "arm_j8": -0.02
+}=== code dir ===
+__pycache__
+attach_isaac.py
+build_bench.py
+build_u3_forward.py
+check_static_mechanics.py
+check_step.py
+check_usd.py
+draw_svg.py
+evaluate_forward.py
+export_sim.py
+geometry.py
+mount_shapes.py
+phase_diagnostics.py
+reproduce.py
+requirements.txt
+rgbd_common_mask.py
+smoke_isaaclab.py
+test_common_mask.py
+verify_package.py

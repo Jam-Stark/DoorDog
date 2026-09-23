@@ -1,0 +1,8 @@
+{
+  "local_release_dir": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/outgoing-artifacts/base_v29_n01_recovery_transfer/20260920_142048__c002_research",
+  "baseline_tag": "v29-c002-baseline",
+  "review_branch": "codex/v29-n01-pro-20260920",
+  "status": "PUBLISHED_AND_UPLOADED",
+  "drive_folder": "https://drive.google.com/drive/folders/1TYMXvIKohP6-IlrhYa6hXFn4qjZqWvIo",
+  "delivery_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper/.ai/outgoing-artifacts/base_v29_n01_recovery_transfer/20260920_142048__c002_research/DELIVERY_RECEIPT.json"
+}

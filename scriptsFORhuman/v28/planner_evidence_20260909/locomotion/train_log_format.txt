@@ -1,0 +1,127 @@
+739:│ Mean episode rew_penalty_not_standing_still: 0.0000                                              │
+1013:│ Mean episode rew_penalty_not_standing_still: -0.0001                                             │
+1287:│ Mean episode rew_penalty_not_standing_still: -0.0025                                             │
+---
+6000
+---
+709-│ Env/a2_v26_3_staged_store_count_total: 0.9062                                                    │
+710-│ Env/a2_v26_3_staged_load_count_total: 0.0000                                                     │
+711-│ Env/a2_v26_3_staged_restore_cache_clear_count_total: 0.0000                                      │
+712-│         Env/average_episode_length: 28.1567                                                      │
+713-│ Env/a2_stage5_forward_velocity_p95: 0.0000                                                       │
+714-│ Env/a2_stage45_doorframe_contact_force_p50: 0.0000                                               │
+715-│ Env/a2_stage3_stage4_hinge_velocity_p50: 0.0000                                                  │
+716-│ Env/a2_stage3_contact_stability_conditional_frac: 0.0000                                         │
+717-│ Env/a2_stage4_contact_stability_conditional_frac: 0.0000                                         │
+718-│  Env/a2_stage3_hold_and_drive_frac: 0.0000                                                       │
+719-│ Env/a2_stage3_stage4_hold_and_drive_frac: 0.0000                                                 │
+720-│ Env/a2_stage3_unlatch_hold_issued_frac: 0.0000                                                   │
+721-│ Env/a2_stage3_stage4_coasting_frac: 0.0000                                                       │
+722-│ Env/a2_stage3_stage4_over_force_frac: 0.0000                                                     │
+723-│ Env/a2_stage3_handle_hard_limit_frac: 0.0000                                                     │
+724-│    Env/a2_stage4_release_gate_frac: 0.0000                                                       │
+725-│ Env/a2_crossing_while_holding_frac: 0.0000                                                       │
+726-│   Mean episode rew_penalty_dof_acc: -0.0013                                                      │
+727-│   Mean episode rew_penalty_dof_vel: -0.0000                                                      │
+728-│ Mean episode rew_penalty_delta_action_rate: -0.0013                                              │
+729-│       Mean episode rew_termination: -0.7274                                                      │
+730-│    Mean episode rew_limits_dof_pos: -0.0247                                                      │
+731-│ Mean episode rew_limits_gripper_primitive_action: -0.0020                                        │
+732-│      Mean episode rew_walk_to_door: 0.0273                                                       │
+733-│ Mean episode rew_penalty_upper_body_non_gripper_deviation_l1: -0.0041                            │
+734-│ Mean episode rew_penalty_face_door: -0.0059                                                      │
+735-│ Mean episode rew_penalty_base_roll_pitch_l2: -0.0003                                             │
+736-│ Mean episode rew_gripper_handle_orientation: 0.0000                                              │
+737-│ Mean episode rew_pregrasp_gripper_dof_pos_l1: 0.0052                                             │
+738-│ Mean episode rew_pregrasp_target_distance: 0.0000                                                │
+739:│ Mean episode rew_penalty_not_standing_still: 0.0000                                              │
+740-│ Mean episode rew_penalty_a2_stage1_stage2_base_forward_creep: 0.0000                             │
+741-│ Mean episode rew_grasp_target_distance: 0.0000                                                   │
+742-│             Mean episode rew_grasp: 0.0000                                                       │
+743-│ Mean episode rew_a2_stage2_close_command: 0.0000                                                 │
+744-│ Mean episode rew_penalty_a2_stage2_open_command_in_close_gate: 0.0000                            │
+745-│ Mean episode rew_a2_stage2_close_progress: 0.0000                                                │
+746-│ Mean episode rew_a2_stage2_handle_center_y: 0.0000                                               │
+747-│ Mean episode rew_a2_stage2_handle_approach_xz: 0.0000                                            │
+748-│ Mean episode rew_a2_stage2_both_contact: 0.0000                                                  │
+749-│ Mean episode rew_a2_stage2_opposite_squeeze: 0.0000                                              │
+750-│ Mean episode rew_a2_stage2_squeeze_force_window: 0.0000                                          │
+751-│ Mean episode rew_a2_stage2_contact_stability: 0.0000                                             │
+752-│ Mean episode rew_penalty_a2_stage2_over_force: 0.0000                                            │
+753-│ Mean episode rew_a2_stage3_handle_creation: 0.0000                                               │
+754-│   Mean episode rew_push_door_hinge: 0.0000                                                       │
+755-│ Mean episode rew_a2_stage3_unlatch_hold: 0.0000                                                  │
+756-│ Mean episode rew_a2_stage3_stage4_hold_and_drive: 0.0000                                         │
+757-│ Mean episode rew_a2_stage3_stage4_keep_close_command: 0.0000                                     │
+758-│ Mean episode rew_penalty_a2_stage3_stage4_open_command: 0.0000                                   │
+759-│ Mean episode rew_a2_stage3_stage4_both_contact: 0.0000                                           │
+760-│ Mean episode rew_a2_stage3_stage4_opposite_squeeze: 0.0000                                       │
+761-│ Mean episode rew_a2_stage3_stage4_squeeze_force_window: 0.0000                                   │
+762-│ Mean episode rew_a2_stage3_stage4_contact_stability: 0.0000                                      │
+763-│ Mean episode rew_penalty_a2_stage3_stage4_over_force: 0.0000                                     │
+764-│ Mean episode rew_dont_push_door_handle: 0.0000                                                   │
+765-│ Mean episode rew_target_root_distance: 0.0000                                                    │
+766-│ Mean episode rew_a2_stage4_grasp_target_distance_mild: 0.0000                                    │
+767-│ Mean episode rew_penalty_standing_still: 0.0000                                                  │
+768-│             Mean episode rew_stage: 0.0325                                                       │
+769-│          Mean episode rew_complete: 0.0000                                                       │
+770-│ Mean episode rew_success_save_time: 0.1180                                                       │
+771-│      Mean episode rew_ref_dof_legs: 0.0006                                                       │
+772-│ Mean episode rew_penalty_door_frame_contact: 0.0000                                              │
+773-│ Mean episode rew_penalty_door_panel_contact: 0.0000                                              │
+774-│ Mean episode rew_penalty_base_command_limit: -0.0006                                             │
+775-│ Mean episode rew_penalty_undesired_contact: -0.0021                                              │
+776-│ Mean episode rew_penalty_dof_overspeed: 0.0000                                                   │
+777-│ Mean episode rew_orientation_control: -0.0207                                                    │
+778-│ --------------------------------------------------------------------------------                 │
+779-│                     Total episodes: 4096                                                         │
+780-│                    Total timesteps: 262144                                                       │
+781-│                     Iteration time: 25.55s                                                       │
+782-│                         Total time: 25.55s                                                       │
+783-│                                ETA: 153246.4s                                                    │
+784-│ Logging Directory:                                                                               │
+785-│ /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v27/v27_bilateral_hardening_2026 │
+786-│ 0905/train/SK_S211_r1                                                                            │
+787-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯╭────────────────────────────────────────── Training Log ──────────────────────────────────────────╮
+788-│                         [1m Learning iteration 2  [0m                                            │
+789-│                                                                                                  │
+790-│                        Computation: 9901 steps/s (Collection: 22.234s, Learning 4.240s)          │
+791-│              Mean action noise std: 0.80                                                         │
+792-│                       Mean entropy: 14.34954                                                     │
+793-│                       Mean rewards: -16.79198                                                    │
+794-│                        Mean length: 124.78000                                                    │
+795-│          Env/average_stage_reached: 0.0002                                                       │
+796-│           Env/average_goal_reached: 0.0000                                                       │
+797-│ Env/average_last_stage_goal_reached: 0.0000                                                      │
+798-│              Env/termination_level: 1.0001                                                       │
+799-│          Env/a2_v26_left_env_count: 2048.0000                                                    │
+800-│      Env/a2_v26_left_episode_count: 669.5469                                                     │
+801-│ Env/a2_v26_left_natural_start_episode_count: 669.5469                                            │
+802-│         Env/a2_v26_left_goal_count: 0.0000                                                       │
+803-│  Env/a2_v26_left_max_stage_reached: 0.3594                                                       │
+804-│   Env/a2_v26_left_stage0_occupancy: 0.9997                                                       │
+805-│ Env/a2_v26_left_stage0_reset_use_count: 2717.5469                                                │
+806-│ Env/a2_v26_left_stage0_snapshot_available_env_count: 2048.0000                                   │
+807-│ Env/a2_v26_left_stage0_snapshot_sample_count: 409600.0000                                        │
+808-│   Env/a2_v26_left_stage1_occupancy: 0.0003                                                       │
+809-│ Env/a2_v26_left_stage1_reset_use_count: 0.0000                                                   │
+810-│ Env/a2_v26_left_stage1_snapshot_available_env_count: 0.5469                                      │
+811-│ Env/a2_v26_left_stage1_snapshot_sample_count: 0.5469                                             │
+812-│   Env/a2_v26_left_stage2_occupancy: 0.0000                                                       │
+813-│ Env/a2_v26_left_stage2_reset_use_count: 0.0000                                                   │
+814-│ Env/a2_v26_left_stage2_snapshot_available_env_count: 0.0000                                      │
+815-│ Env/a2_v26_left_stage2_snapshot_sample_count: 0.0000                                             │
+816-│   Env/a2_v26_left_stage3_occupancy: 0.0000                                                       │
+817-│ Env/a2_v26_left_stage3_reset_use_count: 0.0000                                                   │
+818-│ Env/a2_v26_left_stage3_snapshot_available_env_count: 0.0000                                      │
+819-│ Env/a2_v26_left_stage3_snapshot_sample_count: 0.0000                                             │
+820-│   Env/a2_v26_left_stage4_occupancy: 0.0000                                                       │
+821-│ Env/a2_v26_left_stage4_reset_use_count: 0.0000                                                   │
+822-│ Env/a2_v26_left_stage4_snapshot_available_env_count: 0.0000                                      │
+823-│ Env/a2_v26_left_stage4_snapshot_sample_count: 0.0000                                             │
+824-│   Env/a2_v26_left_stage5_occupancy: 0.0000                                                       │
+825-│ Env/a2_v26_left_stage5_reset_use_count: 0.0000                                                   │
+826-│ Env/a2_v26_left_stage5_snapshot_available_env_count: 0.0000                                      │
+827-│ Env/a2_v26_left_stage5_snapshot_sample_count: 0.0000                                             │
+828-│         Env/a2_v26_right_env_count: 2048.0000                                                    │
+829-│     Env/a2_v26_right_episode_count: 699.2969                                                     │

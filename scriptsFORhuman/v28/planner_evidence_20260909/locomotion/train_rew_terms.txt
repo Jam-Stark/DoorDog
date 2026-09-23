@@ -1,0 +1,75 @@
+=== SK_S211_r1/runtime.log: blocks=6000 first_iter=1 last_iter=6000
+--- window last-50-iters: n_blocks=50 mean_rewards=105.494 mean_length=477.8 goal=0.598 stage_reached=4.600
+    sum(all rew_* means) = 5.2498   positive=8.0949   negative=-2.8450
+    rew_penalty_not_standing_still                    -0.1635   (5.7% of negative)
+    rew_penalty_base_command_limit                    -0.1196   (4.2% of negative)
+    rew_orientation_control                           -0.2457   (8.6% of negative)
+    rew_penalty_base_roll_pitch_l2                    -0.0774   (2.7% of negative)
+    rew_penalty_standing_still                        -0.0005   (0.0% of negative)
+    rew_penalty_face_door                             -0.0184   (0.6% of negative)
+    rew_penalty_a2_stage1_stage2_base_forward_creep   -0.0062   (0.2% of negative)
+    rew_ref_dof_legs                                  +0.0005
+    rew_walk_to_door                                  +0.0228
+    rew_target_root_distance                          +2.5632
+    rew_stage                                         +0.4144
+    rew_complete                                      +0.1262
+    rew_success_save_time                             +0.0836
+    rew_termination                                   -0.3815   (13.4% of negative)
+    base-behaviour penalties sum = -0.6313  = 22.2% of all negative, 7.8% of positive income
+    top negative terms: penalty_upper_body_non_gripper_deviation_l1=-0.9652, termination=-0.3815, limits_gripper_primitive_action=-0.2973, orientation_control=-0.2457, penalty_dof_acc=-0.1650, penalty_not_standing_still=-0.1635, limits_dof_pos=-0.1486, penalty_door_frame_contact=-0.1291
+--- window iters~2950-3000: n_blocks=51 mean_rewards=89.848 mean_length=403.1 goal=0.000 stage_reached=2.190
+    sum(all rew_* means) = 4.4734   positive=6.7063   negative=-2.2329
+    rew_penalty_not_standing_still                    -0.4572   (20.5% of negative)
+    rew_penalty_base_command_limit                    -0.0151   (0.7% of negative)
+    rew_orientation_control                           -0.1581   (7.1% of negative)
+    rew_penalty_base_roll_pitch_l2                    -0.0011   (0.0% of negative)
+    rew_penalty_standing_still                        +0.0000
+    rew_penalty_face_door                             -0.1103   (4.9% of negative)
+    rew_penalty_a2_stage1_stage2_base_forward_creep   -0.0064   (0.3% of negative)
+    rew_ref_dof_legs                                  +0.0005
+    rew_walk_to_door                                  +0.1078
+    rew_target_root_distance                          +0.0000
+    rew_stage                                         +0.2670
+    rew_complete                                      +0.0000
+    rew_success_save_time                             +0.0000
+    rew_termination                                   -1.0000   (44.8% of negative)
+    base-behaviour penalties sum = -0.7481  = 33.5% of all negative, 11.2% of positive income
+    top negative terms: termination=-1.0000, penalty_not_standing_still=-0.4572, orientation_control=-0.1581, limits_gripper_primitive_action=-0.1357, penalty_dof_acc=-0.1165, penalty_face_door=-0.1103, penalty_delta_action_rate=-0.0889, penalty_door_frame_contact=-0.0530
+=== C_S21/runtime.log: blocks=3000 first_iter=1 last_iter=3000
+--- window last-50-iters: n_blocks=50 mean_rewards=56.854 mean_length=299.1 goal=0.608 stage_reached=4.403
+    sum(all rew_* means) = 2.8961   positive=4.9069   negative=-2.0108
+    rew_penalty_not_standing_still                    -0.1707   (8.5% of negative)
+    rew_penalty_base_command_limit                    -0.1338   (6.7% of negative)
+    rew_orientation_control                           -0.2309   (11.5% of negative)
+    rew_penalty_base_roll_pitch_l2                    -0.0293   (1.5% of negative)
+    rew_penalty_standing_still                        +0.0000
+    rew_penalty_face_door                             -0.0187   (0.9% of negative)
+    rew_penalty_a2_stage1_stage2_base_forward_creep   -0.0054   (0.3% of negative)
+    rew_ref_dof_legs                                  +0.0003
+    rew_walk_to_door                                  +0.1051
+    rew_target_root_distance                          +1.3287
+    rew_stage                                         +0.2567
+    rew_complete                                      +0.1435
+    rew_success_save_time                             +0.1601
+    rew_termination                                   -0.2965   (14.7% of negative)
+    base-behaviour penalties sum = -0.5887  = 29.3% of all negative, 12.0% of positive income
+    top negative terms: penalty_upper_body_non_gripper_deviation_l1=-0.5151, termination=-0.2965, orientation_control=-0.2309, limits_gripper_primitive_action=-0.2141, penalty_not_standing_still=-0.1707, limits_dof_pos=-0.1347, penalty_base_command_limit=-0.1338, penalty_door_frame_contact=-0.0940
+--- window iters~2950-3000: n_blocks=51 mean_rewards=57.244 mean_length=299.9 goal=0.604 stage_reached=4.397
+    sum(all rew_* means) = 2.9144   positive=4.9252   negative=-2.0108
+    rew_penalty_not_standing_still                    -0.1702   (8.5% of negative)
+    rew_penalty_base_command_limit                    -0.1342   (6.7% of negative)
+    rew_orientation_control                           -0.2312   (11.5% of negative)
+    rew_penalty_base_roll_pitch_l2                    -0.0295   (1.5% of negative)
+    rew_penalty_standing_still                        +0.0000
+    rew_penalty_face_door                             -0.0186   (0.9% of negative)
+    rew_penalty_a2_stage1_stage2_base_forward_creep   -0.0054   (0.3% of negative)
+    rew_ref_dof_legs                                  +0.0003
+    rew_walk_to_door                                  +0.1044
+    rew_target_root_distance                          +1.3367
+    rew_stage                                         +0.2574
+    rew_complete                                      +0.1445
+    rew_success_save_time                             +0.1612
+    rew_termination                                   -0.2918   (14.5% of negative)
+    base-behaviour penalties sum = -0.5890  = 29.3% of all negative, 12.0% of positive income
+    top negative terms: penalty_upper_body_non_gripper_deviation_l1=-0.5175, termination=-0.2918, orientation_control=-0.2312, limits_gripper_primitive_action=-0.2148, penalty_not_standing_still=-0.1702, limits_dof_pos=-0.1351, penalty_base_command_limit=-0.1342, penalty_door_frame_contact=-0.0946
+EXIT=0

@@ -2,9 +2,15 @@
 
 本 subsystem 记录 A2_Piper branch/worktree 的开发约定、robot migration、reward design、workspace routing、experiment progress 与当前 TODO/DONE。不要把这些施工状态写入 `origin-reference`。
 
-- [base-v28-camera-aware-rebaseline/description.md](base-v28-camera-aware-rebaseline/description.md)：v28于2026-09-17 closure；原三seedreach1/3，固定主/备DEV clean123/47、69/52均未双侧过门，CONF未运行；A284提前停止、render按Owner复用，N01/N02设计继续/实验延期。
-- [novelty-research/description.md](novelty-research/description.md): 2026-09-14 — v28 G1停止点N01/N02回收已完成；两项继续有界立项设计、实验DEFER，X05复核义务关闭；方法收益未建立。
 ## Entries
+
+- [base-v29-handle-ablation/description.md](base-v29-handle-ablation/description.md)：2026-09-22 — D078关闭D067：HA-C001完成6000及一次final64，B RIGHT32/32、LEFT0/32，A6000为0/64；单seed/整组B05/未完整配对限制保留，源侧GPU1预约已释放，无追加运行授权。
+
+- [base-v29-owner-baseline/description.md](base-v29-owner-baseline/description.md)：2026-09-22 — D077已关闭C002同配方8000交付；同seed自然64左右各32/32goal，总goal6000→7000→8000为0→31→64。GPU0本任务已释放，无追加运行授权；B08开发修复与本次冻结实验分开。
+
+- [novelty-research/description.md](novelty-research/description.md)：2026-09-20 — N01局部恢复与Teacher→Student最小设计已交付、待Owner裁定；N02独立预研与D023分工不变。无新方法实施/效果证明，旧pilot/shadow限制仍在。
+
+- [base-v28-camera-aware-rebaseline/description.md](base-v28-camera-aware-rebaseline/description.md)：v28于2026-09-17 closure；原三seedreach1/3，固定主/备DEV clean123/47、69/52均未双侧过门，CONF未运行；A284提前停止、render按Owner复用，N01/N02设计继续/实验延期。
 
 - [base-v27-bilateral-hardening/description.md](base-v27-bilateral-hardening/description.md): 2026-09-11 — closed，V27_COMPLETED_SCIENTIFIC_NO_RELEASE；A质量未决/C，B域未收敛/current，R未决（R1误停644），SC0/3、SK1/3/K_SCRATCH_SUPERIOR。C72/72 lanes integrity0，最终确认按规则NOT_RUN；closure/manifest v2齐全，隔离与资源已清理，绑定未变。
 

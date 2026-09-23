@@ -1,0 +1,398 @@
+{
+  "evidence": "STATIC_CPU",
+  "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/data/robots/a2_piper_vpiper_final_20260906",
+  "output": "/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/data/robots/a2_piper_v28_cut_20260909",
+  "cut_plane_z_m": 0.13,
+  "highest_source_conflict_trunk_box_top_z_m": 0.129,
+  "trunk_clearance_above_highest_conflict_m": 0.001,
+  "cutter_world_bounds_m": [
+    [
+      0.017212711224000005,
+      -0.11754859738150258,
+      0.091431554755
+    ],
+    [
+      0.26921272612516123,
+      0.11755569119653086,
+      0.13
+    ]
+  ],
+  "collision_counts": {
+    "source": 51,
+    "retained": 3,
+    "plane_cut": 18,
+    "removed": 30
+  },
+  "collision_volume_changes": [
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_03",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 27000.00489503151,
+      "cut_volume_mm3": 3193.91117353977
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_04",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 10029.997595176166,
+      "cut_volume_mm3": 741.7515458882554
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_05",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 27709.584135428137,
+      "cut_volume_mm3": 3316.416931861505
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_06",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 13545.001533664774
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_07",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 3009.999593272753
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_08",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 13545.000973008542
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_09",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 27000.00489503151,
+      "cut_volume_mm3": 3193.91117353977
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_10",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 10029.997595176164,
+      "cut_volume_mm3": 741.7515458882554
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_11",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 27709.58413542816,
+      "cut_volume_mm3": 3316.4169318615054
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_12",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 13545.001533664774
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_13",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 3009.999593272753
+    },
+    {
+      "link": "vpiper_main",
+      "collision": "vpiper_main_collision_14",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 13545.000973008542
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_00",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 11276.04633139202
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_01",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 12500.000093132252
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_02",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5749.999716877926,
+      "cut_volume_mm3": 2539.4432507261968
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_03",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 11276.046331392019
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_04",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 12500.000093132252
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_05",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5749.999716877926,
+      "cut_volume_mm3": 2539.4432507261968
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_06",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 5035.503654439822
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_07",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 12044.546388063092
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_08",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5749.999716877926,
+      "cut_volume_mm3": 2539.4432507261968
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_09",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 5036.382171479699
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_10",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 12044.546388063092
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_11",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5749.999716877926,
+      "cut_volume_mm3": 2539.4432507261968
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_12",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 717.2578455400171
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_13",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 9752.894930364813
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_14",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5749.999716877926,
+      "cut_volume_mm3": 2539.44325062462
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_15",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 717.4161551738111
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_16",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 9752.894930364813
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_17",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5749.999716877926,
+      "cut_volume_mm3": 2539.44325062462
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_18",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 522.7849875463371
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_19",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 7568.87592822253
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_20",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5734.896049324025,
+      "cut_volume_mm3": 2539.4434398639273
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_21",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 522.823213778303
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_22",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 7568.875928222533
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_23",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5734.896049324025,
+      "cut_volume_mm3": 2539.4434398639273
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_24",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 803.8413374466805
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_25",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 4312.579166603282
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_26",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5252.66066781764,
+      "cut_volume_mm3": 2539.4430614868897
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_27",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 803.8581675458378
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_28",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 4312.579166603283
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_29",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 5252.6606678176395,
+      "cut_volume_mm3": 2539.4430614868897
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_30",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 1485.0078497241168
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_31",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 3478.4623932521013
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_32",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 4658.045924515642,
+      "cut_volume_mm3": 2495.6882962711934
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_33",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 1485.0122753683202
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_34",
+      "status": "removed_below_plane",
+      "source_volume_mm3": 3478.4623932521013
+    },
+    {
+      "link": "vpiper_support",
+      "collision": "vpiper_support_collision_35",
+      "status": "horizontal_plane_cut",
+      "source_volume_mm3": 4658.0459245156435,
+      "cut_volume_mm3": 2495.6882962717436
+    }
+  ],
+  "minimum_remaining_collision_world_z_m": 0.13,
+  "mass_and_pose": "unchanged: source URDF inertials and joints byte-identical",
+  "visual_cut": [
+    {
+      "link": "vpiper_main",
+      "source_volume_mm3": 497097.7954407498,
+      "cut_volume_mm3": 345725.63159142016,
+      "source_bounds_m": [
+        [
+          -0.125,
+          -0.11655214428901672,
+          -3.669373455779172e-19
+        ],
+        [
+          0.125,
+          0.11655214428901672,
+          0.05000000074505806
+        ]
+      ],
+      "cut_bounds_m": [
+        [
+          -0.125,
+          -0.09898369759321213,
+          0.03756844624876976
+        ],
+        [
+          0.125,
+          0.09898369759321213,
+          0.05000000074505806
+        ]
+      ],
+      "remaining_components": 1
+    },
+    {
+      "link": "vpiper_support",
+      "source_volume_mm3": 171240.4255547294,
+      "cut_volume_mm3": 28430.277392408312,
+      "source_bounds_m": [
+        [
+          -0.02500000037252903,
+          -0.05000000074505806,
+          0.014999999664723873
+        ],
+        [
+          0.1250000149011612,
+          0.05000000074505806,
+          0.03959999978542328
+        ]
+      ],
+      "cut_bounds_m": [
+        [
+          -0.02500000037252903,
+          -0.05000000074505806,
+          0.03756844624876976
+        ],
+        [
+          0.125,
+          0.05000000074505806,
+          0.03959999978542328
+        ]
+      ],
+      "remaining_components": 2
+    }
+  ]
+}

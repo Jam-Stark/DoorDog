@@ -1,0 +1,10 @@
+scriptsFORhuman/sim2sim/SIM2SIM_R23_PLAN_20260905.md:4:**事实来源：** `logs_eval/sim2sim/depthadd_v3_20260904/R22/{REPORT.md, PLANNER_REVIEW_R22_20260905.md, STANCE_ORIGIN.md, POLICY_SIDE_EVIDENCE.md, STAGE4_FRAME_DIAGNOSTICS.md, MATERIAL_READBACK.json, MATERIAL_PARTNER_READBACK.json}`；沿革 §6.15。
+scriptsFORhuman/sim2sim/SIM2SIM_R22_PLAN_20260904.md:54:| C：站位差出现在 stage 0–1 | `STANCE_FROM_BASE_TRACKING` → 开 D |
+scriptsFORhuman/sim2sim/SIM2SIM_R22_PLAN_20260904.md:55:| C：站位差出现在 stage 2 | `STANCE_FROM_GRASP_GEOMETRY` → 不开 D，写入 r23 候选 |
+scriptsFORhuman/sim2sim/SIM2SIM_R22_PLAN_20260904.md:98:`logs_eval/sim2sim/depthadd_v3_20260904/R22/{PREREGISTRATION.md, MATERIAL_READBACK.json, STANCE_ORIGIN.md, POLICY_SIDE_EVIDENCE.md, ANALYSIS.json, REPORT.md, AMENDMENT_*.md(若有), R22_EXTRA_LANE_PREREG.md(若有)}`；各 lane `RESULT.md` 与 run receipt；D5 式转默认验收（若触发）；沿革 §6.15；两套 memory。未经 Owner 授权不 commit、不 push。
+scriptsFORhuman/sim2sim/SIM2SIM_R23_DELEGATION_PROMPT_20260905.md:11:先读：`AGENTS.md` → `.ai/ROLE.md`、`.ai/PROJECT.md`、`.ai/WORKFLOW.md`、`.ai/SCIENTIFIC_ENGINEERING.md`、`.ai/LONG_RUNNING_TASKS.md`；然后 `SIM2SIM_R23_PLAN_20260905.md` 全文与 r22 的 `R22/{REPORT.md, PLANNER_REVIEW_R22_20260905.md, STANCE_ORIGIN.md, POLICY_SIDE_EVIDENCE.md}`。不重跑任何历史 lane。
+scriptsFORhuman/sim2sim/SIM2SIM_R22_DELEGATION_PROMPT_20260904.md:24:- C 站位来源（只读）：L1 全 384 与 Isaac 16 env（`stage0_isaac_alignment_clean_seed0_env9_r10/{stage0_1,stage2_5}_step_trace.json`）在 stage 0/1/2/3 进入时的门相对 root x/y/yaw、tcp–把手距离、arm_j1..j6；判 `STANCE_FROM_BASE_TRACKING` 或 `STANCE_FROM_GRASP_GEOMETRY`，写 `STANCE_ORIGIN.md`。
+scriptsFORhuman/sim2sim/SIM2SIM_R22_DELEGATION_PROMPT_20260904.md:30:**W3. B / D lane（条件开）。** B：门框/墙 geom friction 改为读回值（typed 开关、receipt 记源值与读回路径）。D（仅 C 判 `STANCE_FROM_BASE_TRACKING`）：stage 0–2 base 前进命令增益 0.7（typed 开关、receipt 记录逐 stage 生效）。各 fixed16 → 384，与 A 并行，GPU 规则同 r21 v2。
+=====
+./logs_eval/sim2sim/depthadd_v3_20260904/R22/STANCE_ORIGIN.json
+./logs_eval/sim2sim/depthadd_v3_20260904/R22/STANCE_ORIGIN.md

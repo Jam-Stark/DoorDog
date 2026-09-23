@@ -1,0 +1,30 @@
+{
+  "status": "EXECUTED_CPU_OFFLINE_MODEL",
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "numpy": "2.3.5",
+  "scipy": "1.17.0",
+  "elapsed_seconds": 4.736074447631836,
+  "model_links": 28,
+  "actuated_dof": 20,
+  "tangent_dimension": 26,
+  "mass_kg": 45.64480826480716,
+  "n_workpoint_poses": 42,
+  "n_resolved_poses": 26,
+  "n_unresolved_poses": 16,
+  "n_direction_rows": 104,
+  "n_unbounded_arm": 0,
+  "n_unbounded_whole": 0,
+  "max_jacobian_fd_error": 2.738038684668709e-10,
+  "max_gravity_fd_error_nm": 4.303658554527523e-08,
+  "max_arm_analytic_lp_error_N": 0,
+  "max_whole_equilibrium_residual": 5.522249324485529e-12,
+  "notes": [
+    "No trained policy or simulator runtime.",
+    "URDF rigid-body inertias, not USD runtime equivalence.",
+    "Ground cone inner approximation; omitted grasp/collision/controller mean relaxed capacity, not hardware guarantee.",
+    "IK failure means bounded solver did not resolve; not a global mathematical infeasibility proof.",
+    "Armature omitted from rigid body M; static results unaffected.",
+    "All torque values are simulation caps."
+  ]
+}

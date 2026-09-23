@@ -1,0 +1,425 @@
+{
+ "C_S2/right": {
+  "frames": 6532,
+  "penetrating": 4214,
+  "examples": [
+   {
+    "env": 11,
+    "step": 295,
+    "hinge_deg": 88.95657929447482,
+    "handle_rad": 0.550934,
+    "min_sdf_mm": -19.999988923293223,
+    "item": "wrist_housing",
+    "pt_panel_frame": [
+     -0.02,
+     -0.768,
+     1.043
+    ],
+    "flange_panel_frame": [
+     -0.168,
+     -0.793,
+     0.919
+    ],
+    "flange_sdf_mm": 128.1014407208068,
+    "tower_axis_panel_frame": [
+     0.69,
+     0.12,
+     0.72
+    ],
+    "flange_z_axis_panel_frame": [
+     0.71,
+     -0.31,
+     -0.63
+    ],
+    "q": [
+     0.87,
+     2.63,
+     -2.97,
+     0.78,
+     1.22,
+     0.7
+    ],
+    "handle_dist_tcp_m": 0.060060681622672245,
+    "base_pos_D": [
+     0.3223419,
+     -0.058876,
+     0.4385805
+    ],
+    "reason": "regular_10hz",
+    "terminal": "complete"
+   },
+   {
+    "env": 10,
+    "step": 290,
+    "hinge_deg": 104.15521300194801,
+    "handle_rad": 0.4015202,
+    "min_sdf_mm": -19.99998425180127,
+    "item": "wrist_u3_saddle",
+    "pt_panel_frame": [
+     -0.02,
+     -0.706,
+     0.986
+    ],
+    "flange_panel_frame": [
+     -0.161,
+     -0.715,
+     0.887
+    ],
+    "flange_sdf_mm": 121.0299281126944,
+    "tower_axis_panel_frame": [
+     0.78,
+     -0.01,
+     0.63
+    ],
+    "flange_z_axis_panel_frame": [
+     0.57,
+     -0.39,
+     -0.72
+    ],
+    "q": [
+     1.11,
+     2.47,
+     -2.97,
+     0.61,
+     1.22,
+     0.94
+    ],
+    "handle_dist_tcp_m": 0.04424205977087866,
+    "base_pos_D": [
+     0.4061813,
+     -0.0586243,
+     0.440761
+    ],
+    "reason": "regular_10hz",
+    "terminal": "complete"
+   },
+   {
+    "env": 127,
+    "step": 350,
+    "hinge_deg": 140.29631928772346,
+    "handle_rad": 0.4563308,
+    "min_sdf_mm": -19.999970530574252,
+    "item": "wrist_u3_upright",
+    "pt_panel_frame": [
+     -0.02,
+     -0.603,
+     1.011
+    ],
+    "flange_panel_frame": [
+     -0.162,
+     -0.604,
+     0.951
+    ],
+    "flange_sdf_mm": 121.80486554518458,
+    "tower_axis_panel_frame": [
+     0.84,
+     0.17,
+     0.51
+    ],
+    "flange_z_axis_panel_frame": [
+     0.48,
+     -0.64,
+     -0.59
+    ],
+    "q": [
+     1.66,
+     2.11,
+     -2.97,
+     -0.01,
+     1.22,
+     1.08
+    ],
+    "handle_dist_tcp_m": 0.019547332416726328,
+    "base_pos_D": [
+     0.6646118,
+     0.1797428,
+     0.4413464
+    ],
+    "reason": "regular_10hz",
+    "terminal": "complete"
+   }
+  ]
+ },
+ "C_S2/left": {
+  "frames": 11898,
+  "penetrating": 443,
+  "examples": [
+   {
+    "env": 70,
+    "step": 580,
+    "hinge_deg": 109.88970693113846,
+    "handle_rad": 0.0001123,
+    "min_sdf_mm": -19.999732881544134,
+    "item": "wrist_housing",
+    "pt_panel_frame": [
+     -0.02,
+     0.222,
+     1.004
+    ],
+    "flange_panel_frame": [
+     -0.13,
+     0.248,
+     0.865
+    ],
+    "flange_sdf_mm": 90.3868748065318,
+    "tower_axis_panel_frame": [
+     0.71,
+     -0.27,
+     0.65
+    ],
+    "flange_z_axis_panel_frame": [
+     0.57,
+     0.77,
+     -0.29
+    ],
+    "q": [
+     -1.04,
+     2.15,
+     -1.76,
+     1.48,
+     0.33,
+     1.08
+    ],
+    "handle_dist_tcp_m": 0.48627642302627627,
+    "base_pos_D": [
+     -0.1208382,
+     -0.0102882,
+     0.4505794
+    ],
+    "reason": "regular_10hz",
+    "terminal": "complete"
+   },
+   {
+    "env": 61,
+    "step": 580,
+    "hinge_deg": 109.73429212920924,
+    "handle_rad": 0.0001437,
+    "min_sdf_mm": -19.999454765166362,
+    "item": "wrist_u3_saddle",
+    "pt_panel_frame": [
+     -0.02,
+     0.306,
+     0.938
+    ],
+    "flange_panel_frame": [
+     -0.133,
+     0.326,
+     0.799
+    ],
+    "flange_sdf_mm": 93.30236263805561,
+    "tower_axis_panel_frame": [
+     0.73,
+     -0.26,
+     0.63
+    ],
+    "flange_z_axis_panel_frame": [
+     0.59,
+     0.69,
+     -0.41
+    ],
+    "q": [
+     -0.84,
+     2.13,
+     -1.6,
+     1.41,
+     0.2,
+     1.2
+    ],
+    "handle_dist_tcp_m": 0.43298820092411294,
+    "base_pos_D": [
+     -0.0768967,
+     -0.0706348,
+     0.43341
+    ],
+    "reason": "regular_10hz",
+    "terminal": "complete"
+   },
+   {
+    "env": 102,
+    "step": 605,
+    "hinge_deg": 110.44998517026305,
+    "handle_rad": 0.0001149,
+    "min_sdf_mm": -19.99894589942117,
+    "item": "wrist_housing",
+    "pt_panel_frame": [
+     -0.02,
+     0.423,
+     0.998
+    ],
+    "flange_panel_frame": [
+     -0.105,
+     0.452,
+     0.847
+    ],
+    "flange_sdf_mm": 65.09526673423291,
+    "tower_axis_panel_frame": [
+     0.43,
+     -0.15,
+     0.89
+    ],
+    "flange_z_axis_panel_frame": [
+     0.41,
+     0.91,
+     -0.04
+    ],
+    "q": [
+     -0.61,
+     2.45,
+     -2.38,
+     1.74,
+     0.25,
+     0.64
+    ],
+    "handle_dist_tcp_m": 0.2259429955599642,
+    "base_pos_D": [
+     -0.0958099,
+     -0.0404015,
+     0.4595321
+    ],
+    "reason": "regular_10hz",
+    "terminal": "complete"
+   }
+  ]
+ },
+ "C_S21/right": {
+  "frames": 4492,
+  "penetrating": 1864,
+  "examples": [
+   {
+    "env": 28,
+    "step": 375,
+    "hinge_deg": 41.163545455911155,
+    "handle_rad": 0.5014769,
+    "min_sdf_mm": -19.99999725602676,
+    "item": "wrist_housing",
+    "pt_panel_frame": [
+     -0.02,
+     -0.744,
+     1.023
+    ],
+    "flange_panel_frame": [
+     -0.171,
+     -0.712,
+     0.897
+    ],
+    "flange_sdf_mm": 130.58860517582332,
+    "tower_axis_panel_frame": [
+     0.75,
+     -0.01,
+     0.66
+    ],
+    "flange_z_axis_panel_frame": [
+     0.59,
+     -0.41,
+     -0.69
+    ],
+    "q": [
+     0.2,
+     3.07,
+     -2.97,
+     0.45,
+     1.22,
+     0.64
+    ],
+    "handle_dist_tcp_m": 0.024071924684785802,
+    "base_pos_D": [
+     -0.1864481,
+     0.0204744,
+     0.4476643
+    ],
+    "reason": "regular_10hz",
+    "terminal": "complete"
+   },
+   {
+    "env": 15,
+    "step": 288,
+    "hinge_deg": 73.28885931055007,
+    "handle_rad": 0.5329238,
+    "min_sdf_mm": -19.999949478750235,
+    "item": "wrist_housing",
+    "pt_panel_frame": [
+     -0.02,
+     -0.599,
+     1.037
+    ],
+    "flange_panel_frame": [
+     -0.156,
+     -0.6,
+     0.948
+    ],
+    "flange_sdf_mm": 116.37334215854926,
+    "tower_axis_panel_frame": [
+     0.77,
+     0.01,
+     0.64
+    ],
+    "flange_z_axis_panel_frame": [
+     0.55,
+     -0.51,
+     -0.66
+    ],
+    "q": [
+     0.67,
+     2.79,
+     -2.97,
+     0.45,
+     1.22,
+     0.84
+    ],
+    "handle_dist_tcp_m": 0.021956434034696982,
+    "base_pos_D": [
+     0.0049515,
+     -0.1049576,
+     0.4419447
+    ],
+    "reason": "crossing_or_release",
+    "terminal": "complete"
+   },
+   {
+    "env": 43,
+    "step": 490,
+    "hinge_deg": 107.21483054625843,
+    "handle_rad": 0.7853982,
+    "min_sdf_mm": -19.999948670218366,
+    "item": "wrist_u3_upright",
+    "pt_panel_frame": [
+     -0.02,
+     -0.754,
+     0.901
+    ],
+    "flange_panel_frame": [
+     -0.162,
+     -0.805,
+     0.872
+    ],
+    "flange_sdf_mm": 122.17960283435734,
+    "tower_axis_panel_frame": [
+     0.83,
+     0.47,
+     0.29
+    ],
+    "flange_z_axis_panel_frame": [
+     0.51,
+     -0.46,
+     -0.73
+    ],
+    "q": [
+     1.49,
+     2.41,
+     -2.97,
+     0.11,
+     1.22,
+     0.8
+    ],
+    "handle_dist_tcp_m": 0.00972662812849345,
+    "base_pos_D": [
+     0.7154789,
+     -0.0523844,
+     0.4438526
+    ],
+    "reason": "regular_10hz",
+    "terminal": "complete"
+   }
+  ]
+ }
+}

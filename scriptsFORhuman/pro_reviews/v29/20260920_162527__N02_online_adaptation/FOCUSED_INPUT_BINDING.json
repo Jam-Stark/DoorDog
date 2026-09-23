@@ -1,0 +1,45 @@
+{
+  "base_tag": "v29-c002-baseline",
+  "review_branch": "codex/v29-n02-pro-20260920",
+  "method": "One direct content comparison of four returned modeling inputs and four focused current files; no whole-C002 audit, no digest",
+  "model_inputs": [
+    {
+      "returned": "original/modeling/inputs/ROBOT_MODEL_INPUTS.json",
+      "input": "scriptsFORhuman/v29/pro_handoff/20260920_n02_online_adaptation/model_inputs/ROBOT_MODEL_INPUTS.json",
+      "byte_equal": true
+    },
+    {
+      "returned": "original/modeling/inputs/JOINT_LIMITS_AND_ACTUATORS.csv",
+      "input": "scriptsFORhuman/v29/pro_handoff/20260920_n02_online_adaptation/model_inputs/JOINT_LIMITS_AND_ACTUATORS.csv",
+      "byte_equal": true
+    },
+    {
+      "returned": "original/modeling/inputs/LINK_INERTIALS.csv",
+      "input": "scriptsFORhuman/v29/pro_handoff/20260920_n02_online_adaptation/model_inputs/LINK_INERTIALS.csv",
+      "byte_equal": true
+    },
+    {
+      "returned": "original/modeling/inputs/a2_piper.urdf",
+      "current_source": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.urdf",
+      "byte_equal": true
+    }
+  ],
+  "current_source": [
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.urdf",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/envs/base_task/delta_action_base.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/door_v29_parameters.py",
+      "current_matches_review_branch": true
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/handle_v29.py",
+      "current_matches_review_branch": true
+    }
+  ]
+}

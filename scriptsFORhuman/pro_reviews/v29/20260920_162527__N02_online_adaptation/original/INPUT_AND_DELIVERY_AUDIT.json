@@ -1,0 +1,82 @@
+{
+  "status": "EXECUTED_AND_INPUTS_CHECKED",
+  "input_release": "20260920_150609__c002_dynamics_r2",
+  "input_tag": "v29-c002-baseline",
+  "branch": "codex/v29-n02-pro-20260920",
+  "archives": [
+    {
+      "name": "worker_delivery__C002_source_and_assets.zip",
+      "compressed_bytes": 19411932,
+      "file_count": 332,
+      "manifest_names_and_sizes_match": true,
+      "crc_check": "PASS"
+    },
+    {
+      "name": "worker_delivery__N02_brief_and_runtime_evidence.zip",
+      "compressed_bytes": 6336390,
+      "file_count": 45,
+      "manifest_names_and_sizes_match": true,
+      "crc_check": "PASS"
+    },
+    {
+      "name": "worker_delivery__historical_novelty_and_shadow.zip",
+      "compressed_bytes": 77645,
+      "file_count": 19,
+      "manifest_names_and_sizes_match": true,
+      "crc_check": "PASS"
+    }
+  ],
+  "read_scope": "Required R2 handoff documents; question-relevant frozen source/config and runtime excerpts; selected historical documents/shadow; specified primary papers; extra branch delta_action_base dependency.",
+  "not_claimed": [
+    "Every old conversation read word-for-word",
+    "Entire original project executed",
+    "USD/URDF runtime equivalence",
+    "Hardware torque/current contract"
+  ],
+  "files_before_final_pack": [
+    "DYNAMICS_AND_FORCE_ANALYSIS.md",
+    "CLOSED_LOOP_CONTROL_PLAN.md",
+    "LOCAL_WORKER_PARSE_PROMPT.md",
+    "README.md",
+    "PILOT_AND_IMPLEMENTATION_PLAN.md",
+    "TARGET_AND_OBSERVABILITY.md",
+    "FULL_REVIEW.md",
+    "TEACHER_STUDENT_PLAN.md",
+    "SOURCE_EVIDENCE.md",
+    "REFERENCE_COMPARISON_AND_SOURCES.md",
+    "modeling/run_analysis.py",
+    "modeling/plot_results.py",
+    "modeling/extra_checks.py",
+    "modeling/pd_envelope.py",
+    "modeling/probe_workpoints.py",
+    "modeling/plot_pd_results.py",
+    "modeling/robot_model.py",
+    "modeling/requirements.txt",
+    "results/independent_balance_checks.json",
+    "results/validation.csv",
+    "results/ik_status.csv",
+    "results/parameters.json",
+    "results/pd_target_limited_force.csv",
+    "results/02_torque_at_same_20N.png",
+    "results/pd_envelope_details.json",
+    "results/extra_checks.log",
+    "results/04_pd_constraint_reverses_ranking.png",
+    "results/probe_workpoints.log",
+    "results/03_separate_base_translation.png",
+    "results/sensitivity.csv",
+    "results/directional_force.csv",
+    "results/pd_envelope.log",
+    "results/run.log",
+    "results/mid105_neutral_model.npz",
+    "results/execution_summary.json",
+    "results/inertial_sensitivity.csv",
+    "results/separate_base_translation.csv",
+    "results/01_arm_vs_supported_capacity.png",
+    "results/solver_details.json",
+    "results/states.json",
+    "modeling/inputs/a2_piper.urdf",
+    "modeling/inputs/ROBOT_MODEL_INPUTS.json",
+    "modeling/inputs/JOINT_LIMITS_AND_ACTUATORS.csv",
+    "modeling/inputs/LINK_INERTIALS.csv"
+  ]
+}

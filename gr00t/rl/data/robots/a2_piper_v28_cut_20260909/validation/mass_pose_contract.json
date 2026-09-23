@@ -1,0 +1,50 @@
+{
+  "evidence": "STATIC_CPU: source/variant URDF and exported mesh comparison; no physics stepping",
+  "variant": "CANDIDATE_WAITING_OWNER_SELECTION",
+  "rigid_link_count": 31,
+  "active_joint_count": 20,
+  "all_joint_definitions_unchanged": true,
+  "all_inertial_definitions_unchanged": true,
+  "total_mass_kg": 45.64480826480732,
+  "mesh_references_relative_and_present": true,
+  "visual_policy": "vpiper_main and vpiper_support visual/collision geometry below trunk z=0.130 m removed across their entire footprints",
+  "mass_policy": "retain source mass, COM and inertia despite removal of geometry; simulation comparison approximation",
+  "cut_visual_bounds_trunk_m": {
+    "vpiper_main": [
+      [
+        0.018212711224000006,
+        -0.09898015068569799,
+        0.13000000100376977
+      ],
+      [
+        0.26821271122400003,
+        0.09898724450072627,
+        0.14243155550005807
+      ]
+    ],
+    "vpiper_support": [
+      [
+        0.11821271085147098,
+        -0.04999645383754392,
+        0.13000000100376977
+      ],
+      [
+        0.26821271122400003,
+        0.0500035476525722,
+        0.13203155454042328
+      ]
+    ],
+    "metal_plate_5mm": [
+      [
+        0.018212711224000006,
+        -0.04999645383754392,
+        0.14243155475500002
+      ],
+      [
+        0.26821271122400003,
+        0.0500035476525722,
+        0.1474315546432413
+      ]
+    ]
+  }
+}

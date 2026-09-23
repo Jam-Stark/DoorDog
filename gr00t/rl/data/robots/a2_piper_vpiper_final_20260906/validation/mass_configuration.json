@@ -1,0 +1,98 @@
+{
+  "method": "mass = CAD volume * effective density; COM = CAD center of volume; inertia about COM in link axes = CAD unit-mass inertia * mass. Uniform effective-density approximation, not measured print mass. Existing source inertias retained; mounting parts treated as additional mass.",
+  "components": {
+    "vpiper_main": {
+      "material": "PETG",
+      "density_kg_m3": 625.0,
+      "density_source": "https://polymaker.com/wp-content/uploads/lana-downloads/PolyLite_PETG_TDS_EN_V5.4.pdf",
+      "solid_material_density_kg_m3": 1250.0,
+      "effective_solid_volume_fraction": 0.5,
+      "volume_mm3": 497095.09050272265,
+      "mass_kg": 0.31068443156420167,
+      "COM_link_m": [
+        -0.03770983734733687,
+        3.559936907204797e-10,
+        0.03658419495688876
+      ],
+      "I_com_link_axes_kgm2": [
+        [
+          0.0013635940575800044,
+          3.553484748117626e-12,
+          -9.721997068188726e-05
+        ],
+        [
+          3.553484748117626e-12,
+          0.0014055699063754,
+          -9.415876038838178e-13
+        ],
+        [
+          -9.721997068188726e-05,
+          -9.415876038838178e-13,
+          0.00264404009281028
+        ]
+      ]
+    },
+    "vpiper_support": {
+      "material": "PETG",
+      "density_kg_m3": 625.0,
+      "density_source": "https://polymaker.com/wp-content/uploads/lana-downloads/PolyLite_PETG_TDS_EN_V5.4.pdf",
+      "solid_material_density_kg_m3": 1250.0,
+      "effective_solid_volume_fraction": 0.5,
+      "volume_mm3": 168998.13318898412,
+      "mass_kg": 0.10562383324311508,
+      "COM_link_m": [
+        0.03076166661416491,
+        1.9260713278670266e-07,
+        0.03151419001391051
+      ],
+      "I_com_link_axes_kgm2": [
+        [
+          0.00011484136880353958,
+          2.983184864434152e-09,
+          -7.942434616690279e-06
+        ],
+        [
+          2.983184864434152e-09,
+          0.0001935532031828451,
+          3.5069609950514865e-10
+        ],
+        [
+          -7.942434616690279e-06,
+          3.5069609950514865e-10,
+          0.0003009564114010197
+        ]
+      ]
+    },
+    "metal_plate_5mm": {
+      "material": "aluminum alloy (6061 nominal approximation)",
+      "density_kg_m3": 2700.0,
+      "density_source": "https://ntrs.nasa.gov/api/citations/19720022808/downloads/19720022808.pdf",
+      "volume_mm3": 124999.99999999985,
+      "mass_kg": 0.33749999999999963,
+      "COM_link_m": [
+        0.0,
+        0.0,
+        0.0025
+      ],
+      "I_com_link_axes_kgm2": [
+        [
+          0.00028195312499999976,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.001758515624999994,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0020390624999999944
+        ]
+      ]
+    }
+  },
+  "added_total_mass_kg": 0.7538082648073163,
+  "robot_total_mass_kg": 45.49480826480732
+}

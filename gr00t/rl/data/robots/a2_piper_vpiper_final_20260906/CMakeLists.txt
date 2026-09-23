@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.8)
+project(a2_piper_vpiper_description)
+find_package(ament_cmake REQUIRED)
+install(DIRECTORY meshes config DESTINATION share/${PROJECT_NAME})
+install(FILES a2_piper_ros.urdf README.md SOURCE_NOTICES.md DESTINATION share/${PROJECT_NAME})
+ament_package()

@@ -1,0 +1,57 @@
+# @package _global_
+# Contract delta for config_materialize.py. The executable config is a complete
+# flat P_S2-derived `config.yaml`, never this partial overlay.
+
+checkpoint: null
+checkpoint_load_mode: full
+auto_load_latest: false
+project_name: a2_piper_pull_v28
+experiment_name: pull_v28_baseline_sync
+num_envs: 1024
+headless: true
+use_wandb: false
+
+algo:
+  trl:
+    num_total_batches: 6000
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    completion_stage: 5
+    enable_staged_reset: true
+    staged_reset_ratios: [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
+    a2_door_open_lr_distribution: bilateral
+    a2_door_open_lr_permutation_seed: ${seed}
+    a2_v26_6_side_mirrored_handle_offset_enabled: true
+    a2_stage2_squeeze_force_min: 0.5
+    a2_stage2_squeeze_force_max: 30.0
+    a2_stage2_over_force_threshold: 55.0
+    a2_pull_stage2_to3_gate_mode: grasp_completion
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.25
+    a2_pull_v6_stage4_bank_enabled: false
+    a2_pull_v61_late_state_bank_enabled: false
+    delta_action_clamp_to_dof_limits: true
+    a2_v28_camera_telemetry_enabled: true
+    a2_wrist_motion_vel_weights: [[0.35, 0.35, 0.35], [0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [0.5, 0.5, 0.0], [0.5, 0.5, 0.25], [1.25, 1.25, 1.25]]
+    a2_wrist_motion_reversal_weights: [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.25], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]]
+    rewards:
+      reward_scales:
+        penalty_a2_wrist_motion_l2: -0.4
+        penalty_a2_wrist_tower_contact: -1.0
+        penalty_a2_stage4_arm_default_pose_l1: -0.5
+    simulator:
+      config:
+        terrain:
+          curriculum: false
+
+simulator:
+  config:
+    terrain:
+      curriculum: false
+
+terrain:
+  curriculum: false

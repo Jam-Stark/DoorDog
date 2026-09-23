@@ -1,0 +1,492 @@
+{
+  "eval_qualification_0_dev_a_s282_left": {
+    "raw_n": 128,
+    "unique_envs": 128,
+    "metrics_n": 128,
+    "metrics_unique_envs": 128,
+    "seeds": [
+      280101
+    ],
+    "sides": [
+      "left"
+    ],
+    "terminal_reason_counts": {
+      "upper_dof_overspeed": 1,
+      "complete": 126,
+      "stage_overtime": 1
+    },
+    "complete_recomputed": 126,
+    "goal_reached_recomputed": 126,
+    "complete_goal_disagreement": 0,
+    "complete_crossing_missing": 0,
+    "complete_hinge_below_1p0472_recomputed": 0,
+    "crossing_holding_recomputed": 18,
+    "post_release_observed_n": 126,
+    "post_release_body_force_gt5_recomputed": 3,
+    "post_release_body_force_p95_recomputed": 0.0,
+    "raw_terminal_shared_field_mismatches": [],
+    "v26_2_integrity_sum": 0,
+    "v26_3_integrity_sum": 0,
+    "process_exit": 0,
+    "start": "2026-09-17T08:56:35.662710+00:00",
+    "finish": "2026-09-17T09:05:18.114230+00:00",
+    "clean_recomputed_from_full_trace": false,
+    "stored_clean_complete": 123,
+    "stored_stage3plus_body_gt5": 3,
+    "stored_tower_gt5": 0,
+    "stored_camera_report_only": {
+      "outcome": "CAMERA_UNMET",
+      "report_only": true,
+      "checks": {
+        "stage2_wrist_speed_p95_deg_s": {
+          "value": 137.63693230441228,
+          "limit": 105,
+          "pass": false
+        },
+        "stage3_wrist_speed_p95_deg_s": {
+          "value": 313.736984750947,
+          "limit": 250,
+          "pass": false
+        },
+        "stage4_wrist_speed_p95_deg_s": {
+          "value": 151.43051856498278,
+          "limit": 150,
+          "pass": false
+        },
+        "stage5_wrist_speed_p95_deg_s": {
+          "value": 193.4531770074903,
+          "limit": 90,
+          "pass": false
+        },
+        "stage0_j6_reversals_per_s": {
+          "value": 0.045847524233690096,
+          "limit": 1.5,
+          "pass": true
+        },
+        "stage5_j6_reversals_per_s": {
+          "value": 0.8341867212837394,
+          "limit": 1.5,
+          "pass": true
+        },
+        "stage2_j6_reversals_per_s": {
+          "value": 0.9163802978236005,
+          "limit": 2.5,
+          "pass": true
+        },
+        "stage4_j6_reversals_per_s": {
+          "value": 1.7203617351983351,
+          "limit": 2.5,
+          "pass": true
+        },
+        "stage0_5_arm_posture_l1_p95_rad": {
+          "value": 1.903220595709353,
+          "limit": 0.5,
+          "pass": false
+        },
+        "stage0_5_j6_deviation_gt_0p3_frame_share": {
+          "value": 0.04756736049035883,
+          "limit": 0.05,
+          "pass": true
+        },
+        "post_release_return_p50_s": {
+          "value": 0.71,
+          "limit": 2.0,
+          "pass": true
+        },
+        "post_release_return_p95_s": {
+          "value": 0.9410000000000003,
+          "limit": 4.0,
+          "pass": true
+        }
+      },
+      "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+      "posture_frame_denominator": 31324,
+      "release_censoring": {
+        "threshold_l1_rad": 0.5,
+        "observed_episodes": 120,
+        "right_censored_episodes": 6,
+        "observed": {
+          "min": 0.5,
+          "p5": 0.539,
+          "p50": 0.71,
+          "p95": 0.9410000000000003,
+          "max": 1.5599999999999996
+        },
+        "censor_duration": {
+          "min": 3.7800000000000002,
+          "p5": 3.785,
+          "p50": 3.88,
+          "p95": 4.119999999999999,
+          "max": 4.159999999999999
+        }
+      }
+    }
+  },
+  "eval_qualification_0_dev_a_s282_right": {
+    "raw_n": 128,
+    "unique_envs": 128,
+    "metrics_n": 128,
+    "metrics_unique_envs": 128,
+    "seeds": [
+      280101
+    ],
+    "sides": [
+      "right"
+    ],
+    "terminal_reason_counts": {
+      "complete": 128
+    },
+    "complete_recomputed": 128,
+    "goal_reached_recomputed": 128,
+    "complete_goal_disagreement": 0,
+    "complete_crossing_missing": 0,
+    "complete_hinge_below_1p0472_recomputed": 81,
+    "crossing_holding_recomputed": 128,
+    "post_release_observed_n": 128,
+    "post_release_body_force_gt5_recomputed": 0,
+    "post_release_body_force_p95_recomputed": 0.0,
+    "raw_terminal_shared_field_mismatches": [],
+    "v26_2_integrity_sum": 0,
+    "v26_3_integrity_sum": 0,
+    "process_exit": 0,
+    "start": "2026-09-17T08:56:35.923548+00:00",
+    "finish": "2026-09-17T09:04:23.366378+00:00",
+    "clean_recomputed_from_full_trace": false,
+    "stored_clean_complete": 47,
+    "stored_stage3plus_body_gt5": 0,
+    "stored_tower_gt5": 0,
+    "stored_camera_report_only": {
+      "outcome": "CAMERA_UNMET",
+      "report_only": true,
+      "checks": {
+        "stage2_wrist_speed_p95_deg_s": {
+          "value": 249.98689166035211,
+          "limit": 105,
+          "pass": false
+        },
+        "stage3_wrist_speed_p95_deg_s": {
+          "value": 113.75332919020062,
+          "limit": 250,
+          "pass": true
+        },
+        "stage4_wrist_speed_p95_deg_s": {
+          "value": 165.73257390743657,
+          "limit": 150,
+          "pass": false
+        },
+        "stage5_wrist_speed_p95_deg_s": {
+          "value": 375.7420641452157,
+          "limit": 90,
+          "pass": false
+        },
+        "stage0_j6_reversals_per_s": {
+          "value": 0.03701875616979061,
+          "limit": 1.5,
+          "pass": true
+        },
+        "stage5_j6_reversals_per_s": {
+          "value": 1.3184970657721702,
+          "limit": 1.5,
+          "pass": true
+        },
+        "stage2_j6_reversals_per_s": {
+          "value": 2.3540489642184994,
+          "limit": 2.5,
+          "pass": true
+        },
+        "stage4_j6_reversals_per_s": {
+          "value": 3.301886792453226,
+          "limit": 2.5,
+          "pass": false
+        },
+        "stage0_5_arm_posture_l1_p95_rad": {
+          "value": 3.263510761782527,
+          "limit": 0.5,
+          "pass": false
+        },
+        "stage0_5_j6_deviation_gt_0p3_frame_share": {
+          "value": 0.2395139891066524,
+          "limit": 0.05,
+          "pass": false
+        },
+        "post_release_return_p50_s": {
+          "value": 0.7600000000000007,
+          "limit": 2.0,
+          "pass": true
+        },
+        "post_release_return_p95_s": {
+          "value": 0.7999999999999998,
+          "limit": 4.0,
+          "pass": true
+        }
+      },
+      "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+      "posture_frame_denominator": 21481,
+      "release_censoring": {
+        "threshold_l1_rad": 0.5,
+        "observed_episodes": 9,
+        "right_censored_episodes": 119,
+        "observed": {
+          "min": 0.7399999999999993,
+          "p5": 0.7399999999999997,
+          "p50": 0.7600000000000007,
+          "p95": 0.7999999999999998,
+          "max": 0.7999999999999998
+        },
+        "censor_duration": {
+          "min": 1.8399999999999999,
+          "p5": 1.9379999999999997,
+          "p50": 2.12,
+          "p95": 2.34,
+          "max": 2.5
+        }
+      }
+    }
+  },
+  "eval_qualification_1_dev_a_s284_left": {
+    "raw_n": 128,
+    "unique_envs": 128,
+    "metrics_n": 128,
+    "metrics_unique_envs": 128,
+    "seeds": [
+      280101
+    ],
+    "sides": [
+      "left"
+    ],
+    "terminal_reason_counts": {
+      "complete": 128
+    },
+    "complete_recomputed": 128,
+    "goal_reached_recomputed": 128,
+    "complete_goal_disagreement": 0,
+    "complete_crossing_missing": 0,
+    "complete_hinge_below_1p0472_recomputed": 59,
+    "crossing_holding_recomputed": 128,
+    "post_release_observed_n": 128,
+    "post_release_body_force_gt5_recomputed": 0,
+    "post_release_body_force_p95_recomputed": 0.0,
+    "raw_terminal_shared_field_mismatches": [],
+    "v26_2_integrity_sum": 0,
+    "v26_3_integrity_sum": 0,
+    "process_exit": 0,
+    "start": "2026-09-17T09:08:09.903182+00:00",
+    "finish": "2026-09-17T09:16:34.672800+00:00",
+    "clean_recomputed_from_full_trace": false,
+    "stored_clean_complete": 69,
+    "stored_stage3plus_body_gt5": 0,
+    "stored_tower_gt5": 0,
+    "stored_camera_report_only": {
+      "outcome": "CAMERA_UNMET",
+      "report_only": true,
+      "checks": {
+        "stage2_wrist_speed_p95_deg_s": {
+          "value": 198.75544909607663,
+          "limit": 105,
+          "pass": false
+        },
+        "stage3_wrist_speed_p95_deg_s": {
+          "value": 235.5865751240424,
+          "limit": 250,
+          "pass": true
+        },
+        "stage4_wrist_speed_p95_deg_s": {
+          "value": 142.3167452869702,
+          "limit": 150,
+          "pass": true
+        },
+        "stage5_wrist_speed_p95_deg_s": {
+          "value": 319.2242235314146,
+          "limit": 90,
+          "pass": false
+        },
+        "stage0_j6_reversals_per_s": {
+          "value": 0.09663703131039465,
+          "limit": 1.5,
+          "pass": true
+        },
+        "stage5_j6_reversals_per_s": {
+          "value": 1.1211552007514218,
+          "limit": 1.5,
+          "pass": true
+        },
+        "stage2_j6_reversals_per_s": {
+          "value": 20.01361470388056,
+          "limit": 2.5,
+          "pass": false
+        },
+        "stage4_j6_reversals_per_s": {
+          "value": 4.208892147139929,
+          "limit": 2.5,
+          "pass": false
+        },
+        "stage0_5_arm_posture_l1_p95_rad": {
+          "value": 4.357043884694567,
+          "limit": 0.5,
+          "pass": false
+        },
+        "stage0_5_j6_deviation_gt_0p3_frame_share": {
+          "value": 0.5539057198738674,
+          "limit": 0.05,
+          "pass": false
+        },
+        "post_release_return_p50_s": {
+          "value": 0.43000000000000016,
+          "limit": 2.0,
+          "pass": true
+        },
+        "post_release_return_p95_s": {
+          "value": 0.4390000000000004,
+          "limit": 4.0,
+          "pass": true
+        }
+      },
+      "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+      "posture_frame_denominator": 25053,
+      "release_censoring": {
+        "threshold_l1_rad": 0.5,
+        "observed_episodes": 2,
+        "right_censored_episodes": 126,
+        "observed": {
+          "min": 0.41999999999999993,
+          "p5": 0.42099999999999993,
+          "p50": 0.43000000000000016,
+          "p95": 0.4390000000000004,
+          "max": 0.4400000000000004
+        },
+        "censor_duration": {
+          "min": 2.460000000000001,
+          "p5": 2.54,
+          "p50": 2.7200000000000006,
+          "p95": 3.04,
+          "max": 3.74
+        }
+      }
+    }
+  },
+  "eval_qualification_1_dev_a_s284_right": {
+    "raw_n": 128,
+    "unique_envs": 128,
+    "metrics_n": 128,
+    "metrics_unique_envs": 128,
+    "seeds": [
+      280101
+    ],
+    "sides": [
+      "right"
+    ],
+    "terminal_reason_counts": {
+      "complete": 126,
+      "stage_overtime": 1,
+      "upper_dof_overspeed": 1
+    },
+    "complete_recomputed": 126,
+    "goal_reached_recomputed": 126,
+    "complete_goal_disagreement": 0,
+    "complete_crossing_missing": 0,
+    "complete_hinge_below_1p0472_recomputed": 74,
+    "crossing_holding_recomputed": 126,
+    "post_release_observed_n": 126,
+    "post_release_body_force_gt5_recomputed": 0,
+    "post_release_body_force_p95_recomputed": 0.0,
+    "raw_terminal_shared_field_mismatches": [],
+    "v26_2_integrity_sum": 0,
+    "v26_3_integrity_sum": 0,
+    "process_exit": 0,
+    "start": "2026-09-17T09:08:10.169216+00:00",
+    "finish": "2026-09-17T09:15:50.671141+00:00",
+    "clean_recomputed_from_full_trace": false,
+    "stored_clean_complete": 52,
+    "stored_stage3plus_body_gt5": 0,
+    "stored_tower_gt5": 1,
+    "stored_camera_report_only": {
+      "outcome": "CAMERA_UNMET",
+      "report_only": true,
+      "checks": {
+        "stage2_wrist_speed_p95_deg_s": {
+          "value": 244.065345801692,
+          "limit": 105,
+          "pass": false
+        },
+        "stage3_wrist_speed_p95_deg_s": {
+          "value": 257.3301647053221,
+          "limit": 250,
+          "pass": false
+        },
+        "stage4_wrist_speed_p95_deg_s": {
+          "value": 174.63862595291164,
+          "limit": 150,
+          "pass": false
+        },
+        "stage5_wrist_speed_p95_deg_s": {
+          "value": 336.41792425244273,
+          "limit": 90,
+          "pass": false
+        },
+        "stage0_j6_reversals_per_s": {
+          "value": 0.04879238838740857,
+          "limit": 1.5,
+          "pass": true
+        },
+        "stage5_j6_reversals_per_s": {
+          "value": 0.7314524555902961,
+          "limit": 1.5,
+          "pass": true
+        },
+        "stage2_j6_reversals_per_s": {
+          "value": 23.64074328974579,
+          "limit": 2.5,
+          "pass": false
+        },
+        "stage4_j6_reversals_per_s": {
+          "value": 5.325581395350094,
+          "limit": 2.5,
+          "pass": false
+        },
+        "stage0_5_arm_posture_l1_p95_rad": {
+          "value": 2.5844280600547798,
+          "limit": 0.5,
+          "pass": false
+        },
+        "stage0_5_j6_deviation_gt_0p3_frame_share": {
+          "value": 0.02430362889801354,
+          "limit": 0.05,
+          "pass": true
+        },
+        "post_release_return_p50_s": {
+          "value": null,
+          "limit": 2.0,
+          "pass": null
+        },
+        "post_release_return_p95_s": {
+          "value": null,
+          "limit": 4.0,
+          "pass": null
+        }
+      },
+      "classification": "Any measured target failure: UNMET; no measured failure but missing events: PARTIAL; all targets measured and passed: MET.",
+      "posture_frame_denominator": 18022,
+      "release_censoring": {
+        "threshold_l1_rad": 0.5,
+        "observed_episodes": 0,
+        "right_censored_episodes": 126,
+        "observed": {
+          "min": null,
+          "p5": null,
+          "p50": null,
+          "p95": null,
+          "max": null
+        },
+        "censor_duration": {
+          "min": 1.2400000000000002,
+          "p5": 1.42,
+          "p50": 1.58,
+          "p95": 1.8150000000000002,
+          "max": 1.9399999999999995
+        }
+      }
+    }
+  },
+  "_scope": "Independent raw episode arithmetic and receipt reconciliation only. Stored clean/tower/camera metrics are not a full step-trace recomputation. No simulator/checkpoint executed.",
+  "_legacy_release_field_semantics": "post_release and hinge_at_release refer to the logical release-gate transition in supplied source, not proven physical loss of grip; see RELEASE_EVENT_SEMANTICS.json"
+}

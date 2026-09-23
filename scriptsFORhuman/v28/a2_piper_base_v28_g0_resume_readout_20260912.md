@@ -1,4 +1,10 @@
-# v28 G0恢复执行：STOP_G0_L_FAILED
+# v28 G0 恢复执行记录：当前 G0 与首个本地 commit 已完成
+
+当前入口更新：2026-09-12 17:18 HKT；修改：-codex planner；依据：-owner（D038–D040）。[G0 acceptance](a2_piper_base_v28_g0_acceptance_20260912.json)与 [runtime decision](runtime_logs/v28_camera_aware_rebaseline_20260909/g0_decision.json)记录 `G0_PASSED_FIRST_LOCAL_COMMIT_COMPLETED`，首 commit 见 [receipt](runtime_logs/v28_camera_aware_rebaseline_20260909/resume_20260911/first_commit_receipt.json)，未 push；本次核对尚无 G1/Wave A/B 结果。
+
+以下 STOP、D36/D37 与“等待首 commit”为原时点的执行历史，保留不改。G0 只证明修订后的工程数值准入与接线，不含随机校准、晚阶段行为、Teacher 资格或硬件验收。D038–D040 的新选择合同见 [plan](a2_piper_base_v28_plan_20260909.md)与[决策日志](a2_piper_base_v28_decision_log.md)；A_S284 已获条件候选资格，执行代码仍待同步，不能以本文历史中的“资格未定”作为当前合同。
+
+## 历史：原始 STOP_G0_L_FAILED
 
 日期：2026-09-12 HKT。修改：-codex worker；停止依据：-owner（G0-L失败STOP，阈值/路由变更按plan §9.8）。
 

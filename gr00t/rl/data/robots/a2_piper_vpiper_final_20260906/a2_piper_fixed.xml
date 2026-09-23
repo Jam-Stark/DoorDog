@@ -1,0 +1,360 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="a2_piper_fixed">
+  <!--Material-estimated mount inertias; no trained-policy or hardware dynamics validation.-->
+  <compiler angle="radian" autolimits="true" meshdir="." strippath="false" inertiafromgeom="false" fusestatic="false" discardvisual="false" balanceinertia="false" />
+  <option gravity="0 0 -9.81" />
+  <asset>
+    <mesh name="mesh_000" file="meshes/trunk.STL" scale="1 1 1" />
+    <mesh name="mesh_001" file="meshes/left_front_Link1.STL" scale="1 1 1" />
+    <mesh name="mesh_002" file="meshes/left_front_Link2.STL" scale="1 1 1" />
+    <mesh name="mesh_003" file="meshes/left_front_Link3.STL" scale="1 1 1" />
+    <mesh name="mesh_004" file="meshes/left_front_Link4.STL" scale="1 1 1" />
+    <mesh name="mesh_005" file="meshes/left_hind_Link1.STL" scale="1 1 1" />
+    <mesh name="mesh_006" file="meshes/left_hind_Link2.STL" scale="1 1 1" />
+    <mesh name="mesh_007" file="meshes/left_hind_Link3.STL" scale="1 1 1" />
+    <mesh name="mesh_008" file="meshes/left_hind_Link4.STL" scale="1 1 1" />
+    <mesh name="mesh_009" file="meshes/right_front_Link1.STL" scale="1 1 1" />
+    <mesh name="mesh_010" file="meshes/right_front_Link2.STL" scale="1 1 1" />
+    <mesh name="mesh_011" file="meshes/right_front_Link3.STL" scale="1 1 1" />
+    <mesh name="mesh_012" file="meshes/right_front_Link4.STL" scale="1 1 1" />
+    <mesh name="mesh_013" file="meshes/right_hind_Link1.STL" scale="1 1 1" />
+    <mesh name="mesh_014" file="meshes/right_hind_Link2.STL" scale="1 1 1" />
+    <mesh name="mesh_015" file="meshes/right_hind_Link3.STL" scale="1 1 1" />
+    <mesh name="mesh_016" file="meshes/right_hind_Link4.STL" scale="1 1 1" />
+    <mesh name="mesh_017" file="meshes/piper/base_link.STL" scale="1 1 1" />
+    <mesh name="mesh_018" file="meshes/piper/link1.STL" scale="1 1 1" />
+    <mesh name="mesh_019" file="meshes/piper/link2.STL" scale="1 1 1" />
+    <mesh name="mesh_020" file="meshes/piper/link3.STL" scale="1 1 1" />
+    <mesh name="mesh_021" file="meshes/piper/link4.STL" scale="1 1 1" />
+    <mesh name="mesh_022" file="meshes/piper/link5.STL" scale="1 1 1" />
+    <mesh name="mesh_023" file="meshes/piper/link6.STL" scale="1 1 1" />
+    <mesh name="mesh_024" file="meshes/piper/gripper_base.STL" scale="1 1 1" />
+    <mesh name="mesh_025" file="meshes/piper/link7.STL" scale="1 1 1" />
+    <mesh name="mesh_026" file="meshes/piper/link8.STL" scale="1 1 1" />
+    <mesh name="mesh_027" file="meshes/mount/vpiper_main_visual.stl" scale="1 1 1" />
+    <mesh name="mesh_028" file="meshes/mount/vpiper_main_collision_00.stl" scale="1 1 1" />
+    <mesh name="mesh_029" file="meshes/mount/vpiper_main_collision_01.stl" scale="1 1 1" />
+    <mesh name="mesh_030" file="meshes/mount/vpiper_main_collision_02.stl" scale="1 1 1" />
+    <mesh name="mesh_031" file="meshes/mount/vpiper_main_collision_03.stl" scale="1 1 1" />
+    <mesh name="mesh_032" file="meshes/mount/vpiper_main_collision_04.stl" scale="1 1 1" />
+    <mesh name="mesh_033" file="meshes/mount/vpiper_main_collision_05.stl" scale="1 1 1" />
+    <mesh name="mesh_034" file="meshes/mount/vpiper_main_collision_06.stl" scale="1 1 1" />
+    <mesh name="mesh_035" file="meshes/mount/vpiper_main_collision_07.stl" scale="1 1 1" />
+    <mesh name="mesh_036" file="meshes/mount/vpiper_main_collision_08.stl" scale="1 1 1" />
+    <mesh name="mesh_037" file="meshes/mount/vpiper_main_collision_09.stl" scale="1 1 1" />
+    <mesh name="mesh_038" file="meshes/mount/vpiper_main_collision_10.stl" scale="1 1 1" />
+    <mesh name="mesh_039" file="meshes/mount/vpiper_main_collision_11.stl" scale="1 1 1" />
+    <mesh name="mesh_040" file="meshes/mount/vpiper_main_collision_12.stl" scale="1 1 1" />
+    <mesh name="mesh_041" file="meshes/mount/vpiper_main_collision_13.stl" scale="1 1 1" />
+    <mesh name="mesh_042" file="meshes/mount/vpiper_main_collision_14.stl" scale="1 1 1" />
+    <mesh name="mesh_043" file="meshes/mount/vpiper_support_visual.stl" scale="1 1 1" />
+    <mesh name="mesh_044" file="meshes/mount/vpiper_support_collision_00.stl" scale="1 1 1" />
+    <mesh name="mesh_045" file="meshes/mount/vpiper_support_collision_01.stl" scale="1 1 1" />
+    <mesh name="mesh_046" file="meshes/mount/vpiper_support_collision_02.stl" scale="1 1 1" />
+    <mesh name="mesh_047" file="meshes/mount/vpiper_support_collision_03.stl" scale="1 1 1" />
+    <mesh name="mesh_048" file="meshes/mount/vpiper_support_collision_04.stl" scale="1 1 1" />
+    <mesh name="mesh_049" file="meshes/mount/vpiper_support_collision_05.stl" scale="1 1 1" />
+    <mesh name="mesh_050" file="meshes/mount/vpiper_support_collision_06.stl" scale="1 1 1" />
+    <mesh name="mesh_051" file="meshes/mount/vpiper_support_collision_07.stl" scale="1 1 1" />
+    <mesh name="mesh_052" file="meshes/mount/vpiper_support_collision_08.stl" scale="1 1 1" />
+    <mesh name="mesh_053" file="meshes/mount/vpiper_support_collision_09.stl" scale="1 1 1" />
+    <mesh name="mesh_054" file="meshes/mount/vpiper_support_collision_10.stl" scale="1 1 1" />
+    <mesh name="mesh_055" file="meshes/mount/vpiper_support_collision_11.stl" scale="1 1 1" />
+    <mesh name="mesh_056" file="meshes/mount/vpiper_support_collision_12.stl" scale="1 1 1" />
+    <mesh name="mesh_057" file="meshes/mount/vpiper_support_collision_13.stl" scale="1 1 1" />
+    <mesh name="mesh_058" file="meshes/mount/vpiper_support_collision_14.stl" scale="1 1 1" />
+    <mesh name="mesh_059" file="meshes/mount/vpiper_support_collision_15.stl" scale="1 1 1" />
+    <mesh name="mesh_060" file="meshes/mount/vpiper_support_collision_16.stl" scale="1 1 1" />
+    <mesh name="mesh_061" file="meshes/mount/vpiper_support_collision_17.stl" scale="1 1 1" />
+    <mesh name="mesh_062" file="meshes/mount/vpiper_support_collision_18.stl" scale="1 1 1" />
+    <mesh name="mesh_063" file="meshes/mount/vpiper_support_collision_19.stl" scale="1 1 1" />
+    <mesh name="mesh_064" file="meshes/mount/vpiper_support_collision_20.stl" scale="1 1 1" />
+    <mesh name="mesh_065" file="meshes/mount/vpiper_support_collision_21.stl" scale="1 1 1" />
+    <mesh name="mesh_066" file="meshes/mount/vpiper_support_collision_22.stl" scale="1 1 1" />
+    <mesh name="mesh_067" file="meshes/mount/vpiper_support_collision_23.stl" scale="1 1 1" />
+    <mesh name="mesh_068" file="meshes/mount/vpiper_support_collision_24.stl" scale="1 1 1" />
+    <mesh name="mesh_069" file="meshes/mount/vpiper_support_collision_25.stl" scale="1 1 1" />
+    <mesh name="mesh_070" file="meshes/mount/vpiper_support_collision_26.stl" scale="1 1 1" />
+    <mesh name="mesh_071" file="meshes/mount/vpiper_support_collision_27.stl" scale="1 1 1" />
+    <mesh name="mesh_072" file="meshes/mount/vpiper_support_collision_28.stl" scale="1 1 1" />
+    <mesh name="mesh_073" file="meshes/mount/vpiper_support_collision_29.stl" scale="1 1 1" />
+    <mesh name="mesh_074" file="meshes/mount/vpiper_support_collision_30.stl" scale="1 1 1" />
+    <mesh name="mesh_075" file="meshes/mount/vpiper_support_collision_31.stl" scale="1 1 1" />
+    <mesh name="mesh_076" file="meshes/mount/vpiper_support_collision_32.stl" scale="1 1 1" />
+    <mesh name="mesh_077" file="meshes/mount/vpiper_support_collision_33.stl" scale="1 1 1" />
+    <mesh name="mesh_078" file="meshes/mount/vpiper_support_collision_34.stl" scale="1 1 1" />
+    <mesh name="mesh_079" file="meshes/mount/vpiper_support_collision_35.stl" scale="1 1 1" />
+    <mesh name="mesh_080" file="meshes/mount/metal_plate_5mm_head_width.stl" scale="1 1 1" />
+  </asset>
+  <worldbody>
+    <body name="trunk">
+      <inertial pos="0.0069826 -0.0007129 0.0128895" mass="19.651" fullinertia="0.1417753 0.4077246 0.472248 0.0004005 -0.0069965 -0.0003619" />
+      <geom name="trunk_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.79216078 0.81961176 0.92941569 1.00000000" type="mesh" mesh="mesh_000" />
+      <geom name="trunk_collision_0" pos="0 0 0.007" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.12 0.14 0.085" />
+      <geom name="trunk_collision_1" pos="0.25 0 0.119" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.04 0.025 0.01" />
+      <geom name="trunk_collision_2" pos="-0.22 0 0.119" quat="0.999887502109 0 -0.0149994375063 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.025 0.015 0.008" />
+      <geom name="trunk_collision_3" pos="0.365 0 0.1" quat="0.939372712847 0 -0.342897807455 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.03 0.05 0.005" />
+      <geom name="trunk_collision_4" pos="-0.31 0 0.112" quat="0.939372712847 0 0.342897807455 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.0225 0.05 0.005" />
+      <body name="FL_hip" pos="0.25944 0.075113 0" quat="1 0 0 0">
+        <joint name="FL_hip_joint" type="hinge" axis="1 0 0" limited="true" range="-1.01 1.01" />
+        <inertial pos="-0.002408 -0.01622 0.000239" mass="1.62" fullinertia="0.0014763 0.0016333 0.0016308 5.32e-05 -7.4e-06 -2.1e-05" />
+        <geom name="FL_hip_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_001" />
+        <body name="FL_thigh" pos="0 0.12779 0" quat="1 0 0 0">
+          <joint name="FL_thigh_joint" type="hinge" axis="0 1 0" limited="true" range="-2.34 3.15" />
+          <inertial pos="-0.003268 -0.03111 -0.053896" mass="3.079" fullinertia="0.0292718 0.0268288 0.0051217 0.0003373 -0.0012514 0.0052838" />
+          <geom name="FL_thigh_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_002" />
+          <geom name="FL_thigh_collision_0" pos="0 -0.04 0" quat="0.707034768168 0.707178786872 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="cylinder" size="0.048 0.06" />
+          <geom name="FL_thigh_collision_1" pos="-0.025 0 -0.09" quat="0.999987500026 0 0.00499997916669 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.0275 0.018 0.085" />
+          <geom name="FL_thigh_collision_2" pos="-0.022 0 -0.27" quat="0.930507621912 0 -0.366272529086 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.0085 0.025 0.025" />
+          <body name="FL_calf" pos="0 0 -0.275" quat="1 0 0 0">
+            <joint name="FL_calf_joint" type="hinge" axis="0 1 0" limited="true" range="-2.77 -0.54" />
+            <inertial pos="0.012515 -2.4e-05 -0.117649" mass="0.361" fullinertia="0.003869 0.0039453 0.000151 -1e-07 0.0002986 8e-07" />
+            <geom name="FL_calf_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_003" />
+            <geom name="FL_calf_collision_0" pos="0.018 0 -0.08" quat="0.992808635854 0 -0.119712207289 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.012 0.015 0.05" />
+            <geom name="FL_calf_collision_1" pos="0.033 0 -0.17" quat="0.999887502109 0 -0.0149994375063 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.011 0.015 0.04" />
+            <geom name="FL_calf_collision_2" pos="0.029 0 -0.236" quat="0.995004165278 0 0.0998334166468 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.01 0.018 0.03" />
+            <geom name="FL_calf_collision_3" pos="0.008 0 -0.23" quat="0.942754665528 0 0.333487092141 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.005 0.018 0.03" />
+            <body name="FL_foot" pos="0 0 -0.275" quat="1 0 0 0">
+              <inertial pos="-0.007846 1.2e-05 -0.009403" mass="0.046" fullinertia="1.4e-05 1.44e-05 1.54e-05 0 4e-06 0" />
+              <geom name="FL_foot_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.69412157 0.69412157 0.69412157 1.00000000" type="mesh" mesh="mesh_004" />
+              <geom name="FL_foot_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="sphere" size="0.032" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="RL_hip" pos="-0.25944 0.075113 0" quat="1 0 0 0">
+        <joint name="RL_hip_joint" type="hinge" axis="1 0 0" limited="true" range="-1.01 1.01" />
+        <inertial pos="0.00327 -0.01622 -9.7e-05" mass="1.62" fullinertia="0.0014681 0.0016255 0.0016311 -0.0001054 -7.3e-06 -4e-07" />
+        <geom name="RL_hip_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_005" />
+        <body name="RL_thigh" pos="0 0.12779 0" quat="1 0 0 0">
+          <joint name="RL_thigh_joint" type="hinge" axis="0 1 0" limited="true" range="-1.56 3.94" />
+          <inertial pos="-0.003268 -0.03111 -0.053896" mass="3.079" fullinertia="0.0292718 0.0268288 0.0051217 0.0003373 -0.0012514 0.0052838" />
+          <geom name="RL_thigh_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_006" />
+          <geom name="RL_thigh_collision_0" pos="0 -0.04 0" quat="0.707034768168 0.707178786872 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="cylinder" size="0.048 0.06" />
+          <geom name="RL_thigh_collision_1" pos="-0.025 0 -0.09" quat="0.999987500026 0 0.00499997916669 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.0275 0.018 0.085" />
+          <geom name="RL_thigh_collision_2" pos="-0.022 0 -0.27" quat="0.930507621912 0 -0.366272529086 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.0085 0.025 0.025" />
+          <body name="RL_calf" pos="0 0 -0.275" quat="1 0 0 0">
+            <joint name="RL_calf_joint" type="hinge" axis="0 1 0" limited="true" range="-2.77 -0.54" />
+            <inertial pos="0.012515 -2.4e-05 -0.117649" mass="0.361" fullinertia="0.003869 0.0039453 0.000151 -1e-07 0.0002986 8e-07" />
+            <geom name="RL_calf_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_007" />
+            <geom name="RL_calf_collision_0" pos="0.018 0 -0.08" quat="0.992808635854 0 -0.119712207289 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.012 0.015 0.05" />
+            <geom name="RL_calf_collision_1" pos="0.033 0 -0.17" quat="0.999887502109 0 -0.0149994375063 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.011 0.015 0.04" />
+            <geom name="RL_calf_collision_2" pos="0.029 0 -0.236" quat="0.995004165278 0 0.0998334166468 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.01 0.018 0.03" />
+            <geom name="RL_calf_collision_3" pos="0.008 0 -0.23" quat="0.942754665528 0 0.333487092141 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.005 0.018 0.03" />
+            <body name="RL_foot" pos="0 0 -0.275" quat="1 0 0 0">
+              <inertial pos="-0.007846 1.2e-05 -0.009403" mass="0.046" fullinertia="1.4e-05 1.44e-05 1.54e-05 0 4e-06 0" />
+              <geom name="RL_foot_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.69412157 0.69412157 0.69412157 1.00000000" type="mesh" mesh="mesh_008" />
+              <geom name="RL_foot_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="sphere" size="0.032" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="FR_hip" pos="0.25944 -0.075113 0" quat="1 0 0 0">
+        <joint name="FR_hip_joint" type="hinge" axis="1 0 0" limited="true" range="-1.01 1.01" />
+        <inertial pos="-0.002465 0.01622 0.000318" mass="1.62" fullinertia="0.0014837 0.0016328 0.0016229 -5.66e-05 -5.9e-06 2.55e-05" />
+        <geom name="FR_hip_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_009" />
+        <body name="FR_thigh" pos="0 -0.12779 0" quat="1 0 0 0">
+          <joint name="FR_thigh_joint" type="hinge" axis="0 1 0" limited="true" range="-2.34 3.15" />
+          <inertial pos="-0.003256 0.031125 -0.053921" mass="3.077" fullinertia="0.0292552 0.0268191 0.0051251 -0.0003348 -0.0012552 -0.0052882" />
+          <geom name="FR_thigh_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_010" />
+          <geom name="FR_thigh_collision_0" pos="0 0.04 0" quat="0.707034768168 0.707178786872 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="cylinder" size="0.048 0.06" />
+          <geom name="FR_thigh_collision_1" pos="-0.025 0 -0.09" quat="0.999987500026 0 0.00499997916669 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.0275 0.018 0.085" />
+          <geom name="FR_thigh_collision_2" pos="-0.022 0 -0.27" quat="0.930507621912 0 -0.366272529086 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.0085 0.025 0.025" />
+          <body name="FR_calf" pos="0 0 -0.275" quat="1 0 0 0">
+            <joint name="FR_calf_joint" type="hinge" axis="0 1 0" limited="true" range="-2.77 -0.54" />
+            <inertial pos="0.012515 1.6e-05 -0.117649" mass="0.361" fullinertia="0.003869 0.0039453 0.000151 1e-07 0.0002986 -1.3e-06" />
+            <geom name="FR_calf_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_011" />
+            <geom name="FR_calf_collision_0" pos="0.018 0 -0.08" quat="0.992808635854 0 -0.119712207289 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.012 0.015 0.05" />
+            <geom name="FR_calf_collision_1" pos="0.033 0 -0.17" quat="0.999887502109 0 -0.0149994375063 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.011 0.015 0.04" />
+            <geom name="FR_calf_collision_2" pos="0.029 0 -0.236" quat="0.995004165278 0 0.0998334166468 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.01 0.018 0.03" />
+            <geom name="FR_calf_collision_3" pos="0.008 0 -0.23" quat="0.942754665528 0 0.333487092141 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.005 0.018 0.03" />
+            <body name="FR_foot" pos="0 0 -0.275" quat="1 0 0 0">
+              <inertial pos="-0.007846 1.2e-05 -0.009403" mass="0.046" fullinertia="1.4e-05 1.44e-05 1.54e-05 0 4e-06 0" />
+              <geom name="FR_foot_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.69412157 0.69412157 0.69412157 1.00000000" type="mesh" mesh="mesh_012" />
+              <geom name="FR_foot_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="sphere" size="0.032" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="RR_hip" pos="-0.25944 -0.075113 0" quat="1 0 0 0">
+        <joint name="RR_hip_joint" type="hinge" axis="1 0 0" limited="true" range="-1.01 1.01" />
+        <inertial pos="0.00327 0.01622 -3.7e-05" mass="1.62" fullinertia="0.0014649 0.0016255 0.0016343 0.0001054 -9.4e-06 4.3e-06" />
+        <geom name="RR_hip_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_013" />
+        <body name="RR_thigh" pos="0 -0.12779 0" quat="1 0 0 0">
+          <joint name="RR_thigh_joint" type="hinge" axis="0 1 0" limited="true" range="-1.56 3.94" />
+          <inertial pos="-0.003256 0.031125 -0.053921" mass="3.077" fullinertia="0.0292552 0.0268191 0.0051251 -0.0003348 -0.0012552 -0.0052882" />
+          <geom name="RR_thigh_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_014" />
+          <geom name="RR_thigh_collision_0" pos="0 0.04 0" quat="0.707034768168 0.707178786872 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="cylinder" size="0.048 0.06" />
+          <geom name="RR_thigh_collision_1" pos="-0.025 0 -0.09" quat="0.999987500026 0 0.00499997916669 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.0275 0.018 0.085" />
+          <geom name="RR_thigh_collision_2" pos="-0.022 0 -0.27" quat="0.930507621912 0 -0.366272529086 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.0085 0.025 0.025" />
+          <body name="RR_calf" pos="0 0 -0.275" quat="1 0 0 0">
+            <joint name="RR_calf_joint" type="hinge" axis="0 1 0" limited="true" range="-2.77 -0.54" />
+            <inertial pos="0.012515 1.6e-05 -0.117649" mass="0.361" fullinertia="0.003869 0.0039453 0.000151 1e-07 0.0002986 -1.3e-06" />
+            <geom name="RR_calf_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.89804314 0.91372941 0.92549412 1.00000000" type="mesh" mesh="mesh_015" />
+            <geom name="RR_calf_collision_0" pos="0.018 0 -0.08" quat="0.992808635854 0 -0.119712207289 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.012 0.015 0.05" />
+            <geom name="RR_calf_collision_1" pos="0.033 0 -0.17" quat="0.999887502109 0 -0.0149994375063 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.011 0.015 0.04" />
+            <geom name="RR_calf_collision_2" pos="0.029 0 -0.236" quat="0.995004165278 0 0.0998334166468 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.01 0.018 0.03" />
+            <geom name="RR_calf_collision_3" pos="0.008 0 -0.23" quat="0.942754665528 0 0.333487092141 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.005 0.018 0.03" />
+            <body name="RR_foot" pos="0 0 -0.275" quat="1 0 0 0">
+              <inertial pos="-0.007846 1.2e-05 -0.009403" mass="0.046" fullinertia="1.4e-05 1.44e-05 1.54e-05 0 4e-06 0" />
+              <geom name="RR_foot_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.69412157 0.69412157 0.69412157 1.00000000" type="mesh" mesh="mesh_016" />
+              <geom name="RR_foot_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="sphere" size="0.032" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="arm_body0" pos="0.145 0 0.147431554755" quat="1 0 0 0">
+        <inertial pos="-0.00473641164191 2.5682913463e-05 0.041451518036" mass="1.02" fullinertia="0.00267433 0.00282612 0.00089624 -7.3e-07 -0.00017389 4e-07" />
+        <geom name="arm_body0_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.55 0.57 0.61 1" type="mesh" mesh="mesh_017" />
+        <geom name="arm_body0_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_017" />
+        <body name="arm_body1" pos="0 0 0.123" quat="1 0 0 0">
+          <joint name="arm_j1" type="hinge" axis="0 0 1" limited="true" range="-2.618 2.618" />
+          <inertial pos="0.000121504734057 0.000104632162461 -0.0043859730956" mass="0.71" fullinertia="0.00048916 0.00040472 0.00043982 -3.6e-07 -2.24e-06 -2.42e-06" />
+          <geom name="arm_body1_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.55 0.57 0.61 1" type="mesh" mesh="mesh_018" />
+          <geom name="arm_body1_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_018" />
+          <body name="arm_body2" pos="0 0 0" quat="0.0480084366586 -0.0480134430131 -0.705476100913 -0.705473862266">
+            <joint name="arm_j2" type="hinge" axis="0 0 1" limited="true" range="0 3.14" />
+            <inertial pos="0.19866614523 -0.0109269241401 0.00142121714503" mass="1.17" fullinertia="0.00116918 0.06785384 0.06774489 -0.00180037 0.00025146 -4.55e-06" />
+            <geom name="arm_body2_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.55 0.57 0.61 1" type="mesh" mesh="mesh_019" />
+            <geom name="arm_body2_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_019" />
+            <body name="arm_body3" pos="0.28503 0 0" quat="0.62399622038 0 0 -0.781427358717">
+              <joint name="arm_j3" type="hinge" axis="0 0 1" limited="true" range="-2.967 0" />
+              <inertial pos="-0.0202737662122 -0.133914995945 -0.000458682652737" mass="0.5" fullinertia="0.01361711 0.00045024 0.01380322 0.00165794 -4.8e-07 -4.5e-07" />
+              <geom name="arm_body3_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.55 0.57 0.61 1" type="mesh" mesh="mesh_020" />
+              <geom name="arm_body3_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_020" />
+              <body name="arm_body4" pos="-0.021984 -0.25075 0" quat="0.707105482511 0.707108079859 0 0">
+                <joint name="arm_j4" type="hinge" axis="0 0 1" limited="true" range="-1.745 1.745" />
+                <inertial pos="-9.66635791619e-05 0.000876064475651 -0.00496880904641" mass="0.38" fullinertia="0.00018501 0.00018965 0.00015484 5.4e-07 1.2e-06 -8.41e-06" />
+                <geom name="arm_body4_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.55 0.57 0.61 1" type="mesh" mesh="mesh_021" />
+                <geom name="arm_body4_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_021" />
+                <body name="arm_body5" pos="0 0 0" quat="0.707105482511 -0.707108079859 0 0">
+                  <joint name="arm_j5" type="hinge" axis="0 0 1" limited="true" range="-1.22 1.22" />
+                  <inertial pos="-4.10554118924e-05 -0.0566486692356 -0.00372057916779" mass="0.383" fullinertia="0.00166169 0.0001851 0.00164321 6e-08 -7e-08 1.026e-05" />
+                  <geom name="arm_body5_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.55 0.57 0.61 1" type="mesh" mesh="mesh_022" />
+                  <geom name="arm_body5_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_022" />
+                  <body name="arm_body6" pos="8.8259e-05 -0.091 0" quat="0.707105482511 0.707108079859 0 0">
+                    <joint name="arm_j6" type="hinge" axis="0 0 1" limited="true" range="-2.0944 2.0944" />
+                    <inertial pos="-8.8259076293e-05 9.05983785298e-06 -0.002" mass="0.007" fullinertia="5.73015540542e-07 5.73015540542e-07 1.06738869139e-06 -1.98305403089e-22 -7.27918939046e-23 -3.41460266402e-24" />
+                    <geom name="arm_body6_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.55 0.57 0.61 1" type="mesh" mesh="mesh_023" />
+                    <geom name="arm_body6_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_023" />
+                    <body name="arm_body6_to_gripper" pos="0 0 0" quat="1 0 0 0">
+                      <inertial pos="-0.000183807162236 8.05033155578e-05 0.0321436689909" mass="0.45" fullinertia="0.00092934 0.00071447 0.00039442 3.4e-07 -7.38e-06 5e-08" />
+                      <geom name="arm_body6_to_gripper_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.55 0.57 0.61 1" type="mesh" mesh="mesh_024" />
+                      <geom name="arm_body6_to_gripper_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_024" />
+                      <body name="arm_body7" pos="0 0 0.1358" quat="0.707105482511 0.707108079859 0 0">
+                        <joint name="arm_j7" type="slide" axis="0 0 1" limited="true" range="0 0.035" />
+                        <inertial pos="0.00065123185042 -0.0491929869132 0.00972258769184" mass="0.025" fullinertia="7.371e-05 7.81e-06 7.47e-05 -1.13e-06 2.1e-07 -1.372e-05" />
+                        <geom name="arm_body7_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" type="mesh" mesh="mesh_025" />
+                        <geom name="arm_body7_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_025" />
+                      </body>
+                      <body name="arm_body8" pos="0 0 0.1358" quat="-2.59734346696e-06 -2.59735300756e-06 -0.707108079855 -0.707105482506">
+                        <joint name="arm_j8" type="slide" axis="0 0 -1" limited="true" range="-0.035 0" />
+                        <inertial pos="0.00065123185042 -0.0491929869132 0.00972258769184" mass="0.025" fullinertia="7.371e-05 7.81e-06 7.47e-05 -1.13e-06 2.1e-07 -1.372e-05" />
+                        <geom name="arm_body8_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.55 0.57 0.61 1" type="mesh" mesh="mesh_026" />
+                        <geom name="arm_body8_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_026" />
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="vpiper_main" pos="0.143212711224 3.54690751414e-06 0.092431554755" quat="1 0 0 0">
+        <inertial pos="-0.0377098373473 3.5599369072e-10 0.0365841949569" mass="0.31068443156420167" fullinertia="0.00136359405758 0.00140556990638 0.00264404009281 3.55348474812e-12 -9.72199706819e-05 -9.41587603884e-13" />
+        <geom name="vpiper_main_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.22 0.24 0.28 1" type="mesh" mesh="mesh_027" />
+        <geom name="vpiper_main_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_028" />
+        <geom name="vpiper_main_collision_1" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_029" />
+        <geom name="vpiper_main_collision_2" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_030" />
+        <geom name="vpiper_main_collision_3" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_031" />
+        <geom name="vpiper_main_collision_4" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_032" />
+        <geom name="vpiper_main_collision_5" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_033" />
+        <geom name="vpiper_main_collision_6" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_034" />
+        <geom name="vpiper_main_collision_7" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_035" />
+        <geom name="vpiper_main_collision_8" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_036" />
+        <geom name="vpiper_main_collision_9" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_037" />
+        <geom name="vpiper_main_collision_10" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_038" />
+        <geom name="vpiper_main_collision_11" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_039" />
+        <geom name="vpiper_main_collision_12" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_040" />
+        <geom name="vpiper_main_collision_13" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_041" />
+        <geom name="vpiper_main_collision_14" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_042" />
+        <body name="vpiper_support" pos="0 0 0" quat="1 0 0 0">
+          <inertial pos="0.0307616666142 1.92607132787e-07 0.0315141900139" mass="0.10562383324311508" fullinertia="0.000114841368804 0.000193553203183 0.000300956411401 2.98318486443e-09 -7.94243461669e-06 3.50696099505e-10" />
+          <geom name="vpiper_support_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.37 0.39 0.43 1" type="mesh" mesh="mesh_043" />
+          <geom name="vpiper_support_collision_0" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_044" />
+          <geom name="vpiper_support_collision_1" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_045" />
+          <geom name="vpiper_support_collision_2" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_046" />
+          <geom name="vpiper_support_collision_3" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_047" />
+          <geom name="vpiper_support_collision_4" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_048" />
+          <geom name="vpiper_support_collision_5" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_049" />
+          <geom name="vpiper_support_collision_6" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_050" />
+          <geom name="vpiper_support_collision_7" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_051" />
+          <geom name="vpiper_support_collision_8" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_052" />
+          <geom name="vpiper_support_collision_9" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_053" />
+          <geom name="vpiper_support_collision_10" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_054" />
+          <geom name="vpiper_support_collision_11" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_055" />
+          <geom name="vpiper_support_collision_12" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_056" />
+          <geom name="vpiper_support_collision_13" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_057" />
+          <geom name="vpiper_support_collision_14" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_058" />
+          <geom name="vpiper_support_collision_15" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_059" />
+          <geom name="vpiper_support_collision_16" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_060" />
+          <geom name="vpiper_support_collision_17" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_061" />
+          <geom name="vpiper_support_collision_18" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_062" />
+          <geom name="vpiper_support_collision_19" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_063" />
+          <geom name="vpiper_support_collision_20" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_064" />
+          <geom name="vpiper_support_collision_21" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_065" />
+          <geom name="vpiper_support_collision_22" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_066" />
+          <geom name="vpiper_support_collision_23" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_067" />
+          <geom name="vpiper_support_collision_24" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_068" />
+          <geom name="vpiper_support_collision_25" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_069" />
+          <geom name="vpiper_support_collision_26" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_070" />
+          <geom name="vpiper_support_collision_27" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_071" />
+          <geom name="vpiper_support_collision_28" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_072" />
+          <geom name="vpiper_support_collision_29" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_073" />
+          <geom name="vpiper_support_collision_30" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_074" />
+          <geom name="vpiper_support_collision_31" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_075" />
+          <geom name="vpiper_support_collision_32" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_076" />
+          <geom name="vpiper_support_collision_33" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_077" />
+          <geom name="vpiper_support_collision_34" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_078" />
+          <geom name="vpiper_support_collision_35" pos="0 0 0" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="mesh" mesh="mesh_079" />
+        </body>
+        <body name="metal_plate_5mm" pos="0 0 0.05" quat="1 0 0 0">
+          <inertial pos="0 0 0.0025" mass="0.33749999999999963" fullinertia="0.000281953125 0.001758515625 0.0020390625 0 0 0" />
+          <geom name="metal_plate_5mm_visual_0" pos="0 0 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" mass="0" rgba="0.13 0.14 0.16 1" type="mesh" mesh="mesh_080" />
+          <geom name="metal_plate_5mm_collision_0" pos="0 0 0.0025" quat="1 0 0 0" group="3" contype="1" conaffinity="1" mass="0" rgba="0.3 0.5 0.7 0.15" type="box" size="0.125 0.05 0.0025" />
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <motor name="FL_hip_joint_torque" joint="FL_hip_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120" />
+    <motor name="FL_thigh_joint_torque" joint="FL_thigh_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120" />
+    <motor name="FL_calf_joint_torque" joint="FL_calf_joint" gear="1" ctrllimited="true" ctrlrange="-180 180" forcelimited="true" forcerange="-180 180" />
+    <motor name="RL_hip_joint_torque" joint="RL_hip_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120" />
+    <motor name="RL_thigh_joint_torque" joint="RL_thigh_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120" />
+    <motor name="RL_calf_joint_torque" joint="RL_calf_joint" gear="1" ctrllimited="true" ctrlrange="-180 180" forcelimited="true" forcerange="-180 180" />
+    <motor name="FR_hip_joint_torque" joint="FR_hip_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120" />
+    <motor name="FR_thigh_joint_torque" joint="FR_thigh_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120" />
+    <motor name="FR_calf_joint_torque" joint="FR_calf_joint" gear="1" ctrllimited="true" ctrlrange="-180 180" forcelimited="true" forcerange="-180 180" />
+    <motor name="RR_hip_joint_torque" joint="RR_hip_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120" />
+    <motor name="RR_thigh_joint_torque" joint="RR_thigh_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120" />
+    <motor name="RR_calf_joint_torque" joint="RR_calf_joint" gear="1" ctrllimited="true" ctrlrange="-180 180" forcelimited="true" forcerange="-180 180" />
+    <motor name="arm_j1_torque" joint="arm_j1" gear="1" ctrllimited="true" ctrlrange="-100 100" forcelimited="true" forcerange="-100 100" />
+    <motor name="arm_j2_torque" joint="arm_j2" gear="1" ctrllimited="true" ctrlrange="-100 100" forcelimited="true" forcerange="-100 100" />
+    <motor name="arm_j3_torque" joint="arm_j3" gear="1" ctrllimited="true" ctrlrange="-100 100" forcelimited="true" forcerange="-100 100" />
+    <motor name="arm_j4_torque" joint="arm_j4" gear="1" ctrllimited="true" ctrlrange="-100 100" forcelimited="true" forcerange="-100 100" />
+    <motor name="arm_j5_torque" joint="arm_j5" gear="1" ctrllimited="true" ctrlrange="-100 100" forcelimited="true" forcerange="-100 100" />
+    <motor name="arm_j6_torque" joint="arm_j6" gear="1" ctrllimited="true" ctrlrange="-100 100" forcelimited="true" forcerange="-100 100" />
+    <motor name="arm_j7_torque" joint="arm_j7" gear="1" ctrllimited="true" ctrlrange="-10 10" forcelimited="true" forcerange="-10 10" />
+    <motor name="arm_j8_torque" joint="arm_j8" gear="1" ctrllimited="true" ctrlrange="-10 10" forcelimited="true" forcerange="-10 10" />
+  </actuator>
+  <custom>
+    <numeric name="source_joint_velocity_limits_NOT_ENFORCED" data="22 22 14.6667 22 22 14.6667 22 22 14.6667 22 22 14.6667 5 5 5 5 5 3 1 1" />
+    <numeric name="mount_masses_unknown" data="0" />
+    <text name="validation_scope" data="Uniform effective-density material-estimated mount masses and inertias. No hardware or trained-policy validation." />
+  </custom>
+  <keyframe>
+    <key name="inspection_only" qpos="0 0.7 -1.4 0 0.7 -1.4 0 0.7 -1.4 0 0.7 -1.4 0 0.55 -1.1 0 0.4 0 0.02 -0.02" />
+  </keyframe>
+</mujoco>

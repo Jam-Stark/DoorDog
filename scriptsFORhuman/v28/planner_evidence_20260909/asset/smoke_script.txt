@@ -1,0 +1,142 @@
+# Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+import argparse
+import gc
+import json
+import sys
+import traceback
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+DEFAULT_USD_PATH = REPO_ROOT / "gr00t/rl/data/robots/A2_Piper/a2_piper.usd"
+DEFAULT_POLICY_PATH = REPO_ROOT / "gr00t/rl/data/policies/A2_Base/policy.pt"
+DEFAULT_METADATA_PATH = REPO_ROOT / "gr00t/rl/data/policies/A2_Base/policy_metadata.json"
+ISAACLAB_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
+ISAACLAB_SH = Path("/home/baoquanc/workspace/IsaacLab/isaaclab.sh")
+
+
+def import_app_launcher():
+    try:
+        from isaaclab.app import AppLauncher
+    except ModuleNotFoundError as exc:
+        if exc.name != "isaaclab":
+            raise
+        return None
+    return AppLauncher
+
+
+def add_fallback_app_launcher_args(parser: argparse.ArgumentParser) -> None:
+    app_group = parser.add_argument_group(
+        "app_launcher arguments",
+        description="Accepted when running under IsaacLab Python or isaaclab.sh.",
+    )
+    app_group.add_argument("--headless", action="store_true", default=False)
+    app_group.add_argument("--livestream", type=int, default=-1, choices={0, 1, 2})
+    app_group.add_argument("--enable_cameras", action="store_true", default=False)
+    app_group.add_argument("--xr", action="store_true", default=False)
+    app_group.add_argument("--device", type=str, default="cuda:0")
+    app_group.add_argument("--verbose", action="store_true")
+    app_group.add_argument("--info", action="store_true")
+    app_group.add_argument("--experience", type=str, default="")
+    app_group.add_argument("--rendering_mode", type=str, choices={"performance", "balanced", "quality"})
+    app_group.add_argument("--kit_args", type=str, default="")
+    app_group.add_argument("--anim_recording_enabled", action="store_true")
+    app_group.add_argument("--anim_recording_start_time", type=float, default=0)
+    app_group.add_argument("--anim_recording_stop_time", type=float, default=10)
+
+
+def require_app_launcher():
+    AppLauncher = import_app_launcher()
+    if AppLauncher is not None:
+        return AppLauncher
+    raise RuntimeError(
+        "IsaacLab is required to launch the A2_Base flat walk smoke.\n"
+...
+36:    app_group = parser.add_argument_group(
+40:    app_group.add_argument("--headless", action="store_true", default=False)
+41:    app_group.add_argument("--livestream", type=int, default=-1, choices={0, 1, 2})
+42:    app_group.add_argument("--enable_cameras", action="store_true", default=False)
+43:    app_group.add_argument("--xr", action="store_true", default=False)
+44:    app_group.add_argument("--device", type=str, default="cuda:0")
+45:    app_group.add_argument("--verbose", action="store_true")
+46:    app_group.add_argument("--info", action="store_true")
+47:    app_group.add_argument("--experience", type=str, default="")
+48:    app_group.add_argument("--rendering_mode", type=str, choices={"performance", "balanced", "quality"})
+49:    app_group.add_argument("--kit_args", type=str, default="")
+50:    app_group.add_argument("--anim_recording_enabled", action="store_true")
+51:    app_group.add_argument("--anim_recording_start_time", type=float, default=0)
+52:    app_group.add_argument("--anim_recording_stop_time", type=float, default=10)
+64:        "--device cuda:0 --num-envs 1 --base-command-raw 1.0 0.0 0.0\n"
+67:        "--device cuda:0 --num-envs 1 --base-command-raw 1.0 0.0 0.0\n"
+80:    parser.add_argument("--num-envs", "--num_envs", dest="num_envs", type=int, default=1)
+81:    parser.add_argument("--env-spacing", "--env_spacing", dest="env_spacing", type=float, default=3.0)
+82:    parser.add_argument("--usd-file", type=Path, default=DEFAULT_USD_PATH)
+83:    parser.add_argument("--policy-path", type=Path, default=DEFAULT_POLICY_PATH)
+84:    parser.add_argument("--metadata-path", type=Path, default=DEFAULT_METADATA_PATH)
+85:    parser.add_argument("--root-x", type=float, default=0.0)
+86:    parser.add_argument("--root-y", type=float, default=0.0)
+87:    parser.add_argument("--root-z", type=float, default=0.55)
+88:    parser.add_argument("--root-yaw", type=float, default=0.0)
+89:    parser.add_argument(
+100:    parser.add_argument(
+108:    parser.add_argument(
+119:    parser.add_argument(
+120:        "--max-steps",
+123:        help="Maximum physics steps to run. -1 runs until the GUI is closed.",
+125:    parser.add_argument(
+126:        "--warmup-steps",
+129:        help="Physics steps to hold the default pose before the first policy inference.",
+131:    parser.add_argument(
+135:        help="Physics steps between resets. Set <=0 to disable periodic resets.",
+137:    parser.add_argument(
+141:        help="Physics steps per policy step. With sim dt 0.005, default policy dt is 0.02.",
+143:    parser.add_argument(
+147:        help="Policy steps between concise locomotion monitor logs. Set <=0 to disable.",
+190:        raise ValueError(f"--num-envs must be positive, got {args_cli.num_envs}")
+195:    if args_cli.warmup_steps < 0:
+196:        raise ValueError(f"--warmup-steps must be non-negative, got {args_cli.warmup_steps}")
+409:    joint_pos = robot.data.default_joint_pos.clone()
+410:    joint_vel = torch.zeros_like(robot.data.default_joint_vel)
+435:        self.device = robot.data.default_joint_pos.device
+436:        self.dtype = robot.data.default_joint_pos.dtype
+437:        self.num_envs = int(robot.data.default_joint_pos.shape[0])
+500:        self.episode_policy_steps = 0
+501:        self.total_policy_steps = 0
+502:        self.default_joint_pos = None
+508:        self.default_joint_pos = self.robot.data.default_joint_pos.clone()
+509:        self.default_leg_pos = self.default_joint_pos[:, self.leg_joint_indices].clone()
+510:        self.current_joint_targets = self.default_joint_pos.clone()
+515:        self.episode_policy_steps = 0
+520:        if self.episode_policy_steps > 0:
+586:        self.current_joint_targets = self.default_joint_pos.clone()
+590:        self.episode_policy_steps += 1
+591:        self.total_policy_steps += 1
+599:            self.total_policy_steps == 1 or self.total_policy_steps % log_interval == 0
+== preview script args ==
+37:    app_group = parser.add_argument_group(
+41:    app_group.add_argument("--headless", action="store_true", default=False)
+42:    app_group.add_argument("--livestream", type=int, default=-1, choices={0, 1, 2})
+43:    app_group.add_argument("--enable_cameras", action="store_true", default=False)
+44:    app_group.add_argument("--xr", action="store_true", default=False)
+45:    app_group.add_argument("--device", type=str, default="cuda:0")
+46:    app_group.add_argument("--verbose", action="store_true")
+47:    app_group.add_argument("--info", action="store_true")
+48:    app_group.add_argument("--experience", type=str, default="")
+49:    app_group.add_argument("--rendering_mode", type=str, choices={"performance", "balanced", "quality"})
+50:    app_group.add_argument("--kit_args", type=str, default="")
+51:    app_group.add_argument("--anim_recording_enabled", action="store_true")
+52:    app_group.add_argument("--anim_recording_start_time", type=float, default=0)
+53:    app_group.add_argument("--anim_recording_stop_time", type=float, default=10)
+77:    parser.add_argument("--num-envs", "--num_envs", dest="num_envs", type=int, default=1)
+78:    parser.add_argument("--env-spacing", "--env_spacing", dest="env_spacing", type=float, default=3.0)
+79:    parser.add_argument("--root-x", "--stage0-x", dest="root_x", type=float, default=-0.9)
+80:    parser.add_argument("--root-y", "--stage0-y", dest="root_y", type=float, default=0.0)
+81:    parser.add_argument("--root-z", "--stage0-z", dest="root_z", type=float, default=0.55)
+82:    parser.add_argument("--root-yaw", "--stage0-yaw", dest="root_yaw", type=float, default=0.0)

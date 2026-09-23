@@ -1,0 +1,6751 @@
+{
+ "NEW_asset_q_new": {
+  "rows": [
+   {
+    "arm": "arm_body0",
+    "env": "vpiper_main",
+    "min_dist_m": 0.005,
+    "kind": "sep",
+    "pair": [
+     "arm_body0#0",
+     "vpiper_main#0"
+    ]
+   },
+   {
+    "arm": "arm_body0",
+    "env": "vpiper_support",
+    "min_dist_m": 0.0154,
+    "kind": "sep",
+    "pair": [
+     "arm_body0#0",
+     "vpiper_support#14"
+    ]
+   },
+   {
+    "arm": "arm_body0",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.0,
+    "kind": "sep",
+    "pair": [
+     "arm_body0#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "vpiper_main",
+    "min_dist_m": 0.08208,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "vpiper_main#11"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "vpiper_support",
+    "min_dist_m": 0.0509,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "vpiper_support#11"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.08,
+    "kind": "sep",
+    "pair": [
+     "arm_body1#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "trunk",
+    "min_dist_m": 0.03582,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "vpiper_main",
+    "min_dist_m": 0.02187,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "vpiper_main#8"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "vpiper_support",
+    "min_dist_m": 0.02903,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "vpiper_support#14"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.09035,
+    "kind": "sep",
+    "pair": [
+     "arm_body2#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "trunk",
+    "min_dist_m": 0.05273,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "vpiper_main",
+    "min_dist_m": 0.06124,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "vpiper_main#1"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "vpiper_support",
+    "min_dist_m": 0.11233,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "vpiper_support#5"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.15901,
+    "kind": "sep",
+    "pair": [
+     "arm_body3#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "trunk",
+    "min_dist_m": 0.09563,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "vpiper_main",
+    "min_dist_m": 0.05821,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "vpiper_main#0"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "vpiper_support",
+    "min_dist_m": 0.14123,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "vpiper_support#5"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.02172,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "trunk",
+    "min_dist_m": 0.10438,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "vpiper_main",
+    "min_dist_m": 0.03803,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "vpiper_main#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "vpiper_support",
+    "min_dist_m": 0.11747,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "vpiper_support#2"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.17964,
+    "kind": "sep",
+    "pair": [
+     "arm_body5#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "trunk",
+    "min_dist_m": 0.08574,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "vpiper_main",
+    "min_dist_m": 0.11946,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "vpiper_main#2"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "vpiper_support",
+    "min_dist_m": 0.21538,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "vpiper_support#32"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.10355,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "trunk",
+    "min_dist_m": 0.21194,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "vpiper_main",
+    "min_dist_m": 0.07223,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "vpiper_main#2"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "vpiper_support",
+    "min_dist_m": 0.16771,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "vpiper_support#35"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.07066,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "trunk",
+    "min_dist_m": 0.17353,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "vpiper_main",
+    "min_dist_m": 0.08753,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "vpiper_main#2"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "vpiper_support",
+    "min_dist_m": 0.18289,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "vpiper_support#32"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.10369,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "trunk",
+    "min_dist_m": 0.1906,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "vpiper_main",
+    "min_dist_m": 0.12133,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "vpiper_main#2"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "vpiper_support",
+    "min_dist_m": 0.2165,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "vpiper_support#35"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.12792,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "trunk",
+    "min_dist_m": 0.22372,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "trunk#1"
+    ]
+   }
+  ],
+  "tcp_trunk_frame": [
+   0.1892,
+   0.0,
+   0.3985
+  ],
+  "gripper_tip_trunk_frame": [
+   0.3065,
+   -0.0,
+   0.4668
+  ]
+ },
+ "NEW_asset_q_new_j5m052": {
+  "rows": [
+   {
+    "arm": "arm_body0",
+    "env": "vpiper_main",
+    "min_dist_m": 0.005,
+    "kind": "sep",
+    "pair": [
+     "arm_body0#0",
+     "vpiper_main#0"
+    ]
+   },
+   {
+    "arm": "arm_body0",
+    "env": "vpiper_support",
+    "min_dist_m": 0.0154,
+    "kind": "sep",
+    "pair": [
+     "arm_body0#0",
+     "vpiper_support#14"
+    ]
+   },
+   {
+    "arm": "arm_body0",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.0,
+    "kind": "sep",
+    "pair": [
+     "arm_body0#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "vpiper_main",
+    "min_dist_m": 0.08208,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "vpiper_main#11"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "vpiper_support",
+    "min_dist_m": 0.0509,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "vpiper_support#11"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.08,
+    "kind": "sep",
+    "pair": [
+     "arm_body1#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "trunk",
+    "min_dist_m": 0.03582,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "vpiper_main",
+    "min_dist_m": 0.02187,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "vpiper_main#8"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "vpiper_support",
+    "min_dist_m": 0.02903,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "vpiper_support#14"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.09035,
+    "kind": "sep",
+    "pair": [
+     "arm_body2#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "trunk",
+    "min_dist_m": 0.05273,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "vpiper_main",
+    "min_dist_m": 0.06124,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "vpiper_main#1"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "vpiper_support",
+    "min_dist_m": 0.11233,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "vpiper_support#5"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.15901,
+    "kind": "sep",
+    "pair": [
+     "arm_body3#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "trunk",
+    "min_dist_m": 0.09563,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "vpiper_main",
+    "min_dist_m": 0.05821,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "vpiper_main#0"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "vpiper_support",
+    "min_dist_m": 0.14123,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "vpiper_support#5"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.02172,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "trunk",
+    "min_dist_m": 0.10438,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "vpiper_main",
+    "min_dist_m": 0.03883,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "vpiper_main#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "vpiper_support",
+    "min_dist_m": 0.11847,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "vpiper_support#2"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.1809,
+    "kind": "sep",
+    "pair": [
+     "arm_body5#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "trunk",
+    "min_dist_m": 0.08646,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "vpiper_main",
+    "min_dist_m": 0.12629,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "vpiper_main#2"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "vpiper_support",
+    "min_dist_m": 0.22214,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "vpiper_support#32"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.10886,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "trunk",
+    "min_dist_m": 0.21576,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "vpiper_main",
+    "min_dist_m": 0.08157,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "vpiper_main#2"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "vpiper_support",
+    "min_dist_m": 0.17698,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "vpiper_support#35"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.07755,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "trunk",
+    "min_dist_m": 0.18268,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "vpiper_main",
+    "min_dist_m": 0.09966,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "vpiper_main#2"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "vpiper_support",
+    "min_dist_m": 0.19494,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "vpiper_support#32"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.11259,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "trunk",
+    "min_dist_m": 0.20251,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "vpiper_main",
+    "min_dist_m": 0.13231,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "vpiper_main#2"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "vpiper_support",
+    "min_dist_m": 0.22744,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "vpiper_support#35"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.13539,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "trunk",
+    "min_dist_m": 0.23442,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "trunk#1"
+    ]
+   }
+  ],
+  "tcp_trunk_frame": [
+   0.1853,
+   0.0,
+   0.4046
+  ],
+  "gripper_tip_trunk_frame": [
+   0.2968,
+   -0.0,
+   0.4821
+  ]
+ },
+ "NEW_asset_q_old": {
+  "rows": [
+   {
+    "arm": "arm_body0",
+    "env": "vpiper_main",
+    "min_dist_m": 0.005,
+    "kind": "sep",
+    "pair": [
+     "arm_body0#0",
+     "vpiper_main#0"
+    ]
+   },
+   {
+    "arm": "arm_body0",
+    "env": "vpiper_support",
+    "min_dist_m": 0.0154,
+    "kind": "sep",
+    "pair": [
+     "arm_body0#0",
+     "vpiper_support#14"
+    ]
+   },
+   {
+    "arm": "arm_body0",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.0,
+    "kind": "sep",
+    "pair": [
+     "arm_body0#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "vpiper_main",
+    "min_dist_m": 0.08208,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "vpiper_main#11"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "vpiper_support",
+    "min_dist_m": 0.0509,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "vpiper_support#11"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.08,
+    "kind": "sep",
+    "pair": [
+     "arm_body1#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body1",
+    "env": "trunk",
+    "min_dist_m": 0.03582,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "vpiper_main",
+    "min_dist_m": 0.02187,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "vpiper_main#8"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "vpiper_support",
+    "min_dist_m": 0.02903,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "vpiper_support#14"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.09035,
+    "kind": "sep",
+    "pair": [
+     "arm_body2#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "trunk",
+    "min_dist_m": 0.05273,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "vpiper_main",
+    "min_dist_m": 0.06124,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "vpiper_main#1"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "vpiper_support",
+    "min_dist_m": 0.11233,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "vpiper_support#5"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.15901,
+    "kind": "sep",
+    "pair": [
+     "arm_body3#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "trunk",
+    "min_dist_m": 0.09563,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "vpiper_main",
+    "min_dist_m": 0.06205,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "vpiper_main#0"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "vpiper_support",
+    "min_dist_m": 0.1453,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "vpiper_support#5"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.02568,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "trunk",
+    "min_dist_m": 0.10809,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "vpiper_main",
+    "min_dist_m": 0.02271,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "vpiper_main#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "vpiper_support",
+    "min_dist_m": 0.1016,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "vpiper_support#2"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.14434,
+    "kind": "sep",
+    "pair": [
+     "arm_body5#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "trunk",
+    "min_dist_m": 0.07099,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "vpiper_main",
+    "min_dist_m": 0.04306,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "vpiper_main#2"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "vpiper_support",
+    "min_dist_m": 0.13813,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "vpiper_support#35"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.02737,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "trunk",
+    "min_dist_m": 0.14135,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "vpiper_main",
+    "min_dist_m": 0.04579,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "vpiper_main#1"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "vpiper_support",
+    "min_dist_m": 0.05403,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "vpiper_support#35"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.07931,
+    "kind": "sep",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "trunk",
+    "min_dist_m": 0.06101,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "vpiper_main",
+    "min_dist_m": 0.05222,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "vpiper_main#1"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "vpiper_support",
+    "min_dist_m": 0.03142,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "vpiper_support#35"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.11271,
+    "kind": "sep",
+    "pair": [
+     "arm_body7#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "trunk",
+    "min_dist_m": 0.04224,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "vpiper_main",
+    "min_dist_m": 0.08757,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "vpiper_main#1"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "vpiper_support",
+    "min_dist_m": 0.06687,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "vpiper_support#35"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "metal_plate_5mm",
+    "min_dist_m": 0.12522,
+    "kind": "sep",
+    "pair": [
+     "arm_body8#0",
+     "metal_plate_5mm#0"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "trunk",
+    "min_dist_m": 0.07703,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "trunk#1"
+    ]
+   }
+  ],
+  "tcp_trunk_frame": [
+   0.1937,
+   0.0108,
+   0.3176
+  ],
+  "gripper_tip_trunk_frame": [
+   0.3179,
+   0.0269,
+   0.2651
+  ]
+ },
+ "OLD_asset_q_old": {
+  "rows": [
+   {
+    "arm": "arm_body1",
+    "env": "trunk",
+    "min_dist_m": 0.04154,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "trunk",
+    "min_dist_m": 0.05684,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "trunk",
+    "min_dist_m": 0.10094,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "trunk",
+    "min_dist_m": 0.11437,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "trunk",
+    "min_dist_m": 0.07716,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "trunk",
+    "min_dist_m": 0.14766,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "trunk",
+    "min_dist_m": 0.06751,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "trunk",
+    "min_dist_m": 0.04873,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "trunk",
+    "min_dist_m": 0.08353,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "trunk#1"
+    ]
+   }
+  ],
+  "tcp_trunk_frame": [
+   0.1937,
+   0.0108,
+   0.3241
+  ]
+ },
+ "OLD_asset_q_new": {
+  "rows": [
+   {
+    "arm": "arm_body1",
+    "env": "trunk",
+    "min_dist_m": 0.04154,
+    "kind": "bound",
+    "pair": [
+     "arm_body1#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body2",
+    "env": "trunk",
+    "min_dist_m": 0.05684,
+    "kind": "bound",
+    "pair": [
+     "arm_body2#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body3",
+    "env": "trunk",
+    "min_dist_m": 0.10094,
+    "kind": "bound",
+    "pair": [
+     "arm_body3#0",
+     "trunk#2"
+    ]
+   },
+   {
+    "arm": "arm_body4",
+    "env": "trunk",
+    "min_dist_m": 0.11065,
+    "kind": "bound",
+    "pair": [
+     "arm_body4#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body5",
+    "env": "trunk",
+    "min_dist_m": 0.09195,
+    "kind": "bound",
+    "pair": [
+     "arm_body5#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body6",
+    "env": "trunk",
+    "min_dist_m": 0.21787,
+    "kind": "bound",
+    "pair": [
+     "arm_body6#0",
+     "trunk#0"
+    ]
+   },
+   {
+    "arm": "arm_body6_to_gripper",
+    "env": "trunk",
+    "min_dist_m": 0.18007,
+    "kind": "bound",
+    "pair": [
+     "arm_body6_to_gripper#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body7",
+    "env": "trunk",
+    "min_dist_m": 0.19716,
+    "kind": "bound",
+    "pair": [
+     "arm_body7#0",
+     "trunk#1"
+    ]
+   },
+   {
+    "arm": "arm_body8",
+    "env": "trunk",
+    "min_dist_m": 0.23029,
+    "kind": "bound",
+    "pair": [
+     "arm_body8#0",
+     "trunk#1"
+    ]
+   }
+  ],
+  "tcp_trunk_frame": [
+   0.1892,
+   0.0,
+   0.4051
+  ]
+ },
+ "sweep": {
+  "grid": {
+   "j1": [
+    0.0,
+    1.5708,
+    -1.5708,
+    2.618
+   ],
+   "j2": [
+    0.0,
+    0.1962,
+    0.3925,
+    0.5888,
+    0.785,
+    0.9812,
+    1.1775,
+    1.3738,
+    1.57,
+    1.7662,
+    1.9625,
+    2.1588,
+    2.355,
+    2.5512,
+    2.7475,
+    2.9438,
+    3.14
+   ],
+   "j3": [
+    -2.967,
+    -2.7198,
+    -2.4725,
+    -2.2252,
+    -1.978,
+    -1.7308,
+    -1.4835,
+    -1.2362,
+    -0.989,
+    -0.7418,
+    -0.4945,
+    -0.2473,
+    0.0
+   ],
+   "j4": 0.0,
+   "j5": -0.44,
+   "j6": 1.57
+  },
+  "n_configs": 884,
+  "n_configs_overlapping_new_only": 4,
+  "n_configs_overlapping_any": 99,
+  "entries": [
+   {
+    "j1": 0.0,
+    "j2": 1.57,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.003
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ]
+    ],
+    "old_hits": []
+   },
+   {
+    "j1": 0.0,
+    "j2": 1.7662,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.001
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0044
+     ],
+     [
+      "arm_body7",
+      "vpiper_main",
+      0.0038
+     ],
+     [
+      "arm_body7",
+      "vpiper_support",
+      0.0021
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0089
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 1.9625,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0029
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0011
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 1.9625,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0048
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.005
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0051
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.005
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 1.9625,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0078
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.006
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0078
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0048
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0091
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.01
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.1588,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.1588,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0036
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0034
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.1588,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0008
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.01
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0009
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0004
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.355,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.005
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.0016
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.355,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.002
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0057
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.004
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0024
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0073
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.355,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0023
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.0014
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.01
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.01
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.5512,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.003
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0003
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.5512,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.5512,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0022
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.01
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.01
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.5512,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0018
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0001
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0029
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0005
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0029
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0029
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.7475,
+    "j3": -0.989,
+    "new_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0003
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0007
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.7475,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.7475,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0099
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0095
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0088
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.01
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.7475,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "vpiper_support",
+      0.0001
+     ],
+     [
+      "arm_body4",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.003
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.01
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.01
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.7475,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0007
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0011
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0035
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0109
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0098
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0013
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0101
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0098
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.9438,
+    "j3": -0.989,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.9438,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0042
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.9438,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0018
+     ],
+     [
+      "arm_body4",
+      "vpiper_support",
+      0.0017
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0034
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0054
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.9438,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.0006
+     ],
+     [
+      "arm_body3",
+      "metal_plate_5mm",
+      0.0018
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "vpiper_support",
+      0.0028
+     ],
+     [
+      "arm_body4",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0078
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0038
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0162
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0086
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0062
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0045
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0162
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0086
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0062
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 2.9438,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0048
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0023
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0018
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0118
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0091
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0082
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0108
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 3.14,
+    "j3": -1.2362,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0041
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0044
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 3.14,
+    "j3": -0.989,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 3.14,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.005
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 3.14,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.0021
+     ],
+     [
+      "arm_body3",
+      "vpiper_support",
+      0.0017
+     ],
+     [
+      "arm_body3",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0044
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0133
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0017
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0072
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0133
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0025
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 3.14,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body3",
+      "vpiper_support",
+      0.0021
+     ],
+     [
+      "arm_body3",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body3",
+      "trunk",
+      0.007
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "vpiper_support",
+      0.0039
+     ],
+     [
+      "arm_body4",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0009
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0026
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0265
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0039
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0094
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0016
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0265
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ]
+   },
+   {
+    "j1": 0.0,
+    "j2": 3.14,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.003
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0168
+     ],
+     [
+      "arm_body7",
+      "vpiper_main",
+      0.0012
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0055
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.008
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0149
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0044
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0064
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 1.9625,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0006
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0042
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0009
+     ],
+     [
+      "arm_body7",
+      "vpiper_main",
+      0.0007
+     ]
+    ],
+    "old_hits": []
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.1588,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0015
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0011
+     ],
+     [
+      "arm_body8",
+      "vpiper_main",
+      0.0006
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0012
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body7",
+      "trunk",
+      0.0003
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0004
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.355,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0011
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0011
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.355,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0012
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0037
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0002
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.5512,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0003
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0007
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.5512,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0008
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.001
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0008
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.7475,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.7475,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0019
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0007
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.7475,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0008
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0035
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0011
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0009
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0021
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.001
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.9438,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0005
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0005
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.9438,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0009
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0038
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0038
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.9438,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0029
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0035
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0021
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 2.9438,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0008
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0001
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0017
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0009
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0011
+     ],
+     [
+      "arm_body7",
+      "vpiper_main",
+      0.0002
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0011
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0002
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0002
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 3.14,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0038
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0022
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0038
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0024
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 3.14,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.0008
+     ],
+     [
+      "arm_body3",
+      "trunk",
+      0.0012
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0018
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0038
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0001
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0038
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 3.14,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.0008
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0029
+     ],
+     [
+      "arm_body4",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0011
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0007
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0027
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": 1.5708,
+    "j2": 3.14,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0008
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0037
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0001
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0012
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0022
+     ],
+     [
+      "arm_body8",
+      "vpiper_main",
+      0.0006
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0013
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body8",
+      "trunk",
+      0.0002
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 1.9625,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0033
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0042
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0009
+     ],
+     [
+      "arm_body7",
+      "vpiper_main",
+      0.0008
+     ]
+    ],
+    "old_hits": []
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.1588,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.001
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0005
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.1588,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0042
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0011
+     ],
+     [
+      "arm_body8",
+      "vpiper_main",
+      0.0006
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0012
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body7",
+      "trunk",
+      0.0003
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0004
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.355,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0007
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0011
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0011
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.355,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0027
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0022
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0003
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.5512,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0007
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0003
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0007
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.5512,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0009
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0017
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0047
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0032
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.7475,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.003
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0029
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.7475,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0026
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0002
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0021
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0019
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.7475,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0011
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0035
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0011
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0013
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0051
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0038
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.9438,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0036
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0037
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.9438,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0004
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0016
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0037
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0001
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0037
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.9438,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0044
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0028
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0021
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0023
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 2.9438,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0011
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0008
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0017
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0018
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0003
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0042
+     ],
+     [
+      "arm_body7",
+      "vpiper_main",
+      0.0002
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0011
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.003
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0001
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 3.14,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0013
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0037
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0044
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0013
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0037
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0052
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 3.14,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.0008
+     ],
+     [
+      "arm_body3",
+      "trunk",
+      0.0013
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0009
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0017
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0026
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0037
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0001
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0037
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 3.14,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.0008
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0009
+     ],
+     [
+      "arm_body4",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0028
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0028
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0075
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0015
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0015
+     ]
+    ]
+   },
+   {
+    "j1": -1.5708,
+    "j2": 3.14,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0009
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0038
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0001
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0036
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0022
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0021
+     ],
+     [
+      "arm_body8",
+      "vpiper_main",
+      0.0003
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0013
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0009
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0002
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 1.57,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.003
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body7",
+      "vpiper_main",
+      0.0004
+     ]
+    ],
+    "old_hits": []
+   },
+   {
+    "j1": 2.618,
+    "j2": 1.7662,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body7",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0055
+     ],
+     [
+      "arm_body8",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0051
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body7",
+      "trunk",
+      0.0047
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0043
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 1.9625,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0032
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.008
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0073
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body7",
+      "trunk",
+      0.0072
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0065
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 1.9625,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0003
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0085
+     ],
+     [
+      "arm_body8",
+      "vpiper_main",
+      0.0051
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0082
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body7",
+      "trunk",
+      0.0077
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0075
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.1588,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0125
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0079
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0097
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0109
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.007
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.1588,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0097
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0067
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0112
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.1588,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0024
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0104
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0105
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body7",
+      "trunk",
+      0.0096
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0098
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.355,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0088
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0088
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.355,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0268
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0244
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.355,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0068
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0193
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0161
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.355,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0023
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.0014
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0102
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0097
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0072
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0089
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0114
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.5512,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0185
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0196
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0055
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0158
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0196
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0055
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.5512,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0133
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0315
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0101
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0315
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.5512,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0018
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.0012
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0311
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.5512,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0166
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0049
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0144
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0049
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.7475,
+    "j3": -0.989,
+    "new_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0145
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0132
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0109
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0007
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0112
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0132
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0109
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0007
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.7475,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0102
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0303
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.007
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0303
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.7475,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "metal_plate_5mm",
+      0.0013
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0033
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0315
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0259
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0315
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.7475,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0113
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0292
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0092
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0085
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0292
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0092
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.7475,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0007
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0001
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.0043
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0061
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0061
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.9438,
+    "j3": -1.2362,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0095
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0147
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0073
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0012
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0063
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0147
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0073
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0021
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.9438,
+    "j3": -0.989,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0108
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.028
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0248
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0161
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0077
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.028
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0248
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0189
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.9438,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0058
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0287
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0258
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0028
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0259
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0287
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.9438,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.0039
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0122
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0059
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0315
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body4",
+      "trunk",
+      0.0089
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0315
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0117
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0117
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.9438,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.0029
+     ],
+     [
+      "arm_body3",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.017
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.015
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0143
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.015
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 2.9438,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0011
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0008
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0018
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0019
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0076
+     ],
+     [
+      "arm_body7",
+      "vpiper_support",
+      0.0014
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.001
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.006
+     ],
+     [
+      "arm_body7",
+      "trunk",
+      0.0032
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 3.14,
+    "j3": -1.4835,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0119
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0102
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0034
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0115
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0102
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0034
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 3.14,
+    "j3": -1.2362,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0215
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0258
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0217
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0214
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0258
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0217
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 3.14,
+    "j3": -0.989,
+    "new_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0305
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0294
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0284
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0294
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 3.14,
+    "j3": -0.7418,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.0006
+     ],
+     [
+      "arm_body3",
+      "trunk",
+      0.0226
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0294
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0153
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0198
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0294
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0286
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0185
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 3.14,
+    "j3": -0.4945,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body3",
+      "metal_plate_5mm",
+      0.0002
+     ],
+     [
+      "arm_body3",
+      "trunk",
+      0.0088
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0223
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0285
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0194
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0035
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body3",
+      "trunk",
+      0.0058
+     ],
+     [
+      "arm_body4",
+      "trunk",
+      0.0191
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0285
+     ],
+     [
+      "arm_body6",
+      "trunk",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.0194
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0035
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 3.14,
+    "j3": -0.2473,
+    "new_hits": [
+     [
+      "arm_body3",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body3",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body4",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body4",
+      "vpiper_support",
+      0.0049
+     ],
+     [
+      "arm_body4",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.005
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body5",
+      "trunk",
+      0.0082
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body5",
+      "trunk",
+      0.0064
+     ]
+    ]
+   },
+   {
+    "j1": 2.618,
+    "j2": 3.14,
+    "j3": 0.0,
+    "new_hits": [
+     [
+      "arm_body5",
+      "vpiper_main",
+      0.0015
+     ],
+     [
+      "arm_body5",
+      "vpiper_support",
+      0.0033
+     ],
+     [
+      "arm_body5",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6",
+      "vpiper_main",
+      0.002
+     ],
+     [
+      "arm_body6",
+      "vpiper_support",
+      0.0001
+     ],
+     [
+      "arm_body6",
+      "metal_plate_5mm",
+      0.002
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_main",
+      0.005
+     ],
+     [
+      "arm_body6_to_gripper",
+      "vpiper_support",
+      0.0001
+     ],
+     [
+      "arm_body6_to_gripper",
+      "metal_plate_5mm",
+      0.0025
+     ],
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body7",
+      "vpiper_main",
+      0.0012
+     ],
+     [
+      "arm_body7",
+      "vpiper_support",
+      0.0026
+     ]
+    ],
+    "old_hits": [
+     [
+      "arm_body6_to_gripper",
+      "trunk",
+      0.01
+     ],
+     [
+      "arm_body8",
+      "trunk",
+      0.0005
+     ]
+    ]
+   }
+  ]
+ }
+}

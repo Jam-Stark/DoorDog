@@ -1,0 +1,505 @@
+{
+  "status": "CAD_AND_MESH_DATUM_PASS",
+  "scope": "Supplied CAD/URDF geometry only; no hardware metrology or dynamics validation",
+  "registration": {
+    "R_B_from_STEP": [
+      [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        -1.0
+      ]
+    ],
+    "translation_B_mm": [
+      -0.006392962056665397,
+      -0.052512080196557065,
+      0.10639243860595116
+    ],
+    "vertex_count": 3873,
+    "residual_p50_p95_p99_max_mm": [
+      1.6240587665286486e-05,
+      0.0012981791924733613,
+      0.1270071928857265,
+      1.421192574344501
+    ],
+    "six_dof_extra_rotation_vector_deg": [
+      3.040014641813331e-07,
+      2.1389954149114978e-07,
+      5.8844464978716444e-08
+    ],
+    "six_dof_translation_mm": [
+      -0.006392789547144062,
+      -0.052511003969648584,
+      0.10639216099760596
+    ]
+  },
+  "plate": {
+    "owner_constraint": "Thickness 5 mm; width matches narrower head portion of Vpiper, NOT the rear-wide top-face AABB. Overall head width interpreted including rounded corners.",
+    "length_retained_mm": 249.99999999999972,
+    "narrow_head_overall_width_mm": 100.0,
+    "head_straight_edge_mm": 80.0,
+    "head_corner_radius_mm": 10.0,
+    "previous_plate_width_mm": 173.1042899275307,
+    "final_width_mm": 100.0,
+    "width_reduction_each_side_mm": 36.55214496376534,
+    "hole_slot_edge_detail": "unmeasured; rectangular nominal envelope, not a machining model",
+    "top_wire_edges": [
+      {
+        "type": "LINE",
+        "length_mm": 99.99999999999969,
+        "start_B_mm": [
+          18.212711224453617,
+          -86.54859704353944,
+          142.43155475498594
+        ],
+        "end_B_mm": [
+          118.21271122445332,
+          -86.54859704353944,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "LINE",
+        "length_mm": 16.552143951053594,
+        "start_B_mm": [
+          118.21271122445332,
+          -86.54859704353944,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          118.21271122445332,
+          -69.99645309248586,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "LINE",
+        "length_mm": 28.284271247461916,
+        "start_B_mm": [
+          118.21271122445332,
+          -69.99645309248586,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          138.2127112244533,
+          -49.99645309248586,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "LINE",
+        "length_mm": 119.99999999999997,
+        "start_B_mm": [
+          138.2127112244533,
+          -49.99645309248586,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          258.2127112244533,
+          -49.99645309248586,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "CIRCLE",
+        "length_mm": 15.707963267948966,
+        "start_B_mm": [
+          258.2127112244533,
+          -49.99645309248586,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          268.2127112244533,
+          -39.99645309248586,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "LINE",
+        "length_mm": 80.0,
+        "start_B_mm": [
+          268.2127112244533,
+          -39.99645309248586,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          268.2127112244533,
+          40.00354690751414,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "CIRCLE",
+        "length_mm": 15.707963267948966,
+        "start_B_mm": [
+          268.2127112244533,
+          40.00354690751414,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          258.2127112244533,
+          50.00354690751414,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "LINE",
+        "length_mm": 119.99999999999999,
+        "start_B_mm": [
+          258.2127112244533,
+          50.00354690751414,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          138.2127112244533,
+          50.00354690751414,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "LINE",
+        "length_mm": 28.284271247461987,
+        "start_B_mm": [
+          138.2127112244533,
+          50.00354690751414,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          118.21271122445332,
+          70.00354690751425,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "LINE",
+        "length_mm": 16.552145976476993,
+        "start_B_mm": [
+          118.21271122445332,
+          70.00354690751425,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          118.21271122445332,
+          86.55569288399124,
+          142.43155475498597
+        ]
+      },
+      {
+        "type": "LINE",
+        "length_mm": 99.9999999999997,
+        "start_B_mm": [
+          118.21271122445332,
+          86.55569288399124,
+          142.43155475498597
+        ],
+        "end_B_mm": [
+          18.212711224453617,
+          86.55569288399124,
+          142.43155475498594
+        ]
+      },
+      {
+        "type": "LINE",
+        "length_mm": 173.10428992753071,
+        "start_B_mm": [
+          18.212711224453617,
+          86.55569288399124,
+          142.43155475498594
+        ],
+        "end_B_mm": [
+          18.212711224453617,
+          -86.54859704353944,
+          142.43155475498594
+        ]
+      }
+    ]
+  },
+  "trunk_collision_boxes": [
+    {
+      "index": 0,
+      "origin_B_mm": [
+        0.0,
+        0.0,
+        7.0
+      ],
+      "rpy_rad": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "full_size_mm": [
+        240.0,
+        280.0,
+        170.0
+      ],
+      "aabb_B_mm": [
+        [
+          -120.0,
+          -140.0,
+          -78.0
+        ],
+        [
+          120.0,
+          140.0,
+          92.0
+        ]
+      ]
+    },
+    {
+      "index": 1,
+      "origin_B_mm": [
+        250.0,
+        0.0,
+        119.0
+      ],
+      "rpy_rad": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "full_size_mm": [
+        80.0,
+        50.0,
+        20.0
+      ],
+      "aabb_B_mm": [
+        [
+          210.0,
+          -25.0,
+          109.0
+        ],
+        [
+          290.0,
+          25.0,
+          129.0
+        ]
+      ]
+    },
+    {
+      "index": 2,
+      "origin_B_mm": [
+        -220.0,
+        0.0,
+        119.0
+      ],
+      "rpy_rad": [
+        0.0,
+        -0.03,
+        0.0
+      ],
+      "full_size_mm": [
+        50.0,
+        30.0,
+        16.0
+      ],
+      "aabb_B_mm": [
+        [
+          -245.22871484534465,
+          -15.0,
+          110.2537122249457
+        ],
+        [
+          -194.77128515465535,
+          15.0,
+          127.7462877750543
+        ]
+      ]
+    },
+    {
+      "index": 3,
+      "origin_B_mm": [
+        365.0,
+        0.0,
+        100.0
+      ],
+      "rpy_rad": [
+        0.0,
+        -0.7,
+        0.0
+      ],
+      "full_size_mm": [
+        60.0,
+        100.0,
+        10.0
+      ],
+      "aabb_B_mm": [
+        [
+          338.8336459452769,
+          -50.0,
+          76.84925844644683
+        ],
+        [
+          391.1663540547231,
+          50.0,
+          123.15074155355317
+        ]
+      ]
+    },
+    {
+      "index": 4,
+      "origin_B_mm": [
+        -310.0,
+        0.0,
+        112.0
+      ],
+      "rpy_rad": [
+        0.0,
+        0.7,
+        0.0
+      ],
+      "full_size_mm": [
+        45.0,
+        100.0,
+        10.0
+      ],
+      "aabb_B_mm": [
+        [
+          -330.43003765008945,
+          -50.0,
+          93.68089110072951
+        ],
+        [
+          -289.56996234991055,
+          50.0,
+          130.31910889927047
+        ]
+      ]
+    }
+  ],
+  "rail_back_probes": [
+    {
+      "label": "adjacent_back_shell",
+      "xy_B_mm": [
+        24,
+        95
+      ],
+      "exact_top_B_z_mm": 89.63163107544301,
+      "all_intersections_B_z_mm": [
+        89.63163107544301,
+        -63.277844216940366
+      ]
+    },
+    {
+      "label": "bearing_lip_inner",
+      "xy_B_mm": [
+        24,
+        102
+      ],
+      "exact_top_B_z_mm": 92.431554754986,
+      "all_intersections_B_z_mm": [
+        92.431554754986,
+        89.63155305388602,
+        83.13155305388602,
+        -63.277844216940366
+      ]
+    },
+    {
+      "label": "rail_groove_floor_NOT_mount_datum",
+      "xy_B_mm": [
+        24,
+        106
+      ],
+      "exact_top_B_z_mm": 83.13155305388602,
+      "all_intersections_B_z_mm": [
+        83.13155305388602,
+        -63.27049233806133
+      ]
+    },
+    {
+      "label": "bearing_lip_outer",
+      "xy_B_mm": [
+        24,
+        110
+      ],
+      "exact_top_B_z_mm": 92.431554754986,
+      "all_intersections_B_z_mm": [
+        92.431554754986,
+        89.63155305388602,
+        83.13155305388602,
+        -62.69545123715898
+      ]
+    },
+    {
+      "label": "back_shell_center_reference",
+      "xy_B_mm": [
+        0,
+        0
+      ],
+      "exact_top_B_z_mm": 89.63161865018594,
+      "all_intersections_B_z_mm": [
+        89.63161865018594,
+        -63.27783810440792
+      ]
+    },
+    {
+      "label": "front_hump_NOT_mount_datum",
+      "xy_B_mm": [
+        145,
+        0
+      ],
+      "exact_top_B_z_mm": 115.73217133453954,
+      "all_intersections_B_z_mm": [
+        115.73217133453954,
+        27.69999988788595,
+        -28.300000107104097,
+        -60.277977855680774
+      ]
+    }
+  ],
+  "stack": {
+    "source_main_collision_top_B_z_mm": 92.0,
+    "rail_lower_reference_plane_B_z_mm": 89.63155305388602,
+    "rail_lip_top_B_z_mm": 92.431554754986,
+    "rail_lip_rise_above_lower_reference_mm": 2.8000017010999727,
+    "rail_lip_top_minus_collision_box_top_mm": 0.4315547549859531,
+    "vpiper_lower_foot_plane_B_z_mm": 92.43155475498595,
+    "vpiper_top_face_B_z_mm": 142.431554754986,
+    "vpiper_height_mm": 50.00000000000004,
+    "metal_plate_thickness_mm": 5.0,
+    "metal_plate_top_B_z_mm": 147.431554754986,
+    "piper_original_bottom_local_z_mm": -6.2145459035649554e-15,
+    "final_arm_j0_B_xyz_mm": [
+      145.0,
+      0.0,
+      147.431554754986
+    ],
+    "original_arm_j0_B_xyz_mm": [
+      145.0,
+      0.0,
+      154.0
+    ],
+    "final_minus_original_Z_mm": -6.568445245014004,
+    "old_Z_minus_box_top_and_5mm_mm": 57.0,
+    "final_box_referenced_chain_mm": [
+      92.0,
+      0.4315547549859531,
+      50.00000000000004,
+      5.0
+    ]
+  },
+  "rail_contacts": {
+    "count": 16,
+    "max_abs_exact_gap_mm": 4.263256414560601e-14,
+    "max_abs_STL_gap_mm": 5.203783531726458e-05
+  },
+  "fixed_XY": "Retain original [145,0] mm; slot-locking position is not independently measured. No new horizontal shift imposed.",
+  "do_not_add_extra_rail_height": "The CAD/mesh contact plane already is the top of the raised rail. Do not add 2.8 mm again.",
+  "source_BRep_validity": {
+    "vpiper_main": true,
+    "vpiper_support": true,
+    "trunk": false,
+    "trunk_healing_applied": false,
+    "scope_note": "Source trunk has one unorientable side-wall face; datum sampling is not global BRep validity certification. See source_trunk_brep_warning.json."
+  },
+  "original_collision_policy": "All original trunk collision primitives retained; no new detailed rail collider; simplified collision box is not a mechanical datum.",
+  "new_component_masses": "not provided and not guessed"
+}

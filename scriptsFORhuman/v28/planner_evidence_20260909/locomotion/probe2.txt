@@ -1,0 +1,23 @@
+943f3acef71ac0d8f5a71744c2a6a8256cb85230 2026-06-09 20:27:42 +0800 add gripper offset and arm goal play visuals
+---
+41:-    sphere_center: Tuple[float, float] = (0.135, 0.0)  # A2 机身坐标系XY，对齐 Piper arm_j0 X
+42:-    sphere_center_z: float = 0.687  # 世界坐标系固定Z高度: root init 0.55 + arm_j0 Z 0.137
+43:+    sphere_center: Tuple[float, float] = (0.145, 0.0)  # A2 机身坐标系XY，对齐 Piper arm_j0 X
+44:+    sphere_center_z: float = 0.704  # 世界坐标系固定Z高度: root init 0.55 + arm_j0 Z 0.154
+---
+ablation
+algo
+base
+base.yaml
+base_eval.yaml
+callbacks
+domain_rand
+env
+exp
+obs
+opt
+rewards
+robot
+simulator
+terrain
+trainer

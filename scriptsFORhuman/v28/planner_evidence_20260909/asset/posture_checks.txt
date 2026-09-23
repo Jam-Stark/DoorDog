@@ -1,0 +1,31 @@
+== posture-related in evidence modules/tests ==
+gr00t/rl/tests/test_a2_hold_oracle_diagnostics.py:2129:            robot.data.default_joint_pos = torch.zeros(2, 6)
+gr00t/rl/tests/test_a2_hold_oracle_diagnostics.py:2782:    q_default = torch.zeros(1, 6)
+gr00t/rl/tests/test_a2_hold_oracle_diagnostics.py:2785:    d_des, raw = a2_hold_absolute_target_to_cumulative_action(q_des, q_default, d_prev)
+gr00t/rl/tests/test_a2_hold_oracle_diagnostics.py:3684:            self.data.default_joint_pos = torch.zeros(2, 6)
+gr00t/rl/tests/test_a2_hold_oracle_diagnostics.py:3878:            self.data.default_joint_pos = default_target
+gr00t/rl/envs/door/a2_v21b_evidence.py:33:V21B_ARM_JOINT_NAMES = ("arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6")
+gr00t/rl/envs/door/a2_v23_evidence.py:68:V23_PHASE_ARM_JOINT_NAMES = ("arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6")
+gr00t/rl/envs/door/a2_v23_evidence.py:79:    "default_dof_pos_6d",
+gr00t/rl/envs/door/a2_v23_evidence.py:238:    default_dof_pos: torch.Tensor,
+gr00t/rl/envs/door/a2_v23_evidence.py:298:        "default_dof_pos_6d": default_dof_pos,
+gr00t/rl/envs/door/a2_v23_evidence.py:318:    expected_target = action_after_delay * action_scale + default_dof_pos
+gr00t/rl/envs/door/a2_v23_evidence.py:320:        raise RuntimeError("phase q_target disagrees with action_after_delay * action_scale + default_dof_pos.")
+gr00t/rl/envs/door/a2_v26_4_canonicalization.py:66:    arm_default: torch.Tensor,
+gr00t/rl/envs/door/a2_v26_4_canonicalization.py:74:    arm_offset = (arm_default * arm_signs - arm_default) / action_scale
+gr00t/rl/envs/door/a2_v26_4_canonicalization.py:108:    arm_default: torch.Tensor,
+gr00t/rl/envs/door/a2_v26_4_canonicalization.py:114:        arm_default,
+gr00t/rl/envs/door/a2_v26_4_canonicalization.py:125:    arm_default: torch.Tensor,
+gr00t/rl/envs/door/a2_v26_4_canonicalization.py:134:        canonical_actions, right_mask, arm_default, action_scale
+gr00t/rl/envs/door/a2_v26_4_canonicalization.py:139:        arm_default,
+== a2_stage0_arm_default_max_deviation & stage0 settle ==
+gr00t/rl/config/env/door_open_a2_base.yaml:138:    a2_stage0_arm_default_max_deviation: 0.10
+== stage4 default pose penalty active? ==
+gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml:83:      penalty_a2_stage4_arm_default_pose_l1: 0.0
+== reachability scripts posture ==
+== tcp offset ==
+gr00t/rl/envs/door/door_open_a2_base.py:5489:    A2_GRIPPER_SOURCE_TCP_OFFSET_Z_CONFIG_KEY = "a2_gripper_source_tcp_offset_z"
+gr00t/rl/envs/door/door_open_a2_base.py:5673:    def _get_a2_gripper_source_tcp_offset_z(self) -> float:
+gr00t/rl/envs/door/door_open_a2_base.py:21537:        cfg["tcp_offset_z"] = self._get_a2_gripper_source_tcp_offset_z()
+gr00t/rl/envs/door/door_open_a2_base.py:27282:            "gripper_source_tcp_offset_z": self._get_a2_gripper_source_tcp_offset_z(),
+gr00t/rl/envs/door/door_open_a2_base.py:29826:                        pos=(0.0, 0.0, self._get_a2_gripper_source_tcp_offset_z()),

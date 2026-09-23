@@ -1,0 +1,12 @@
+{
+  "vpiper_main": {
+    "fresh_vertex_to_previous_vertex_max_distance_m": 5.039701635470046e-09,
+    "source_solid_valid": true,
+    "source_volume_mm3": 497095.0905027225
+  },
+  "vpiper_support": {
+    "fresh_vertex_to_previous_vertex_max_distance_m": 4.582604038365246e-09,
+    "source_solid_valid": true,
+    "source_volume_mm3": 168998.13318898398
+  }
+}

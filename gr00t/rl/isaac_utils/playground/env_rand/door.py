@@ -86,6 +86,8 @@ def _sample_uniform_range(value: tuple[float, float], field_name: str) -> float:
 @configclass
 class DoorSpawnerCfg(sim_utils.RigidObjectSpawnerCfg):
     articulation_props: sim_utils.ArticulationRootPropertiesCfg = None
+    v29_handle: Optional[dict] = None
+    v29_dynamics: Optional[dict] = None
     door_width: tuple[float, float] = (0.8, 1.1)
     door_height: tuple[float, float] = (1.9, 2.2)
     door_handle_tblr: tuple[float, float, float, float] = (1.0, 0.85, 0.08, 0.15)
@@ -413,86 +415,99 @@ def spawn_door(
         (0, 0, 0),
         (1.0, 1.0, 1.0),
     )
-    axle_prim_path = os.path.join(handle_prim_path, "axle")
-    # then, create the axle prim
-    create_prim(axle_prim_path, "Cylinder")
-    set_prim_transform(stage, axle_prim_path, (0, 0, 0), (0, 90, 0), (1.0, 1.0, 1.0))
-    axle_geom: UsdGeom.Cylinder = UsdGeom.Cylinder.Define(stage, axle_prim_path)
-    axle_geom.GetRadiusAttr().Set(handle_radius)
-    axle_geom.GetHeightAttr().Set(axle_length)
-    add_mass(stage, axle_prim_path, mass=0.2)
-    add_collider(stage, axle_prim_path)
+    if cfg.v29_handle is not None:
+        from .handle_v29 import author_handle_geometry
 
-    # then, create the handle lever prim
-    handle_shape_inside_prim_path = os.path.join(handle_prim_path, "handle_inside")
-    create_prim(handle_shape_inside_prim_path, "Capsule")
-    set_prim_transform(
-        stage,
-        handle_shape_inside_prim_path,
-        (-axle_length / 2, (-handle_length / 2) * door_open_lr, 0),
-        (90, 0, 0),
-        (1.0, 1.0, 1.0),
-    )
-    handle_shape_inside_geom: UsdGeom.Capsule = UsdGeom.Capsule.Define(
-        stage, handle_shape_inside_prim_path
-    )
-    handle_shape_inside_geom.GetRadiusAttr().Set(handle_radius)
-    handle_shape_inside_geom.GetHeightAttr().Set(handle_length)
-    add_mass(stage, handle_shape_inside_prim_path, mass=0.1)
-    add_collider(stage, handle_shape_inside_prim_path)
+        v29_handle = author_handle_geometry(
+            stage, handle_prim_path, panel_prim_path, cfg.v29_handle, door_open_lr,
+            (half_door_width-door_handle_width)*door_open_lr, door_handle_height,
+            door_width, door_height, door_weight,
+        )
+        axle_length = v29_handle["axle_length_m"]
+        handle_length = v29_handle["main_arc_length_m"]
+        hook_length = v29_handle["return_depth_m"]
+        spawn_hook = v29_handle["return_present"]
+    else:
+        axle_prim_path = os.path.join(handle_prim_path, "axle")
+        # then, create the axle prim
+        create_prim(axle_prim_path, "Cylinder")
+        set_prim_transform(stage, axle_prim_path, (0, 0, 0), (0, 90, 0), (1.0, 1.0, 1.0))
+        axle_geom: UsdGeom.Cylinder = UsdGeom.Cylinder.Define(stage, axle_prim_path)
+        axle_geom.GetRadiusAttr().Set(handle_radius)
+        axle_geom.GetHeightAttr().Set(axle_length)
+        add_mass(stage, axle_prim_path, mass=0.2)
+        add_collider(stage, axle_prim_path)
 
-    handle_shape_outside_prim_path = os.path.join(handle_prim_path, "handle_outside")
-    create_prim(handle_shape_outside_prim_path, "Capsule")
-    set_prim_transform(
-        stage,
-        handle_shape_outside_prim_path,
-        (axle_length / 2, (-handle_length / 2) * door_open_lr, 0),
-        (90, 0, 0),
-        (1.0, 1.0, 1.0),
-    )
-    handle_shape_outside_geom: UsdGeom.Capsule = UsdGeom.Capsule.Define(
-        stage, handle_shape_outside_prim_path
-    )
-    handle_shape_outside_geom.GetRadiusAttr().Set(handle_radius)
-    handle_shape_outside_geom.GetHeightAttr().Set(handle_length)
-    add_mass(stage, handle_shape_outside_prim_path, mass=0.1)
-    add_collider(stage, handle_shape_outside_prim_path)
-
-    spawn_hook = np.random.rand() < 0.5 if cfg.rand_spawn_hook is None else cfg.rand_spawn_hook
-    if spawn_hook:
-        # spawn the hook prim
-        hook_inside_prim_path = os.path.join(handle_prim_path, "hook_inside")
-        create_prim(hook_inside_prim_path, "Cylinder")
+        # then, create the handle lever prim
+        handle_shape_inside_prim_path = os.path.join(handle_prim_path, "handle_inside")
+        create_prim(handle_shape_inside_prim_path, "Capsule")
         set_prim_transform(
             stage,
-            hook_inside_prim_path,
-            (-axle_length / 2 + hook_length / 2, -handle_length * door_open_lr, 0),
-            (0, 90, 0),
+            handle_shape_inside_prim_path,
+            (-axle_length / 2, (-handle_length / 2) * door_open_lr, 0),
+            (90, 0, 0),
             (1.0, 1.0, 1.0),
         )
-        hook_inside_geom: UsdGeom.Cylinder = UsdGeom.Cylinder.Define(stage, hook_inside_prim_path)
-        hook_inside_geom.GetRadiusAttr().Set(handle_radius)
-        hook_inside_geom.GetHeightAttr().Set(hook_length)
-        add_mass(stage, hook_inside_prim_path, mass=0.05)
-        add_collider(stage, hook_inside_prim_path)
+        handle_shape_inside_geom: UsdGeom.Capsule = UsdGeom.Capsule.Define(
+            stage, handle_shape_inside_prim_path
+        )
+        handle_shape_inside_geom.GetRadiusAttr().Set(handle_radius)
+        handle_shape_inside_geom.GetHeightAttr().Set(handle_length)
+        add_mass(stage, handle_shape_inside_prim_path, mass=0.1)
+        add_collider(stage, handle_shape_inside_prim_path)
 
-        hook_outside_prim_path = os.path.join(handle_prim_path, "hook_outside")
-        create_prim(hook_outside_prim_path, "Cylinder")
+        handle_shape_outside_prim_path = os.path.join(handle_prim_path, "handle_outside")
+        create_prim(handle_shape_outside_prim_path, "Capsule")
         set_prim_transform(
             stage,
-            hook_outside_prim_path,
-            (axle_length / 2 - hook_length / 2, -handle_length * door_open_lr, 0),
-            (0, 90, 0),
+            handle_shape_outside_prim_path,
+            (axle_length / 2, (-handle_length / 2) * door_open_lr, 0),
+            (90, 0, 0),
             (1.0, 1.0, 1.0),
         )
-        hook_outside_geom: UsdGeom.Cylinder = UsdGeom.Cylinder.Define(stage, hook_outside_prim_path)
-        hook_outside_geom.GetRadiusAttr().Set(handle_radius)
-        hook_outside_geom.GetHeightAttr().Set(hook_length)
-        add_mass(stage, hook_outside_prim_path, mass=0.05)
-        add_collider(stage, hook_outside_prim_path)
+        handle_shape_outside_geom: UsdGeom.Capsule = UsdGeom.Capsule.Define(
+            stage, handle_shape_outside_prim_path
+        )
+        handle_shape_outside_geom.GetRadiusAttr().Set(handle_radius)
+        handle_shape_outside_geom.GetHeightAttr().Set(handle_length)
+        add_mass(stage, handle_shape_outside_prim_path, mass=0.1)
+        add_collider(stage, handle_shape_outside_prim_path)
 
-    # spawn keyhole
-    if np.random.rand() < 0.5:
+        spawn_hook = np.random.rand() < 0.5 if cfg.rand_spawn_hook is None else cfg.rand_spawn_hook
+        if spawn_hook:
+            # spawn the hook prim
+            hook_inside_prim_path = os.path.join(handle_prim_path, "hook_inside")
+            create_prim(hook_inside_prim_path, "Cylinder")
+            set_prim_transform(
+                stage,
+                hook_inside_prim_path,
+                (-axle_length / 2 + hook_length / 2, -handle_length * door_open_lr, 0),
+                (0, 90, 0),
+                (1.0, 1.0, 1.0),
+            )
+            hook_inside_geom: UsdGeom.Cylinder = UsdGeom.Cylinder.Define(stage, hook_inside_prim_path)
+            hook_inside_geom.GetRadiusAttr().Set(handle_radius)
+            hook_inside_geom.GetHeightAttr().Set(hook_length)
+            add_mass(stage, hook_inside_prim_path, mass=0.05)
+            add_collider(stage, hook_inside_prim_path)
+
+            hook_outside_prim_path = os.path.join(handle_prim_path, "hook_outside")
+            create_prim(hook_outside_prim_path, "Cylinder")
+            set_prim_transform(
+                stage,
+                hook_outside_prim_path,
+                (axle_length / 2 - hook_length / 2, -handle_length * door_open_lr, 0),
+                (0, 90, 0),
+                (1.0, 1.0, 1.0),
+            )
+            hook_outside_geom: UsdGeom.Cylinder = UsdGeom.Cylinder.Define(stage, hook_outside_prim_path)
+            hook_outside_geom.GetRadiusAttr().Set(handle_radius)
+            hook_outside_geom.GetHeightAttr().Set(hook_length)
+            add_mass(stage, hook_outside_prim_path, mass=0.05)
+            add_collider(stage, hook_outside_prim_path)
+
+    # Older recipes have a decorative keyhole; B05 uses the two coaxial roses.
+    if cfg.v29_handle is None and np.random.rand() < 0.5:
         keyhole_prim_path = os.path.join(panel_prim_path, "keyhole")
         create_prim(keyhole_prim_path, "Cylinder")
         set_prim_transform(
@@ -527,33 +542,54 @@ def spawn_door(
     if door_open_lr == 1:
         hinge_joint.CreateLocalRot0Attr().Set(Gf.Quatf(real=0.0, imaginary=(Gf.Vec3f(1, 0, 0))))
     hinge_joint.GetLowerLimitAttr().Set(0.0)
-    hinge_joint.GetUpperLimitAttr().Set(150)
-    hinge_drive = UsdPhysics.DriveAPI.Apply(hinge_joint.GetPrim(), "angular")
-    hinge_drive.GetTargetPositionAttr().Set(-10.0)
-    hinge_drive.GetMaxForceAttr().Set(
-        _sample_uniform_range(
-            cfg.hinge_drive_max_force_range,
-            "hinge_drive_max_force_range",
+    if cfg.v29_dynamics is not None:
+        dynamics = cfg.v29_dynamics
+        if door_weight != dynamics["mass_kg"]:
+            raise ValueError("v29 dynamics and authored panel mass disagree")
+        hinge_joint.GetUpperLimitAttr().Set(dynamics["max_opening_deg"])
+        hinge_drive = UsdPhysics.DriveAPI.Apply(hinge_joint.GetPrim(), "angular")
+        hinge_drive.CreateTypeAttr("force")
+        hinge_drive.CreateTargetPositionAttr(np.degrees(dynamics["target_position_rad"]))
+        hinge_drive.CreateTargetVelocityAttr(0.)
+        hinge_drive.CreateMaxForceAttr(dynamics["torque_cap_nm"])
+        hinge_drive.CreateStiffnessAttr(dynamics["stiffness_nm_rad"]*np.pi/180.)
+        hinge_drive.CreateDampingAttr(dynamics["damping_nm_s_rad"]*np.pi/180.)
+        friction_prim = hinge_joint.GetPrim()
+        friction_prim.ApplyAPI("PhysxJointAxisAPI", "angular")
+        for name, value in (
+            ("staticFrictionEffort", dynamics["static_friction_nm"]),
+            ("dynamicFrictionEffort", dynamics["dynamic_friction_nm"]),
+            ("viscousFrictionCoefficient", dynamics["viscous_friction_nm_s_rad"]*np.pi/180.),
+        ):
+            friction_prim.GetAttribute(f"physxJointAxis:angular:{name}").Set(value)
+    else:
+        hinge_joint.GetUpperLimitAttr().Set(150)
+        hinge_drive = UsdPhysics.DriveAPI.Apply(hinge_joint.GetPrim(), "angular")
+        hinge_drive.GetTargetPositionAttr().Set(-10.0)
+        hinge_drive.GetMaxForceAttr().Set(
+            _sample_uniform_range(
+                cfg.hinge_drive_max_force_range,
+                "hinge_drive_max_force_range",
+            )
+            if cfg.rand_hinge_drive_max_force is None
+            else cfg.rand_hinge_drive_max_force
         )
-        if cfg.rand_hinge_drive_max_force is None
-        else cfg.rand_hinge_drive_max_force
-    )
-    hinge_drive.GetDampingAttr().Set(
-        _resolve_hinge_drive_scalar(
-            cfg.rand_hinge_drive_damping,
-            cfg.hinge_drive_damping_range,
-            LEGACY_HINGE_DRIVE_DAMPING,
-            "hinge_drive_damping",
+        hinge_drive.GetDampingAttr().Set(
+            _resolve_hinge_drive_scalar(
+                cfg.rand_hinge_drive_damping,
+                cfg.hinge_drive_damping_range,
+                LEGACY_HINGE_DRIVE_DAMPING,
+                "hinge_drive_damping",
+            )
         )
-    )
-    hinge_drive.GetStiffnessAttr().Set(
-        _resolve_hinge_drive_scalar(
-            cfg.rand_hinge_drive_stiffness,
-            cfg.hinge_drive_stiffness_range or LEGACY_HINGE_DRIVE_STIFFNESS_RANGE,
-            None,
-            "hinge_drive_stiffness",
+        hinge_drive.GetStiffnessAttr().Set(
+            _resolve_hinge_drive_scalar(
+                cfg.rand_hinge_drive_stiffness,
+                cfg.hinge_drive_stiffness_range or LEGACY_HINGE_DRIVE_STIFFNESS_RANGE,
+                None,
+                "hinge_drive_stiffness",
+            )
         )
-    )
     _update_joint_transform(stage, hinge_joint_prim_path, root_prim_path, panel_prim_path)
 
     handle_joint_prim_path = os.path.join(panel_prim_path, "handle_joint")
@@ -631,26 +667,47 @@ def spawn_door(
         latch_mimic_joint.GetOffsetAttr().Set(0.0)
         _update_joint_transform(stage, latch_joint_prim_path, panel_prim_path, latch_link_prim_path)
 
-    # adjust grasp target
-    set_prim_transform(
-        stage,
-        grasp_target_prim_path,
-        (
-            -axle_length / 2,
-            (half_door_width - door_handle_width - handle_length / 2) * door_open_lr,
-            door_handle_height,
-        ),
-        (0, 0, 0),
-        (1.0, 1.0, 1.0),
-    )
-    grasp_target_joint_prim_path = os.path.join(handle_prim_path, "grasp_target_joint")
-    grasp_target_joint = UsdPhysics.FixedJoint.Define(stage, grasp_target_joint_prim_path)
-    grasp_target_joint.CreateBody0Rel().SetTargets([grasp_target_prim_path])
-    grasp_target_joint.CreateBody1Rel().SetTargets([handle_prim_path])
-    grasp_target_joint.CreateLocalPos1Attr().Set(
-        Gf.Vec3f(-axle_length / 2, -handle_length / 2 * door_open_lr, 0.0)
-    )
-    # _update_joint_transform(stage, grasp_target_joint_prim_path, grasp_target_prim_path, handle_prim_path)
+    if cfg.v29_handle is not None:
+        local = v29_handle["grasp_position_local_m"]
+        quat = v29_handle["grasp_quaternion_wxyz"]
+        target_xform = UsdGeom.Xformable(stage.GetPrimAtPath(grasp_target_prim_path))
+        target_xform.ClearXformOpOrder()
+        target_xform.AddTranslateOp().Set(Gf.Vec3d(
+            local[0], local[1]+(half_door_width-door_handle_width)*door_open_lr,
+            local[2]+door_handle_height,
+        ))
+        target_xform.AddOrientOp(UsdGeom.XformOp.PrecisionDouble).Set(
+            Gf.Quatd(quat[0], Gf.Vec3d(*quat[1:]))
+        )
+        grasp_target_joint_prim_path = os.path.join(handle_prim_path, "grasp_target_joint")
+        grasp_target_joint = UsdPhysics.FixedJoint.Define(stage, grasp_target_joint_prim_path)
+        grasp_target_joint.CreateBody0Rel().SetTargets([grasp_target_prim_path])
+        grasp_target_joint.CreateBody1Rel().SetTargets([handle_prim_path])
+        grasp_target_joint.CreateLocalPos0Attr(Gf.Vec3f(0., 0., 0.))
+        grasp_target_joint.CreateLocalRot0Attr(Gf.Quatf(1., Gf.Vec3f(0., 0., 0.)))
+        grasp_target_joint.CreateLocalPos1Attr(Gf.Vec3f(*local))
+        grasp_target_joint.CreateLocalRot1Attr(Gf.Quatf(quat[0], Gf.Vec3f(*quat[1:])))
+    else:
+        # adjust grasp target
+        set_prim_transform(
+            stage,
+            grasp_target_prim_path,
+            (
+                -axle_length / 2,
+                (half_door_width - door_handle_width - handle_length / 2) * door_open_lr,
+                door_handle_height,
+            ),
+            (0, 0, 0),
+            (1.0, 1.0, 1.0),
+        )
+        grasp_target_joint_prim_path = os.path.join(handle_prim_path, "grasp_target_joint")
+        grasp_target_joint = UsdPhysics.FixedJoint.Define(stage, grasp_target_joint_prim_path)
+        grasp_target_joint.CreateBody0Rel().SetTargets([grasp_target_prim_path])
+        grasp_target_joint.CreateBody1Rel().SetTargets([handle_prim_path])
+        grasp_target_joint.CreateLocalPos1Attr().Set(
+            Gf.Vec3f(-axle_length / 2, -handle_length / 2 * door_open_lr, 0.0)
+        )
+        # _update_joint_transform(stage, grasp_target_joint_prim_path, grasp_target_prim_path, handle_prim_path)
 
     # Visual debug spheres (green=grasp_target, red=pregrasp) are spawned in
     # door_open_a2_base.py scene_creation_callback so they read offsets directly
@@ -1017,6 +1074,12 @@ def spawn_door(
         "handleDriveDamping": handle_drive.GetDampingAttr().Get(),
         "handleDriveStiffness": handle_drive.GetStiffnessAttr().Get(),
     }
+    if cfg.v29_handle is not None:
+        metadata_value["v29Handle"] = v29_handle
+        # The old radius described both neck and lever; that assertion is false for B05.
+        del metadata_value["handleRadius"]
+    if cfg.v29_dynamics is not None:
+        metadata_value["v29Dynamics"] = cfg.v29_dynamics
     if cfg.add_walls:
         metadata_value["front"] = front
         metadata_value["rear"] = rear
@@ -1148,13 +1211,20 @@ def get_deterministic_door_config(cfg: DoorSpawnerCfg, metadata: dict) -> DoorSp
     cfg.rand_door_handle_width = metadata["doorHandleWidth"]
     cfg.rand_door_weight = metadata["doorWeight"]
     cfg.rand_door_handle_type = metadata["doorHandleType"]
-    cfg.rand_door_open_lr = metadata["doorOpenLR"]
-    cfg.rand_door_open_io = metadata["doorOpenIO"]
+    cfg.rand_door_open_lr = {1: "left", -1: "right"}[metadata["doorOpenLR"]]
+    cfg.rand_door_open_io = {1: "in", -1: "out"}[metadata["doorOpenIO"]]
     cfg.rand_total_wall_height = metadata["totalWallHeight"]
     cfg.rand_axle_length = metadata["axleLength"]
     cfg.rand_handle_length = metadata["handleLength"]
     cfg.rand_hook_length = metadata["hookLength"]
-    cfg.rand_handle_radius = metadata["handleRadius"]
+    if cfg.v29_handle is not None or "v29Handle" in metadata:
+        from .handle_v29 import normalize_handle_metadata
+        cfg.v29_handle = normalize_handle_metadata(metadata["v29Handle"])
+        cfg.rand_handle_radius = cfg.v29_handle["neck_radius_m"]
+    else:
+        cfg.rand_handle_radius = metadata["handleRadius"]
+    if cfg.v29_dynamics is not None or "v29Dynamics" in metadata:
+        cfg.v29_dynamics = dict(metadata["v29Dynamics"])
     cfg.rand_spawn_hook = metadata["spawnHook"]
     cfg.rand_hinge_drive_max_force = metadata["hingeDriveMaxForce"]
     cfg.rand_hinge_drive_stiffness = metadata["hingeDriveStiffness"]

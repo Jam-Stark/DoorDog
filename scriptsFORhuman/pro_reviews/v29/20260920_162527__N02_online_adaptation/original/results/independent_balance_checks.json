@@ -1,0 +1,15 @@
+{
+  "status": "EXECUTED",
+  "force_balance_residual_N": [
+    0.0,
+    0.0,
+    -5.684341886080802e-14
+  ],
+  "moment_balance_residual_Nm": [
+    -3.1308289294429414e-14,
+    1.4210854715202004e-14,
+    0.0
+  ],
+  "floating_J_fd_error": 8.22666379463044e-11,
+  "floating_g_fd_error": 1.1729492710443878e-08
+}

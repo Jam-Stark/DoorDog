@@ -1,0 +1,111 @@
+{
+  "status": "DERIVED_STATIC_ONLY_NOT_SIMULATION_OR_GRASP_PASS",
+  "source": "Worker families.json + nominal design; original finger STL/URDF",
+  "method": "Compare centreline over arc coordinate sg +/-28 mm in G tangent-aligned plane; full-finger envelope is a conservative reference, not calibrated pad contact.",
+  "centerline_comparisons": [
+    {
+      "family": "F0",
+      "max_residual_from_G_tangent_over_s_plusminus28_mm": 0.0,
+      "tangent_change_from_G_degrees": [
+        0.0,
+        0.0
+      ],
+      "diameter_or_normal_dim_extremes_mm": [
+        26.0,
+        26.0
+      ]
+    },
+    {
+      "family": "F1",
+      "max_residual_from_G_tangent_over_s_plusminus28_mm": 0.0,
+      "tangent_change_from_G_degrees": [
+        0.0,
+        0.0
+      ],
+      "diameter_or_normal_dim_extremes_mm": [
+        28.0,
+        28.0
+      ]
+    },
+    {
+      "family": "F2",
+      "max_residual_from_G_tangent_over_s_plusminus28_mm": 0.0,
+      "tangent_change_from_G_degrees": [
+        0.0,
+        0.0
+      ],
+      "diameter_or_normal_dim_extremes_mm": [
+        30.0,
+        30.0
+      ]
+    },
+    {
+      "family": "F3",
+      "max_residual_from_G_tangent_over_s_plusminus28_mm": 0.9796671306368187,
+      "tangent_change_from_G_degrees": [
+        -4.0104740552027485,
+        4.010474218889935
+      ],
+      "diameter_or_normal_dim_extremes_mm": [
+        26.0,
+        26.0
+      ]
+    },
+    {
+      "family": "F4",
+      "max_residual_from_G_tangent_over_s_plusminus28_mm": 1.0997058187218594,
+      "tangent_change_from_G_degrees": [
+        -2.9566185764551278e-05,
+        6.39112781396059
+      ],
+      "diameter_or_normal_dim_extremes_mm": [
+        24.0,
+        24.0
+      ]
+    },
+    {
+      "family": "F5",
+      "max_residual_from_G_tangent_over_s_plusminus28_mm": 0.0,
+      "tangent_change_from_G_degrees": [
+        0.0,
+        0.0
+      ],
+      "diameter_or_normal_dim_extremes_mm": [
+        26.0,
+        26.0
+      ]
+    },
+    {
+      "family": "F6",
+      "max_residual_from_G_tangent_over_s_plusminus28_mm": 0.0,
+      "tangent_change_from_G_degrees": [
+        0.0,
+        0.0
+      ],
+      "diameter_or_normal_dim_extremes_mm": [
+        24.78764700998763,
+        27.21235299001237
+      ]
+    }
+  ],
+  "finger_reference": {
+    "full_tangential_span_mm": 56,
+    "tcp_z_base_mm": 85,
+    "finger_max_z_base_mm": 135.8,
+    "forward_extent_from_tcp_mm": 50.8,
+    "not_a_pad_calibration": true
+  },
+  "mesh_section_xspan_mm": {
+    "link7": {
+      "0.072": 52.49987357795547,
+      "0.085": 41.46271273057162,
+      "0.098": 34.42772427789051
+    },
+    "link8": {
+      "0.072": 52.499902125827255,
+      "0.085": 41.462635992820246,
+      "0.098": 34.427692180878005
+    }
+  },
+  "mesh_note": "No watertightness or simulation import judgement is made. No force, penetration or success metrics exist."
+}

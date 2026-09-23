@@ -1,0 +1,57 @@
+{
+  "verified_at": "2026-09-18 20:22 HKT",
+  "decision": "V29-D021",
+  "evidence": "TEST_PASS",
+  "scope": "CPU evaluation of AST-extracted production reward methods, mask/latch helpers and installed IsaacLab quaternion math with explicit batched state inputs; not IsaacSim runtime",
+  "source": "gr00t/rl/envs/door/door_open_a2_base.py",
+  "methods": [
+    "_reward_push_door_hinge",
+    "_get_a2_grasp_gated_door_reward_components",
+    "_reward_grasp"
+  ],
+  "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/v29/implementation_evidence/release_income_20260918/cpu_reward_probe.py",
+  "cases": [
+    {
+      "case": "stage3",
+      "hinge": 1.0,
+      "hold_and_drive": 0.7999999523162842,
+      "grasp": 3.0
+    },
+    {
+      "case": "stage4_before_release_gate",
+      "hinge": 1.0,
+      "hold_and_drive": 0.7999999523162842,
+      "grasp": 3.0
+    },
+    {
+      "case": "stage4_after_gate_opening",
+      "hinge": 0.0,
+      "hold_and_drive": 0.0,
+      "grasp": 0.0
+    },
+    {
+      "case": "stage4_after_gate_closing",
+      "hinge": 0.0,
+      "hold_and_drive": 0.0,
+      "grasp": -1.0
+    },
+    {
+      "case": "stage5_continuity_disabled",
+      "hinge": 0.0,
+      "hold_and_drive": 0.0,
+      "grasp": null
+    }
+  ],
+  "latch_checks": {
+    "at_threshold_1_2_rad": true,
+    "already_latched_after_hinge_returns_to_0_1_rad": true
+  },
+  "limits": [
+    "Values are unscaled raw CPU method outputs, not weighted simulator episode rewards.",
+    "Stage decorators are stripped for extraction; production grasp is inactive at Stage5, so its raw harness value is excluded above.",
+    "State/sensor inputs are explicit probe cases, not recorded physical trajectories.",
+    "No IsaacSim, GPU rollout, training, rendering or learned-behavior evaluation was run."
+  ],
+  "harness_note": "Initial temporary harness omitted _get_a2_corridor_mask; Main bound the actual production getter and reran successfully. No production change was made to work around the harness omission.",
+  "applicability": "HISTORICAL_D021_ONLY; the three code changes were exactly reverted by V29-D023; these numbers are not a verdict for current source"
+}

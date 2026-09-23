@@ -1,0 +1,25 @@
+{
+  "method": "mass = CAD volume * effective density; COM = CAD center of volume; inertia about COM in link axes = CAD unit-mass inertia * mass. Uniform effective-density approximation, not measured print mass. Existing source inertias retained; mounting parts treated as additional mass.",
+  "assumptions": "Owner accepted estimate: PETG solid material density 1250 kg/m3, effective solid volume fraction 0.5, effective density 625 kg/m3. Uniform mass distribution, not a slicer shell/infill model or measured weight. Aluminum alloy grade unknown: 6061 nominal 2700 kg/m3; unperforated 250x100x5 mm plate envelope. Fasteners omitted.",
+  "components": {
+    "vpiper_main": {
+      "material": "PETG",
+      "density_kg_m3": 625.0,
+      "density_source": "https://polymaker.com/wp-content/uploads/lana-downloads/PolyLite_PETG_TDS_EN_V5.4.pdf",
+      "solid_material_density_kg_m3": 1250.0,
+      "effective_solid_volume_fraction": 0.5
+    },
+    "vpiper_support": {
+      "material": "PETG",
+      "density_kg_m3": 625.0,
+      "density_source": "https://polymaker.com/wp-content/uploads/lana-downloads/PolyLite_PETG_TDS_EN_V5.4.pdf",
+      "solid_material_density_kg_m3": 1250.0,
+      "effective_solid_volume_fraction": 0.5
+    },
+    "metal_plate_5mm": {
+      "material": "aluminum alloy (6061 nominal approximation)",
+      "density_kg_m3": 2700.0,
+      "density_source": "https://ntrs.nasa.gov/api/citations/19720022808/downloads/19720022808.pdf"
+    }
+  }
+}

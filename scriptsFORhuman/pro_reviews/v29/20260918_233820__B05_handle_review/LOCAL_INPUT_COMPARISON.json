@@ -1,0 +1,150 @@
+{
+  "status": "SELECTED_SOURCE_COMPARED",
+  "review_branch": "codex/v29-b05-pro-20260918",
+  "reference": "Worker immutable input payload 20260918_214440__b05_handle_review",
+  "rows": [
+    {
+      "path": "gr00t/rl/isaac_utils/playground/env_rand/door.py",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/isaac_utils/playground/utils/usd_utils.py",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/envs/door/door_open_a2_base.py",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/config/env/door_open_a2_base.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_common.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/config/ablation/wbmanip/base_v29_baseline.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/config/obs/wbmanip/door_open_a2_base.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/config/exp/wbmanip/door_open_a2_base_lstm.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/config/robot/A2_Piper/a2_piper_v29.yaml",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/a2_piper.urdf",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/README.md",
+      "same_bytes": false
+    },
+    {
+      "path": "scriptsFORhuman/v29/a2_piper_base_v29_baseline_plan.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/a2_piper_base_v29_baseline_TODO.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/a2_piper_base_v29_b05_handle_design.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/a2_piper_base_v29_decision_log.md",
+      "same_bytes": false
+    },
+    {
+      "path": "scriptsFORhuman/v29/a2_piper_base_v29_overall_arrangement.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b05/OWNER_REQUEST.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b05/REVIEW_BRIEF.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b05/SOURCE_INDEX.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/pro_handoff/20260918_b05/REAL_WORLD_SEEDS.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/b05_designs_20260918/README.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/b05_designs_20260918/build_design_figures.py",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/b05_designs_20260918/families.json",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/b05_designs_20260918/geometry_readout.json",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/b05_designs_20260918/handle_family_atlas.png",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/b05_designs_20260918/handle_family_atlas.svg",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/v29/b05_designs_20260918/visualization_readout.json",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link7.STL",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/link8.STL",
+      "same_bytes": true
+    },
+    {
+      "path": "gr00t/rl/data/robots/a2_piper_v29_merged_20260917/meshes/piper/gripper_base.STL",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/original/HANDLE_FAMILIES.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/original/SOURCES.md",
+      "same_bytes": true
+    },
+    {
+      "path": "scriptsFORhuman/pro_reviews/v29/20260918_102906__baseline_and_v28_pro_review/original/REAL_WORLD_PARAMETER_TABLES.csv",
+      "same_bytes": true
+    }
+  ],
+  "external_dependency_included": true,
+  "note": "Byte equality, no file digests. Current branch differs by name; compare selected relevant files rather than treating all worktree changes as this review.",
+  "external_dependency": {
+    "path": "/home/baoquanc/workspace/IsaacLab/source/isaaclab/isaaclab/sensors/frame_transformer/frame_transformer_cfg.py",
+    "same_bytes": true
+  },
+  "comparison_phase": "Repository rows were compared before local D028 documentation integration; later review/plan entries are intentional documentation additions."
+}

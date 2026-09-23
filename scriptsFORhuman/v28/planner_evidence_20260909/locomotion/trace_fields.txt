@@ -1,0 +1,453 @@
+== left/stage2_5_step_trace.json 430.363754 MB
+<class 'list'> 19996
+env_id: 50
+door_open_lr: 1.0
+door_handle_side: left
+door_hinge_drive_max_force: 11.54542350769043
+door_handle_drive_max_force: 1.6751735210418701
+door_handle_height: 0.9340001344680786
+door_weight: 111.3500747680664
+crossing_while_holding: None
+hinge_at_crossing: None
+hinge_at_release: None
+root_x_at_release: None
+post_release_body_contact: None
+post_release_body_force_max: None
+stage0_to1_staging_standoff: 0.692535400390625
+stage0_actual_root_height: 0.49111716691837753
+stage1_actual_root_height: 0.4869048860337999
+v26_2: dict
+  max_handle_rad: 0.0
+  max_hinge_rad: 1.3779275498393417e-09
+  stage3_or_later: 0
+  stage4_or_later: 0
+  stage5_or_later: 0
+  k5_steps: 0
+  negative_close_steps: 0
+  bilateral_contact_steps: 0
+  opposite_squeeze_steps: 0
+  force_window_steps: 0
+  stable_contact_steps: 0
+  handle_depression_raw_income: 0.0
+  handle_depression_scaled_income: 0.0
+  handle_depression_active_steps: 0
+  unlatch_band_dwell_steps: 0
+  unlatch_hold_active_steps: 0
+  integrity_violations: 0
+  integrity_violation_counts: dict
+    active_outside_stage3: 0
+    active_without_k5: 0
+    raw_nonzero_while_inactive: 0
+    stage4_below_threshold_on_first_admission: 0
+  active_outside_stage3: 0
+  active_without_k5: 0
+  raw_nonzero_while_inactive: 0
+  stage4_below_threshold_on_first_admission: 0
+  strict_k5: False
+  first_stage4_admission: False
+  hinge_rad: 1.7294254570088263e-11
+  handle_depression_raw: 0.0
+  handle_depression_scaled: 0.0
+  handle_depression_active: False
+v26_3: dict
+  handle_pos_prev_control: 0.00011458131484687328
+  handle_highwater: 0.00011458148946985602
+  handle_highwater_prev: 0.00011458148946985602
+  handle_delta_net: 2.9103830456733704e-10
+  handle_delta_highwater: 0.0
+  creation_raw_cached: 0.0
+  creation_scaled_cached: 0.0
+  creation_active_cached: False
+  handle_endpoint_velocity: -0.01760007254779339
+  handle_delta_net_over_dt: 1.4551915228366852e-08
+  creation_raw_income: 0.0
+  creation_scaled_income: 0.0
+  creation_active_steps: 0
+  endpoint_velocity_delta_discrepancy_abs_sum: 1.09490168094635
+  state_initialized: True
+  control_dt: 0.02
+  staged_store_count_total: 0
+  staged_load_count_total: 0
+  staged_restore_cache_clear_count_total: 0
+  integrity_violations: 0
+  integrity_violation_counts: dict
+    reward_nonzero_without_positive_highwater_delta: 0
+    active_outside_stage3: 0
+    active_without_k5: 0
+    raw_nonzero_while_inactive: 0
+  reward_nonzero_without_positive_highwater_delta: 0
+  active_outside_stage3: 0
+  active_without_k5: 0
+  raw_nonzero_while_inactive: 0
+a2_v27: dict
+  body_panel_force_max_from_stage3_n: 0.0
+  integrity_violations: 0
+  arm_j4_limit_residence_steps: 0
+  first_episode_control_steps: 62
+  first_crossing_hinge_rad: None
+  crossing_while_holding: None
+  recovery_itt: False
+  injection_status: NOT_TRIGGERED
+  loss_event: False
+  regrasp_success: False
+  recovered_complete: False
+  recovered_clean_complete: False
+  injection_applied_steps: 0
+  bank_reset_origin: BASE_RESET
+  bank_reset_side: LEFT
+  bank_reset_snapshot_slot: -1
+  bank_reset_snapshot_count: 0
+  bank_capture_count_by_side: None
+  friction_readback: None
+stage_buf: 2
+time_in_stage_buf: 0
+episode_length_buf: 62
+control_dt: 0.02
+reward_episode_sums_unit: episode-sum
+reward_episode_sums: dict
+  penalty_dof_acc: -0.03960241377353668
+  penalty_dof_vel: -0.012987273745238781
+  penalty_delta_action_rate: -0.3119920790195465
+  termination: 0.0
+  limits_dof_pos: -0.6758347749710083
+  limits_gripper_primitive_action: -0.03500126674771309
+  walk_to_door: 1.0401678085327148
+  penalty_upper_body_non_gripper_deviation_l1: -0.15682199597358704
+  penalty_face_door: -0.3347403109073639
+  penalty_base_roll_pitch_l2: -0.12039793282747269
+  gripper_handle_orientation: 1.1268385648727417
+  pregrasp_gripper_dof_pos_l1: 0.3582424223423004
+  pregrasp_target_distance: 1.1905916929244995
+  penalty_not_standing_still: -0.45381832122802734
+  penalty_a2_stage1_stage2_base_forward_creep: 0.0
+  grasp_target_distance: 0.0001740794541547075
+  grasp: 0.0
+  a2_stage2_close_command: 0.0
+  penalty_a2_stage2_open_command_in_close_gate: 0.0
+  a2_stage2_close_progress: 0.0
+  a2_stage2_handle_center_y: 0.09971912950277328
+  a2_stage2_handle_approach_xz: 0.029133252799510956
+  a2_stage2_both_contact: 0.0
+  a2_stage2_opposite_squeeze: 0.0
+  a2_stage2_squeeze_force_window: 0.0
+  a2_stage2_contact_stability: 0.0
+  penalty_a2_stage2_over_force: 0.0
+  a2_stage3_handle_creation: 0.0
+  push_door_hinge: 0.0
+  a2_stage3_unlatch_hold: 0.0
+  a2_stage3_stage4_hold_and_drive: 0.0
+  a2_stage3_stage4_keep_close_command: 0.0
+  penalty_a2_stage3_stage4_open_command: 0.0
+  a2_stage3_stage4_both_contact: 0.0
+  a2_stage3_stage4_opposite_squeeze: 0.0
+  a2_stage3_stage4_squeeze_force_window: 0.0
+  a2_stage3_stage4_contact_stability: 0.0
+  penalty_a2_stage3_stage4_over_force: 0.0
+  dont_push_door_handle: 0.0
+  target_root_distance: 0.0
+  a2_stage4_grasp_target_distance_mild: 0.0
+  penalty_standing_still: 0.0
+  stage: 0.8999996781349182
+  complete: 0.0
+  success_save_time: 0.0
+  ref_dof_legs: 0.007482807617634535
+  penalty_door_frame_contact: 0.0
+  penalty_door_panel_contact: 0.0
+  penalty_base_command_limit: -0.18830621242523193
+  penalty_undesired_contact: -0.09600000828504562
+  penalty_dof_overspeed: -0.0916391909122467
+  orientation_control: -0.6618448495864868
+terminal_reasons: unknown_reset
+door_hinge_joint_pos: 1.7294254570088263e-11
+door_hinge_joint_vel: 2.3386465386465716e-07
+door_handle_joint_pos: 0.00011458131484687328
+root_x_ever_crossed: False
+root_pos_rel: list[3] first=-0.8268013000488281
+root_roll: -0.02382497303187847
+root_pitch: 0.030485423281788826
+root_yaw: -0.04209759831428528
+target_root_distance: 2.8370914459228516
+doorframe_contact_force: 0.0
+contact_force_arm_body7_8_w: list[2] first=[0.0, 0.0, 0.0]
+contact_force_arm_body7_8_norm: list[2] first=0.0
+handle_contact_force_w: list[2] first=[0.0, 0.0, 0.0]
+handle_contact_force_norm: list[2] first=0.0
+squeeze_y: list[2] first=0.0
+single_contact: False
+single_contact_arm_body7: False
+single_contact_arm_body8: False
+both_contact: False
+squeeze_window: False
+contact_stability: False
+a2_grasp_gate_mode: control_streak
+a2_grasp_streak_control_steps: 5
+a2_stage2_squeeze_streak: 0
+a2_stage3_stage4_both_contact_streak: 0
+over_force: False
+arm_j7_j8_pos: list[2] first=0.03499934822320938
+arm_j7_j8_close_target: list[2] first=0.0
+arm_j7_j8_open_target: list[2] first=0.03500000014901161
+arm_j7_j8_close_error: list[2] first=0.03499934822320938
+gripper_primitive_raw: list[1] first=1.2795203924179077
+gripper_raw_sign_flip: False
+stage3_stage4_gripper_raw_sign_flip: False
+target_offset_x_abs: 0.01273973286151886
+target_offset_y_abs: 0.009127452969551086
+target_offset_z_abs: 0.17019790410995483
+target_pos_source_handle_distance: 0.17091792821884155
+target_offset_norm: 0.17091792821884155
+target_pos_source_pregrasp_distance: 0.07287780940532684
+pregrasp_opening_alignment: 0.9911494255065918
+pregrasp_approach_alignment: 0.9951456785202026
+handle_opening_alignment: 0.9911494255065918
+handle_approach_alignment: 0.9951456785202026
+gripper_source_quat_w: list[4] first=-0.43838441371917725
+gripper_source_axes_w: dict
+  x: list[3] first=-0.04991888999938965
+  y: list[3] first=0.08481261134147644
+  z: list[3] first=0.9951456785202026
+target_quat_source_handle: list[4] first=0.052315086126327515
+target_quat_source_pregrasp: list[4] first=0.052315086126327515
+target_axes_source_handle: dict
+  x: list[3] first=-0.9930487871170044
+  y: list[3] first=-0.1065932959318161
+  z: list[3] first=-0.04991881921887398
+target_axes_source_pregrasp: dict
+  x: list[3] first=-0.9930487871170044
+  y: list[3] first=-0.1065932959318161
+  z: list[3] first=-0.04991881921887398
+target_pos_source_handle: list[3] first=0.01273973286151886
+target_pos_source_pregrasp: list[3] first=0.01773153990507126
+door_body_panel_normal_force_per_filter: list[13] first=0.0
+door_body_panel_normal_force_total: 0.0
+door_arm_panel_normal_force_per_filter: list[10] first=0.0
+door_arm_panel_normal_force_total: 0.0
+policy_high_level_action_raw: list[12] first=0.08986640721559525
+policy_base_action_raw: list[5] first=0.08986640721559525
+policy_arm_action_raw: list[6] first=0.36039066314697266
+policy_gripper_primitive_raw: 1.2795203924179077
+post_forced_override_pre_env_action: list[12] first=0.08986640721559525
+post_forced_override_pre_env_base_action: list[5] first=0.08986640721559525
+post_forced_override_pre_env_arm_action: list[6] first=0.36039066314697266
+post_forced_override_pre_env_gripper_primitive: 1.2795203924179077
+post_delta_post_warp_env_action: list[12] first=0.08986640721559525
+post_delta_post_warp_base_action: list[5] first=0.08986640721559525
+actual_post_delta_post_warp_arm_action: list[6] first=0.8379325866699219
+post_delta_post_warp_gripper_primitive: 1.2795203924179077
+forced_gripper_close_applied: False
+stage2_close_gate_forced_gripper_close_applied: False
+first_episode_active: True
+episode_index: 0
+physical_base_command: list[5] first=0.02246660180389881
+root_pos_w: list[3] first=-50.82680130004883
+root_quat_w: list[4] first=0.9995952248573303
+root_lin_vel_w: list[3] first=0.02307700365781784
+root_ang_vel_w: list[3] first=0.07078271359205246
+base_projected_gravity: list[3] first=0.030480699613690376
+base_lin_vel: list[3] first=0.02191544882953167
+base_ang_vel: list[3] first=0.0752781331539154
+arm_joint_names: list[6] first=arm_j1
+arm_joint_pos: list[6] first=0.15338033437728882
+arm_joint_vel: list[6] first=0.5090542435646057
+arm_joint_pos_target: list[6] first=0.20948314666748047
+arm_implicit_applied_effort_estimate: list[6] first=2.266448974609375
+arm_soft_joint_pos_limits: list[6] first=[-2.3561999797821045, 2.3561999797821045]
+arm_soft_limit_normalized_margin: list[6] first=0.4674517512321472
+gripper_joint_names: list[2] first=arm_j7
+gripper_joint_pos: list[2] first=0.03499934822320938
+gripper_joint_pos_target: list[2] first=0.03500000014901161
+gripper_joint_target_error: list[2] first=6.51925802230835e-07
+tcp_to_handle_pos: list[3] first=0.01273973286151886
+tcp_to_handle_quat: list[4] first=0.052315086126327515
+reward_raw: dict
+  stage: 1.0
+  success_save_time: 0.0
+  a2_stage3_handle_creation: 0.0
+  a2_stage3_unlatch_hold: 0.0
+  push_door_hinge: 0.0
+  a2_stage3_stage4_hold_and_drive: 0.0
+reward_scaled: dict
+  stage: 0.019999999552965164
+  success_save_time: 0.0
+  a2_stage3_handle_creation: 0.0
+  a2_stage3_unlatch_hold: 0.0
+  push_door_hinge: 0.0
+  a2_stage3_stage4_hold_and_drive: 0.0
+a2_v27_perturb_command_applied: False
+a2_v27_perturb_applied_steps: 0
+a2_v27_perturb_remaining_steps: 0
+a2_v27_bank_reset_used: False
+a2_v27_bank_reset_slot: -1
+stage3_to4_door_hinge_threshold: 0.25
+stage3_to4_door_hinge_margin: -0.24999999998270575
+step_index: 61
+---- eval_to_log_metrics.json keys
+<class 'list'> 461
+['step_index', 'episode_length_buf', 'dones', 'average_stage_reached', 'average_goal_reached', 'average_last_stage_goal_reached', 'termination_level', 'a2_v26_left_env_count', 'a2_v26_left_episode_count', 'a2_v26_left_natural_start_episode_count', 'a2_v26_left_goal_count', 'a2_v26_left_max_stage_reached', 'a2_v26_left_stage0_occupancy', 'a2_v26_left_stage0_reset_use_count', 'a2_v26_left_stage1_occupancy', 'a2_v26_left_stage1_reset_use_count', 'a2_v26_left_stage2_occupancy', 'a2_v26_left_stage2_reset_use_count', 'a2_v26_left_stage3_occupancy', 'a2_v26_left_stage3_reset_use_count', 'a2_v26_left_stage4_occupancy', 'a2_v26_left_stage4_reset_use_count', 'a2_v26_left_stage5_occupancy', 'a2_v26_left_stage5_reset_use_count', 'a2_v26_right_env_count', 'a2_stage35_door_body_contact_numerator', 'a2_stage35_door_body_contact_denominator', 'a2_stage35_door_body_contact_usage_frac', 'a2_stage35_door_body_force_all_sample_p50', 'a2_stage35_door_body_force_all_sample_p95', 'a2_stage35_door_body_force_contact_positive_p50', 'a2_stage35_door_body_force_contact_positive_p95', 'a2_stage35_door_body_force_pooled_numerator', 'a2_stage35_door_arm_force_pooled_numerator', 'a2_stage35_door_panel_force_pooled_denominator', 'a2_stage35_door_panel_force_share_valid', 'a2_stage1_active_frac', 'a2_stage1_pregrasp_ready_frac', 'a2_stage1_door_open_bypass_frac', 'a2_stage1_to2_advance_frac', 'a2_stage1_to2_bypass_blocked_frac', 'a2_stage2_active_frac', 'a2_stage2_grasp_complete_frac', 'a2_stage2_door_open_bypass_frac', 'a2_stage2_to3_advance_frac', 'a2_stage2_to3_bypass_blocked_frac', 'a2_stage2_close_gate_frac', 'a2_stage2_completion_close_gate_frac', 'a2_stage2_gripper_stable_close_frac', 'a2_stage2_gripper_close_command_frac', 'a2_stage2_gripper_close_progress_frac', 'a2_stage2_negative_gripper_primitive_frac', 'a2_stage2_both_contact_frac', 'a2_stage2_sufficient_squeeze_frac', 'a2_stage2_opposite_squeeze_frac', 'a2_stage2_single_contact_frac', 'a2_stage2_single_contact_arm_body7_frac', 'a2_stage2_single_contact_arm_body8_frac', 'a2_stage2_squeeze_window_frac', 'a2_stage2_contact_stability_frac', 'a2_stage2_streak_ge_K_frac', 'a2_stage2_over_force_frac', 'a2_stage2_gripper_raw_sign_flip_frac', 'a2_stage3_active_frac', 'a2_stage4_active_frac', 'a2_stage4_release_gate_numerator_frac', 'a2_stage4_release_gate_denominator_frac', 'a2_stage5_active_frac', 'a2_stage3_stage4_raw_close_frac', 'a2_stage3_stage4_raw_open_frac', 'a2_stage3_stage4_raw_sign_flip_frac', 'a2_stage3_stage4_both_contact_frac', 'a2_stage3_stage4_opposite_squeeze_frac', 'a2_stage3_stage4_squeeze_window_frac', 'a2_stage3_stage4_contact_stability_frac', 'a2_stage3_stage4_streak_ge_K_frac', 'a2_stage3_stage4_over_force_numerator_frac', 'a2_stage3_stage4_over_force_denominator_frac', 'a2_stage3_contact_stability_numerator_frac', 'a2_stage3_contact_stability_denominator_frac', 'a2_stage4_contact_stability_numerator_frac', 'a2_stage4_contact_stability_denominator_frac', 'a2_stage3_single_contact_arm_body8_frac', 'a2_stage3_hold_and_drive_numerator_frac', 'a2_stage3_hold_and_drive_denominator_frac', 'a2_stage3_stage4_hold_and_drive_numerator_frac', 'a2_stage3_stage4_hold_and_drive_denominator_frac', 'a2_stage3_unlatch_hold_issued_numerator_frac', 'a2_stage3_unlatch_hold_issued_denominator_frac', 'a2_stage3_stage4_coasting_numerator_frac', 'a2_stage3_stage4_coasting_denominator_frac', 'a2_stage3_handle_hard_limit_numerator_frac', 'a2_stage3_handle_hard_limit_denominator_frac', 'a2_stage2_single_contact_duration_mean', 'a2_stage2_squeeze_streak_p50', 'a2_stage2_squeeze_streak_p90', 'a2_stage3_stage4_both_contact_streak_p50', 'a2_stage3_stage4_both_contact_streak_p90', 'a2_stage3_handle_joint_pos_p50', 'a2_stage3_handle_joint_pos_p95', 'a2_stage3_stage4_hinge_velocity_p95', 'a2_corridor_latched_frac', 'a2_release_event_env_count', 'a2_post_release_body_contact_env_count', 'a2_hinge_at_release_p50', 'a2_hinge_at_release_p95', 'a2_root_x_at_release_p50', 'a2_root_x_at_release_p95', 'a2_post_release_body_force_max_p95', 'a2_post_release_body_force_max_p50', 'a2_stage2_target_offset_x_abs_mean', 'a2_stage2_target_offset_y_abs_mean', 'a2_stage2_target_offset_z_abs_mean', 'a2_stage2_target_offset_norm_mean', 'a2_door_hinge_joint_pos_mean', 'a2_door_handle_joint_pos_mean', 'a2_root_x_mean', 'a2_root_y_mean', 'a2_root_yaw_mean', 'a2_root_roll_mean', 'a2_root_pitch_mean', 'a2_target_root_distance_mean', 'a2_doorframe_contact_force_mean', 'a2_doorframe_contact_frac', 'a2_root_x_first_crossing_env_count', 'a2_crossing_while_holding_numerator_frac', 'a2_crossing_while_holding_denominator_frac', 'a2_hinge_at_crossing_p50', 'a2_hinge_at_crossing_p95', 'a2_stage0_to1_staging_standoff_p50', 'a2_stage0_to1_staging_standoff_p95', 'a2_stage0_actual_root_height_p50', 'a2_stage0_actual_root_height_p95', 'a2_stage1_actual_root_height_p50', 'a2_stage1_actual_root_height_p95', 'a2_stage5_forward_velocity_p50', 'a2_stage45_doorframe_contact_force_p95', 'action_clip_frac', 'a2_v26_2_handle_depression_raw_income', 'a2_v26_2_handle_depression_scaled_income', 'a2_v26_2_handle_depression_active_steps', 'a2_v26_2_handle_depression_raw_income_per_active_step', 'a2_v26_2_handle_depression_scaled_income_per_active_step', 'a2_v26_3_creation_raw_income', 'a2_v26_3_creation_scaled_income', 'a2_v26_3_creation_active_steps', 'a2_v26_3_handle_highwater_max', 'a2_v26_3_staged_store_count_total', 'a2_v26_3_staged_load_count_total', 'a2_v26_3_staged_restore_cache_clear_count_total', 'average_episode_length', 'a2_stage5_forward_velocity_p95', 'a2_stage45_doorframe_contact_force_p50', 'a2_stage3_stage4_hinge_velocity_p50', 'a2_stage3_contact_stability_conditional_frac', 'a2_stage4_contact_stability_conditional_frac', 'a2_stage3_hold_and_drive_frac', 'a2_stage3_stage4_hold_and_drive_frac', 'a2_stage3_unlatch_hold_issued_frac', 'a2_stage3_stage4_coasting_frac', 'a2_stage3_stage4_over_force_frac', 'a2_stage3_handle_hard_limit_frac', 'a2_stage4_release_gate_frac', 'a2_crossing_while_holding_frac']
+step_index 0
+episode_length_buf list 64 [0, 0, 0]
+dones list 64 [0, 0, 0]
+average_stage_reached 0.0
+average_goal_reached 0.0
+average_last_stage_goal_reached 0.0
+termination_level 0.25615760684013367
+a2_v26_left_env_count 64.0
+a2_v26_left_episode_count 0.0
+a2_v26_left_natural_start_episode_count 0.0
+a2_v26_left_goal_count 0.0
+a2_v26_left_max_stage_reached 0.0
+a2_v26_left_stage0_occupancy 1.0
+a2_v26_left_stage0_reset_use_count 64.0
+a2_v26_left_stage1_occupancy 0.0
+a2_v26_left_stage1_reset_use_count 0.0
+a2_v26_left_stage2_occupancy 0.0
+a2_v26_left_stage2_reset_use_count 0.0
+a2_v26_left_stage3_occupancy 0.0
+a2_v26_left_stage3_reset_use_count 0.0
+a2_v26_left_stage4_occupancy 0.0
+a2_v26_left_stage4_reset_use_count 0.0
+a2_v26_left_stage5_occupancy 0.0
+a2_v26_left_stage5_reset_use_count 0.0
+a2_v26_right_env_count 0.0
+a2_stage35_door_body_contact_numerator 0.0
+a2_stage35_door_body_contact_denominator 0.0
+a2_stage35_door_body_contact_usage_frac 0.0
+a2_stage35_door_body_force_all_sample_p50 0.0
+a2_stage35_door_body_force_all_sample_p95 0.0
+a2_stage35_door_body_force_contact_positive_p50 0.0
+a2_stage35_door_body_force_contact_positive_p95 0.0
+a2_stage35_door_body_force_pooled_numerator 0.0
+a2_stage35_door_arm_force_pooled_numerator 0.0
+a2_stage35_door_panel_force_pooled_denominator 0.0
+a2_stage35_door_panel_force_share_valid 0.0
+a2_stage1_active_frac 0.0
+a2_stage1_pregrasp_ready_frac 0.0
+a2_stage1_door_open_bypass_frac 0.0
+a2_stage1_to2_advance_frac 0.0
+a2_stage1_to2_bypass_blocked_frac 0.0
+a2_stage2_active_frac 0.0
+a2_stage2_grasp_complete_frac 0.0
+a2_stage2_door_open_bypass_frac 0.0
+a2_stage2_to3_advance_frac 0.0
+a2_stage2_to3_bypass_blocked_frac 0.0
+a2_stage2_close_gate_frac 0.0
+a2_stage2_completion_close_gate_frac 0.0
+a2_stage2_gripper_stable_close_frac 0.0
+a2_stage2_gripper_close_command_frac 0.0
+a2_stage2_gripper_close_progress_frac 0.0
+a2_stage2_negative_gripper_primitive_frac 0.0
+a2_stage2_both_contact_frac 0.0
+a2_stage2_sufficient_squeeze_frac 0.0
+a2_stage2_opposite_squeeze_frac 0.0
+a2_stage2_single_contact_frac 0.0
+a2_stage2_single_contact_arm_body7_frac 0.0
+a2_stage2_single_contact_arm_body8_frac 0.0
+a2_stage2_squeeze_window_frac 0.0
+a2_stage2_contact_stability_frac 0.0
+a2_stage2_streak_ge_K_frac 0.0
+a2_stage2_over_force_frac 0.0
+a2_stage2_gripper_raw_sign_flip_frac 0.0
+a2_stage3_active_frac 0.0
+a2_stage4_active_frac 0.0
+a2_stage4_release_gate_numerator_frac 0.0
+a2_stage4_release_gate_denominator_frac 0.0
+a2_stage5_active_frac 0.0
+a2_stage3_stage4_raw_close_frac 0.0
+a2_stage3_stage4_raw_open_frac 0.0
+a2_stage3_stage4_raw_sign_flip_frac 0.0
+a2_stage3_stage4_both_contact_frac 0.0
+a2_stage3_stage4_opposite_squeeze_frac 0.0
+a2_stage3_stage4_squeeze_window_frac 0.0
+a2_stage3_stage4_contact_stability_frac 0.0
+a2_stage3_stage4_streak_ge_K_frac 0.0
+a2_stage3_stage4_over_force_numerator_frac 0.0
+a2_stage3_stage4_over_force_denominator_frac 0.0
+a2_stage3_contact_stability_numerator_frac 0.0
+a2_stage3_contact_stability_denominator_frac 0.0
+a2_stage4_contact_stability_numerator_frac 0.0
+a2_stage4_contact_stability_denominator_frac 0.0
+a2_stage3_single_contact_arm_body8_frac 0.0
+a2_stage3_hold_and_drive_numerator_frac 0.0
+a2_stage3_hold_and_drive_denominator_frac 0.0
+a2_stage3_stage4_hold_and_drive_numerator_frac 0.0
+a2_stage3_stage4_hold_and_drive_denominator_frac 0.0
+a2_stage3_unlatch_hold_issued_numerator_frac 0.0
+a2_stage3_unlatch_hold_issued_denominator_frac 0.0
+a2_stage3_stage4_coasting_numerator_frac 0.0
+a2_stage3_stage4_coasting_denominator_frac 0.0
+a2_stage3_handle_hard_limit_numerator_frac 0.0
+a2_stage3_handle_hard_limit_denominator_frac 0.0
+a2_stage2_single_contact_duration_mean 0.0
+a2_stage2_squeeze_streak_p50 0.0
+a2_stage2_squeeze_streak_p90 0.0
+a2_stage3_stage4_both_contact_streak_p50 0.0
+a2_stage3_stage4_both_contact_streak_p90 0.0
+a2_stage3_handle_joint_pos_p50 0.0
+a2_stage3_handle_joint_pos_p95 0.0
+a2_stage3_stage4_hinge_velocity_p95 0.0
+a2_corridor_latched_frac 0.0
+a2_release_event_env_count 0.0
+a2_post_release_body_contact_env_count 0.0
+a2_hinge_at_release_p50 0.0
+a2_hinge_at_release_p95 0.0
+a2_root_x_at_release_p50 0.0
+a2_root_x_at_release_p95 0.0
+a2_post_release_body_force_max_p95 0.0
+a2_post_release_body_force_max_p50 0.0
+a2_stage2_target_offset_x_abs_mean 0.0
+a2_stage2_target_offset_y_abs_mean 0.0
+a2_stage2_target_offset_z_abs_mean 0.0
+a2_stage2_target_offset_norm_mean 0.0
+a2_door_hinge_joint_pos_mean 3.0350011392954457e-10
+a2_door_handle_joint_pos_mean 0.00011004752741428092
+a2_root_x_mean -1.1563811302185059
+a2_root_y_mean 0.006350338459014893
+a2_root_yaw_mean 0.020544374361634254
+a2_root_roll_mean -0.005058976821601391
+a2_root_pitch_mean -0.006039798725396395
+a2_target_root_distance_mean 3.1609461307525635
+a2_doorframe_contact_force_mean 0.0
+a2_doorframe_contact_frac 0.0
+a2_root_x_first_crossing_env_count 0.0
+a2_crossing_while_holding_numerator_frac 0.0
+a2_crossing_while_holding_denominator_frac 0.0
+a2_hinge_at_crossing_p50 0.0
+a2_hinge_at_crossing_p95 0.0
+a2_stage0_to1_staging_standoff_p50 0.0
+a2_stage0_to1_staging_standoff_p95 0.0
+a2_stage0_actual_root_height_p50 0.550000011920929
+a2_stage0_actual_root_height_p95 0.550000011920929
+a2_stage1_actual_root_height_p50 0.0
+a2_stage1_actual_root_height_p95 0.0
+a2_stage5_forward_velocity_p50 0.0
+a2_stage45_doorframe_contact_force_p95 0.0
+action_clip_frac 0.0
+a2_v26_2_handle_depression_raw_income 0.0
+a2_v26_2_handle_depression_scaled_income 0.0
+a2_v26_2_handle_depression_active_steps 0.0
+a2_v26_2_handle_depression_raw_income_per_active_step 0.0
+a2_v26_2_handle_depression_scaled_income_per_active_step 0.0
+a2_v26_3_creation_raw_income 0.0
+a2_v26_3_creation_scaled_income 0.0
+a2_v26_3_creation_active_steps 0.0
+a2_v26_3_handle_highwater_max 0.00013349410437513143
+a2_v26_3_staged_store_count_total 0.0
+a2_v26_3_staged_load_count_total 0.0
+a2_v26_3_staged_restore_cache_clear_count_total 0.0
+average_episode_length 293.93817138671875
+a2_stage5_forward_velocity_p95 0.0
+a2_stage45_doorframe_contact_force_p50 0.0
+a2_stage3_stage4_hinge_velocity_p50 0.0
+a2_stage3_contact_stability_conditional_frac None
+a2_stage4_contact_stability_conditional_frac None
+a2_stage3_hold_and_drive_frac None
+a2_stage3_stage4_hold_and_drive_frac None
+a2_stage3_unlatch_hold_issued_frac None
+a2_stage3_stage4_coasting_frac None
+a2_stage3_stage4_over_force_frac None
+a2_stage3_handle_hard_limit_frac None
+a2_stage4_release_gate_frac None
+a2_crossing_while_holding_frac None
+---- a2_v14_per_env_records.json
+<class 'list'> 64
+['seed', 'env_id', 'goal_reached', 'max_stage', 'final_stage', 'door_open_lr', 'door_handle_side', 'door_hinge_drive_max_force', 'door_handle_drive_max_force', 'door_handle_height', 'door_weight', 'crossing_while_holding', 'hinge_at_crossing', 'hinge_at_release', 'root_x_at_release', 'post_release_body_contact', 'post_release_body_force_max', 'stage0_to1_staging_standoff', 'stage0_actual_root_height', 'stage1_actual_root_height']

@@ -1,0 +1,46 @@
+{
+  "status": "CONFIG_PARSE_ONLY",
+  "generated_at": "2026-09-18T17:13:14.485495+08:00",
+  "entry": [
+    "python -B -m gr00t.rl.train_agent_trl",
+    "+exp=wbmanip/door_open_a2_base_lstm",
+    "+ablation=wbmanip/base_v29_baseline",
+    "--cfg job --resolve"
+  ],
+  "current": {
+    "max_episode_length_s": 30,
+    "max_stage_time": [
+      525,
+      150,
+      150,
+      150,
+      150,
+      300
+    ],
+    "a2_v26_door_weight_range": [
+      80.0,
+      120.0
+    ],
+    "a2_v24_friction_enabled": false,
+    "a2_stage0_target_root_vel": 0.5,
+    "a2_stage0_near_target_root_vel": 0.3,
+    "a2_stage0_speed_transition_distance_range": [
+      1.8,
+      2.2
+    ],
+    "a2_stage3_unlatch_handle_position_norm": 0.6,
+    "a2_stage3_handle_hard_limit_position": 0.785398,
+    "a2_stage4_release_hinge_threshold": 1.2
+  },
+  "planned_not_implemented": [
+    "B01 three mass bins + closer presence + friction",
+    "B02 alternative mechanism/angle domain",
+    "B04 randomized max opening angle"
+  ],
+  "not_run": [
+    "simulation",
+    "training",
+    "render",
+    "new policy evaluation"
+  ]
+}

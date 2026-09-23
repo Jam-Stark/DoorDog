@@ -1,0 +1,64 @@
+{
+  "status": "PURE_PYTHON_DESIGN_CHECKS_ONLY",
+  "physics_runtime_executed": false,
+  "training_executed": false,
+  "hardware_executed": false,
+  "A_or_B_comparative_experiment": false,
+  "checks": [
+    {
+      "name": "parameter_bounds",
+      "consistent": true,
+      "scope": "PURE_PYTHON_NO_PHYSICS",
+      "detail": "Both sampled unlock endpoints lie below the mechanical stop with at least 5 degrees margin."
+    },
+    {
+      "name": "hinge_and_stage_units",
+      "consistent": true,
+      "scope": "PURE_PYTHON_NO_PHYSICS",
+      "detail": "All comparisons converted to rad; gate feasibility does not prove clearance."
+    },
+    {
+      "name": "FSM_endpoint_sequences",
+      "consistent": true,
+      "scope": "PURE_PYTHON_NO_PHYSICS",
+      "detail": "Scalar sequences at 25 and 40 degrees cover play, unlocking, hysteresis, open-door return and recapture. No forces/dynamics tested."
+    },
+    {
+      "name": "creation_no_extra_overtravel_credit",
+      "consistent": true,
+      "scope": "PURE_PYTHON_NO_PHYSICS",
+      "detail": "At fixed per-door u, integrated raw high-water credit is bounded by 1 for this all-active trajectory; no training tested."
+    },
+    {
+      "name": "normal_max_not_replaced_by_lock_limit",
+      "consistent": true,
+      "scope": "PURE_PYTHON_NO_PHYSICS",
+      "detail": "Reference selection restores each immutable door maximum; not a runtime API readback."
+    },
+    {
+      "name": "single_finger_not_full_gripper_release",
+      "consistent": true,
+      "scope": "PURE_PYTHON_NO_PHYSICS",
+      "detail": "Logical any/both distinction only; no sensor performance claimed."
+    }
+  ],
+  "edge_play_estimate_m": [
+    0.003490647427797257,
+    0.004799640213221229
+  ],
+  "input_archives": [
+    {
+      "filename": "worker_delivery__source_and_configs.zip",
+      "bytes": 438863,
+      "members": 35,
+      "zip_crc_and_manifest_path_size_checks": "consistent"
+    },
+    {
+      "filename": "worker_delivery__reference_and_evidence.zip",
+      "bytes": 63988,
+      "members": 10,
+      "zip_crc_and_manifest_path_size_checks": "consistent"
+    }
+  ],
+  "not_a_claim": "These checks establish arithmetic/reference-logic consistency only; they do not show that native limits are stable, fast, physically realistic, or learnable."
+}

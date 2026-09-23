@@ -1,0 +1,34 @@
+{
+  "status": "PORTABLE_EXTRACTION_AND_REBUILD_PASS",
+  "source": "actual compressed ZIP extracted to a different directory containing a space",
+  "zip_crc_test": "PASS",
+  "original_size_bytes": 23340153,
+  "invocations": [
+    {
+      "command": "python tools/verify_models.py (from /tmp, package path contains a space)",
+      "returncode": 0,
+      "stdout_tail": "{\n  \"status\": \"STATIC_PASS\",\n  \"scope\": \"geometry, tree, source-preservation and independently evaluated URDF/MJCF FK; NOT dynamics or hardware validation\",\n  \"random_seed\": 20260906,\n  \"fk_configurations_per_variant\": 257,\n  \"variants\": {\n    \"a2_piper\": {\n      \"links\": 30,\n      \"joints\": 29,\n      \"actuated_joints\": 20,\n      \"original_inertias_preserved\": 27,\n      \"all_mesh_paths_exist\": true,\n      \"mesh_reference_count\": 91,\n      \"net_arm_origin_B_m\": [\n        0.145,\n        0.0,\n        0.147431554755\n      ],\n      \"arm_origin_delta_vs_old_B_mm\": [\n        0.0,\n        0.0,\n        -6.568445245013987\n      ],\n      \"fk_translation_invariant_max_error_m\": 1.4155343563970746e-14,\n      \"fk_orientation_max_matrix_error\": 0.0,\n      \"urdf_vs_mjcf_fk_max_matrix_error\": 2.5514035328910722e-12,\n      \"piper_to_plate_contact_plane_gap_m\": -2.7755575615628914e-17,\n      \"retained_source_mass_kg\": 44.741,\n      \"added_mass_kg_in_nominal_model\": 0,\n      \"added_actual_mass_kg\": null\n    }\n  },\n  \"mujoco_engine_compile\": \"NOT_RUN: engine unavailable in delivery environment; optional --mujoco performs a real check\",\n  \"isaac_import\": \"NOT_RUN\",\n  \"physical_assembly_measurement\": \"NOT_RUN\",\n  \"new_component_masses\": \"UNKNOWN / OMITTED\",\n  \"rail_contact_sample_count\": 16,\n  \"rail_contact_max_abs_gap_mm\": 5.203783531726458e-05,\n  \"plate_STL_extents_mm\": [\n    250.0,\n    100.00000149011612,\n    4.999999888241291\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": "python tools/verify_resources.py (from /tmp, package path contains a space)",
+      "returncode": 0,
+      "stdout_tail": "{\n  \"status\": \"RESOURCE_AND_SECONDARY_FORMAT_PASS\",\n  \"worker_original_URDF_and_mesh_files_preserved\": 28,\n  \"new_serialized_convex_mount_hulls\": 51,\n  \"plate_visual_and_collision_size_mm\": [\n    250,\n    100,\n    5\n  ],\n  \"ROS_variant_equivalent_except_URI_and_extension\": true,\n  \"fixed_MJCF_FK_test_configurations\": 256,\n  \"fixed_MJCF_max_matrix_error\": 2.525923914475925e-12,\n  \"native_engine_compile\": \"NOT_RUN\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": "python tools/build_models.py (from /tmp, package path contains a space)",
+      "returncode": 0,
+      "stdout_tail": "Wrote one final geometry: URDF/MJCF, fixed MJCF, ROS URDF and scene. Original URDF retained only in source/.\n",
+      "stderr": ""
+    }
+  ],
+  "regenerated_models_byte_identical": {
+    "a2_piper.urdf": true,
+    "a2_piper_ros.urdf": true,
+    "a2_piper.xml": true,
+    "a2_piper_fixed.xml": true,
+    "scene.xml": true
+  },
+  "native_engine_or_hardware_test": false
+}

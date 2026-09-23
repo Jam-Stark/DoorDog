@@ -1,0 +1,20 @@
+{
+  "schema": "pull_v28_shared_inputs_receipt_v1",
+  "completed_at_hkt": "2026-09-13T01:31:02.509190+08:00",
+  "host": "m5.precognition.team",
+  "reference_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_v28/mainline_reference/20260913",
+  "documents": [
+    "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_task/a2_piper_pull_v28_baseline_sync_plan_20260909.md",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_task/a2_piper_pull_v28_decision_log_20260913.md",
+    "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/scriptsFORhuman/pull_task/a2_piper_pull_v28_codex_team_start_prompt_20260913.md"
+  ],
+  "source_files_verified_by_direct_content_comparison": 110,
+  "total_source_bytes": 62519259,
+  "A2_Base_existing_content_equal_to_mainline": true,
+  "A2_Base_replaced": false,
+  "training_checkpoints_transferred": false,
+  "active_source_or_config_installed": false,
+  "training_or_evaluation_launched": false,
+  "legacy_events_acknowledged": false,
+  "git_operations_performed": false
+}

@@ -1,0 +1,258 @@
+{
+  "evidence": "STATIC_GEOMETRIC_CONFIRMATION_ONLY",
+  "conditions": [
+    "Current URDF/STL and TCP85mm",
+    "G at the midpoint of J",
+    "Jaw fully open during fixed-pose straight approach",
+    "Door-plane centrelines and target frame remain aligned",
+    "Round rose radius27/thickness6 and neck radius<=15mm",
+    "Return follows positive end tangent then bends toward door; closed tip extends toward door, not back toward G"
+  ],
+  "not_proved": [
+    "USD/PhysX imported collider/contact offsets",
+    "Robot IK/whole-body reach or actual tracking errors",
+    "Force/friction stability",
+    "Learning or hardware outcome"
+  ],
+  "gripper_reference": {
+    "tcp_z_mm": 85.0,
+    "finger_half_x_bound_mm": 28.001,
+    "finger_front_from_tcp_mm": 50.8,
+    "palm_max_base_z_mm": 63.000001,
+    "full_open_q_m": [
+      0.035,
+      -0.035
+    ],
+    "full_open_sections_base_z_and_inner_gap_mm": [
+      [
+        67.964,
+        73.999424
+      ],
+      [
+        85,
+        73.999475
+      ],
+      [
+        100,
+        73.999614
+      ],
+      [
+        102.036,
+        73.950551
+      ],
+      [
+        130,
+        69.999871
+      ]
+    ],
+    "source": "Single read-only URDF/STL triangle-section calculation for this Owner-requested second confirmation"
+  },
+  "maximum_F2_width_mm": 34.07103255711131,
+  "F2_phi_for_max_closing_width_deg": 71.56505117707799,
+  "palm_to_handle_normal_separation_lower_bound_mm": 4.964482721444348,
+  "finger_to_door_plane_at_h55_mm": 4.200000000000003,
+  "main_rod_abs_closing_envelope_mm": {
+    "F0": 15,
+    "F1": 15.4,
+    "F2": 17.035516278555654,
+    "F3": 21.249991086757817,
+    "F4": 28.667255756846316,
+    "F5": 23.8,
+    "F6": 15
+  },
+  "family_bounds": [
+    {
+      "family": "F0",
+      "lambda_min": 1.0,
+      "lambda_max": 1.1,
+      "I_length_mm": [
+        65.0,
+        71.5
+      ],
+      "J_length_mm": [
+        3.0,
+        9.5
+      ],
+      "G_to_axle_projection_min_mm": 62.5,
+      "finger_to_rose_projected_separation_lower_bound_mm": 7.498999999999995,
+      "finger_to_neck_r15_projected_separation_lower_bound_mm": 19.498999999999995,
+      "return_tip_tangent_dot_grasp_tangent": 1.0,
+      "finger_to_return_projected_separation_lower_bound_mm": 19.499,
+      "maximum_section_enclosing_radius_mm": 15.0
+    },
+    {
+      "family": "F1",
+      "lambda_min": 0.9,
+      "lambda_max": 1.1,
+      "I_length_mm": [
+        66.60000000000001,
+        81.4
+      ],
+      "J_length_mm": [
+        4.6000000000000085,
+        19.400000000000006
+      ],
+      "G_to_axle_projection_min_mm": 58.5,
+      "finger_to_rose_projected_separation_lower_bound_mm": 3.4989999999999988,
+      "finger_to_neck_r15_projected_separation_lower_bound_mm": 15.498999999999999,
+      "return_tip_tangent_dot_grasp_tangent": 1.0,
+      "finger_to_return_projected_separation_lower_bound_mm": 15.099,
+      "maximum_section_enclosing_radius_mm": 15.4
+    },
+    {
+      "family": "F2",
+      "lambda_min": 0.9,
+      "lambda_max": 1.1,
+      "I_length_mm": [
+        66.60000000000001,
+        81.4
+      ],
+      "J_length_mm": [
+        4.6000000000000085,
+        19.400000000000006
+      ],
+      "G_to_axle_projection_min_mm": 58.5,
+      "finger_to_rose_projected_separation_lower_bound_mm": 3.4989999999999988,
+      "finger_to_neck_r15_projected_separation_lower_bound_mm": 15.498999999999999,
+      "return_tip_tangent_dot_grasp_tangent": 1.0,
+      "finger_to_return_projected_separation_lower_bound_mm": 13.463483721444344,
+      "maximum_section_enclosing_radius_mm": 17.035516278555654
+    },
+    {
+      "family": "F3",
+      "lambda_min": 0.9420289855072463,
+      "lambda_max": 1.1,
+      "I_length_mm": [
+        65.0,
+        75.9
+      ],
+      "J_length_mm": [
+        3.0,
+        13.900000000000006
+      ],
+      "G_to_axle_projection_min_mm": 63.28559627018631,
+      "finger_to_rose_projected_separation_lower_bound_mm": 8.284596270186313,
+      "finger_to_neck_r15_projected_separation_lower_bound_mm": 20.284596270186313,
+      "return_tip_tangent_dot_grasp_tangent": 0.9857954748028231,
+      "finger_to_return_projected_separation_lower_bound_mm": 20.28459627018631,
+      "maximum_section_enclosing_radius_mm": 15.0
+    },
+    {
+      "family": "F4",
+      "lambda_min": 0.9464102970857552,
+      "lambda_max": 1.1,
+      "I_length_mm": [
+        65.0,
+        75.5486285601152
+      ],
+      "J_length_mm": [
+        3.0,
+        13.548628560115205
+      ],
+      "G_to_axle_projection_min_mm": 60.88002697020346,
+      "finger_to_rose_projected_separation_lower_bound_mm": 5.879026970203455,
+      "finger_to_neck_r15_projected_separation_lower_bound_mm": 17.879026970203455,
+      "return_tip_tangent_dot_grasp_tangent": 0.9588177962867517,
+      "finger_to_return_projected_separation_lower_bound_mm": 17.87902697020346,
+      "maximum_section_enclosing_radius_mm": 15.0
+    },
+    {
+      "family": "F5",
+      "lambda_min": 0.9027777777777778,
+      "lambda_max": 1.1,
+      "I_length_mm": [
+        65.0,
+        79.2
+      ],
+      "J_length_mm": [
+        3.0,
+        17.200000000000003
+      ],
+      "G_to_axle_projection_min_mm": 63.19444444444444,
+      "finger_to_rose_projected_separation_lower_bound_mm": 8.193444444444438,
+      "finger_to_neck_r15_projected_separation_lower_bound_mm": 20.193444444444438,
+      "return_tip_tangent_dot_grasp_tangent": 1.0,
+      "finger_to_return_projected_separation_lower_bound_mm": 20.19344444444444,
+      "maximum_section_enclosing_radius_mm": 15.0
+    },
+    {
+      "family": "F6",
+      "lambda_min": 0.9285714285714286,
+      "lambda_max": 1.1,
+      "I_length_mm": [
+        65.0,
+        77.0
+      ],
+      "J_length_mm": [
+        3.0,
+        15.0
+      ],
+      "G_to_axle_projection_min_mm": 60.35714285714286,
+      "finger_to_rose_projected_separation_lower_bound_mm": 5.356142857142856,
+      "finger_to_neck_r15_projected_separation_lower_bound_mm": 17.356142857142856,
+      "return_tip_tangent_dot_grasp_tangent": 1.0,
+      "finger_to_return_projected_separation_lower_bound_mm": 17.35614285714286,
+      "maximum_section_enclosing_radius_mm": 15.0
+    }
+  ],
+  "additional_fixed_parts": [
+    {
+      "name": "v28_wrist_camera_support_collision",
+      "base_bbox_mm": [
+        [
+          -48.843780249979545,
+          54.538613791987174,
+          -6.479539979051594
+        ],
+        [
+          44.839858406073375,
+          173.7874665878088,
+          28.303373519204992
+        ]
+      ],
+      "normal_separation_from_handle_envelope_mm": 39.66111020223935
+    },
+    {
+      "name": "v28_wrist_housing_collision",
+      "base_bbox_mm": [
+        [
+          -45.15745960821177,
+          161.66945658632963,
+          -1.9341808360901178
+        ],
+        [
+          44.87067632588773,
+          196.96248943926236,
+          33.28773000115672
+        ]
+      ],
+      "normal_separation_from_handle_envelope_mm": 34.67675372028763
+    },
+    {
+      "name": "arm_body6",
+      "base_bbox_mm": [
+        [
+          -17.531512305140495,
+          -17.476746812462807,
+          -4.000000189989805
+        ],
+        [
+          17.411740496754646,
+          17.494866624474525,
+          1.3877787807814457e-14
+        ]
+      ],
+      "normal_separation_from_handle_envelope_mm": 67.96448372144434
+    }
+  ],
+  "return_joint_sampling": {
+    "tip_cap_extent_rule": "r_tip is exact axial extent returned by the chosen smooth cap; it must fit within the local section enclosing radius for this first construction",
+    "C_mm": "min(60,h-r_tip-8)",
+    "R_mm": "Uniform[20,min(30,C)]",
+    "H_mm": "Uniform[R,C]",
+    "b_mm": "H-R",
+    "worst_F2_cap_bound_mm": 17.035516278555654,
+    "C_at_h55_with_this_bound_mm": 29.964483721444346,
+    "meaning": "Direct conditional sampling of Pro's valid joint domain, preserving h and family marginals; no clipping or retry fallback"
+  }
+}

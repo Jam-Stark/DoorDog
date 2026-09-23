@@ -1,0 +1,44 @@
+{
+  "status": "STATIC_PASS",
+  "scope": "geometry, tree, source-preservation and independently evaluated URDF/MJCF FK; NOT dynamics or hardware validation",
+  "random_seed": 20260906,
+  "fk_configurations_per_variant": 257,
+  "variants": {
+    "a2_piper": {
+      "links": 30,
+      "joints": 29,
+      "actuated_joints": 20,
+      "original_inertias_preserved": 27,
+      "all_mesh_paths_exist": true,
+      "mesh_reference_count": 91,
+      "net_arm_origin_B_m": [
+        0.145,
+        0.0,
+        0.147431554755
+      ],
+      "arm_origin_delta_vs_old_B_mm": [
+        0.0,
+        0.0,
+        -6.568445245013987
+      ],
+      "fk_translation_invariant_max_error_m": 1.4155343563970746e-14,
+      "fk_orientation_max_matrix_error": 0.0,
+      "urdf_vs_mjcf_fk_max_matrix_error": 2.5514035328910722e-12,
+      "piper_to_plate_contact_plane_gap_m": -2.7755575615628914e-17,
+      "retained_source_mass_kg": 44.741,
+      "added_mass_kg_in_nominal_model": 0,
+      "added_actual_mass_kg": null
+    }
+  },
+  "mujoco_engine_compile": "NOT_RUN: engine unavailable in delivery environment; optional --mujoco performs a real check",
+  "isaac_import": "NOT_RUN",
+  "physical_assembly_measurement": "NOT_RUN",
+  "new_component_masses": "UNKNOWN / OMITTED",
+  "rail_contact_sample_count": 16,
+  "rail_contact_max_abs_gap_mm": 5.203783531726458e-05,
+  "plate_STL_extents_mm": [
+    250.0,
+    100.00000149011612,
+    4.999999888241291
+  ]
+}

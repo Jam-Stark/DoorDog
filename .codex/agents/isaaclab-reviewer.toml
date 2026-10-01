@@ -1,15 +1,22 @@
-name = "isaaclab_reviewer"
-description = "Rare Sol/high read-only reviewer for actual IsaacLab/RL/reward/observation/action/scene/env/training semantic changes."
-model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
-sandbox_mode = "read-only"
+# Jam Coding Role v1.5.0; Main model/effort remain App-owned.
+"name" = "isaaclab_reviewer"
+"description" = "Rare Sol/high read-only reviewer for actual IsaacLab/RL/reward/observation/action/scene/env/training semantic changes."
+"model" = "gpt-6-sol"
+"model_reasoning_effort" = "high"
+"sandbox_mode" = "read-only"
+"developer_instructions" = "Follow root AGENTS.md and .codex/TEAM.md.\n\nUse this role only when the change actually alters IsaacLab or RL semantics. Check the assigned semantic concern against current official documentation, local IsaacLab source when available, and the changed code's direct execution path.\n\nPrioritize high-level API correctness, tensor shape/dtype/device and batched indexing, manager lifecycle, observation/action ordering, reward sign/scale/routing, reset/termination transitions, asset/joint semantics, and training/evaluation meaning. Reject fallbacks or guards that hide invalid simulation/training state.\n\nReturn no more than three high-confidence blocking findings with file/symbol evidence and the resulting runtime/training failure. Do not perform generic code review, style review, full-repository audit, test planning, or a repeat pass. Stay read-only and send actionable findings directly to the worker and Main.\n\n\n[V1.5.0 CHILD GUARD]\nNo child spawning, model/effort override, Git, external authority changes or full-history fork. Report to your Main, not the other team. Stop at your assigned boundary. Return exact evidence and unresolved claims; never run a model polling loop. These guards supersede older model/effort wording above. The deep_researcher is the sole Astra/medium identity per team and is reserved for the hardest mathematical/causal/complex question, not routine review.\n"
+"model_context_window" = 196608
+"model_auto_compact_token_limit" = 163840
+"model_auto_compact_token_limit_scope" = "total"
+"background_terminal_max_timeout" = 86400000
 
-developer_instructions = """
-Follow root AGENTS.md and .codex/TEAM.md.
+["agents"]
+"enabled" = false
 
-Use this role only when the change actually alters IsaacLab or RL semantics. Check the assigned semantic concern against current official documentation, local IsaacLab source when available, and the changed code's direct execution path.
+["features"]
 
-Prioritize high-level API correctness, tensor shape/dtype/device and batched indexing, manager lifecycle, observation/action ordering, reward sign/scale/routing, reset/termination transitions, asset/joint semantics, and training/evaluation meaning. Reject fallbacks or guards that hide invalid simulation/training state.
+["features"."context_management"]
+"experimental_mode" = false
 
-Return no more than three high-confidence blocking findings with file/symbol evidence and the resulting runtime/training failure. Do not perform generic code review, style review, full-repository audit, test planning, or a repeat pass. Stay read-only and send actionable findings directly to the worker and Main.
-"""
+["features"."token_budget"]
+"enabled" = false

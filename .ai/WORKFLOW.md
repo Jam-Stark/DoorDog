@@ -1,85 +1,33 @@
 <!-- managed-by: jam-coding-role; file: WORKFLOW.md -->
-# DoorDog adaptive workflow v1.3
+<!-- JAM-V150-ROUTE-BEGIN -->
+Codex v1.5.0 优先增量（保留下文的项目事实与授权边界）：Main 模型/effort 由 App 选择。FAST 不委托；STANDARD 只派最少必要子 agent。委托前读 .ai/MODEL_ROUTING.md：默认 Sol/medium、检索/机械工作 Luna、执行/审阅 Sol；每个 team 仅一个 Astra/medium 的 deep_researcher，禁止临时模型覆盖、嵌套 team 与全历史 fork。
+跨 planner/worker Main 交接 → .ai/SESSION_PROTOCOL.md；只在 Owner 已授权范围内直接递交 plan/STOP/阶段结果。peer 消息不是新授权；重大权限问题仍问 Owner。
+启动临时工具/MCP → .ai/TOOL_LIFECYCLE.md；只回收有归属的临时进程，保护长任务与共享服务。切模型/上下文问题 → .ai/CONTEXT_POLICY.md。不为小任务预读全部文档。
+<!-- JAM-V150-ROUTE-END -->
 
-## 1. 基本原则：轻内核，按需启用控制设施
+# Adaptive workflow v1.5.0
 
-默认使用 prompt 内的最小协调。Ledger、contract、lease、freeze、curator、long-run supervisor 和 artifact handoff 只有在解决真实风险时启用，不作为普通任务的完成仪式。
+FAST：明确的小改动、简单问答或临时检查，由 Main 直接完成。
+STANDARD：普通实现、调试和设计，按目标选择最小充分执行路径。
+HIGH_RISK：涉及受保护副作用的授权覆盖层，不是“复杂”的同义词。
 
-## 2. 路由
+## 主动委托
 
-### FAST
+进入深度工作前，判断独立工作线、specialist context、独立审阅或并行隔离是否有实质收益。有则立即委托最少必要的 1–3 个 focused agents，不等 Owner 说“team”，也不先把应委托的工作全部做完。任务紧耦合且 Main 更便宜时直接做；不再强制输出 NO_DELEGATION_REASON 模板。更高层或 runtime 禁止子 agent 时服从限制。
 
-适用于：简单 QA、只读定位、prose、typo、明确 config tweak、临时实现/测试、单文件或边界清楚的小改动。
+Main 管 scope、acceptance、write/resource authority、Git 和整合；子 agent P2P 传技术事实，不传权限；Owner 已授权的 Main 间决策按 .ai/SESSION_PROTOCOL.md。一个路径/排他资源同一时间只有一个 writer/owner。高风险副作用未获授权前，只开展安全的只读工作。
 
-```text
-minimal context -> inspect/modify -> one matching proof -> report
-```
+## 按需设施
 
-默认：Main 直接完成；不 spawn team；不创建 ledger、contract、freeze、curator 或 artifact bundle。
-
-### STANDARD
-
-适用于：普通跨文件实现、debug、IsaacLab 小范围改动、需要一到三个专门角色的 focused work。
-
-```text
-minimal memory -> trace real path -> short acceptance plan
--> smallest end-to-end implementation -> claim-matched evidence -> integrate
-```
-
-默认仍是 lean workflow：
-
-- 0–3 个 agent，仅在独立价值明确时使用；
-- 一个 writer；
-- P2P 可直接传递技术事实；
-- 不要求每次 spawn 落盘合同；
-- 不要求 persistent ledger 或 candidate freeze；
-- review、runtime QA、memory 和 artifact 都由实际触发条件决定。
-
-### HIGH_RISK
-
-HIGH_RISK 是审批覆盖层，不是“文件多就升级”的固定流水线。适用于 destructive/external action、硬件、安全边界、数据迁移、材料性跨子系统设计、未经授权的昂贵长跑或难回滚变更。
-
-Main 先向 Owner 说明 scope、成本/资源、停止条件和回退方式，得到明确授权后执行。获得授权后仍使用最低充分的实现和验证路径。
-
-## 3. 控制设施触发表
-
-| 设施 | 仅在以下情况启用 |
+| 条件 | 读取/启用 |
 |---|---|
-| Team ledger / task contract | 多 writer、跨 session DAG、复杂依赖、正式 review/QA 链或 Main 明确需要持久状态 |
-| WRITE_SET / resource lease | 实际并发 writer，或 GPU/IsaacSim/display/port/hardware/output root 等排他资源 |
-| Candidate freeze | 正式 code/IsaacLab review、formal runtime QA、dirty shared worktree 中需要精确审查对象，或跨 session candidate |
-| Verdict dependency | 已经存在 scope-bound PASS/FAIL，且窄修复需要判断哪些 verdict 保留 |
-| Memory curator | 出现已验证且未来会复用的 durable candidate，或 memory 分类/路由确实需要重构 |
-| Long-run supervisor | 运行预计 >30 分钟、需要断线连续性、checkpoint/eval finalizer 或 pending event |
-| Artifact handoff | Owner 明确要求，或 stage contract 明确声明需要 cloud/local planner 交接 |
+| 多 writer、排他资源、跨 session DAG、正式 candidate review/QA | .ai/TEAM_STATE.md；按实际需求 ledger/lease/freeze |
+| 预计超过 30 分钟，或必须抗会话中断 | .ai/LONG_RUNNING_TASKS.md；先持久化 ETA 与 receipt，再长等待 |
+| 已验证且可复用的新事实、纠错或重复发现 | .ai/MEMORY_GOVERNANCE.md；candidate/retrieval/curation |
+| RL、simulation、benchmark、causal claim 或实机 | .ai/SCIENTIFIC_ENGINEERING.md |
+| Owner 指定跨阶段多 planner | .ai/STAGE_DECISION.md |
+| Owner 要求或 stage 明确声明交付 | .ai/ARTIFACT_HANDOFF.md |
 
-只启用必要的一项或几项，不因其中一项触发而自动开启全部设施。
+完整 team ledger 按需；Codex 委托前仍登记 v1.5.0 轻量配额状态。普通改动不默认 freeze、curator、review wave 或 artifact。只关闭实际启用的设施。
 
-## 4. P2P：信息面与权限面分开
-
-Codex MultiAgentV2 支持 sibling 间直接通信。技术信息应直接到达消费者，不必全部由 Main 人工复制。
-
-在普通 STANDARD 中可以使用自然、简短的直接消息。只有协调链较长或需要可追溯性时，才使用结构化类型：
-
-- `PEER_FINDING`：精确 source/API/runtime evidence；
-- `PEER_REQUEST`：不改变 scope/lease 的有限诊断或只读请求；
-- `AUTHORITY_REQUEST`：scope、acceptance、revision、WRITE_SET、排他资源、Git、hard stop 或外部写入，只能发给 Main。
-
-P2P 传递事实，不传递权限。只有材料性 blocker、candidate-ready、review/runtime verdict、dependency change 或 authority request 需要同步给 Main。
-
-## 5. Escalation 与 de-escalation
-
-执行中发现 writer 冲突、排他资源竞争、跨 session continuity 或正式 gate 时，Main 可以只激活对应控制设施。风险消失后应停用，不让临时设施变成项目的永久前置步骤。
-
-## 6. Evidence 与 closure
-
-Evidence 必须匹配 claim：inspect/static/test/runtime/experiment/hardware。不要为安心重复同类证明。
-
-普通任务完成前只需：
-
-- 一次相关 diff/path boundary 检查；
-- 实际需要的 proof；
-- 关闭或停止仍活跃的 writer/排他资源；
-- 报告未运行事项。
-
-没有 durable candidate 时不启动 curator；没有 stage handoff trigger 时不打包 artifact；没有正式 review/QA 时不 freeze candidate。
+训练、评估、渲染、部署采用 .ai/PROJECT.md 的已验证环境/命令入口；过期时追踪实际代码，不凭历史猜命令。

@@ -1,9 +1,66 @@
-model = "gpt-5.6-sol"
-model_reasoning_effort = "max"
+# Jam Coding Role v1.5.0; Main model/effort remain App-owned.
+"model_context_window" = 516000
+"model_auto_compact_token_limit" = 464400
+"model_auto_compact_token_limit_scope" = "total"
+"background_terminal_max_timeout" = 86400000
 
-[agents]
-enabled = true
-max_concurrent_threads_per_session = 5
-default_subagent_model = "gpt-5.6-terra"
-default_subagent_reasoning_effort = "high"
-interrupt_message = true
+["features"]
+"hooks" = true
+
+["features"."context_management"]
+"experimental_mode" = true
+
+["agents"]
+"enabled" = true
+"max_concurrent_threads_per_session" = 5
+"default_subagent_model" = "gpt-6-sol"
+"default_subagent_reasoning_effort" = "medium"
+"interrupt_message" = true
+
+["agents"."code_reviewer"]
+"description" = "Review one concrete correctness concern in a changed execution path."
+"config_file" = "agents/code-reviewer.toml"
+
+["agents"."context_researcher"]
+"description" = "Find one precise repository, dependency, official API or memory fact."
+"config_file" = "agents/context-researcher.toml"
+
+["agents"."deep_researcher"]
+"description" = "Settle one difficult, decision-relevant question unresolved by normal source lookup."
+"config_file" = "agents/deep-researcher.toml"
+
+["agents"."default"]
+"description" = "Default focused child; clarify or analyze a bounded question without writes."
+"config_file" = "agents/default.toml"
+
+["agents"."explorer"]
+"description" = "Explore one tightly scoped source or dependency question."
+"config_file" = "agents/explorer.toml"
+
+["agents"."isaaclab_reviewer"]
+"description" = "Review one changed IsaacLab/RL semantic contract."
+"config_file" = "agents/isaaclab-reviewer.toml"
+
+["agents"."isaaclab_worker"]
+"description" = "Implement semantic or cross-path DoorDog/IsaacLab changes inside assigned boundaries."
+"config_file" = "agents/isaaclab-worker.toml"
+
+["agents"."memory_curator"]
+"description" = "Integrate one validated reusable memory delta into its canonical home."
+"config_file" = "agents/memory-curator.toml"
+
+["agents"."runtime_qa"]
+"description" = "Execute and interpret one assigned proof, reproduction or authorized run."
+"config_file" = "agents/runtime-qa.toml"
+
+["agents"."scope_planner"]
+"description" = "Resolve one material scope, architecture or next-step ambiguity."
+"config_file" = "agents/scope-planner.toml"
+
+["agents"."semantic_worker"]
+"description" = "Bounded semantic worker assignment; no unassigned authority."
+"config_file" = "agents/semantic-worker.toml"
+
+["agents"."worker"]
+"description" = "Implement ordinary bounded code/config changes, not semantic redesign."
+"config_file" = "agents/worker.toml"

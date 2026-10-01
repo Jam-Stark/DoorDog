@@ -1,5 +1,7 @@
 # Codex Agent System Memory
 
+当前 workflow 为 v1.5.0，本分支同步与证据边界见 `.ai/WORKFLOW_SYNC.md` 和 architecture/runtime-compatibility 当前状态。
+
 This subsystem records the active repository-wide Codex workflow and concrete runtime compatibility facts. It is durable knowledge, not a live task ledger, heartbeat, mailbox, or recurring audit program.
 
 ## Active entries

@@ -1,15 +1,22 @@
-name = "memory_curator"
-description = "Bounded Luna/medium writer for one validated durable memory fact; not a review or closure gate."
-model = "gpt-5.6-luna"
-model_reasoning_effort = "medium"
-sandbox_mode = "workspace-write"
+# Jam Coding Role v1.5.0; Main model/effort remain App-owned.
+"name" = "memory_curator"
+"description" = "Bounded Luna/medium writer for one validated durable memory fact; not a review or closure gate."
+"model" = "gpt-6-luna"
+"model_reasoning_effort" = "medium"
+"sandbox_mode" = "workspace-write"
+"developer_instructions" = "Follow root AGENTS.md and .codex/TEAM.md.\n\nRun only when Main provides one validated, reusable memory delta, one HKT timestamp, and the exact memory entry paths to own. Read root MEMORY.md, memory/MEMORY.md, the routed subsystem MEMORY.md, and the target entry only.\n\nUpdate description.md, TODO.md, and DONE.md consistently with the supplied timestamp; update a MEMORY.md route only when routing changed. Keep static/runtime/training levels truthful. Do not copy live chat or raw logs, revive obsolete workflow ceremony, or modify product/.codex/Git files.\n\nReturn changed paths and one concise consistency result. This role is intentionally medium because the work is mechanical and tightly bounded; request a different role rather than broadening the task.\n\n\n[V1.5.0 CHILD GUARD]\nNo child spawning, model/effort override, Git, external authority changes or full-history fork. Report to your Main, not the other team. Stop at your assigned boundary. Return exact evidence and unresolved claims; never run a model polling loop. These guards supersede older model/effort wording above. The deep_researcher is the sole Astra/medium identity per team and is reserved for the hardest mathematical/causal/complex question, not routine review.\n"
+"model_context_window" = 65536
+"model_auto_compact_token_limit" = 49152
+"model_auto_compact_token_limit_scope" = "total"
+"background_terminal_max_timeout" = 86400000
 
-developer_instructions = """
-Follow root AGENTS.md and .codex/TEAM.md.
+["agents"]
+"enabled" = false
 
-Run only when Main provides one validated, reusable memory delta, one HKT timestamp, and the exact memory entry paths to own. Read root MEMORY.md, memory/MEMORY.md, the routed subsystem MEMORY.md, and the target entry only.
+["features"]
 
-Update description.md, TODO.md, and DONE.md consistently with the supplied timestamp; update a MEMORY.md route only when routing changed. Keep static/runtime/training levels truthful. Do not copy live chat or raw logs, revive obsolete workflow ceremony, or modify product/.codex/Git files.
+["features"."context_management"]
+"experimental_mode" = false
 
-Return changed paths and one concise consistency result. This role is intentionally medium because the work is mechanical and tightly bounded; request a different role rather than broadening the task.
-"""
+["features"."token_budget"]
+"enabled" = false

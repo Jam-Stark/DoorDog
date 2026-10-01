@@ -1,54 +1,15 @@
-# DoorDog Codex MultiAgentV2 workflow v1.3
+# Codex team v1.5.0
 
-## Lean default
+Root AGENTS.md and Owner authority remain controlling. Read .ai/MODEL_ROUTING.md before delegation. Main model and effort are App-owned. Default children use GPT-6 Sol/medium; retrieval and mechanical work use Luna; bounded implementation/review uses GPT-6 Sol. Only deep_researcher may use GPT-6 Astra, at medium, with one persistent child identity per team. No nested teams, spawn model/effort overrides, or whole-history forks. Current verified MultiAgentV2 uses explicit fork_turns="none".
 
-FAST and ordinary STANDARD work use Main or a small focused set of agents with prompt-level boundaries. Persistent team state is OFF by default.
+FAST: do the work directly. STANDARD: delegate only where independent work, specialized context, or a concrete review concern provides real benefit. Usually 0–2 children; 5 is a ceiling, not a target. Give a focused brief with exact question, paths, facts, write set, acceptance and limits. A child does not own Git, external authority or broader scope.
 
-Project roles remain those registered in `.codex/agents/*.toml`. Model/effort/concurrency remain in `.codex/config.toml`.
+Register the actual Main session and stable Owner task/team ID before spawning. Native PreToolUse reserves the quota; PostToolUse binds identity. Unknown tool shapes fail closed or retain a reservation. Verify actual hook interception/effective model/effort locally; static config is not billing enforcement. Do not route agent-control calls through an uncovered tool or Code Mode path.
 
-## Proactive delegation gate
+Two independent Main teams use .ai/SESSION_PROTOCOL.md for direct plan/STOP/result exchange, with one in-flight notification and durable event IDs. Children communicate with their own Main. An addressed peer message is not a grant of Owner authority. Within the pre-authorized plan envelope, workers can continue after a planner decision without asking Owner to relay text. Any new high-risk side effect, scope expansion or Owner-only STOP still requires Owner action.
 
-- FAST: Main direct.
-- STANDARD: before deep work, Main checks for independent lanes、specialist context、material independent review/QA value、or material speed/context benefit. If any trigger is true, Main must spawn the minimum useful 1–3 focused agents immediately. Do not wait for the user to say “team”, and do not postpone spawn until Main has already done the work intended for the child.
-- HIGH_RISK: Owner approval remains required before destructive/external/hardware/expensive side effects. Safe read-only scout、planner、source-verification or reviewer lanes follow the same proactive gate and may start before approval.
-- A non-FAST single-agent route requires a concrete `NO_DELEGATION_REASON`: no independent value、tightly coupled cheaper direct work、or higher-level/runtime restriction.
+Persistent full coordination remains conditional: .ai/TEAM_STATE.md for genuine write/resource conflicts, formal reviews or DAG ownership. v1.5.0's small cost/outbox ledger does not turn every read-only task into a full approval workflow. Preserve legacy coordination validation; never infer acceptance from command success.
 
-Current local Codex releases can delegate when applicable project or skill instructions request it; this adapter is that explicit request. Main still waits for child results, integrates them, and closes completed threads.
+Long jobs keep their existing supervisor, ETA-based single logical wait and durable completion receipts. No agent hired to poll logs; no Stop hook loop. Tool/MCP ownership and cleanup: .ai/TOOL_LIFECYCLE.md. Never reap authorized training, shared services, the Codex App or the shared app-server as ephemeral tools.
 
-## P2P
-
-Use direct sibling communication for exact API evidence、runtime signatures、reproduction commands、targeted defects and dependency-ready notices. Peers act only within existing assignments.
-
-Use structured `PEER_FINDING` / `PEER_REQUEST` / `AUTHORITY_REQUEST` only when it improves routing or traceability. Main alone changes scope、acceptance、revision、WRITE_SET、exclusive resources、Git or hard stops.
-
-## When to activate coordination state
-
-Activate `.ai/TEAM_STATE.md` only for:
-
-- multiple writers;
-- exclusive GPU/IsaacSim/display/port/hardware/output resources;
-- cross-session DAG;
-- formal review/runtime QA with an exact candidate;
-- verdict invalidation after narrow fixes.
-
-```bash
-python .ai/scripts/team_state.py activate --mode adaptive --reason "..."
-```
-
-A read-only researcher or simple worker spawn does not require a disk contract. In `strict` mode, controlled writer/reviewer/runtime roles require one.
-
-## Candidate freeze
-
-Freeze only for formal review/QA or ambiguous dirty/shared worktrees. Ordinary implementation and temporary QA do not create revisions or verdict objects.
-
-## Review and QA
-
-Review is trigger-driven and concern-specific. One concern has one owner. A narrow fix invalidates only bound verdicts. Runtime QA runs the smallest command that can establish the requested runtime claim.
-
-## Long jobs
-
-A single authorized long run may use `.ai/LONG_RUNNING_TASKS.md` without the full ledger. Add leases when runs or agents compete for exclusive resources.
-
-## Closure
-
-No mandatory curator、freeze、artifact or team-state step. Close active agents/resources and deactivate coordination if it was enabled.
+Close only owned, activated children and ephemeral resources. On resume/compact retain the same team identity, Astra allocation and pending outbox. No mandatory memory/artifact phase and no automatic queue acknowledgement turns.

@@ -1,14 +1,25 @@
 ---
 name: codex-agent-runtime-compatibility
 scope: project config parsing, current standalone-agent schema, and concrete runtime model compatibility
-status: current_schema_static_pass_luna_user_confirmed
-last_updated: 2026-08-17 16:31 HKT
-evidence_level: STATIC_PASS; LUNA_USER_CONFIRMED; GENERAL_RUNTIME_NOT_RUN
+status: v1_5_0_static_pass_runtime_not_run
+last_updated: 2026-09-23 14:11 HKT
+evidence_level: STATIC_PASS; USER_HOOKS_REGISTERED; V150_RUNTIME_NOT_RUN
 owned_paths:
   - .codex/config.toml
   - .codex/agents/
   - memory/agent-system/runtime-compatibility/
 ---
+
+## v1.5.0 当前同步状态
+
+workflow v1.5.0 已同步：默认/default 为 GPT-6 Sol/medium，子任务并发 5，Main context/compact 516000/464400、total；Main model/effort 由 App 选择。共 12 个角色，唯一 Astra/medium deep_researcher。
+
+本分支静态预检 STATIC_PASS，4 个 worktree hooks 已同步注册；新 hook 信任与实际拦截、effective config、双 Main 通信、模型切换及工具回收均未运行验收。旧证据不自动升级为 v1.5.0 runtime PASS；旧长任务脚本/收据与研究内容保持原样。
+
+来源与备份：`.ai/WORKFLOW_SYNC.md`。以下历史配置/结论仅为旧版本记录，当前配置以本节和实际 source 为准。
+
+## 先前版本记录
+
 
 ## Purpose
 

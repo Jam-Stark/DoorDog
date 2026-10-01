@@ -1,9 +1,66 @@
-model = "gpt-5.6-sol"
-model_reasoning_effort = "max"
+# Jam Coding Role v1.5.0; Main model/effort remain App-owned.
+"model_context_window" = 516000
+"model_auto_compact_token_limit" = 464400
+"model_auto_compact_token_limit_scope" = "total"
+"background_terminal_max_timeout" = 86400000
 
-[agents]
-enabled = true
-max_concurrent_threads_per_session = 5
-default_subagent_model = "gpt-5.6-terra"
-default_subagent_reasoning_effort = "high"
-interrupt_message = true
+["agents"]
+"enabled" = true
+"max_concurrent_threads_per_session" = 5
+"default_subagent_model" = "gpt-6-sol"
+"default_subagent_reasoning_effort" = "medium"
+"interrupt_message" = true
+
+["agents"."code_reviewer"]
+"description" = "Optional Terra/high read-only reviewer for one concrete correctness concern; not a default post-implementation stage."
+"config_file" = "agents/code-reviewer.toml"
+
+["agents"."context_researcher"]
+"description" = "Luna/high read-only researcher for one repository path, official API question, local IsaacLab contract, or routed memory fact."
+"config_file" = "agents/context-researcher.toml"
+
+["agents"."deep_researcher"]
+"description" = "Read-only Sol/Ultra researcher for one user-approved deep question that normal repository and documentation lanes cannot settle."
+"config_file" = "agents/deep-researcher.toml"
+
+["agents"."default"]
+"description" = "Default focused child; clarify or analyze a bounded question without writes."
+"config_file" = "agents/default.toml"
+
+["agents"."explorer"]
+"description" = "Explore one tightly scoped source or dependency question."
+"config_file" = "agents/explorer.toml"
+
+["agents"."isaaclab_reviewer"]
+"description" = "Rare Sol/high read-only reviewer for actual IsaacLab/RL/reward/observation/action/scene/env/training semantic changes."
+"config_file" = "agents/isaaclab-reviewer.toml"
+
+["agents"."isaaclab_worker"]
+"description" = "Implementation-focused Terra/high worker for ordinary DoorDog and IsaacLab code/config changes."
+"config_file" = "agents/isaaclab-worker.toml"
+
+["agents"."memory_curator"]
+"description" = "Bounded Luna/medium writer for one validated durable memory fact; not a review or closure gate."
+"config_file" = "agents/memory-curator.toml"
+
+["agents"."runtime_qa"]
+"description" = "Luna/high executor and interpreter for one pre-existing proof command, failure reproduction, or user-approved long run."
+"config_file" = "agents/runtime-qa.toml"
+
+["agents"."scope_planner"]
+"description" = "Optional read-only Terra/high planner and focus keeper for genuinely ambiguous multi-step work; never a mandatory gate."
+"config_file" = "agents/scope-planner.toml"
+
+["agents"."semantic_worker"]
+"description" = "Bounded semantic worker assignment; no unassigned authority."
+"config_file" = "agents/semantic-worker.toml"
+
+["agents"."worker"]
+"description" = "Implement ordinary bounded code/config changes, not semantic redesign."
+"config_file" = "agents/worker.toml"
+
+["features"]
+"hooks" = true
+
+["features"."context_management"]
+"experimental_mode" = true

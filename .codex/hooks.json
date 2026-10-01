@@ -1,28 +1,28 @@
 {
-  "description": "Jam v1.4.0: bounded spawn and continuity; no wake/Stop/sleep hooks",
+  "description": "Jam v1.5.0: atomic child quota; preserve legacy coordination/continuity; no Stop loop.",
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^(spawn_agent)$",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" pre",
-            "timeout": 10
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_v150_hook.py\" pre",
+            "timeout": 20
           }
-        ]
+        ],
+        "matcher": "(^|.*\\.)(spawn_agent|resume_agent|close_agent)$"
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "^(spawn_agent|send_message|followup_task|interrupt_agent)$",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" post",
-            "timeout": 10
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_v150_hook.py\" post",
+            "timeout": 20
           }
-        ]
+        ],
+        "matcher": "(^|.*\\.)(spawn_agent|resume_agent|close_agent|send_message|followup_task|interrupt_agent)$"
       }
     ],
     "SessionStart": [
@@ -30,8 +30,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" session-start",
-            "timeout": 10
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_v150_hook.py\" session-start",
+            "timeout": 20
           }
         ]
       }
@@ -41,8 +41,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" post-compact",
-            "timeout": 10
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_v150_hook.py\" post-compact",
+            "timeout": 20
           }
         ]
       }

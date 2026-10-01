@@ -1,5 +1,7 @@
 # DONE
 
+- 2026-09-23 14:02 HKT — 完成 v1.5.0 本地文件升级与 Owner 配置覆盖；静态预检通过、4 个 worktree hooks 重新注册；运行验收 NOT_RUN。
+
 - 2026-09-12 17:58 HKT — 记录 v1.4.0 config/read、helper runtime 和 hooks/strict-config/transport 的实际边界；未用模型自述作为 effective config 证据。
 
 - 2026-08-17 16:31 HKT - Migrated the project to current `[agents]` settings and standalone custom-agent schema; replacement config and eight role TOMLs parse. User confirms the current machine accepts Luna subagents, so Luna is used normally without a compatibility branch. Runtime spawning was not separately probed.

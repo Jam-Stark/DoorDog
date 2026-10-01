@@ -1,24 +1,40 @@
 <!-- managed-by: jam-coding-role; file: MODEL_ROUTING.md -->
-# Codex model routing v1.4.0
+# Model routing v1.5.0
 
-Main 的 model / model_reasoning_effort 由 App/用户设置决定；不要在项目 config 或 bootstrap 写入默认 Main 模型/effort。子 agent 则必须显式选择已配置角色，最高 high；本规则已经授权范围内的 high，不需要每次重新申请“Ultra”许可。昂贵实验/硬件等副作用仍按 ROLE 授权。
+Main 的 model / effort 由 App 选择；按 Owner 要求保留项目 Main 窗口 516000、compact 464400、scope=total。独立 planner Main 与 worker Main 分别算一个 team；Main 不占子 agent 名额。一个 team 通常只需要 0–2 个子 agent；并发上限 5 不是必须开满的目标。
 
-## 分工
+| 子角色 | 模型 / effort | 边界 |
+|---|---|---|
+| memory_curator | GPT-6 Luna / medium | 机械整理 |
+| default | GPT-6 Sol / medium | 默认有界任务 |
+| explorer / context_researcher | GPT-6 Luna / high | 指定路径/问题的检索与有出处的事实摘要 |
+| runtime_qa | GPT-6 Luna / high | 精确命令的执行、结果与错误归档；复杂失败因果交回 Main/Sol |
+| scope_planner / worker | GPT-6 Sol / medium | 有界任务拆分、普通实现；scope_planner 子角色不是跨 session 的 planner Main |
+| semantic_worker / code_reviewer | GPT-6 Sol / high | 语义密集实现、按具体 concern 触发的审阅 |
+| isaaclab_worker / isaaclab_reviewer（DoorDog） | GPT-6 Sol / high | 保留现有 IsaacLab/source/tensor/manager/训练语义约束 |
+| deep_researcher | GPT-6 Astra / **medium，唯一** | 最难的数学、动力学、复杂根因或科研机制判断；只读咨询，不做日常检索/重复审阅 |
 
-Astra/low：scope_planner、default；Astra/medium：code_reviewer、semantic/IsaacLab reviewer、语义密集的 implementation/IsaacLab worker；Astra/high：一个真正未解决的 deep_researcher 问题。
-Terra/high：worker 的普通、范围准确的实现；Terra/medium：runtime_qa 的执行与失败解释。
-Luna/high：context_researcher、explorer 的窄检索；Luna/medium：memory_curator 的机械整理。
+## 必须执行的预算边界
 
-复杂实现直接派语义 worker，不先让 Terra 试错再串行升级。reviewer 按具体 concern 触发，不组成默认审批队列。通常最多一个 high-effort Astra lane；并发上限不是必须开满的数量。
+整个 team 生命周期仅分配一个 Astra 子 agent 身份；需要继续咨询时复用它，不通过 close→新建轮流消费昂贵模型。关闭后可恢复同一身份；不可恢复时由 Owner 决定是否重建，不用 TTL 自动释放。若有确定证据证明 spawn 从未创建子 agent，可人工 reconcile 对应未绑定 reservation。
 
-## 上下文与成本
+默认子 agent 必须是 Sol/medium；每次 spawn 必须选择已注册角色，显式 `fork_turns="none"`。禁止传 model、effort、reasoning_effort、model_reasoning_effort 覆盖。禁止 fork_context、完整 Main 历史继承、子 agent 再建子 team。自定义角色必须先审计，不以 unknown/default 悄悄回退 Astra。
 
-每个角色 TOML 都显式设定 model_context_window / model_auto_compact_token_limit / model_auto_compact_token_limit_scope="total"。本包 Astra 子角色为 262144/229376；Terra/Luna 为 196608/163840。不得继承 Main 的 516000/464400 后只修改 model 字段。
+Astra medium 不得升级 high/xhigh/max。Sol/Luna 默认上限 high；Sol max 仅是另外获准的离线比较候选，不进入 v1.5.0 自动路由。普通任务不用“先低端试错再层层升级”的固定链；按实际语义复杂度直接派合适的有界角色。
 
-给子 agent 新鲜且有界的 brief：问题、必要事实、精确路径、写入边界、完成条件；当前 MultiAgentV2 必须显式传 `fork_turns="none"`（默认值是 `all`），且不能传 `fork_context`。不要复制 Main 全历史或 fork 一个已膨胀的上下文。工具输出只返回与判断相关的片段，原始大日志保留文件引用。角色上下文上限是配置意图，auto compact 不是计费硬闸；首次请求、工具大输出、prefix 与本机继承行为仍需要 runtime 核对。
+首次委托前，从宿主取得实际 Main session_id，按当前 Owner 工作单登记稳定 team_id：
 
-禁止用 spawn 参数临时改成更小模型却保留大角色窗口。未知角色/自定义角色也须通过 .ai/scripts/codex_preflight.py 的审计。没有实际 effective-config 或工具 schema 证据，不宣称“已保证不会长上下文加价”。
+```bash
+python3 .ai/scripts/workflow_state.py --root . team-init --session ACTUAL_MAIN_SESSION_ID --team OWNER_TASK_TEAM_ID
+python3 .ai/scripts/codex_preflight.py --root .
+```
 
-Codex 的 Astra 长上下文计费例外不等于 Astra API 免费长上下文。通过 API key 使用时，以当前 API 规则为准；本包不会替用户改账户计费设置。Main 临时切到 5.6 时，先将 Main context/compact 调低，或改用小上下文的新会话。
+Astra 配额由 PreToolUse 在 SQLite 事务中先预留，PostToolUse 再绑定实际 child ID。结果未知保留占用；compact/重启不清空；同一 Git common-dir 的 worktree 共享同机状态。不要把 SQLite 放在跨机器 NFS，也不要复制状态数据库来实现远程通信。
 
-角色的 read-only/workspace-write 是配置意图；权限仍受宿主和 Main 的 runtime snapshot 约束。不能把一行 sandbox_mode 当成已经证明的 OS 隔离。
+本地验收须证明所有 spawn/resume 路径，包括工具命名空间与 Code Mode 的相关调用，都经过守卫。无法证明时禁用未覆盖的委托路径；Main 单独工作，不能宣称昂贵模型配额已经在实际宿主生效。角色配置、hooks、源码检查不是计费系统硬限额，也不是对可改配置的恶意代码的安全隔离。
+
+## 有界上下文
+
+Luna 子角色 65,536 / 49,152；Sol/Astra 196,608 / 163,840（窗口 / compact 阈值）。这是本工作流的保守预算，不是模型最大能力或扣费硬上限。仍要新鲜短 brief、精确路径、必要证据片段；大日志放文件。Astra notes/history 与 Sol/Luna compact 的区别见 .ai/CONTEXT_POLICY.md。
+
+保留单写入方、Main 整合/授权、昂贵实验与实机单独授权的既有规则。没有数学难题就不启动 Astra，没有审阅 concern 就不启动 reviewer。

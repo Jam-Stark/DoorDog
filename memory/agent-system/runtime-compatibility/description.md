@@ -1,9 +1,9 @@
 ---
 name: codex-agent-runtime-compatibility
 scope: project config parsing, current standalone-agent schema, and concrete runtime model compatibility
-status: v1_4_0_integrated_known_child_budget_defect_paused
-last_updated: 2026-09-12 18:14 HKT
-evidence_level: CONFIG_RUNTIME_PASS; CHILD_BUDGET_RUNTIME_MISMATCH; HOOK_EXECUTION_BLOCKED; LONG_WAIT_NOT_RUN
+status: v1_5_0_installed_runtime_unverified_known_child_budget_defect_paused
+last_updated: 2026-09-23 14:02 HKT
+evidence_level: V150_STATIC_PASS; USER_HOOKS_REGISTERED; V150_RUNTIME_NOT_RUN
 owned_paths:
   - .codex/config.toml
   - .codex/agents/
@@ -14,14 +14,22 @@ owned_paths:
 
 Track current project configuration facts and real runtime incompatibilities only. Do not create periodic model/role/sandbox probes.
 
-## 当前验收（2026-09-12 最新证据）
+## v1.5.0 当前状态（2026-09-23 14:02 HKT）
+
+- 默认与 default 角色为 GPT-6 Sol/medium，并发上限 5；Main 保留 516000/464400、total，model/effort 由 App 选择。其余按 v1.5.0 角色分工，唯一 Astra/medium deep_researcher；新增 semantic_worker，共 12 角色。
+- 静态预检 STATIC_PASS；4 个 worktree 用户 hooks 已同步注册。新 hook 实际拦截、当前 App effective config、Main 间通信、模型切换与工具进程回收均未执行运行验收；旧角色 context/compact 生效缺陷没有宣称修复。未启动测试矩阵、训练或模型任务。
+- 修改后的 hook 命令需通过 Codex `/hooks` 审阅/信任；旧 v1.4.0 信任与执行证据不证明新命令已运行。本轮没有改写信任状态。
+- Main 固定预算为 Owner 明确保留；子角色配置预算为 Luna 65536/49152、Sol/Astra 196608/163840，均不等同于 effective runtime 证明。
+- 新记录 `.ai/runtime/v150/LOCAL_ACCEPTANCE.json`；此前暂停的宿主预算缺陷仍保持暂停。
+
+## v1.4.0 历史验收（2026-09-12）
 
 - v1.4.0替换与hooks本机注册完成；四项加载/信任PASS，真实SessionStart execve触发PASS。其他事件未逐项runtime验收，hook独立完成退出状态UNVERIFIED；不重测已通过部分。
 - 当前测试任务原生sleep360 exit0、无输出；仅一次empty write_stdin实际353.210386087秒，无300秒截断或二次轮询。此前把schema默认范围视为硬上限的结论已被推翻。24h等待、Desktop热加载、idle wake未验证。
 - 角色model/effort/Total生效，但context/compact沿用Main，宿主typed role overrides缺少对应字段。Owner已暂停该缺陷修复，未编译部署补丁。
 - 原始证据：`.ai/runtime/workflow-v140/HOOKS_RETEST.md`；当前汇总：`.ai/WORKFLOW_FIXES.md`。下列原验证过程中的未信任、NOT_RUN与BLOCKED描述为历史，以上述状态为准。
 
-## Current facts
+## v1.4.0 历史事实
 
 - v1.4.0 共十一角色：Astra low default/scope_planner；Astra medium code/IsaacLab reviewer 与 isaaclab_worker；Astra high deep_researcher；Terra high worker、medium runtime_qa；Luna high context_researcher/explorer、medium memory_curator。
 - Astra 子角色预算 262144/229376，Terra/Luna 196608/163840，compact scope 均为 total；这些是配置意图；本轮 explorer 实际未采用角色 context/compact，详见下述宿主证据。

@@ -1,16 +1,22 @@
-# Jam Coding Role v1.4.0 — explicit per-child budget; main settings are not inherited here.
-name = "default"
-description = "Default focused child; clarify or analyze a bounded question without writes."
-model = "gpt-6-astra"
-model_reasoning_effort = "low"
-model_context_window = 262144
-model_auto_compact_token_limit = 229376
-model_auto_compact_token_limit_scope = "total"
-background_terminal_max_timeout = 86400000
-sandbox_mode = "read-only"
+# Jam Coding Role v1.5.0 — Main model/effort remain App-owned.
+"name" = "default"
+"description" = "Default focused child; clarify or analyze a bounded question without writes."
+"model" = "gpt-6-sol"
+"model_reasoning_effort" = "medium"
+"model_context_window" = 196608
+"model_auto_compact_token_limit" = 163840
+"model_auto_compact_token_limit_scope" = "total"
+"background_terminal_max_timeout" = 86400000
+"sandbox_mode" = "read-only"
+"developer_instructions" = "Follow root AGENTS.md and .codex/TEAM.md.\nUse a compact fresh assignment and exact source paths. Return supported findings and uncertainty. Main owns integration/authority. Implementation belongs to worker or a semantic worker; no implicit scope expansion or Git.\nStay within the assigned authority. Use .ai/LONG_RUNNING_TASKS.md for durable waits; never hire a model to poll. Return a bounded result, evidence and unresolved claims.\n\n\n[V1.5.0 CHILD GUARD]\nNo child spawning, model/effort override, Git, external authority changes or full-history fork. Report to your Main, not the other team. Stop at your assigned boundary. Return exact evidence and unresolved claims; never run a model polling loop. These guards supersede older model/effort wording above. The deep_researcher is the sole Astra/medium identity per team and is reserved for the hardest mathematical/causal/complex question, not routine review.\n"
 
-developer_instructions = """
-Follow root AGENTS.md and .codex/TEAM.md.
-Use a compact fresh assignment and exact source paths. Return supported findings and uncertainty. Main owns integration/authority. Implementation belongs to worker or a semantic worker; no implicit scope expansion or Git.
-Stay within the assigned authority. Use .ai/LONG_RUNNING_TASKS.md for durable waits; never hire a model to poll. Return a bounded result, evidence and unresolved claims.
-"""
+["agents"]
+"enabled" = false
+
+["features"]
+
+["features"."context_management"]
+"experimental_mode" = false
+
+["features"."token_budget"]
+"enabled" = false

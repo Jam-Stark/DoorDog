@@ -1,17 +1,15 @@
-# Codex team v1.4.0
+# Codex team v1.5.0
 
-Delegate proactively under root AGENTS.md / .ai/WORKFLOW.md; no separate approval ceremony. Main owns final integration and permissions. One writer/owner per path or exclusive resource. Direct P2P is for exact evidence, defects and dependency-ready notices, not authority changes.
+Root AGENTS.md and Owner authority remain controlling. Read .ai/MODEL_ROUTING.md before delegation. Main model and effort are App-owned. Default children use GPT-6 Sol/medium; retrieval and mechanical work use Luna; bounded implementation/review uses GPT-6 Sol. Only deep_researcher may use GPT-6 Astra, at medium, with one persistent child identity per team. No nested teams, spawn model/effort overrides, or whole-history forks. Current verified MultiAgentV2 uses explicit fork_turns="none".
 
-## Role choice
+FAST: do the work directly. STANDARD: delegate only where independent work, specialized context, or a concrete review concern provides real benefit. Usually 0–2 children; 5 is a ceiling, not a target. Give a focused brief with exact question, paths, facts, write set, acceptance and limits. A child does not own Git, external authority or broader scope.
 
-Read .ai/MODEL_ROUTING.md when choosing roles. Use .codex/agents/*.toml, not model-name substitutions on an inherited large context. Cap all children at high. Astra handles decision/semantic difficulty; Terra handles bounded implementation or runtime interpretation; Luna handles targeted retrieval and mechanical curation. Deep researcher high is already permitted for a genuinely difficult scoped question, not an automatic stage.
+Register the actual Main session and stable Owner task/team ID before spawning. Native PreToolUse reserves the quota; PostToolUse binds identity. Unknown tool shapes fail closed or retain a reservation. Verify actual hook interception/effective model/effort locally; static config is not billing enforcement. Do not route agent-control calls through an uncovered tool or Code Mode path.
 
-Ordinary STANDARD work needs only small, focused assignments. Hand over goal, exact paths, evidence, write boundaries and completion condition. For current MultiAgentV2, explicitly pass fork_turns="none"; its default is "all" and fork_context is unsupported. Do not fork full Main history into a cheap child. Do not spawn duplicate review owners or fill concurrency slots for their own sake.
+Two independent Main teams use .ai/SESSION_PROTOCOL.md for direct plan/STOP/result exchange, with one in-flight notification and durable event IDs. Children communicate with their own Main. An addressed peer message is not a grant of Owner authority. Within the pre-authorized plan envelope, workers can continue after a planner decision without asking Owner to relay text. Any new high-risk side effect, scope expansion or Owner-only STOP still requires Owner action.
 
-## Conditional control
+Persistent full coordination remains conditional: .ai/TEAM_STATE.md for genuine write/resource conflicts, formal reviews or DAG ownership. v1.5.0's small cost/outbox ledger does not turn every read-only task into a full approval workflow. Preserve legacy coordination validation; never infer acceptance from command success.
 
-Persistent team state stays OFF unless multi-writer/resource/cross-session/formal-review needs trigger .ai/TEAM_STATE.md. Candidate freeze/verdict invalidation are only for real formal QA or ambiguous shared state. A simple read-only researcher needs neither ledger nor lease.
+Long jobs keep their existing supervisor, ETA-based single logical wait and durable completion receipts. No agent hired to poll logs; no Stop hook loop. Tool/MCP ownership and cleanup: .ai/TOOL_LIFECYCLE.md. Never reap authorized training, shared services, the Codex App or the shared app-server as ephemeral tools.
 
-Long-job execution is run_supervisor's responsibility, not an agent hired to wake every 30 minutes. Main receives a bounded result/receipt and waits by ETA. Completion of a process is not automatically acceptance of the training claim.
-
-Close only agents/resources/facilities actually activated. No mandatory memory or artifact phase.
+Close only owned, activated children and ephemeral resources. On resume/compact retain the same team identity, Astra allocation and pending outbox. No mandatory memory/artifact phase and no automatic queue acknowledgement turns.

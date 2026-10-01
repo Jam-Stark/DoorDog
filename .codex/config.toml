@@ -1,17 +1,66 @@
-# v1.4.0: Main model and effort intentionally absent; respect App selection.
-model_context_window = 516000
-model_auto_compact_token_limit = 464400
-model_auto_compact_token_limit_scope = "total"
-# Maximum empty write_stdin wait, NOT a process-kill timeout or default sleep.
-background_terminal_max_timeout = 86400000
+# Jam Coding Role v1.5.0 — Main model/effort remain App-owned.
+"background_terminal_max_timeout" = 86400000
+"model_context_window" = 516000
+"model_auto_compact_token_limit" = 464400
+"model_auto_compact_token_limit_scope" = "total"
 
-[features]
-context_management = { experimental_mode = true }
-token_budget.enabled = true
+["features"]
+"hooks" = true
 
-[agents]
-enabled = true
-max_concurrent_threads_per_session = 5
-default_subagent_model = "gpt-6-astra"
-default_subagent_reasoning_effort = "low"
-interrupt_message = true
+["features"."context_management"]
+"experimental_mode" = true
+
+["agents"]
+"enabled" = true
+"max_concurrent_threads_per_session" = 5
+"default_subagent_model" = "gpt-6-sol"
+"default_subagent_reasoning_effort" = "medium"
+"interrupt_message" = true
+
+["agents"."default"]
+"description" = "Bounded default assignment; no unassigned authority."
+"config_file" = "agents/default.toml"
+
+["agents"."explorer"]
+"description" = "Bounded explorer assignment; no unassigned authority."
+"config_file" = "agents/explorer.toml"
+
+["agents"."context_researcher"]
+"description" = "Bounded context researcher assignment; no unassigned authority."
+"config_file" = "agents/context-researcher.toml"
+
+["agents"."memory_curator"]
+"description" = "Bounded memory curator assignment; no unassigned authority."
+"config_file" = "agents/memory-curator.toml"
+
+["agents"."runtime_qa"]
+"description" = "Bounded runtime qa assignment; no unassigned authority."
+"config_file" = "agents/runtime-qa.toml"
+
+["agents"."worker"]
+"description" = "Bounded worker assignment; no unassigned authority."
+"config_file" = "agents/worker.toml"
+
+["agents"."scope_planner"]
+"description" = "Bounded scope planner assignment; no unassigned authority."
+"config_file" = "agents/scope-planner.toml"
+
+["agents"."semantic_worker"]
+"description" = "Bounded semantic worker assignment; no unassigned authority."
+"config_file" = "agents/semantic-worker.toml"
+
+["agents"."code_reviewer"]
+"description" = "Bounded code reviewer assignment; no unassigned authority."
+"config_file" = "agents/code-reviewer.toml"
+
+["agents"."isaaclab_worker"]
+"description" = "Bounded isaaclab worker assignment; no unassigned authority."
+"config_file" = "agents/isaaclab-worker.toml"
+
+["agents"."isaaclab_reviewer"]
+"description" = "Bounded isaaclab reviewer assignment; no unassigned authority."
+"config_file" = "agents/isaaclab-reviewer.toml"
+
+["agents"."deep_researcher"]
+"description" = "Bounded deep researcher assignment; no unassigned authority."
+"config_file" = "agents/deep-researcher.toml"

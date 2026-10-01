@@ -1,3 +1,17 @@
+# Workflow v1.5.0 本机状态
+
+更新：2026-09-23 14:02 HKT。
+
+默认与 default 角色为 GPT-6 Sol/medium，并发上限 5；Main 保留 516000/464400、total，model/effort 由 App 选择。其余按 v1.5.0 角色分工，唯一 Astra/medium deep_researcher；新增 semantic_worker，共 12 角色。
+
+静态预检 STATIC_PASS；4 个 worktree 用户 hooks 已同步注册。新 hook 实际拦截、当前 App effective config、Main 间通信、模型切换与工具进程回收均未执行运行验收；旧角色 context/compact 生效缺陷没有宣称修复。未启动测试矩阵、训练或模型任务。
+
+本次已使用原 worktree 注册脚本同步 4 个新命令，未代写信任。请在 Codex `/hooks` 审阅新命令；旧 hook 的信任与运行证据不能代替新版本。注册来源仍是 `.codex/hooks.json`。
+
+备份：`/home/baoquanc/.cache/doordog-workflow-v150-20260923-140051`。本次安装未使用包内生成内容指纹的 apply 路径；回退应对照备份文件和 manifest，只恢复本次改动，用户 hooks 仅恢复本 worktree 的条目。
+
+详细状态：`.ai/runtime/v150/LOCAL_ACCEPTANCE.json`。以下为 v1.4.0 历史记录，保留来源与尚未修复的问题。
+
 # Workflow 1.4.0 本机修复与未解决事项
 
 更新：2026-09-12；适用宿主 codex-cli 0.153.0，DoorDog-A2_Piper linked worktree。

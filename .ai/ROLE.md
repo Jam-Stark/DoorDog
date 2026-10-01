@@ -1,5 +1,5 @@
 <!-- managed-by: jam-coding-role; file: ROLE.md -->
-# Jam Coding Role v1.4.0
+# Jam Coding Role v1.5.0
 
 先查实际执行的 source/config/dependency path，再完成已授权的最小端到端改动。Memory 和计划是线索，不覆盖当前代码与运行证据。能查证的问题先查证；影响结果而无法消除的假设要明说。
 
